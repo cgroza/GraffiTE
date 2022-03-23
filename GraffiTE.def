@@ -1,0 +1,41 @@
+Bootstrap: library
+From: ubuntu:20.04
+
+%post
+    apt-get update
+    apt-get install --assume-yes software-properties-common
+    add-apt-repository universe
+    apt-get update
+    apt-get install --assume-yes python3-pip git build-essential zlib1g-dev libjellyfish-2.0-dev pkg-config cmake
+
+    apt-get install --assume-yes samtools bcftools
+    pip3 install svim-asm
+
+    git clone https://github.com/lh3/minimap2
+    cd minimap2
+    make
+    cp minimap2 /usr/local/bin
+
+    mkdir /metadata
+    echo `dpkg -l | grep jellyfish | tr -s " " | cut -d " " -f 2,3` > /metadata/jellyfish.lib.version
+    mkdir /repos
+    cd /repos
+    git clone https://github.com/eblerjana/pangenie.git
+    cd pangenie
+    mkdir build
+    cd build
+    # cmake -DCOMPILATION_ARCH=OFF .. 
+    cmake ..
+    make -j 4
+    cp src/PanGenie /usr/local/bin
+    cp src/PanGenie-graph /usr/local/bin
+    cd ..
+    echo `git rev-parse --short HEAD` > /metadata/pangenie.git.version
+    apt-get remove --assume-yes git software-properties-common cmake make pkg-config build-essential
+    apt-get autoremove --assume-yes
+    apt-get clean --assume-yes
+
+%environment
+    export LC_ALL=C
+
+
