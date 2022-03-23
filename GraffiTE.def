@@ -172,7 +172,7 @@ From: ubuntu:20.04
     PYTHONIOENCODING=utf8
     PATH=/opt/RepeatMasker:/opt/RepeatMasker/util:/opt/RepeatModeler:/opt/RepeatModeler/util:/opt/coseg:/opt/ucsc_tools:/opt:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-    apt-get install --assume-yes samtools bcftools
+    apt-get install --assume-yes samtools bcftools tabix
     pip3 install svim-asm
 
     git clone https://github.com/lh3/minimap2
@@ -200,8 +200,6 @@ From: ubuntu:20.04
     apt-get remove --assume-yes git software-properties-common cmake make pkg-config build-essential
     apt-get autoremove --assume-yes
     apt-get clean --assume-yes
-    cd ..
-    rm -rf pangenie
 
 %environment
     export LC_ALL=C
