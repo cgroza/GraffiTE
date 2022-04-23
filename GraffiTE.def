@@ -2,7 +2,7 @@ Bootstrap: library
 From: ubuntu:20.04
 
 %files
-    repmask_vcf.sh /bin
+    repmask_vcf.sh /usr/local/bin
 %post
     apt-get update
     apt-get install --assume-yes software-properties-common
@@ -183,11 +183,18 @@ From: ubuntu:20.04
     apt-get install --assume-yes samtools bcftools tabix
     pip3 install svim-asm pandas vcfpy
 
+    git clone https://github.com/fritzsedlazeck/SURVIVOR.git
+    cd SURVIVOR/Debug
+    make
+    cp SURVIVOR /usr/local/bin
+    cd $HOME
+    rm -rf SURVIVOR
+
     git clone https://github.com/lh3/minimap2
     cd minimap2
     make
     cp minimap2 /usr/local/bin
-    cd ..
+    cd $HOME
     rm -rf minimap2
 
     mkdir /metadata
