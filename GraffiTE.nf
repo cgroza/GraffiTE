@@ -24,7 +24,7 @@ process svim_asm {
     set val(asm_name), file(asm), file(ref) from svim_in_ch
 
     output:
-    set val(asm_name), file("${asm_name}.vcf.gz") into svim_out_ch
+    set val(asm_name), file("${asm_name}.vcf") into svim_out_ch
 
     script:
     """
@@ -33,8 +33,26 @@ process svim_asm {
     samtools index asm/asm.sorted.bam
     svim-asm haploid --min_sv_size 100 --types INS --sample ${asm_name} asm/ asm/asm.sorted.bam ${ref}
     mv asm/variants.vcf ${asm_name}.vcf
-    bgzip ${asm_name}.vcf
     """
+}
+
+process make_vcf {
+    cpus params.threads
+    memory params.memory
+    publishDir "${params.out}", mode: 'copy'
+
+    input:
+    file("*.vcf") from svim_out_ch.collect().map{sample -> sample[1]}
+
+    output:
+    file("genotypes.vcf") into genotypes_ch
+
+    script:
+"""
+    ls *.vcf > vcfs.txt
+	  SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100 genotypes.vcf
+    """
+
 }
 
 process pangenie {
