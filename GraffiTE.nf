@@ -55,7 +55,7 @@ if(!params.vcf) {
     bcftools view -G genotypes_repmasked.vcf.gz | \
     awk -v FS='\t' -v OFS='\t' \
     '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
-    bcftools view -i 'INFO/MEI == "TRUE" && INFO/match_span > 0.80'  -o pangenie.vcf
+    bcftools view -i 'INFO/match_span > 0.80'  -o pangenie.vcf
     """
 
   }
