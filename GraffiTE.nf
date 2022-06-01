@@ -42,7 +42,8 @@ if(!params.vcf) {
     publishDir "${params.out}", mode: 'copy'
 
     input:
-    set file(vcfs), file(TE_library) from svim_out_ch.map{sample -> sample[1]}.collect().combine(TE_library_ch)
+    file(vcfs) from svim_out_ch.map{sample -> sample[1]}.collect()
+    file(TE_library) from TE_library_ch
 
     output:
     file("pangenie.vcf") into vcf_ch
