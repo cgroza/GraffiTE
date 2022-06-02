@@ -7,13 +7,13 @@ params.threads = 1
 params.memory = "100G"
 params.out = "out"
 
-Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path)]}.view().set{reads_ch}
-Channel.fromPath(params.reference).view().into{ref_geno_ch; ref_asm_ch}
+Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path)]}.set{reads_ch}
+Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch}
 
 if(!params.vcf) {
-  Channel.fromPath(params.assemblies).splitCsv(header:true).map{row -> [row.sample, file(row.path)]}.view().set{asm_ch}
-  asm_ch.combine(ref_asm_ch).view().set{svim_in_ch}
-  Channel.fromPath(params.TE_library).into{TE_library_ch}
+  Channel.fromPath(params.assemblies).splitCsv(header:true).map{row -> [row.sample, file(row.path)]}.set{asm_ch}
+  asm_ch.combine(ref_asm_ch).set{svim_in_ch}
+  Channel.fromPath(params.TE_library).set{TE_library_ch}
 
   process svim_asm {
     cpus params.threads
@@ -61,11 +61,11 @@ if(!params.vcf) {
 
   }
 } else {
-  Channel.fromPath(params.vcf).view().set{vcf_ch}
+  Channel.fromPath(params.vcf).set{vcf_ch}
 }
 
 
-reads_ch.combine(vcf_ch).combine(ref_geno_ch).view().set{input_ch}
+reads_ch.combine(vcf_ch).combine(ref_geno_ch).set{input_ch}
 
 process pangenie {
   cpus params.threads
