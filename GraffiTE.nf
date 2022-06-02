@@ -31,7 +31,7 @@ if(!params.vcf) {
     mkdir asm
     minimap2 -a -x asm5 --cs -r2k -t ${params.threads} ${ref} ${asm} | samtools sort -m4G -@4 -o asm/asm.sorted.bam -
     samtools index asm/asm.sorted.bam
-    svim-asm haploid --min_sv_size 100 --types INS --sample ${asm_name} asm/ asm/asm.sorted.bam ${ref}
+    svim-asm haploid --min_sv_size 100 --types INS,DEL --sample ${asm_name} asm/ asm/asm.sorted.bam ${ref}
     mv asm/variants.vcf ${asm_name}.vcf
     """
   }
