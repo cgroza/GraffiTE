@@ -9,7 +9,7 @@ cat ${VCF} | grep -v "#" | awk '{print(sprintf(">%s\n%s", $3, $5))}' > ${FASTA_F
 
 REPMASK_DIR=$(mktemp -d)
 
-RepeatMasker -lib ${FASTA_LIB} -e hmmer -s -species human -dir ${REPMASK_DIR} -pa 64 ${FASTA_FILE}
+RepeatMasker -lib ${FASTA_LIB} -e hmmer -s -dir ${REPMASK_DIR} -pa 64 ${FASTA_FILE}
 
 REPMASK_OUT=${REPMASK_DIR}/$(basename ${FASTA_FILE}).out
 
