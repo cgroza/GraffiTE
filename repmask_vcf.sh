@@ -38,7 +38,7 @@ rep_mask <- read_rm(repmask_out) %>%
 vcf <- read.vcfR(annot_vcf)
 vcf_df <- tibble(CHROM = getCHROM(vcf),
                  POS = getPOS(vcf),
-                 qry_length = str_length(getALT(vcf)),
+                 qry_length = abs(str_length(getALT(vcf)) - str_length(getREF(vcf))),
                  qry_id = getID(vcf))
 
 annot <- left_join(vcf_df, rep_mask, by = "qry_id") %>%
