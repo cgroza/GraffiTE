@@ -61,6 +61,6 @@ echo -e '##INFO=<ID=repClass,Number=1,Type=String,Description="Repeat name">' >>
 echo -e '##INFO=<ID=match_span,Number=1,Type=Float,Description="Insertion length spaned by repeat">' >> ${HDR_FILE}
 
 bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
-         -c CHROM,POS,INFO/repFamily,INFO/repClass,INFO/match_span $VCF | \
+         -c CHROM,POS,INFO/repClass,INFO/repFamily,INFO/match_span $VCF | \
     bcftools view -Oz -o ${OUT_VCF}
 
