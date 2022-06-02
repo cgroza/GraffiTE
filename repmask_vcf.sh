@@ -10,7 +10,7 @@ cat ${VCF} | grep -v "#" | grep "svim_asm.DEL" | awk '{print(sprintf(">%s\n%s", 
 
 REPMASK_DIR=$(mktemp -d)
 
-RepeatMasker -lib ${FASTA_LIB} -s -dir ${REPMASK_DIR} -pa 16 ${FASTA_FILE}
+RepeatMasker -nolow -lib ${FASTA_LIB} -s -dir ${REPMASK_DIR} -pa 16 ${FASTA_FILE}
 
 REPMASK_OUT=${REPMASK_DIR}/$(basename ${FASTA_FILE}).out
 
