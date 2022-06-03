@@ -15,7 +15,7 @@ RepeatMasker -nolow -lib ${FASTA_LIB} -s -dir ${REPMASK_DIR} -pa 16 ${FASTA_FILE
 
 REPMASK_OUT=${REPMASK_DIR}/$(basename ${FASTA_FILE}).out
 
-ANNOT_FILE=$(mktemp)
+ANNOT_FILE=vcf_annotation
 
 Rscript - <<SCRIPT
 library(biomartr)
