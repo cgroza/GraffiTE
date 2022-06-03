@@ -32,7 +32,7 @@ if(!params.vcf) {
     minimap2 -a -x asm5 --cs -r2k -t ${params.threads} ${ref} ${asm} | samtools sort -m4G -@4 -o asm/asm.sorted.bam -
     samtools index asm/asm.sorted.bam
     svim-asm haploid --min_sv_size 100 --types INS,DEL --sample ${asm_name} asm/ asm/asm.sorted.bam ${ref}
-    sed 's/svim_asm\./${asm_name}\.svim_asm\./g' asm/variants.vcf > ${asm_name}.vcf
+    sed 's/svim_asm\\./${asm_name}\\.svim_asm\\./g' asm/variants.vcf > ${asm_name}.vcf
     """
   }
 
