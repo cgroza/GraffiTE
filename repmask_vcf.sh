@@ -4,11 +4,12 @@ VCF=$1
 OUT_VCF=$2
 FASTA_LIB=$3
 
-FASTA_FILE=$(mktemp)
+FASTA_FILE=indels.fa
 cat ${VCF} | grep -v "#" | grep "svim_asm.INS" | awk '{print(sprintf(">%s\n%s", $3, $5))}' > ${FASTA_FILE}
 cat ${VCF} | grep -v "#" | grep "svim_asm.DEL" | awk '{print(sprintf(">%s\n%s", $3, $4))}' >> ${FASTA_FILE}
 
-REPMASK_DIR=$(mktemp -d)
+mkdir repeatmasker_dir
+REPMASK_DIR=repeatmasker_dir
 
 RepeatMasker -nolow -lib ${FASTA_LIB} -s -dir ${REPMASK_DIR} -pa 16 ${FASTA_FILE}
 
