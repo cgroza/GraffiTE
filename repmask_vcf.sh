@@ -5,8 +5,8 @@ OUT_VCF=$2
 FASTA_LIB=$3
 
 FASTA_FILE=indels.fa
-cat ${VCF} | grep -v "#" | grep -E 'INS.+SUR[[:space:]]' | awk '{print(sprintf(">%s\n%s", $3, $5))}' > ${FASTA_FILE}
-cat ${VCF} | grep -v "#" | grep -E 'DEL.+SUR[[:space:]]' | awk '{print(sprintf(">%s\n%s", $3, $4))}' >> ${FASTA_FILE}
+((cat ${VCF} | grep -v "#" | grep -E 'DEL.+SUR[[:space:]]' | awk '{print(sprintf(">%s\n%s", $3, $4))}') && \
+     (cat ${VCF} | grep -v "#" | grep -E 'INS.+SUR[[:space:]]' | awk '{print(sprintf(">%s\n%s", $3, $5))}')) > ${FASTA_FILE}
 
 mkdir repeatmasker_dir
 REPMASK_DIR=repeatmasker_dir
