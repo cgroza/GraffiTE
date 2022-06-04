@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import vcfpy
 import pysam
 import argparse
