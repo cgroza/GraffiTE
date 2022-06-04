@@ -60,6 +60,7 @@ HDR_FILE=$(mktemp)
 echo -e '##INFO=<ID=repFamily,Number=1,Type=String,Description="Repeat family">' > ${HDR_FILE}
 echo -e '##INFO=<ID=repClass,Number=1,Type=String,Description="Repeat name">' >> ${HDR_FILE}
 echo -e '##INFO=<ID=match_span,Number=1,Type=Float,Description="Insertion length spaned by repeat">' >> ${HDR_FILE}
+echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
 bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
          -c CHROM,POS,INFO/repClass,INFO/repFamily,INFO/match_span $VCF | \
