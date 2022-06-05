@@ -3,7 +3,7 @@ From: ubuntu:20.04
 
 %files
     repmask_vcf.sh /usr/local/bin
-    fix_deletions.py /usr/local/bin
+    fix_vcf.py /usr/local/bin
 %post
     apt-get update
     apt-get install --assume-yes software-properties-common
