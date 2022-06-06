@@ -1,4 +1,5 @@
 params.vcf = false
+params.genotype = true
 params.reads = "reads.csv"
 params.assemblies = "assemblies.csv"
 params.reference = "reference.fa"
@@ -70,19 +71,21 @@ if(!params.vcf) {
 
 reads_ch.combine(vcf_ch).combine(ref_geno_ch).set{input_ch}
 
-process pangenie {
-  cpus params.threads
-  memory params.memory
-  publishDir "${params.out}", mode: 'copy'
+if(params.genotype) {
+  process pangenie {
+    cpus params.threads
+    memory params.memory
+    publishDir "${params.out}", mode: 'copy'
 
-  input:
-  set val(sample_name), file(sample_reads), file(vcf), file(ref) from input_ch
+    input:
+    set val(sample_name), file(sample_reads), file(vcf), file(ref) from input_ch
 
-  output:
-  file("${sample_name}_genotyping.vcf")
+    output:
+    file("${sample_name}_genotyping.vcf")
 
-  script:
-  """
-  PanGenie -t ${params.threads} -j ${params.threads} -s ${sample_name} -i ${sample_reads} -r ${ref} -v ${vcf}  -o ${sample_name}
-  """
+    script:
+    """
+    PanGenie -t ${params.threads} -j ${params.threads} -s ${sample_name} -i ${sample_reads} -r ${ref} -v ${vcf}  -o ${sample_name}
+    """
+  }
 }
