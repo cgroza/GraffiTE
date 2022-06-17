@@ -8,11 +8,12 @@ params.threads = 1
 params.memory = "100G"
 params.out = "out"
 
-Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path)]}.set{reads_ch}
+Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_make_vcf_ch}
 
 if(!params.vcf) {
-  Channel.fromPath(params.assemblies).splitCsv(header:true).map{row -> [row.sample, file(row.path)]}.set{asm_ch}
+    Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
+        [row.sample, file(row.path, checkIfExists:true)]}.set{asm_ch}
   asm_ch.combine(ref_asm_ch).set{svim_in_ch}
   Channel.fromPath(params.TE_library).set{TE_library_ch}
 
