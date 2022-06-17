@@ -25,7 +25,6 @@ From: ubuntu:20.04
 
     apt-get install --assume-yes bcftools tabix libbz2-dev liblzma-dev
 
-
     git clone --recursive https://github.com/samtools/htslib.git
     cd htslib
     autoreconf -i
@@ -38,8 +37,8 @@ From: ubuntu:20.04
     git clone https://github.com/samtools/samtools.git
     cd samtools
     autoheader
-    autoconf -Wno-syntax --without-curses
-    ./configure 
+    autoconf -Wno-syntax
+    ./configure --without-curses
     make
     make install
     cd ${HOME}
