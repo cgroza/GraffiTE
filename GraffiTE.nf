@@ -60,7 +60,7 @@ if(!params.vcf) {
     awk -v FS='\t' -v OFS='\t' \
     '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
     awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | \
-    bcftools view -i 'INFO/match_span > 0.80'  -o pangenie_temp.vcf
+    bcftools view -i 'INFO/total_match_span > 0.80'  -o pangenie_temp.vcf
     fix_vcf.py --ref ${ref_fasta} --vcf_in pangenie_temp.vcf --vcf_out pangenie.vcf
     """
 
