@@ -4,6 +4,7 @@ From: ubuntu:20.04
 %files
     repmask_vcf.sh /usr/local/bin
     fix_vcf.py /usr/local/bin
+    annotate_vcf.R /usr/local/bin
 %post
     apt-get -y update
     apt-get install --assume-yes software-properties-common
@@ -77,7 +78,7 @@ From: ubuntu:20.04
 
     pip3 install pysam pyparsing svim-asm pandas vcfpy
 
-    R --slave -e 'install.packages(c("XML", "dplyr", "stringr", "tidyr", "readr", "vcfR"), repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages(c("XML", "dplyr", "stringr", "tidyr", "readr", "vcfR", "optparse"), repos="https://cloud.r-project.org/")'
     R --slave -e 'if (!require(c("BiocManager"), quietly = TRUE)) install.packages(c("BiocManager")); BiocManager::install(c("biomaRt", "Biostrings"))'
     R --slave -e 'install.packages(c("biomartr"), repos="https://cloud.r-project.org/")'
 

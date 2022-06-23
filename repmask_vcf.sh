@@ -17,40 +17,7 @@ REPMASK_OUT=${REPMASK_DIR}/$(basename ${FASTA_FILE}).out
 
 ANNOT_FILE=vcf_annotation
 
-Rscript - <<SCRIPT
-library(biomartr)
-library(dplyr)
-library(stringr)
-library(tidyr)
-library(readr)
-library(vcfR)
-
-repmask_out <- "$REPMASK_OUT"
-annot_vcf <- "$VCF"
-annot_file <- "$ANNOT_FILE"
-
-rep_mask <- read_rm(repmask_out) %>%
-  mutate(match_len = qry_end - qry_start) %>%
-  group_by(qry_id) %>%
-  filter(match_len == max(match_len)) %>%
-  filter(sw_score == max(sw_score)) %>%
-  select(matching_class, repeat_id, match_len)
-
-vcf <- read.vcfR(annot_vcf)
-vcf_df <- tibble(CHROM = getCHROM(vcf),
-                 POS = getPOS(vcf),
-                 qry_length = abs(str_length(getALT(vcf)) - str_length(getREF(vcf))),
-                 qry_id = getID(vcf))
-
-annot <- left_join(vcf_df, rep_mask, by = "qry_id") %>%
-  replace_na(list(matching_class = "None", repeat_id = "None", match_len = 0)) %>%
-  mutate(match_span = match_len / qry_length) %>%
-  select(-c(qry_id, qry_length, match_len)) %>%
-  arrange(CHROM, POS)
-
-write_tsv(annot, file = annot_file, col_names = F)
-print(colnames(annot))
-SCRIPT
+annotate_vcf.R --dotout ${REPMASK_OUT} --vcf ${VCF} --annotation ${ANNOT_FILE}
 
 bgzip ${ANNOT_FILE}
 tabix -s1 -b2 -e2 ${ANNOT_FILE}.gz
