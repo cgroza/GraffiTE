@@ -46,15 +46,21 @@ path,sample
 
 ## Execution profiles
 By default, the pipeline will inherit the your `nextflow` configuration and run accordingly.
-To execute locally, on SLURM, or AWS, use one of the `-profiles` provided with the `GraffiTE`:
+To execute locally, on SLURM, or AWS, pass one of the `-profile` provided with the `GraffiTE`:
 - `standard`
 - `cluster`
 - `cloud`
 
+For example,
+```
+nextflow run cgroza/GraffiTE -profile cluster ...
+```
+will run on SLURM.
+
 ## Changing the number of CPUs and memory required by each step
 You may alter the following parameters on the command line or in your own `nextflow` configuration file to change how many CPUs and how much memory will be required by each step.
 
-- Step 1, polymorphisms discovery. The requirements depends on the genome size of the species. More cores is faster.
+- Step 1, polymorphisms discovery. The memory requirement depends on the genome size of the species. More cores is faster.
 ```
 params.svim_asm_memory
 params.svim_asm_threads
@@ -65,7 +71,7 @@ params.svim_asm_threads
 params.make_vcf_memory
 params.make_vcf_threads
 ```
-- Step 3, genotyping polymorphisms from reads. The requirements depend on the genome size and size of the read sets. More cores is faster.
+- Step 3, genotyping polymorphisms from reads. The memory requirements depend on the genome size and size of the read sets. More cores is faster.
 ```
 params.pangenie_memory
 params.pangenie_threads
