@@ -5,7 +5,11 @@
 To download and run `GraffiTE`, install `nextflow` and use the following command line:
 
 ```
-nextflow run cgroza/GraffiTE --assemblies assemblies.csv --reads reads.csv --TE_library library.fa --reference reference.fa
+nextflow run cgroza/GraffiTE \
+   --assemblies assemblies.csv \
+   --reads reads.csv \
+   --TE_library library.fa \
+   --reference reference.fa
 ```
 
 This will download and cache the `GraffiTE` pipeline and Singularity image for local use. Later runs will skip the slow download step.
