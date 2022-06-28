@@ -15,7 +15,7 @@ nextflow run cgroza/GraffiTE \
 This will download and cache the `GraffiTE` pipeline and Singularity image for local use. Later runs will skip the slow download step.
 
 ## Parameters
-- `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered.
+- `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered. One assembly per sample and sample names must be unique.
 
 Example `assemblies.csv`:
 ```
@@ -26,7 +26,7 @@ path,sample
 
 ```
 
-- `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies.
+- `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. Only one FASTQ per sample, and sample names must be unique.
 
 Example `reads.csv`:
 ```
