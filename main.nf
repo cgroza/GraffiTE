@@ -6,7 +6,6 @@ params.reference = "reference.fa"
 params.TE_library = "TE_library.fa"
 params.out = "out"
 
-Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_make_vcf_ch}
 
 if(!params.vcf) {
@@ -68,9 +67,12 @@ if(!params.vcf) {
 }
 
 
-reads_ch.combine(vcf_ch).combine(ref_geno_ch).set{input_ch}
 
 if(params.genotype) {
+
+  Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
+  reads_ch.combine(vcf_ch).combine(ref_geno_ch).set{input_ch}
+
   process pangenie {
     cpus params.pangenie_threads
     memory params.pangenie_memory
