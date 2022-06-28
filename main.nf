@@ -4,8 +4,6 @@ params.reads = "reads.csv"
 params.assemblies = "assemblies.csv"
 params.reference = "reference.fa"
 params.TE_library = "TE_library.fa"
-params.threads = 1
-params.memory = "100G"
 params.out = "out"
 
 Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
@@ -18,8 +16,8 @@ if(!params.vcf) {
   Channel.fromPath(params.TE_library).set{TE_library_ch}
 
   process svim_asm {
-    cpus params.threads
-    memory params.memory
+    cpus params.svim_asm_threads
+    memory params.svim_asm_memory
     publishDir "${params.out}", mode: 'copy'
 
     input:
@@ -31,7 +29,7 @@ if(!params.vcf) {
     script:
     """
     mkdir asm
-    minimap2 -a -x asm5 --cs -r2k -t ${params.threads} ${ref} ${asm} | samtools sort -m4G -@4 -o asm/asm.sorted.bam -
+    minimap2 -a -x asm5 --cs -r2k -t ${params.svim_asm_threads} ${ref} ${asm} | samtools sort -m4G -@4 -o asm/asm.sorted.bam -
     samtools index asm/asm.sorted.bam
     svim-asm haploid --min_sv_size 100 --types INS,DEL --sample ${asm_name} asm/ asm/asm.sorted.bam ${ref}
     sed 's/svim_asm\\./${asm_name}\\.svim_asm\\./g' asm/variants.vcf > ${asm_name}.vcf
@@ -39,8 +37,8 @@ if(!params.vcf) {
   }
 
   process make_vcf {
-    cpus params.threads
-    memory params.memory
+    cpus params.make_vcf_threads
+    memory params.make_vcf_memory
     publishDir "${params.out}", mode: 'copy'
 
     input:
@@ -74,8 +72,8 @@ reads_ch.combine(vcf_ch).combine(ref_geno_ch).set{input_ch}
 
 if(params.genotype) {
   process pangenie {
-    cpus params.threads
-    memory params.memory
+    cpus params.pangenie_threads
+    memory params.pangenie_memory
     publishDir "${params.out}", mode: 'copy'
 
     input:
@@ -86,7 +84,7 @@ if(params.genotype) {
 
     script:
     """
-    PanGenie -t ${params.threads} -j ${params.threads} -s ${sample_name} -i ${sample_reads} -r ${ref} -v ${vcf}  -o ${sample_name}
+    PanGenie -t ${params.pangenie_threads} -j ${params.pangenie_threads} -s ${sample_name} -i ${sample_reads} -r ${ref} -v ${vcf}  -o ${sample_name}
     """
   }
 }
