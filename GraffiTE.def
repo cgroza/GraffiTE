@@ -5,6 +5,8 @@ From: ubuntu:20.04
     repmask_vcf.sh /usr/local/bin
     fix_vcf.py /usr/local/bin
     annotate_vcf.R /usr/local/bin
+    one_code_to_find_them_all.pl /usr/local/bin
+    build_dictionary.pl /usr/local/bin
 %post
     apt-get -y update
     apt-get install --assume-yes software-properties-common
