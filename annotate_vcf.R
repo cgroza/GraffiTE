@@ -101,7 +101,7 @@ annot <- left_join(vcf_df, rep_mask, by = "qry_id") %>%
                   repeat_ids = "None",
                   n_hits = 0,
                   total_match_length = 0,
-                  fragmts = 0,
+                  fragmts = "0",
                   match_lengths = "0")) %>%
   mutate(total_match_span = total_match_length / qry_length) %>%
     select(-c(qry_id, qry_length)) %>%
