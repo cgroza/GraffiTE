@@ -11,15 +11,14 @@ library(vcfR)
 read_rm_custom <- function(file) {
     rm_file <- readr::read_lines(file = file, skip = 3)
     rm_file <- lapply(rm_file, function(x) {
-        str.res <- unlist(stringr::str_split(x, "\\s+"))[-1]
-        str.res <- str.res[1:15]
+        str.res <- unlist(stringr::str_split(x, "\\s+"))#[-1]
+        str.res <- str.res[1:16]
         return(str.res)
     })
     rm_file <- tibble::as_tibble(do.call(rbind, rm_file))
     colnames(rm_file) <- c("sw_score", "perc_div", "perc_del",
-        "perc_insert", "qry_id", "qry_start", "qry_end", "qry_left",
-        "matching_repeat", "repeat_id", "matching_class", "no_bp_in_complement",
-        "in_repeat_start", "in_repeat_end", "fragmts")
+        "perc_insert", "qry_id", "qry_start", "qry_end", "qry_left", "strand",
+        "repeat_id", "matching_class", "in_repeat_start", "in_repeat_end", "in_repeat_left", "ID", "fragmts")
     qry_end <- qry_start <- NULL
     nrow_before_filtering <- nrow(rm_file)
     suppressWarnings(rm_file <- dplyr::mutate(rm_file,
