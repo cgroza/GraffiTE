@@ -6,7 +6,7 @@ params.reference = "reference.fa"
 params.TE_library = "TE_library.fa"
 params.out = "out"
 
-Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_make_vcf_ch}
+Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch}
 
 if(!params.vcf) {
     Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
@@ -35,18 +35,19 @@ if(!params.vcf) {
     """
   }
 
-  process make_vcf {
-    cpus params.make_vcf_threads
-    memory params.make_vcf_memory
+  process repeatmasker {
+    cpus params.repeatmasker_threads
+    memory params.repeatmasker_memory
     publishDir "${params.out}", mode: 'copy'
 
     input:
     file(vcfs) from svim_out_ch.map{sample -> sample[1]}.collect()
     file(TE_library) from TE_library_ch
-    file(ref_fasta) from ref_make_vcf_ch
+    file(ref_fasta) from ref_repeatmasker_ch
 
     output:
-    file("pangenie.vcf") into vcf_ch
+    file("genotypes_repmasked_filtered.vcf") into tsd_ch
+    path("repeatmasker_dir/") into tsd_RM_ch // my hope is to export the output within their folder
 
     script:
     """
@@ -57,16 +58,33 @@ if(!params.vcf) {
     awk -v FS='\t' -v OFS='\t' \
     '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
     awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | \
-    bcftools view -i 'INFO/total_match_span > 0.80'  -o pangenie_temp.vcf
-    fix_vcf.py --ref ${ref_fasta} --vcf_in pangenie_temp.vcf --vcf_out pangenie.vcf
+    bcftools view -i 'INFO/total_match_span > 0.80' -o genotypes_repmasked_temp.vcf
+    fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
     """
 
   }
+
+  process tsd_search {
+    cpus params.tsd_search_threads
+    memory params.tsd_search_memory
+    publishDir "${params.out}", mode: 'copy'
+
+    input:
+    file("genotypes_repmasked_filtered.vcf") from tsd_ch
+    path("repeatmasker_dir/*") from tsd_RM_ch // my hope is that this will pull the files from the repeatmasker_dir to the working directory
+    file(ref_fasta) from ref_tsd_ch
+
+    output:
+    file("pangenie.vcf") into vcf_ch
+
+    script:
+    """
+    
+    """
+
 } else {
   Channel.fromPath(params.vcf).set{vcf_ch}
 }
-
-
 
 if(params.genotype) {
 

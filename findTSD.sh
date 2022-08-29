@@ -3,10 +3,10 @@
 # USAGE: ./findTSD.sh <REF_GENOME>
 
 # variable list
-WIN=30 # windows size in flanking to search TSD
-VCF="pangenie.vcf" # filtered vcf
-REF=$1
-MSK="indels.fa.masked"
+VCF="genotypes_repmasked_filtered.vcf" # filtered vcf with repeatmasker
+REF=$1 # ref genome
+WIN=$2 # windows size in flanking to search TSD
+MSK="indels.fa.masked" # masked SVs from repeatmasker
 
 ###################################################
 # Step 1: extract flanking of each retained TE SV #
@@ -15,10 +15,22 @@ echo "extracting flanking..."
 
 # get contig length for bedtools
 grep "contig=" ${VCF} | sed 's/\#\#contig=<ID=//g;s/,length=/\t/g;s/>//g' > gLength.txt
+
 # create a bed with vcf entries 
+## USE THIS FOR NOW TO FILTER REAL 1 hits
+
+awk 'NR > 3' indels.fa.onecode.out | cut -f 5 | sort | uniq -d > remove
+
 grep -v '#' ${VCF} | \
- grep 'n_hits=1;' | \
+ grep -vwf remove | \
  awk '{print $1"\t"$2"\t"$2"\t"$3}' > oneHit_SV_coordinates.bed
+
+## REVERSE TO THIS WHEN CRISTIAN HAS FIXED THE RM FILTER SCRIPT
+
+# grep -v '#' ${VCF} | \
+#  grep 'n_hits=1;' | \
+#  awk '{print $1"\t"$2"\t"$2"\t"$3}' > oneHit_SV_coordinates.bed
+
 # extend +/- ${WIN} bp in two entries per SV
 cat <(bedtools slop -i oneHit_SV_coordinates.bed -g gLength.txt -l 30 -r 0 | awk '{print $0"__L"}') \
 <(bedtools slop -i oneHit_SV_coordinates.bed -g gLength.txt -l 0 -r 30 | awk '{print $0"__R"}') | \
@@ -42,6 +54,20 @@ awk -v len=${WIN} -F '\t' '{x=len;L=length($2);printf("%s\n%s\n%s\n%s\n",$1"__L"
 #######################
 echo "searching TSDs..."
 ./TSD_Match.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta
+
+
+########################
+# Step 4: annotate VCF #
+########################
+
+## TO DO: CREATE TSD_annotation from TSD_summary.txt
+## and then:
+TSD_FILE=TSD_annotation 
+
+bgzip ${TSD_FILE}
+tabix -s1 -b2 -e2 ${TSD_FILE}.gz
+bcftools annotate -a ${TSD_FILE}.gz -c CHROM,POS,INFO/TSD $VCF | bcftools view -Oz -o ${OUT_VCF}
+
 
 # clean 
 rm oneHit_SV_coordinates.bed
