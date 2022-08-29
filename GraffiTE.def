@@ -7,6 +7,8 @@ From: ubuntu:20.04
     annotate_vcf.R /usr/local/bin
     one_code_to_find_them_all.pl /usr/local/bin
     build_dictionary.pl /usr/local/bin
+    findTSD.sh /usr/local/bin
+    TSD_Match.sh /usr/local/bin
 %post
     apt-get -y update
     apt-get install --assume-yes software-properties-common
@@ -24,7 +26,8 @@ From: ubuntu:20.04
     libfile-which-perl \
     libtext-soundex-perl \
     libjson-perl liburi-perl libwww-perl \
-    libdevel-size-perl
+    libdevel-size-perl \
+    emboss
 
     apt-get install --assume-yes bcftools tabix libbz2-dev liblzma-dev
 
