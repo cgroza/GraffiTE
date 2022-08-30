@@ -24,18 +24,18 @@ awk 'NR > 3' indels.fa.onecode.out | cut -f 5 | sort | uniq -d > remove
 
 grep -v '#' ${VCF} | \
  grep -vwf remove | \
- awk '{print $1"\t"$2"\t"$2"\t"$3}' > oneHit_SV_coordinates.bed
+ awk '/INS/ {print $1"\t"$2"\t"($2)+1"\t"$3; next} /DEL/ {print $1"\t"$2"\t"($2+length($4))"\t"$3}' > oneHit_SV_coordinates.bed
 
 ## REVERSE TO THIS WHEN CRISTIAN HAS FIXED THE RM FILTER SCRIPT
 
 # grep -v '#' ${VCF} | \
 #  grep 'n_hits=1;' | \
-#  awk '{print $1"\t"$2"\t"$2"\t"$3}' > oneHit_SV_coordinates.bed
+#  awk '/INS/ {print $1"\t"$2"\t"($2)+1"\t"$3; next} /DEL/ {print $1"\t"$2"\t"($2+length($4))"\t"$3}' > oneHit_SV_coordinates.bed
 
 # extend +/- ${WIN} bp in two entries per SV
 cat <(bedtools slop -i oneHit_SV_coordinates.bed -g gLength.txt -l 30 -r 0 | awk '{print $0"__L"}') \
 <(bedtools slop -i oneHit_SV_coordinates.bed -g gLength.txt -l 0 -r 30 | awk '{print $0"__R"}') | \
-sort -k1,1 -k2,2n -k3,3n > oneHit_SV_coordinates_win.bed
+sort -k1,1 -k2,2n -k3,3n | awk '/__L/ {print $1"\t"$2"\t"($2+30)"\t"$4; next} /__R/ {print $1"\t"($3-30)"\t"$3"\t"$4}' > oneHit_SV_coordinates_win.bed
 # extract fasta from flanking
 bedtools getfasta -fi ${REF} -bed oneHit_SV_coordinates_win.bed -name > flanking_sequences.fasta
 
