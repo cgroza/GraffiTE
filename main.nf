@@ -5,6 +5,7 @@ params.assemblies = "assemblies.csv"
 params.reference = "reference.fa"
 params.TE_library = "TE_library.fa"
 params.out = "out"
+params.tsd_win = 30 // add default value for TSD window search
 
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch}
 
@@ -76,10 +77,11 @@ if(!params.vcf) {
 
     output:
     file("pangenie.vcf") into vcf_ch
+    path("TSD_*.txt") into tsd_out_ch
 
     script:
     """
-    
+    ./findTSD.sh ${ref_fasta} ${params.tsd_win}
     """
 
 } else {

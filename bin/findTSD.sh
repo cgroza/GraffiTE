@@ -7,6 +7,7 @@ VCF="genotypes_repmasked_filtered.vcf" # filtered vcf with repeatmasker
 REF=$1 # ref genome
 WIN=$2 # windows size in flanking to search TSD
 MSK="indels.fa.masked" # masked SVs from repeatmasker
+OUT_VCF="pangenie.vcf"
 
 ###################################################
 # Step 1: extract flanking of each retained TE SV #
@@ -55,18 +56,20 @@ awk -v len=${WIN} -F '\t' '{x=len;L=length($2);printf("%s\n%s\n%s\n%s\n",$1"__L"
 echo "searching TSDs..."
 ./TSD_Match.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta
 
-
 ########################
 # Step 4: annotate VCF #
 ########################
 
-## TO DO: CREATE TSD_annotation from TSD_summary.txt
-## and then:
+# create TSD_annotation from TSD_summary.txt
+join -13 -21 <(grep -v "#" pangenie.vcf | cut -f 1-3 | sort -k3,3) <(grep 'PASS' TSD_summary.txt | awk '{print $1"\t"$(NF-2)","$(NF-1)}' | sort -k1,1) | awk '{print $2"\t"$3"\t"$4}' | sort -k1,1 -k2,2n > TSD_annotation
+# add new header line to describe it
+HDR_FILE=$(mktemp)
+echo -e '##INFO=<ID=TSD,Number=1,Type=String,Description="Target site duplication sequence passing filters">' >> ${HDR_FILE}
+# bgzip it and annotate
 TSD_FILE=TSD_annotation 
-
 bgzip ${TSD_FILE}
-tabix -s1 -b2 -e2 ${TSD_FILE}.gz
-bcftools annotate -a ${TSD_FILE}.gz -c CHROM,POS,INFO/TSD $VCF | bcftools view -Oz -o ${OUT_VCF}
+tabix -s1 -b2 -e2 ${TSD_FILE}.gz 
+bcftools annotate -a ${TSD_FILE}.gz -h ${HDR_FILE} -c CHROM,POS,INFO/TSD ${VCF} | bcftools view > ${OUT_VCF}
 
 
 # clean 

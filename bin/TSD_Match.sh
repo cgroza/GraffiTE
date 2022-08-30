@@ -1,5 +1,5 @@
 #! /bin/bash
-# capture the formatted .fasta of the 5' and 3' ends of each TE/SV
+
 SVSEQ=$1 # SV_sequences_L_R_trimmed_WIN.fa
 FLANK=$2 # flanking_sequences.fasta
 VERBOSE=$3 # for debug only
