@@ -66,8 +66,8 @@ if(!params.vcf) {
   }
 
   process tsd_search {
-    cpus params.tsd_search_threads
-    memory params.tsd_search_memory
+    // cpus params.tsd_search_threads
+    // memory params.tsd_search_memory
     publishDir "${params.out}", mode: 'copy'
 
     input:
