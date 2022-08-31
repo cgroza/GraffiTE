@@ -81,8 +81,10 @@ if(!params.vcf) {
 
     script:
     """
-    ./findTSD.sh ${ref_fasta} ${params.tsd_win}
+    findTSD.sh ${ref_fasta} ${params.tsd_win}
     """
+  }
+
 
 } else {
   Channel.fromPath(params.vcf).set{vcf_ch}
