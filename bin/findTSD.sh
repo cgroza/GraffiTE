@@ -54,14 +54,14 @@ awk -v len=${WIN} -F '\t' '{x=len;L=length($2);printf("%s\n%s\n%s\n%s\n",$1"__L"
 # Step 3: search TSDs #
 #######################
 echo "searching TSDs..."
-./TSD_Match.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta
+TSD_Match.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta
 
 ########################
 # Step 4: annotate VCF #
 ########################
 
 # create TSD_annotation from TSD_summary.txt
-join -13 -21 <(grep -v "#" pangenie.vcf | cut -f 1-3 | sort -k3,3) <(grep 'PASS' TSD_summary.txt | awk '{print $1"\t"$(NF-2)","$(NF-1)}' | sort -k1,1) | awk '{print $2"\t"$3"\t"$4}' | sort -k1,1 -k2,2n > TSD_annotation
+join -13 -21 <(grep -v "#" ${VCF} | cut -f 1-3 | sort -k3,3) <(grep 'PASS' TSD_summary.txt | awk '{print $1"\t"$(NF-2)","$(NF-1)}' | sort -k1,1) | awk '{print $2"\t"$3"\t"$4}' | sort -k1,1 -k2,2n > TSD_annotation
 # add new header line to describe it
 HDR_FILE=$(mktemp)
 echo -e '##INFO=<ID=TSD,Number=1,Type=String,Description="Target site duplication sequence passing filters">' >> ${HDR_FILE}

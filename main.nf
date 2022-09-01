@@ -81,6 +81,7 @@ if(!params.vcf) {
 
     script:
     """
+    mv repeatmasker_dir/* .
     findTSD.sh ${ref_fasta} ${params.tsd_win}
     """
   }
