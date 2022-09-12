@@ -1,6 +1,6 @@
 #! /bin/bash
 
-# USAGE: ./findTSD.sh <REF_GENOME>
+# USAGE: ./prepTSD.sh <REF_GENOME>
 
 # variable list
 VCF="genotypes_repmasked_filtered.vcf" # filtered vcf with repeatmasker
@@ -49,3 +49,5 @@ perl -ne 'if(/^>(\S+)/){$c=$i{$1}}$c?print:chomp;$i{$_}=1 if @ARGV' <(cut -f 4 o
 # linearize fasta, then trim and split in two seq (L and R)
 awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' oneHit_indels.fa.masked | \
 awk -v len=${WIN} -F '\t' '{x=len;L=length($2);printf("%s\n%s\n%s\n%s\n",$1"__L",(L<=x?$2:substr($2,2,x+1)),$1"__R",(L<=x?$2:substr($2,1+L-x,x)));}' > SV_sequences_L_R_trimmed_WIN.fa
+# export the list of SV to search TSD for next process parallelization
+grep '>' SV_sequences_L_R_trimmed_WIN.fa | sed 's/>//g;s/__/\t/g' | cut -f 1 | sort | uniq > indels.txt
