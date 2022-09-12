@@ -84,7 +84,7 @@ if(!params.vcf) {
 
     script:
     """
-    mv repeatmasker_dir/repeatmasker_dir/* .
+    cp repeatmasker_dir/repeatmasker_dir/* .
     prepTSD.sh ${ref_fasta} ${params.tsd_win}
     """
   }
@@ -109,7 +109,7 @@ if(!params.vcf) {
 
     script:
     """
-    mv repeatmasker_dir/repeatmasker_dir/* .
+    cp repeatmasker_dir/repeatmasker_dir/* .
     findTSD.sh
     """
   }
