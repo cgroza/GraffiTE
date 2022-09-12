@@ -7,7 +7,7 @@ params.TE_library = "TE_library.fa"
 params.out = "out"
 params.tsd_win = 30 // add default value for TSD window search
 
-Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
+Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch}
 
 if(!params.vcf) {
     Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
@@ -47,8 +47,8 @@ if(!params.vcf) {
     file(ref_fasta) from ref_repeatmasker_ch
 
     output:
-    file("genotypes_repmasked_filtered.vcf") into tsd_ch, tsd_search_ch
-    path("repeatmasker_dir/") into tsd_RM_ch, tsd_search_RM_ch // my hope is to export the output within their folder
+    file("genotypes_repmasked_filtered.vcf") into tsd_ch
+    path("repeatmasker_dir/") into tsd_RM_ch // my hope is to export the output within their folder
 
     script:
     """
@@ -65,7 +65,7 @@ if(!params.vcf) {
 
   }
 
-  process tsd_prep {
+  process tsd_search {
     // cpus params.tsd_search_threads
     // memory params.tsd_search_memory
     publishDir "${params.out}", mode: 'copy'
@@ -76,41 +76,13 @@ if(!params.vcf) {
     file(ref_fasta) from ref_tsd_ch
 
     output:
-    file("indels.txt") into tsd_search_input
-    file("SV_sequences_L_R_trimmed_WIN.fa") into tsd_search_SV
-    file("flanking_sequences.fasta") into tsd_search_flanking
-    //file("pangenie.vcf") into vcf_ch
-    //path("TSD_*.txt") into tsd_out_ch
-
-    script:
-    """
-    mv repeatmasker_dir/repeatmasker_dir/* .
-    prepTSD.sh ${ref_fasta} ${params.tsd_win}
-    """
-  }
-  
-  process tsd_search {
-    // cpus params.tsd_search_threads
-    // memory params.tsd_search_memory
-    publishDir "${params.out}", mode: 'copy'
-
-    input:
-    //file("genotypes_repmasked_filtered.vcf") from tsd_ch
-    file("indels.txt") from tsd_search_input.splitText() // check how to split by params.cpu
-    file("genotypes_repmasked_filtered.vcf") from tsd_search_ch
-    file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV
-    file("flanking_sequences.fasta") from tsd_search_flanking
-    path("repeatmasker_dir/*") from tsd_search_RM_ch // my hope is that this will pull the files from the repeatmasker_dir to the working directory
-    file(ref_fasta) from ref_tsd_search_ch
-
-    output:
+    file("pangenie.vcf") into vcf_ch
     path("TSD_*.txt") into tsd_out_ch
-    //file("pangenie.vcf") into vcf_ch
 
     script:
     """
     mv repeatmasker_dir/repeatmasker_dir/* .
-    findTSD.sh
+    findTSD.sh ${ref_fasta} ${params.tsd_win}
     """
   }
 
