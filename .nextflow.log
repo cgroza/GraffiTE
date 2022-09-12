@@ -1,0 +1,106 @@
+Jun.-29 16:32:25.597 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /lustre03/project/rrg-bourqueg-ad/GraffiTE/GraffiTE/main.nf --TE_library TE_lib/MCTE.fasta --reference ref_genome/Droso/GCF_000001215.4_Release_6_plus_ISO1_MT_genomic.fna --assemblies DM_asslemblies.csv --genotype false --out DM32_v2_062922 --svim_asm_memory 80G --svim_asm_threads 20 --make_vcf_memory 80G --make_vcf_threads 20 -profile standard -with-singularity /lustre03/project/rrg-bourqueg-ad/GraffiTE/graffite_latest.sif
+Jun.-29 16:32:25.683 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 22.04.3
+Jun.-29 16:32:25.709 [main] DEBUG nextflow.config.ConfigBuilder - Found config base: /lustre03/project/rrg-bourqueg-ad/GraffiTE/GraffiTE/nextflow.config
+Jun.-29 16:32:25.710 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /lustre03/project/6007512/GraffiTE/GraffiTE/nextflow.config
+Jun.-29 16:32:25.711 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /lustre03/project/rrg-bourqueg-ad/GraffiTE/GraffiTE/nextflow.config
+Jun.-29 16:32:25.711 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /lustre03/project/6007512/GraffiTE/GraffiTE/nextflow.config
+Jun.-29 16:32:25.737 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Jun.-29 16:32:26.368 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Jun.-29 16:32:26.403 [main] DEBUG nextflow.config.ConfigBuilder - Enabling execution in Singularity container as requested by cli option `-with-singularity null`
+Jun.-29 16:32:26.410 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=1 by probing script field
+Jun.-29 16:32:26.430 [main] INFO  nextflow.cli.CmdRun - Launching `/lustre03/project/rrg-bourqueg-ad/GraffiTE/GraffiTE/main.nf` [berserk_baekeland] DSL1 - revision: 6b140eec05
+Jun.-29 16:32:26.447 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; plugins-dir=/home/cgoubert/.nextflow/plugins; core-plugins: nf-amazon@1.7.2,nf-azure@0.13.2,nf-console@1.0.3,nf-ga4gh@1.0.3,nf-google@1.1.4,nf-sqldb@0.4.0,nf-tower@1.4.0
+Jun.-29 16:32:26.450 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Jun.-29 16:32:26.473 [main] INFO  org.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Jun.-29 16:32:26.475 [main] INFO  org.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Jun.-29 16:32:26.479 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.4.1 in 'deployment' mode
+Jun.-29 16:32:26.492 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Jun.-29 16:32:26.559 [main] DEBUG nextflow.Session - Session uuid: 6ca86313-fdd0-4eba-8f90-126f0804d044
+Jun.-29 16:32:26.559 [main] DEBUG nextflow.Session - Run name: berserk_baekeland
+Jun.-29 16:32:26.559 [main] DEBUG nextflow.Session - Executor pool size: 20
+Jun.-29 16:32:26.606 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 22.04.3 build 5704
+  Created: 18-05-2022 19:35 UTC (15:35 EDT)
+  System: Linux 3.10.0-1160.62.1.el7.x86_64
+  Runtime: Groovy 3.0.10 on OpenJDK 64-Bit Server VM 11.0.2+9
+  Encoding: UTF-8 (UTF-8)
+  Process: 249456@bc11657.int.ets1.calculquebec.ca [10.70.16.57]
+  CPUs: 20 - Mem: 187.5 GB (170 GB) - Swap: 0 (0)
+Jun.-29 16:32:26.686 [main] DEBUG nextflow.Session - Work-dir: /lustre03/project/6007512/GraffiTE/GraffiTE/work [lustre]
+Jun.-29 16:32:26.687 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /lustre03/project/rrg-bourqueg-ad/GraffiTE/GraffiTE/bin
+Jun.-29 16:32:26.724 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[GoogleLifeSciencesExecutor, AwsBatchExecutor]
+Jun.-29 16:32:26.738 [main] DEBUG nextflow.Session - Observer factory: DefaultObserverFactory
+Jun.-29 16:32:26.741 [main] DEBUG nextflow.Session - Observer factory: TowerFactory
+Jun.-29 16:32:26.772 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Jun.-29 16:32:26.785 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Jun.-29 16:32:27.887 [main] DEBUG nextflow.Session - Session start invoked
+Jun.-29 16:32:28.874 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Jun.-29 16:32:28.993 [Actor Thread 2] ERROR nextflow.extension.DataflowHelper - @unknown
+java.nio.file.NoSuchFileException: /lustre03/project/6007512/GraffiTE/GraffiTE/DM_asslemblies.csv
+	at java.base/sun.nio.fs.UnixException.translateToIOException(UnixException.java:92)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:111)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:116)
+	at java.base/sun.nio.fs.UnixFileSystemProvider.newByteChannel(UnixFileSystemProvider.java:215)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:370)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:421)
+	at java.base/java.nio.file.spi.FileSystemProvider.newInputStream(FileSystemProvider.java:420)
+	at java.base/java.nio.file.Files.newInputStream(Files.java:155)
+	at nextflow.splitter.AbstractSplitter.newInputStream(AbstractSplitter.groovy:454)
+	at nextflow.splitter.AbstractTextSplitter.newReader(AbstractTextSplitter.groovy:153)
+	at nextflow.splitter.AbstractTextSplitter.normalizeSource0(AbstractTextSplitter.groovy:131)
+	at nextflow.splitter.AbstractTextSplitter.normalizeSource(AbstractTextSplitter.groovy:113)
+	at nextflow.splitter.AbstractTextSplitter.normalizeSource(AbstractTextSplitter.groovy)
+	at nextflow.splitter.AbstractSplitter.apply(AbstractSplitter.groovy:154)
+	at nextflow.extension.SplitOp$_applySplittingOperator_closure1.doCall(SplitOp.groovy:190)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:107)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:323)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:274)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1035)
+	at org.codehaus.groovy.runtime.callsite.PogoMetaClassSite.call(PogoMetaClassSite.java:38)
+	at org.codehaus.groovy.runtime.callsite.CallSiteArray.defaultCall(CallSiteArray.java:47)
+	at org.codehaus.groovy.runtime.callsite.AbstractCallSite.call(AbstractCallSite.java:125)
+	at org.codehaus.groovy.runtime.callsite.AbstractCallSite.call(AbstractCallSite.java:139)
+	at nextflow.extension.DataflowHelper$_subscribeImpl_closure2.doCall(DataflowHelper.groovy:285)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:107)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:323)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:274)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1035)
+	at groovy.lang.Closure.call(Closure.java:412)
+	at groovyx.gpars.dataflow.operator.DataflowOperatorActor.startTask(DataflowOperatorActor.java:120)
+	at groovyx.gpars.dataflow.operator.DataflowOperatorActor.onMessage(DataflowOperatorActor.java:108)
+	at groovyx.gpars.actor.impl.SDAClosure$1.call(SDAClosure.java:43)
+	at groovyx.gpars.actor.AbstractLoopingActor.runEnhancedWithoutRepliesOnMessages(AbstractLoopingActor.java:293)
+	at groovyx.gpars.actor.AbstractLoopingActor.access$400(AbstractLoopingActor.java:30)
+	at groovyx.gpars.actor.AbstractLoopingActor$1.handleMessage(AbstractLoopingActor.java:93)
+	at groovyx.gpars.util.AsyncMessagingCore.run(AsyncMessagingCore.java:132)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+Jun.-29 16:32:29.049 [Actor Thread 2] DEBUG nextflow.Session - Session aborted -- Cause: /lustre03/project/6007512/GraffiTE/GraffiTE/DM_asslemblies.csv
+Jun.-29 16:32:29.076 [Actor Thread 2] DEBUG nextflow.Session - The following nodes are still active:
+  [operator] splitCsv
+  [operator] map
+  [operator] combine
+
+Jun.-29 16:32:29.128 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Jun.-29 16:32:29.128 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun.-29 16:32:29.132 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Jun.-29 16:32:29.138 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=187.5 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Jun.-29 16:32:29.230 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Jun.-29 16:32:29.230 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Jun.-29 16:32:29.236 [main] DEBUG nextflow.Session - Workflow process names [dsl1]: make_vcf, svim_asm, pangenie
+Jun.-29 16:32:29.236 [main] DEBUG nextflow.script.ScriptRunner - > Await termination 
+Jun.-29 16:32:29.236 [main] DEBUG nextflow.Session - Session await
+Jun.-29 16:32:29.236 [main] DEBUG nextflow.Session - Session await > all process finished
+Jun.-29 16:32:29.236 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Jun.-29 16:32:29.242 [main] DEBUG nextflow.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=0; peakCpus=0; peakMemory=0; ]
+Jun.-29 16:32:29.252 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Jun.-29 16:32:29.487 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye
