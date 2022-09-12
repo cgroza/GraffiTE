@@ -300,7 +300,7 @@ sub Wanted_length{
       ### Accounting RC Helitron as DNA transposons
       if($F[10] eq "RC/Helitron"){$F[10]="DNA/RC";}
       ### Filtering everything excepted transposable elements
-      next unless(($F[10] =~ /^DNA/) | ($F[10] =~/^SINE/) | ($F[10] =~ /^LINE/) | ($F[10] =~ /^LTR/) | (($F[10] =~/^Unknown|^Unspecified/) & ($unknown == 1)));
+      next unless(($F[10] =~ /^Retroposon/) | ($F[10] =~ /^DNA/) | ($F[10] =~/^SINE/) | ($F[10] =~ /^LINE/) | ($F[10] =~ /^LTR/) | (($F[10] =~/^Unknown|^Unspecified/) & ($unknown == 1)));
       ### Filtering RM first lines
       next if(($F[0] eq "SW") | ($F[0] eq "score") | /^\s+$/);
       ### computing reference length for the line under study
@@ -437,7 +437,7 @@ sub Wanted{
   $non_TE_count{$F[4]}{$useless_class}++;
   next;
       }
-      next unless(($F[10] =~ /^DNA/) | ($F[10] =~/^SINE/) | ($F[10] =~ /^LINE/) | ($F[10] =~ /^LTR/) | ($F[10] =~ /^RC/) | (($F[10] =~/^Unknown|^Unspecified/) & ($unknown == 1)));
+      next unless(($F[10] =~ /^Retroposon/) | ($F[10] =~ /^DNA/) | ($F[10] =~/^SINE/) | ($F[10] =~ /^LINE/) | ($F[10] =~ /^LTR/) | ($F[10] =~ /^RC/) | (($F[10] =~/^Unknown|^Unspecified/) & ($unknown == 1)));
       ### We do not treat elements not present in the length file.
       next unless(exists($elem_length{$F[9]}));
       ### Some modifications on the line to get useful info such as the real length of the element
