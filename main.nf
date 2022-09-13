@@ -106,7 +106,7 @@ if(!params.vcf) {
 
     output:
     tuple val(indels), path('TSD_summary.txt') into tsd_out_ch
-    tuple val(indels), path('TSD_full_log.txt') into tsd_out_ch
+    tuple val(indels), path('TSD_full_log.txt') into tsd_full_out_ch
     //path("*TSD_summary.txt") into tsd_out_ch
     //path("*TSD_full_log.txt") into tsd_full_out_ch
     //file("pangenie.vcf") into vcf_ch
