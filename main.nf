@@ -108,13 +108,13 @@ if(!params.vcf) {
     path("*TSD_full_log.txt") into tsd_full_out_ch
     //file("pangenie.vcf") into vcf_ch
 
-    shell:
+    script:
     """
     cp repeatmasker_dir/repeatmasker_dir/* .
     findTSD.sh
-    name="$(cat indels.txt)"
-    mv TSD_summary.txt ${name}.TSD_summary.txt
-    mv TSD_full_log.txt ${name}.TSD_full_log.txt
+    name="\$(cat indels.txt)"
+    mv TSD_summary.txt \${name}.TSD_summary.txt
+    mv TSD_full_log.txt \${name}.TSD_full_log.txt
     """
   }
 
