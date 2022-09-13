@@ -104,7 +104,7 @@ if(!params.vcf) {
     file(ref_fasta) from ref_tsd_search_ch.toList()
 
     output:
-    path("TSD_*.txt") into tsd_out_ch
+    path("TSD_*.txt") into tsd_out_ch.collect()
     //file("pangenie.vcf") into vcf_ch
 
     script:
