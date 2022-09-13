@@ -127,8 +127,8 @@ if(!params.vcf) {
     //publishDir "${params.out}", mode: 'copy'
 
     input:
-    tuple val(indels), path(x) from tsd_out_ch.collect().view()
-    tuple val(indels), path(y) from tsd_full_out_ch.collect().view()
+    path(x) from tsd_out_ch.collect().view()
+    path(y) from tsd_full_out_ch.collect().view()
 
     output:
     path("TSD_summary.txt") into tsd_sum_group_ch
