@@ -127,8 +127,8 @@ if(!params.vcf) {
     //publishDir "${params.out}", mode: 'copy'
 
     input:
-    path("*TSD_summary.txt") from tsd_out_ch.collect()
-    path("*TSD_full_log.txt") from tsd_full_out_ch.collect()
+    tuple val(indels), path(x) into tsd_out_ch.collect()
+    tuple val(indels), path(y) into tsd_full_out_ch.collect()
 
     output:
     path("TSD_summary.txt") into tsd_sum_group_ch
@@ -137,8 +137,8 @@ if(!params.vcf) {
 
     script:
     """
-    cat *TSD_summary.txt > TSD_summary.txt
-    cat *TSD_full_log.txt > TSD_full_log.txt
+    cat ${x} > TSD_summary.txt
+    cat ${y} > TSD_full_log.txt
     """
   }
 
