@@ -92,7 +92,7 @@ if(!params.vcf) {
   process tsd_search {
     // cpus params.tsd_search_threads
     // memory params.tsd_search_memory
-    publishDir "${params.out}", mode: 'copy'
+    //publishDir "${params.out}", mode: 'copy'
 
     input:
     //file("genotypes_repmasked_filtered.vcf") from tsd_ch
@@ -104,7 +104,8 @@ if(!params.vcf) {
     file(ref_fasta) from ref_tsd_search_ch.toList()
 
     output:
-    path("TSD_*.txt") into tsd_out_ch.collect()
+    path("TSD_summary.txt") into tsd_out_ch
+    path("TSD_full_log.txt") into tsd_full_out_ch
     //file("pangenie.vcf") into vcf_ch
 
     script:
@@ -114,6 +115,26 @@ if(!params.vcf) {
     """
   }
 
+  process tsd_report {
+    // cpus params.tsd_search_threads
+    // memory params.tsd_search_memory
+    //publishDir "${params.out}", mode: 'copy'
+
+    input:
+    file("TSD_summary.txt") from tsd_out_ch.collect()
+    file("TSD_full_log.txt") from tsd_full_out_ch.collect()
+
+    output:
+    path("TSD_summary.txt") into tsd_sum_group_ch
+    path("TSD_full_log.txt") into tsd_full_group_ch
+    //file("pangenie.vcf") into vcf_ch
+
+    script:
+    """
+    cat TSD_summary.txt* > TSD_summary.txt
+    cat TSD_full_log.txt* > TSD_full_log.txt
+    """
+  }
 
 } else {
   Channel.fromPath(params.vcf).set{vcf_ch}
