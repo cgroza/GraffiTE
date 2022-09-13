@@ -97,11 +97,11 @@ if(!params.vcf) {
     input:
     //file("genotypes_repmasked_filtered.vcf") from tsd_ch
     file("indels.txt") from tsd_search_input.splitText() // check how to split by params.cpu
-    file("genotypes_repmasked_filtered.vcf") from tsd_search_ch
-    file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV
-    file("flanking_sequences.fasta") from tsd_search_flanking
-    path("repeatmasker_dir/*") from tsd_search_RM_ch // my hope is that this will pull the files from the repeatmasker_dir to the working directory
-    file(ref_fasta) from ref_tsd_search_ch
+    file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
+    file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
+    file("flanking_sequences.fasta") from tsd_search_flanking.toList()
+    path("repeatmasker_dir/*") from tsd_search_RM_ch.toList() // my hope is that this will pull the files from the repeatmasker_dir to the working directory
+    file(ref_fasta) from ref_tsd_search_ch.toList()
 
     output:
     path("TSD_*.txt") into tsd_out_ch
