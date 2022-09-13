@@ -138,7 +138,7 @@ if(!params.vcf) {
     TSD_FILE=TSD_annotation 
     bgzip \${TSD_FILE}
     tabix -s1 -b2 -e2 \${TSD_FILE}.gz 
-    bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,INFO/TSD \${VCF} | bcftools view > pangenie.vcf
+    bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenie.vcf
     """
   }
 
