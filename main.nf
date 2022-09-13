@@ -97,7 +97,7 @@ if(!params.vcf) {
     input:
     //file("genotypes_repmasked_filtered.vcf") from tsd_ch
     //file("indels.txt") from tsd_search_input.splitText() // check how to split by params.cpu
-    val indels from tsd_search_input.splitText().map{it -> it.trim()} // .trim() removes trailing \n for each val of indel
+    val indels from tsd_search_input.splitText() 
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
     file("flanking_sequences.fasta") from tsd_search_flanking.toList()
@@ -115,9 +115,9 @@ if(!params.vcf) {
     """
     cp repeatmasker_dir/repeatmasker_dir/* .
     findTSD.sh ${indels}
-    #name="${indels}"
-    mv TSD_summary.txt ${indels}.TSD_summary.txt
-    mv TSD_full_log.txt ${indels}.TSD_full_log.txt
+    name="\$(echo ${indels} | sed 's/\n//g')"
+    mv TSD_summary.txt \${name}.TSD_summary.txt
+    mv TSD_full_log.txt \${name}.TSD_full_log.txt
     """
   }
 
