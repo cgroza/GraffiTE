@@ -124,11 +124,11 @@ if(!params.vcf) {
   process tsd_report {
     // cpus params.tsd_search_threads
     // memory params.tsd_search_memory
-    //publishDir "${params.out}", mode: 'copy'
+    publishDir "${params.out}", mode: 'copy'
 
     input:
-    path(x) from tsd_out_ch.collect().view()
-    path(y) from tsd_full_out_ch.collect().view()
+    path(x) from tsd_out_ch.collect()
+    path(y) from tsd_full_out_ch.collect()
 
     output:
     path("TSD_summary.txt") into tsd_sum_group_ch
