@@ -128,7 +128,7 @@ if(!params.vcf) {
 
     input:
     tuple val(indels), path(x) from tsd_out_ch.collect()
-    tuple val(indels), path(y) frim tsd_full_out_ch.collect()
+    tuple val(indels), path(y) from tsd_full_out_ch.collect()
 
     output:
     path("TSD_summary.txt") into tsd_sum_group_ch
