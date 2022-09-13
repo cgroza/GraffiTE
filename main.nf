@@ -115,7 +115,7 @@ if(!params.vcf) {
     """
     cp repeatmasker_dir/repeatmasker_dir/* .
     findTSD.sh ${indels}
-    name="\$(echo ${indels} | sed 's/\n//g')"
+    name="\$(sed 's/\\n//g' ${indels})"
     mv TSD_summary.txt \${name}.TSD_summary.txt
     mv TSD_full_log.txt \${name}.TSD_full_log.txt
     """
