@@ -47,7 +47,7 @@ if(!params.vcf) {
     file(ref_fasta) from ref_repeatmasker_ch
 
     output:
-    file("genotypes_repmasked_filtered.vcf") into tsd_ch, tsd_search_ch
+    file("genotypes_repmasked_filtered.vcf") into tsd_ch, tsd_search_ch, tsd_gather_ch
     path("repeatmasker_dir/") into tsd_RM_ch, tsd_search_RM_ch // my hope is to export the output within their folder
 
     script:
@@ -90,13 +90,8 @@ if(!params.vcf) {
   }
   
   process tsd_search {
-    // cpus params.tsd_search_threads
-    // memory params.tsd_search_memory
-    //publishDir "${params.out}", mode: 'copy'
 
     input:
-    //file("genotypes_repmasked_filtered.vcf") from tsd_ch
-    //file("indels.txt") from tsd_search_input.splitText() // check how to split by params.cpu
     val indels from tsd_search_input.splitText() 
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
@@ -107,9 +102,6 @@ if(!params.vcf) {
     output:
     path('*TSD_summary.txt') into tsd_out_ch
     path('*TSD_full_log.txt') into tsd_full_out_ch
-    //path("*TSD_summary.txt") into tsd_out_ch
-    //path("*TSD_full_log.txt") into tsd_full_out_ch
-    //file("pangenie.vcf") into vcf_ch
 
     script:
     """
@@ -122,27 +114,36 @@ if(!params.vcf) {
   }
 
   process tsd_report {
-    // cpus params.tsd_search_threads
-    // memory params.tsd_search_memory
     publishDir "${params.out}", mode: 'copy'
 
     input:
     path(x) from tsd_out_ch.collect()
     path(y) from tsd_full_out_ch.collect()
+    path("genotypes_repmasked_filtered.vcf") from tsd_gather_ch
 
     output:
     path("TSD_summary.txt") into tsd_sum_group_ch
     path("TSD_full_log.txt") into tsd_full_group_ch
-    //file("pangenie.vcf") into vcf_ch
+    path("pangenie.vcf") into vcf_ch
 
     script:
     """
     cat ${x} > TSD_summary.txt
     cat ${y} > TSD_full_log.txt
+    join -13 -21 <(grep -v "#" genotypes_repmasked_filtered.vcf | cut -f 1-3 | sort -k3,3) <(grep 'PASS' TSD_summary.txt | awk '{print \$1"\t"\$(NF-2)","\$(NF-1)}' | sort -k1,1) | \
+    awk '{print \$2"\t"\$3"\t"\$4}' | \
+    sort -k1,1 -k2,2n > TSD_annotation
+    HDR_FILE=\$(mktemp)
+    echo -e '##INFO=<ID=TSD,Number=1,Type=String,Description="Target site duplication sequence passing filters">' >> \${HDR_FILE}
+    TSD_FILE=TSD_annotation 
+    bgzip \${TSD_FILE}
+    tabix -s1 -b2 -e2 \${TSD_FILE}.gz 
+    bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,INFO/TSD \${VCF} | bcftools view > pangenie.vcf
     """
   }
 
 } else {
+  // if a vcf is provided as parameter, skip discovery and go directly to genotyping
   Channel.fromPath(params.vcf).set{vcf_ch}
 }
 
