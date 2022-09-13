@@ -5,12 +5,13 @@
 
 SVSEQ=$1 # SV_sequences_L_R_trimmed_WIN.fa
 FLANK=$2 # flanking_sequences.fasta
-VERBOSE=$3 # for debug only
+indels=$3 # get the indel name directly from nextflow
+VERBOSE=$4 # for debug only
 
 # get each TE/SV in the variable indels
 #indels=$(grep '>' ${SVSEQ} | sed 's/>//g;s/__/\t/g' | cut -f 1 | sort | uniq)
 #indels=$(cat nohits | cut -f 1)
-indels=$(cat indels.txt)
+#indels=$(cat indels.txt)
 # clean the summary file if exists
 rm TSD_summary.txt 2> /dev/null
 

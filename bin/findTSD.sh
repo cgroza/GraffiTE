@@ -4,8 +4,7 @@
 
 # variable list
 VCF="genotypes_repmasked_filtered.vcf" # filtered vcf with repeatmasker
-REF=$1 # ref genome
-WIN=$2 # windows size in flanking to search TSD
+INDEL=$1 # ref genome
 MSK="indels.fa.masked" # masked SVs from repeatmasker
 OUT_VCF="pangenie.vcf"
 
@@ -13,7 +12,7 @@ OUT_VCF="pangenie.vcf"
 # Step 3: search TSDs #
 #######################
 echo "searching TSDs..."
-TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta
+TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta ${INDEL}
 
 # ########################
 # # Step 4: annotate VCF #
