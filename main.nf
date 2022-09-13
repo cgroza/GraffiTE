@@ -97,7 +97,7 @@ if(!params.vcf) {
     input:
     //file("genotypes_repmasked_filtered.vcf") from tsd_ch
     //file("indels.txt") from tsd_search_input.splitText() // check how to split by params.cpu
-    val indels from tsd_search_input.splitText()
+    val indels from tsd_search_input.splitText().map{it -> it.trim()} // .trim() removes trailing \n for each val of indel
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
     file("flanking_sequences.fasta") from tsd_search_flanking.toList()
