@@ -6,6 +6,19 @@ params.reference = "reference.fa"
 params.TE_library = "TE_library.fa"
 params.out = "out"
 params.tsd_win = 30 // add default value for TSD window search
+params.cores = false // set to an integer
+
+// if user uses global preset for number of cores
+if(params.cores) {
+    repeatmasker_threads = params.cores
+    svim_asm_threads     = params.cores
+    pangenie_threads     = params.cores
+} else {
+    repeatmasker_threads = params.repeatmasker_threads
+    svim_asm_threads     = params.svim_asm_threads
+    pangenie_threads     = params.pangenie_threads
+}
+
 
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
 
@@ -16,7 +29,7 @@ if(!params.vcf) {
   Channel.fromPath(params.TE_library).set{TE_library_ch}
 
   process svim_asm {
-    cpus params.svim_asm_threads
+    cpus svim_asm_threads
     memory params.svim_asm_memory
     publishDir "${params.out}", mode: 'copy'
 
@@ -37,7 +50,7 @@ if(!params.vcf) {
   }
 
   process repeatmasker {
-    cpus params.repeatmasker_threads
+    cpus repeatmasker_threads
     memory params.repeatmasker_memory
     publishDir "${params.out}", mode: 'copy'
 
@@ -153,7 +166,7 @@ if(params.genotype) {
   reads_ch.combine(vcf_ch).combine(ref_geno_ch).set{input_ch}
 
   process pangenie {
-    cpus params.pangenie_threads
+    cpus pangenie_threads
     memory params.pangenie_memory
     publishDir "${params.out}", mode: 'copy'
 
