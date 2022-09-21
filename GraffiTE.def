@@ -1,14 +1,6 @@
 Bootstrap: library
 From: ubuntu:20.04
 
-#%files
-#    repmask_vcf.sh /usr/local/bin
-#    fix_vcf.py /usr/local/bin
-#    annotate_vcf.R /usr/local/bin
-#    one_code_to_find_them_all.pl /usr/local/bin
-#    build_dictionary.pl /usr/local/bin
-#    findTSD.sh /usr/local/bin
-#    TSD_Match.sh /usr/local/bin
 %post
     apt-get -y update
     apt-get install --assume-yes software-properties-common
@@ -21,6 +13,7 @@ From: ubuntu:20.04
     libxml2-dev \
     libcurl4-openssl-dev \
     curl libgomp1 \
+    wget \
     perl \
     python3-h5py \
     libfile-which-perl \
@@ -88,18 +81,22 @@ From: ubuntu:20.04
     R --slave -e 'if (!require(c("BiocManager"), quietly = TRUE)) install.packages(c("BiocManager")); BiocManager::install(c("biomaRt", "Biostrings"))'
     R --slave -e 'install.packages(c("biomartr"), repos="https://cloud.r-project.org/")'
 
-    git clone https://github.com/Dfam-consortium/TETools.git
-    bash TETools/getsrc.sh
-    mv src /opt/src
-    cp TETools/sha256sums.txt /opt/src/
-    mkdir -p /opt/ucsc_tools
-    cp TETools/LICENSE.ucsc /opt/ucsc_tools/LICENSE
+    #git clone https://github.com/Dfam-consortium/TETools.git
+    #bash TETools/getsrc.sh
+    #mv src /opt/src
+    #cp TETools/sha256sums.txt /opt/src/
+    #mkdir -p /opt/ucsc_tools
+    #cp TETools/LICENSE.ucsc /opt/ucsc_tools/LICENSE
 
+    # Install RepeatMasker
+    mkdir /opt/src
     cd /opt/src
+    wget -O rmblast-2.11.0+-x64-linux.tar.gz https://www.repeatmasker.org/rmblast-2.11.0+-x64-linux.tar.gz 
+    wget -O hmmer-3.3.2.tar.gz http://eddylab.org/software/hmmer/hmmer-3.3.2.tar.gz 
+    wget -O trf-4.09.1.tar.gz https://github.com/Benson-Genomics-Lab/TRF/archive/v4.09.1.tar.gz
+    wget -O RepeatMasker-4.1.3.tar.gz https://www.repeatmasker.org/RepeatMasker/RepeatMasker-4.1.3.tar.gz
 
-    #sha256sum -c sha256sums.txt
-
-    # Extract RMBlast
+    # Install RMBlast
     cd /opt \
     && mkdir rmblast \
     && tar --strip-components=1 -x -f src/rmblast-2.11.0+-x64-linux.tar.gz -C rmblast \
@@ -120,77 +117,6 @@ From: ubuntu:20.04
     && ../configure && make && cp ./src/trf /opt/trf \
     && cd .. && rm -r build
 
-    # Compile RepeatScout
-    cd /opt/src
-    tar -x -f RepeatScout-1.0.6.tar.gz \
-    && cd RepeatScout-1.0.6 \
-    && sed -i 's#^INSTDIR =.*#INSTDIR = /opt/RepeatScout#' Makefile \
-        && make && make install
-
-    # Compile and configure RECON
-    cd /opt/src
-    tar -x -f RECON-1.08.tar.gz \
-    && mv RECON-1.08 ../RECON \
-    && cd ../RECON \
-    && make -C src && make -C src install \
-    && cp 00README bin/ \
-    && sed -i 's#^\$path =.*#$path = "/opt/RECON/bin";#' scripts/recon.pl
-
-    # Compile cd-hit
-    cd /opt/src
-    tar -x -f cd-hit-v4.8.1-2019-0228.tar.gz \
-    && cd cd-hit-v4.8.1-2019-0228 \
-    && make && mkdir /opt/cd-hit && PREFIX=/opt/cd-hit make install
-
-    # Compile genometools (for ltrharvest)
-    cd /opt/src
-    tar -x -f gt-1.6.0.tar.gz \
-    && cd genometools-1.6.0 \
-    && make -j4 cairo=no && make cairo=no prefix=/opt/genometools install \
-    && make cleanup
-
-    # Configure LTR_retriever
-    cd /opt \
-    && tar -x -f src/LTR_retriever-2.9.0.tar.gz \
-    && mv LTR_retriever-2.9.0 LTR_retriever \
-    && cd LTR_retriever \
-    && sed -i \
-    -e 's#BLAST+=#BLAST+=/opt/rmblast/bin#' \
-            -e 's#RepeatMasker=#RepeatMasker=/opt/RepeatMasker#' \
-            -e 's#HMMER=#HMMER=/opt/hmmer/bin#' \
-            -e 's#CDHIT=#CDHIT=/opt/cd-hit#' \
-            paths
-
-    # Compile MAFFT
-    cd /opt/src
-    tar -x -f mafft-7.471-without-extensions-src.tgz \
-    && cd mafft-7.471-without-extensions/core \
-    && sed -i 's#^PREFIX =.*#PREFIX = /opt/mafft#' Makefile \
-    && make clean && make && make install \
-    && make clean
-
-    # Compile NINJA
-    cd /opt \
-    && mkdir NINJA \
-    && tar --strip-components=1 -x -f src/NINJA-cluster.tar.gz -C NINJA \
-    && cd NINJA/NINJA \
-    && make clean && make all
-
-    # Move UCSC tools
-    cd /opt/src
-    mkdir /opt/ucsc_tools \
-    && mv faToTwoBit twoBitInfo twoBitToFa  /opt/ucsc_tools \
-    && chmod +x /opt/ucsc_tools/*
-
-    # Compile and configure coseg
-    cd /opt \
-    && tar -x -f src/coseg-0.2.2.tar.gz \
-    && cd coseg \
-    && sed -i 's/-o coseg/-o coseg -lm/g' Makefile \
-    && sed -i 's@#!.*perl@#!/usr/bin/perl@' preprocessAlignments.pl runcoseg.pl refineConsSeqs.pl \
-        && sed -i 's#use lib "/usr/local/RepeatMasker";#use lib "/opt/RepeatMasker";#' preprocessAlignments.pl \
-        && make
-
     # Configure RepeatMasker
     cd /opt \
     && tar -x -f src/RepeatMasker-4.1.3.tar.gz \
@@ -204,19 +130,16 @@ From: ubuntu:20.04
     -default_search_engine=rmblast \
     && cd .. && rm src/RepeatMasker-4.1.3.tar.gz
 
-    # Configure RepeatModeler
-    cd /opt \
-    && tar -x -f src/RepeatModeler-2.0.3.tar.gz \
-    && mv RepeatModeler-2.0.3 RepeatModeler \
-    && cd RepeatModeler \
-    && perl configure \
-    -cdhit_dir=/opt/cd-hit -genometools_dir=/opt/genometools/bin \
-    -ltr_retriever_dir=/opt/LTR_retriever -mafft_dir=/opt/mafft/bin \
-    -ninja_dir=/opt/NINJA/NINJA -recon_dir=/opt/RECON/bin \
-    -repeatmasker_dir=/opt/RepeatMasker \
-    -rmblast_dir=/opt/rmblast/bin -rscout_dir=/opt/RepeatScout \
-    -trf_dir=/opt \
-    -ucsctools_dir=/opt/ucsc_tools
+    # hotfix RepeatMasker 4.1.3
+    cd /opt/RepeatMasker \
+    && head -n 3725 ProcessRepeats > ProcessBefore \
+    && awk 'NR > 3726' ProcessRepeats > ProcessAfter \
+    && touch ProcessFix \
+    && printf "              if ( \$newRight ) {\n" >> ProcessFix \
+    && printf "                \$newRight->setLeftLinkedHit( \$newHit );\n" >> ProcessFix \
+    && printf "              }\n" >> ProcessFix \
+    && cat ProcessBefore ProcessFix ProcessAfter > ProcessRepeats \
+    && rm ProcessBefore ProcessAfter ProcessFix
 
     cd $HOME
     # Install dependencies and some basic utilities
@@ -231,7 +154,6 @@ From: ubuntu:20.04
     libjson-perl liburi-perl libwww-perl \
     libdevel-size-perl \
     && aptitude install -y ~pstandard ~prequired \
-    curl wget \
     vim nano \
     procps strace \
     libpam-systemd-
@@ -249,4 +171,4 @@ From: ubuntu:20.04
     export LC_ALL=C
     export LANG=C
     export PYTHONIOENCODING=utf8
-    export PATH=/opt/RepeatMasker:/opt/RepeatMasker/util:/opt/RepeatModeler:/opt/RepeatModeler/util:/opt/coseg:/opt/ucsc_tools:/opt:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    export PATH=/opt/RepeatMasker:/opt/RepeatMasker/util:/opt:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
