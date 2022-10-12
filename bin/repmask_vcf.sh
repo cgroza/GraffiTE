@@ -57,7 +57,28 @@ find ${REPMASK_DIR} -name "*.transposons.csv" -delete
 
 ANNOT_FILE=vcf_annotation
 
-annotate_vcf.R --dotout ${REPMASK_ONECODE_OUT} --vcf ${VCF} --annotation ${ANNOT_FILE}
+annotate_vcf.R --dotout ${REPMASK_ONECODE_OUT} --vcf ${VCF} --annotation ${ANNOT_FILE}_1
+
+# calculate the total span of TEs on the SV without overlap
+awk 'BEGIN {OFS = "\n"}; /^>/ {print(substr(sequence_id, 2)" "sequence_length); sequence_length = 0; sequence_id = $0}; /^[^>]/ {sequence_length += length($0)}; END {print(sequence_length)}' indels.fa > indels.length
+awk 'NR > 3 {print $5"\t"$6"\t"$7"\t"$10}' ${REPMASK_ONECODE_OUT} | bedtools merge > merge.bed
+RMQUERIES=$(awk 'NR > 3 {print $5}' ${REPMASK_ONECODE_OUT} | sort | uniq)
+rm -rf span &> /dev/null # clean in case there is a "span" file already
+rm -rf ${ANNOT_FILE}.gz &> /dev/null # clean in case there was a ${ANNOT_FILE}.gz file already
+for i in ${RMQUERIES}
+do
+paste -d "\t" <(echo -e "${i}") <(grep -w "${i}" merge.bed | awk '{print ($3-$2)}' | paste -sd+ | bc) <(grep -w "${i}" indels.length) | awk '{print $1"\t"$2"\t"$4"\t"($2/$4)}' >> span
+done
+# combine each SV with its coordinate in the vcf in order to sort the file correctly before merge with ${ANNOT_FILE}_1
+join -13 -21 <(grep -v '#' ${VCF} | cut -f 1-3 | sort -k3,3) <(sort -k1,1 span | cut -f 1-2,4) | sed 's/ /\t/g' | cut -f 2- | sort -k1,1 -k2,2n > ${ANNOT_FILE}_2
+# merge with ${ANNOT_FILE}_1
+#paste -d "\t" <(sort -k1,1 -k2,2n ${ANNOT_FILE}_1) <(sort -k1,1 -k2,2n ${ANNOT_FILE}_2) > ${ANNOT_FILE}
+join -11 -21 -a1 <(awk '{print $1"_"$2"\t"$0}' ${ANNOT_FILE}_1 | sort -k1,1 -k2,2n)  <(awk '{print $1"_"$2"\t"$0}' ${ANNOT_FILE}_2 | sort -k1,1 -k2,2n) | sed 's/ /\t/g' | cut -f 2-10,13,14 | sort -k1,1 -k2,2n > ${ANNOT_FILE}
+
+### ADD L1 TwP and SVA VNTR scripts here
+# Annotating Twin-Primed L1 insertions[]
+
+# Annotating SVA hits corresponding to the VNTR only
 
 bgzip ${ANNOT_FILE}
 tabix -s1 -b2 -e2 ${ANNOT_FILE}.gz
@@ -69,11 +90,13 @@ echo -e '##INFO=<ID=match_lengths,Number=.,Type=Integer,Description="Insertion l
 echo -e '##INFO=<ID=repeat_ids,Number=.,Type=String,Description="Repeat family IDs">' >> ${HDR_FILE}
 echo -e '##INFO=<ID=matching_classes,Number=.,Type=String,Description="Repeat class names">' >> ${HDR_FILE}
 echo -e '##INFO=<ID=fragmts,Number=.,Type=Integer,Description="Number of fragments merged into one by one code">' >> ${HDR_FILE}
+echo -e '##INFO=<ID=RM_hit_strands,Number=.,Type=String,Description="RepeatMasker hit strands">' >> ${HDR_FILE}
+echo -e '##INFO=<ID=RM_hit_IDs,Number=.,Type=String,Description="RepeatMasker hit IDs">' >> ${HDR_FILE}
 echo -e '##INFO=<ID=total_match_length,Number=1,Type=Integer,Description="Insertion length spanned by repeats">' >> ${HDR_FILE}
 echo -e '##INFO=<ID=total_match_span,Number=1,Type=Float,Description="Insertion span spanned by repeats">' >> ${HDR_FILE}
 echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
 bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
-         -c CHROM,POS,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/total_match_length,INFO/total_match_span $VCF | \
+         -c CHROM,POS,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span $VCF | \
     bcftools view -Oz -o ${OUT_VCF}
 
