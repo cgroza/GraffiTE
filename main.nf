@@ -1,13 +1,13 @@
-params.vcf = false
-params.genotype = true
-params.reads = "reads.csv"
+params.vcf        = false
+params.genotype   = true
+params.reads      = "reads.csv"
 params.assemblies = "assemblies.csv"
-params.reference = "reference.fa"
+params.reference  = "reference.fa"
 params.TE_library = "TE_library.fa"
-params.out = "out"
-params.tsd_win = 30 // add default value for TSD window search
-params.cores = false // set to an integer
-params.version      =   "0.0 beta (2022)"
+params.out        = "out"
+params.tsd_win    = 30 // add default value for TSD window search
+params.cores      = false // set to an integer
+params.version    =   "0.0 beta (2022)"
 
 
 // SAY HELLO
@@ -132,11 +132,11 @@ if(!params.vcf) {
 
     input:
     val indels from tsd_search_input.splitText() 
-    file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
-    file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
-    file("flanking_sequences.fasta") from tsd_search_flanking.toList()
-    path("repeatmasker_dir/*") from tsd_search_RM_ch.toList() // my hope is that this will pull the files from the repeatmasker_dir to the working directory
-    file(ref_fasta) from ref_tsd_search_ch.toList()
+    file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList().view()
+    file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList().view()
+    file("flanking_sequences.fasta") from tsd_search_flanking.toList().view()
+    path("repeatmasker_dir/*") from tsd_search_RM_ch.toList().view() // my hope is that this will pull the files from the repeatmasker_dir to the working directory
+    file(ref_fasta) from ref_tsd_search_ch.toList().view()
 
     output:
     path('*TSD_summary.txt') into tsd_out_ch

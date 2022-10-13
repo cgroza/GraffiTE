@@ -5,6 +5,14 @@
 
 `GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies and genotypes the discovered polymorphisms in read sets using a pangenomic approach.
 
+```mermaid
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+```
+
 ## Installation
 
 
@@ -17,12 +25,6 @@
 
 ### GraffiTE install
 
-To run `GraffiTE` on your system, you will need to download the latest image and clone the GitHub repository
-
-
-
-
-## Running GraffiTE
 To download and run `GraffiTE`, install `nextflow` and use the following command line:
 
 ```
@@ -35,7 +37,10 @@ nextflow run cgroza/GraffiTE \
 
 This will download and cache the `GraffiTE` pipeline and Singularity image for local use. Later runs will skip the slow download step.
 
+## Running GraffiTE
+
 ### Parameters
+
 - `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered. One assembly per sample and sample names must be unique.
 
 Example `assemblies.csv`:
@@ -47,7 +52,8 @@ path,sample
 
 ```
 
-- `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. Only one FASTQ per sample, and sample names must be unique.
+- `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. Only one FASTQ per sample, and sample names must be unique. Paired-end reads must be concatenated in the same file.
+> Note that the current genotyper, `PanGenie` is optimized for short-reads. Long-read support will be available soon!
 
 Example `reads.csv`:
 ```
@@ -58,7 +64,9 @@ path,sample
 
 ```
 
-- `--TE_library`: a FASTA file that lists the consensus sequences of the transposable elements to be discovered. Must be compatible with `RepeatMasker`.
+- `--TE_library`: a FASTA file that lists the consensus sequences of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#type/subtype` for example `AluY#SINE/Alu`
+   - From [DFAM](https://dfam.org/releases/current/families/) (open access): download the latest DFAM release (`Dfam.h5` or `Dfam_curatedonly.h5` files) and use the tool [FamDB](https://github.com/Dfam-consortium/FamDB) to extract the consensus for your model: `famdb.py -i <Dfam.h5> families -f fasta_name -a <taxa> --include-class-in-name > TE_library.fasta`
+   - From [Repbase](https://www.girinst.org/server/RepBase/index.php) (paid subscription): use the "RepeatMasker Edition" libraries
 
 - `--reference`: a reference genome of the species being studied. All assemblies are compared to this reference genome.
 
