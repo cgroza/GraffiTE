@@ -70,10 +70,10 @@ do
 paste -d "\t" <(echo -e "${i}") <(grep -w "${i}" merge.bed | awk '{print ($3-$2)}' | paste -sd+ | bc) <(grep -w "${i}" indels.length) | awk '{print $1"\t"$2"\t"$4"\t"($2/$4)}' >> span
 done
 # combine each SV with its coordinate in the vcf in order to sort the file correctly before merge with ${ANNOT_FILE}_1
-join -13 -21 <(grep -v '#' ${VCF} | cut -f 1-3 | sort -k3,3) <(sort -k1,1 span | cut -f 1-2,4) | sed 's/ /\t/g' | cut -f 2- | sort -k1,1 -k2,2n > ${ANNOT_FILE}_2
+#join -13 -21 <(grep -v '#' ${VCF} | cut -f 1-3 | sort -k3,3) <(sort -k1,1 span | cut -f 1-2,4) | sed 's/ /\t/g' | cut -f 2- | sort -k1,1 -k2,2n > ${ANNOT_FILE}_2
 # merge with ${ANNOT_FILE}_1
 #paste -d "\t" <(sort -k1,1 -k2,2n ${ANNOT_FILE}_1) <(sort -k1,1 -k2,2n ${ANNOT_FILE}_2) > ${ANNOT_FILE}
-join -11 -21 -a1 <(awk '{print $1"_"$2"\t"$0}' ${ANNOT_FILE}_1 | sort -k1,1 -k2,2n)  <(awk '{print $1"_"$2"\t"$0}' ${ANNOT_FILE}_2 | sort -k1,1 -k2,2n) | sed 's/ /\t/g' | cut -f 2-10,13,14 | sort -k1,1 -k2,2n > ${ANNOT_FILE}
+join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t/g' | awk '{print $3"\t"$1"\t"$2"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}' | sort -k1,1 -k2,2n > ${ANNOT_FILE}
 
 ### ADD L1 TwP and SVA VNTR scripts here
 # Annotating Twin-Primed L1 insertions[]
@@ -97,6 +97,6 @@ echo -e '##INFO=<ID=total_match_span,Number=1,Type=Float,Description="Insertion 
 echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
 bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
-         -c CHROM,POS,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span $VCF | \
+         -c CHROM,POS,ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span $VCF | \
     bcftools view -Oz -o ${OUT_VCF}
 
