@@ -7,6 +7,32 @@ params.TE_library = "TE_library.fa"
 params.out = "out"
 params.tsd_win = 30 // add default value for TSD window search
 params.cores = false // set to an integer
+params.version      =   "0.0 beta (2022)"
+
+
+// SAY HELLO
+
+log.info """
+
+  ▄████  ██▀███   ▄▄▄        █████▒ █████▒██▓▄▄▄█████▓▓█████
+ ██▒ ▀█▒▓██ ▒ ██▒▒████▄    ▓██   ▒▓██           ██▒ ▓▒▓█   ▀
+▒██░▄▄▄░▓██ ░▄█ ▒▒██  ▀█▄  ▒████ ░▒████ ░▒██▒▒ ▓██░ ▒░▒███
+░▓█  ██▓▒██▀▀█▄  ░██▄▄▄▄██ ░▓█▒  ░░▓█▒  ░░██░░ ▓██▓ ░ ▒▓█  ▄
+░▒▓███▀▒░██▓ ▒██▒ ▓█   ▓██▒░▒█░   ░▒█░   ░██░  ▒██▒ ░ ░▒████▒
+ ░▒   ▒ ░ ▒▓ ░▒▓░ ▒▒   ▓▒█░ ▒ ░    ▒ ░   ░▓    ▒ ░░   ░░ ▒░ ░
+  ░   ░   ░▒ ░ ▒░  ▒   ▒▒ ░ ░      ░      ▒ ░    ░     ░ ░  ░
+░ ░   ░   ░░   ░   ░   ▒    ░ ░    ░ ░    ▒ ░  ░         ░
+      ░    ░           ░  ░               ░              ░  ░
+
+                  V . ${params.version}
+
+Find and Genotype Transposable Elements Insertion Polymorphisms
+      in Genome Assemblies using a Pangenomic Approach           
+
+Authors: Cristian Groza and Clément Goubert
+Bug/issues: https://github.com/cgroza/GraffiTE/issues
+
+"""
 
 // if user uses global preset for number of cores
 if(params.cores) {
