@@ -64,7 +64,7 @@ rep_mask <- read_rm_custom(opt$dotout) %>%
   # compile RM hit stats for each SV
   mutate(match_len = qry_end - qry_start) %>%
   arrange(qry_start) %>%
-  group_by(qry_id, g = cumsum(cummax(lag(qry_end, default = first(qry_end))) < qry_start)) %>%
+  group_by(qry_id) %>%
   summarise(
     start = first(qry_start), stop = max(qry_end),
     match_lengths = paste0(match_len, collapse = ","),
