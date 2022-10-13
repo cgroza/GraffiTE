@@ -73,7 +73,10 @@ done
 #join -13 -21 <(grep -v '#' ${VCF} | cut -f 1-3 | sort -k3,3) <(sort -k1,1 span | cut -f 1-2,4) | sed 's/ /\t/g' | cut -f 2- | sort -k1,1 -k2,2n > ${ANNOT_FILE}_2
 # merge with ${ANNOT_FILE}_1
 #paste -d "\t" <(sort -k1,1 -k2,2n ${ANNOT_FILE}_1) <(sort -k1,1 -k2,2n ${ANNOT_FILE}_2) > ${ANNOT_FILE}
-join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t/g' | awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}' | sort -k1,1 -k2,2n > ${ANNOT_FILE}
+join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t/g' | \
+ awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13}' | \
+ awk 'if (NR == 11) {print $0"\tNone\tNone"} else {print $0}}' | \
+ sort -k1,1 -k2,2n > ${ANNOT_FILE}
 
 ### ADD L1 TwP and SVA VNTR scripts here
 # Annotating Twin-Primed L1 insertions[]
