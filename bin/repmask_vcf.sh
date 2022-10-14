@@ -87,7 +87,7 @@ then
     rm TwP.txt &> /dev/null
     for i in $TwP 
     do
-    grep -w $(grep -w "${i}" <(awk '!/^\#/ {print $1"_"$2"\t"$3}' genotypes.vcf) | cut -f 2) repeatmasker_dir/indels.fa.onecode.out | \
+    grep -w $(grep -w "${i}" <(grep -v "#" genotypes.vcf | awk '{print $1"_"$2"\t"$3}') | cut -f 2) repeatmasker_dir/indels.fa.onecode.out | \
     awk 'getline second {line=split(second, a, "\t", sep); print $12"\t"$13"\t"$14"\t"a[12]"\t"a[13]"\t"a[14]}' | \
     awk -v coord=${i} '{if ($2<$5) {print coord"\t5P_INV:plus"} else {print coord"\t5P_INV:minus"}}' >> TwP.txt
     done
@@ -133,7 +133,7 @@ then
     echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
     bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
-             -c CHROM,POS,ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span,INFO/mam_filter_1,INFO,mam_filter_2 $VCF | \
+             -c CHROM,POS,ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span,INFO/mam_filter_1,INFO/mam_filter_2 $VCF | \
         bcftools view -Oz -o ${OUT_VCF}
 
 else
