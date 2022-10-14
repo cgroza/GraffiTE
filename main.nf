@@ -7,6 +7,7 @@ params.TE_library = "TE_library.fa"
 params.out        = "out"
 params.tsd_win    = 30 // add default value for TSD window search
 params.cores      = false // set to an integer
+params.mammal     = false
 params.version    =   "0.0 beta (2022)"
 
 
@@ -44,7 +45,6 @@ if(params.cores) {
     svim_asm_threads     = params.svim_asm_threads
     pangenie_threads     = params.pangenie_threads
 }
-
 
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
 
@@ -90,6 +90,19 @@ if(!params.vcf) {
     path("repeatmasker_dir/") into tsd_RM_ch, tsd_search_RM_ch // my hope is to export the output within their folder
 
     script:
+    if(params.mammal)
+    """
+    ls *.vcf > vcfs.txt
+    SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100 genotypes.vcf
+    repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library} MAM
+    bcftools view -G genotypes_repmasked.vcf.gz | \
+    awk -v FS='\t' -v OFS='\t' \
+    '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
+    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | \
+    bcftools view -i 'INFO/total_match_span > 0.80' -o genotypes_repmasked_temp.vcf
+    fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
+    """
+    else
     """
     ls *.vcf > vcfs.txt
     SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100 genotypes.vcf
@@ -101,7 +114,6 @@ if(!params.vcf) {
     bcftools view -i 'INFO/total_match_span > 0.80' -o genotypes_repmasked_temp.vcf
     fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
     """
-
   }
 
   process tsd_prep {
@@ -132,11 +144,11 @@ if(!params.vcf) {
 
     input:
     val indels from tsd_search_input.splitText() 
-    file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList().view()
-    file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList().view()
-    file("flanking_sequences.fasta") from tsd_search_flanking.toList().view()
-    path("repeatmasker_dir/*") from tsd_search_RM_ch.toList().view() // my hope is that this will pull the files from the repeatmasker_dir to the working directory
-    file(ref_fasta) from ref_tsd_search_ch.toList().view()
+    file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
+    file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
+    file("flanking_sequences.fasta") from tsd_search_flanking.toList()
+    path("repeatmasker_dir/*") from tsd_search_RM_ch.toList() // my hope is that this will pull the files from the repeatmasker_dir to the working directory
+    file(ref_fasta) from ref_tsd_search_ch.toList()
 
     output:
     path('*TSD_summary.txt') into tsd_out_ch
