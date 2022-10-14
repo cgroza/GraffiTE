@@ -110,7 +110,8 @@ then
     bedtools intersect -wao -a <(sort -k1,1 -k2,2n SVA_candidates.bed) -b SVA_VNTR.bed | awk '{if ($9/($3-$2) > 0.9) {print $4"\tVNTR_ONLY:"$5":"$2":"$3}}' | sort -k1,1 > SVA_VNTR.txt
 
     join -a1 -13 -21 <(sort -k3,3 vcf_annotation) <(sort -k1,1 TwP.txt) | sed 's/ /\t/g' | awk '{if (NF == 12) {print $0"\tNone"} else {print $0}}' > vcf_annotation.temp
-    join -a1 -11 -21 <(sort -k1,1 vcf_annotation.temp) SVA_VNTR.txt | sed 's/ /\t/g' | awk '{if (NF == 13) {print $0"\tNone"} else {print $0}}' > ${ANNOT_FILE}
+    join -a1 -11 -21 <(sort -k1,1 vcf_annotation.temp) SVA_VNTR.txt | sed 's/ /\t/g' | awk '{if (NF == 13) {print $0"\tNone"} else {print $0}}' | \
+     awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' | sort -k1,1 -k2,2n > ${ANNOT_FILE}
 
 
     bgzip ${ANNOT_FILE}
