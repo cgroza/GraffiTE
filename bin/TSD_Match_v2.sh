@@ -29,8 +29,8 @@ else
 	strand=$L15P
 	# get the TE name from the RepeatMasker file
 	TE=$(grep -w "${i}" indels.fa.onecode.out | cut -f 10 | sort | uniq)
-	# get the divergence by averaging the two hits in the RepeatMasker file
-	DIV=$(grep -w "${i}" indels.fa.onecode.out | cut -f 2 | awk 'getline second {print ($0+second)/2}')
+	# get the divergence by averaging the two hits in the RepeatMasker file (weighted average by hit length)
+	DIV=$(grep -w "${i}" indels.fa.onecode.out | awk '{print $2"\t"($7-$6)}' | awk 'getline second {print $0"\t"second}' | awk '{print ($1*$2+$3*$4)/($2+$4)}')
 fi
 
 echo ""
