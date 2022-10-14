@@ -57,7 +57,7 @@ if(!params.vcf) {
   process svim_asm {
     cpus svim_asm_threads
     memory params.svim_asm_memory
-    publishDir "${params.out}", mode: 'copy'
+    publishDir "${params.out}/1_SV_search", mode: 'copy'
 
     input:
     set val(asm_name), file(asm), file(ref) from svim_in_ch
@@ -78,7 +78,7 @@ if(!params.vcf) {
   process repeatmasker {
     cpus repeatmasker_threads
     memory params.repeatmasker_memory
-    publishDir "${params.out}", mode: 'copy'
+    publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
 
     input:
     file(vcfs) from svim_out_ch.map{sample -> sample[1]}.collect()
@@ -119,7 +119,7 @@ if(!params.vcf) {
   process tsd_prep {
     // cpus params.tsd_search_threads
     // memory params.tsd_search_memory
-    publishDir "${params.out}", mode: 'copy'
+    // publishDir "${params.out}", mode: 'copy'
 
     input:
     file("genotypes_repmasked_filtered.vcf") from tsd_ch
@@ -165,7 +165,7 @@ if(!params.vcf) {
   }
 
   process tsd_report {
-    publishDir "${params.out}", mode: 'copy'
+    publishDir "${params.out}/3_TSD_search", mode: 'copy'
 
     input:
     path(x) from tsd_out_ch.collect()
@@ -206,17 +206,34 @@ if(params.genotype) {
   process pangenie {
     cpus pangenie_threads
     memory params.pangenie_memory
-    publishDir "${params.out}", mode: 'copy'
+    publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
     input:
     set val(sample_name), file(sample_reads), file(vcf), file(ref) from input_ch
 
     output:
-    file("${sample_name}_genotyping.vcf")
+    file("${sample_name}_genotyping.vcf.gz") into indexed_vcfs
 
     script:
     """
-    PanGenie -t ${params.pangenie_threads} -j ${params.pangenie_threads} -s ${sample_name} -i ${sample_reads} -r ${ref} -v ${vcf}  -o ${sample_name}
+    PanGenie -t ${params.pangenie_threads} -j ${params.pangenie_threads} -s ${sample_name} -i ${sample_reads} -r ${ref} -v ${vcf} -o ${sample_name}
+    bgzip -c ${sample_name}_genotyping.vcf
+    tabix -p vcf ${sample_name}_genotyping.vcf.gz
     """
+  }
+
+  process mergeVcfs {
+  publishDir "${params.out}/4_Genotyping", mode: 'copy'
+
+  input:
+  file("${sample_name}_genotyping.vcf.gz") from indexed_vcfs.collect()
+   
+  output:
+  file "GraffiTE.merged.genotypes.vcf" into typeref_outputs
+  
+  script:
+  """
+  bcftools merge *.vcf.gz > GraffiTE.merged.genotypes.vcf
+  """
   }
 }
