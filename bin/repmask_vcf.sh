@@ -61,6 +61,7 @@ ANNOT_FILE=vcf_annotation
 annotate_vcf.R --dotout ${REPMASK_ONECODE_OUT} --vcf ${VCF} --annotation ${ANNOT_FILE}_1
 
 # calculate the total span of TEs on the SV without overlap
+echo "compute repeat proportion for each SVs..."
 awk 'BEGIN {OFS = "\n"}; /^>/ {print(substr(sequence_id, 2)" "sequence_length); sequence_length = 0; sequence_id = $0}; /^[^>]/ {sequence_length += length($0)}; END {print(sequence_length)}' indels.fa > indels.length
 awk 'NR > 3 {print $5"\t"$6"\t"$7"\t"$10}' ${REPMASK_ONECODE_OUT} | bedtools merge > merge.bed
 RMQUERIES=$(awk 'NR > 3 {print $5}' ${REPMASK_ONECODE_OUT} | sort | uniq)
@@ -70,18 +71,16 @@ for i in ${RMQUERIES}
 do
 paste -d "\t" <(echo -e "${i}") <(grep -w "${i}" merge.bed | awk '{print ($3-$2)}' | paste -sd+ | bc) <(grep -w "${i}" indels.length) | awk '{print $1"\t"$2"\t"$4"\t"($2/$4)}' >> span
 done
-# combine each SV with its coordinate in the vcf in order to sort the file correctly before merge with ${ANNOT_FILE}_1
-#join -13 -21 <(grep -v '#' ${VCF} | cut -f 1-3 | sort -k3,3) <(sort -k1,1 span | cut -f 1-2,4) | sed 's/ /\t/g' | cut -f 2- | sort -k1,1 -k2,2n > ${ANNOT_FILE}_2
 # merge with ${ANNOT_FILE}_1
-#paste -d "\t" <(sort -k1,1 -k2,2n ${ANNOT_FILE}_1) <(sort -k1,1 -k2,2n ${ANNOT_FILE}_2) > ${ANNOT_FILE}
 join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t/g' | \
  awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$13}' | \
- awk '{if (NF == 10) {print $0"\tNone\tNone"} else {print $0}}' | \
+ awk '{if (NF == 10) {print $0"\t0\t0"} else {print $0}}' | \
  sort -k1,1 -k2,2n > ${ANNOT_FILE}
 
 # if --mammal if set, search for L1 5' inversion (Twin Priming and similar) and if SVA hits are within VNTR only (non retrotransposition polymorphism)
 if [[ MAM == "MAM" ]]
 then
+    echo "Mammalian filters ON. Filtering..."
     # FILTER 1: L1 Twin Priming and similar
     TwP=$(awk '{if ($4 == 2 && $9 == "C,+" && $8~/LINE/) {names = split($7,n,",",seps); ids = split($10, i,",",seps); if (names n[1] == names n[2] && ids i[1] == ids i[2]) {print $0"\tTwP"}}}' vcf_annotation | awk '{print $3}')
     rm TwP.txt &> /dev/null
@@ -113,7 +112,7 @@ then
     join -a1 -11 -21 <(sort -k1,1 vcf_annotation.temp) SVA_VNTR.txt | sed 's/ /\t/g' | awk '{if (NF == 13) {print $0"\tNone"} else {print $0}}' | \
      awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' | sort -k1,1 -k2,2n > ${ANNOT_FILE}
 
-
+    echo "writing vcf..."
     bgzip ${ANNOT_FILE}
     tabix -s1 -b2 -e2 ${ANNOT_FILE}.gz
 
@@ -133,11 +132,11 @@ then
     echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
     bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
-             -c CHROM,POS,ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span,INFO/mam_filter_1,INFO/mam_filter_2 $VCF | \
-        bcftools view -Oz -o ${OUT_VCF}
+    -c CHROM,POS,ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span,INFO/mam_filter_1,INFO/mam_filter_2 $VCF | \
+    bcftools view -Oz -o ${OUT_VCF}
 
 else
-
+    echo "Mammalian filters OFF, writing vcf..."
     bgzip ${ANNOT_FILE}
     tabix -s1 -b2 -e2 ${ANNOT_FILE}.gz
 
@@ -155,6 +154,6 @@ else
     echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
     bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
-             -c CHROM,POS,ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span $VCF | \
-        bcftools view -Oz -o ${OUT_VCF}
+    -c CHROM,POS,ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span $VCF | \
+    bcftools view -Oz -o ${OUT_VCF}
 fi
