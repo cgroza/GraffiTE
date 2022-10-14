@@ -8,10 +8,6 @@ FLANK=$2 # flanking_sequences.fasta
 indels=$3 # get the indel name directly from nextflow
 VERBOSE=$4 # for debug only
 
-# get each TE/SV in the variable indels
-#indels=$(grep '>' ${SVSEQ} | sed 's/>//g;s/__/\t/g' | cut -f 1 | sort | uniq)
-#indels=$(cat nohits | cut -f 1)
-#indels=$(cat indels.txt)
 # clean the summary file if exists
 rm TSD_summary.txt 2> /dev/null
 
@@ -20,10 +16,23 @@ function tsdfind {
 # loop over each TE/SV
 while IFS= read -r i
 do
-# get the strand from the RepeatMasker file
-strand=$(grep -w "${i}" indels.fa.onecode.out | cut -f 9 | sort | uniq)
-TE=$(grep -w "${i}" indels.fa.onecode.out | cut -f 10 | sort | uniq)
-DIV=$(grep -w "${i}" indels.fa.onecode.out | cut -f 2 | sort | uniq)
+# check if the variant is a L1 with 5P inversion
+L15P=$(grep -w ${i} genotypes_repmasked_filtered.vcf | sed 's/mam_filter_1=/\t/g;s/;mam_filter_2=/\t/g;s/5P_INV:plus/+/g;s/5P_INV:minus/C/g' | awk '{print $9}')
+if [[ L14P == "None" ]]
+then
+	# get all info from the RepeatMasker file
+	strand=$(grep -w "${i}" indels.fa.onecode.out | cut -f 9 | sort | uniq)
+	TE=$(grep -w "${i}" indels.fa.onecode.out | cut -f 10 | sort | uniq)
+	DIV=$(grep -w "${i}" indels.fa.onecode.out | cut -f 2 | sort | uniq)
+else
+	# get the strand from the vcf
+	strand=$L15P
+	# get the TE name from the RepeatMasker file
+	TE=$(grep -w "${i}" indels.fa.onecode.out | cut -f 10 | sort | uniq)
+	# get the divergence by averaging the two hits in the RepeatMasker file
+	DIV=$(grep -w "${i}" indels.fa.onecode.out | cut -f 2 | awk 'getline second {print ($0+second)/2}')
+fi
+
 echo ""
 echo ""
 echo ""
