@@ -217,7 +217,7 @@ if(params.genotype) {
     script:
     """
     PanGenie -t ${params.pangenie_threads} -j ${params.pangenie_threads} -s ${sample_name} -i ${sample_reads} -r ${ref} -v ${vcf} -o ${sample_name}
-    bgzip -c ${sample_name}_genotyping.vcf
+    bgzip ${sample_name}_genotyping.vcf
     tabix -p vcf ${sample_name}_genotyping.vcf.gz
     """
   }
