@@ -8,7 +8,9 @@ params.out        = "out"
 params.tsd_win    = 30 // add default value for TSD window search
 params.cores      = false // set to an integer
 params.mammal     = false
-params.version    =   "0.0 beta (2022)"
+params.mini_K     = "4G"
+params.stSort_m   = "500M"
+params.version    = "0.0 beta (2022)"
 
 
 // SAY HELLO
@@ -38,7 +40,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 // if user uses global preset for number of cores
 if(params.cores) {
     repeatmasker_threads = params.cores
-    svim_asm_threads     = params.cores.intdiv(2)
+    svim_asm_threads     = params.cores
     pangenie_threads     = params.cores
 } else {
     repeatmasker_threads = params.repeatmasker_threads
@@ -68,7 +70,7 @@ if(!params.vcf) {
     script:
     """
     mkdir asm
-    minimap2 -a -x asm5 --cs -r2k -t ${svim_asm_threads} -K 4G ${ref} ${asm} | samtools sort -m4G -@${svim_asm_threads} -o asm/asm.sorted.bam -
+    minimap2 -a -x asm5 --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${svim_asm_threads} -o asm/asm.sorted.bam -
     samtools index asm/asm.sorted.bam
     svim-asm haploid --min_sv_size 100 --types INS,DEL --sample ${asm_name} asm/ asm/asm.sorted.bam ${ref}
     sed 's/svim_asm\\./${asm_name}\\.svim_asm\\./g' asm/variants.vcf > ${asm_name}.vcf
