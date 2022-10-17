@@ -38,7 +38,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 // if user uses global preset for number of cores
 if(params.cores) {
     repeatmasker_threads = params.cores
-    svim_asm_threads     = params.cores
+    svim_asm_threads     = params.cores.intdiv(2)
     pangenie_threads     = params.cores
 } else {
     repeatmasker_threads = params.repeatmasker_threads
@@ -68,7 +68,7 @@ if(!params.vcf) {
     script:
     """
     mkdir asm
-    minimap2 -a -x asm5 --cs -r2k -t ${svim_asm_threads} ${ref} ${asm} | samtools sort -m4G -@4 -o asm/asm.sorted.bam -
+    minimap2 -a -x asm5 --cs -r2k -t ${svim_asm_threads} ${ref} ${asm} | samtools sort -m1G -@${svim_asm_threads} -o asm/asm.sorted.bam -
     samtools index asm/asm.sorted.bam
     svim-asm haploid --min_sv_size 100 --types INS,DEL --sample ${asm_name} asm/ asm/asm.sorted.bam ${ref}
     sed 's/svim_asm\\./${asm_name}\\.svim_asm\\./g' asm/variants.vcf > ${asm_name}.vcf
