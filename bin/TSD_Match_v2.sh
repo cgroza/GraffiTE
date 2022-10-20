@@ -18,7 +18,7 @@ while IFS= read -r i
 do
 # check if the variant is a L1 with 5P inversion
 L15P=$(grep -w ${i} genotypes_repmasked_filtered.vcf | sed 's/mam_filter_1=/\t/g;s/;mam_filter_2=/\t/g;s/5P_INV:plus/+/g;s/5P_INV:minus/C/g' | awk '{print $9}')
-if [[ L15P == "None" ]]
+if [[ $L15P == "None" ]]
 then
 	# get all info from the RepeatMasker file
 	strand=$(grep -w "${i}" indels.fa.onecode.out | cut -f 9 | sort | uniq)
