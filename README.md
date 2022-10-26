@@ -1,5 +1,10 @@
 # `GraffiTE`
 
+:warning: **The software is currently under development and this version is not functional!**
+A beta-test version will be released soon! Stay tuned!
+
+---------
+
 `GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies and genotypes the discovered polymorphisms in read sets using a pangenomic approach.
 
 To download and run `GraffiTE`, install `nextflow` and use the following command line:
