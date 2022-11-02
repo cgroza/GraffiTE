@@ -244,7 +244,7 @@ if(params.genotype) {
   grep '#' pangenie.vcf > P_header
   grep -v '#' pangenie.vcf | sort -k1,1 -k2,2n > P_sorted_body
   cat P_header P_sorted_body > pangenie.sorted.vcf
-  bgzip -c pangenie.sorted.vcf
+  bgzip pangenie.sorted.vcf
   tabix -p vcf pangenie.sorted.vcf.gz
   bcftools annotate -a pangenie.sorted.vcf.gz -c INFO GraffiTE.merged.genotypes.vcf.gz
   """
