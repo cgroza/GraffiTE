@@ -246,7 +246,7 @@ if(params.genotype) {
   cat P_header P_sorted_body > pangenie.sorted.vcf
   bgzip pangenie.sorted.vcf
   tabix -p vcf pangenie.sorted.vcf.gz
-  bcftools annotate -a pangenie.sorted.vcf.gz -c INFO GraffiTE.merged.genotypes.vcf.gz
+  bcftools annotate -a pangenie.sorted.vcf.gz -c CHROM,POS,ID,INFO GraffiTE.merged.genotypes.vcf.gz
   """
   }
 }
