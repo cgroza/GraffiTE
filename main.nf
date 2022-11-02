@@ -242,6 +242,7 @@ if(params.genotype) {
   bgzip GraffiTE.merged.genotypes.vcf
   bgzip pangenie.vcf
   tabix -p vcf GraffiTE.merged.genotypes.vcf.gz
+  bcftools sort pangenie.vcf.gz
   tabix -p vcf pangenie.vcf.gz
   bcftools annotate -a ${pangenie_vcf}.gz -c INFO GraffiTE.merged.genotypes.vcf.gz
   """
