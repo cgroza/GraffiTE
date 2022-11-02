@@ -237,7 +237,7 @@ if(params.genotype) {
   script:
   """
   VCFs=*vcf.gz*
-  bcftools merge <(echo ${VCFs}) > GraffiTE.merged.genotypes.vcf
+  bcftools merge <(echo \${VCFs}) > GraffiTE.merged.genotypes.vcf
   """
   }
 }
