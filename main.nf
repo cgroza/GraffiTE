@@ -178,7 +178,7 @@ if(!params.vcf) {
     output:
     path("TSD_summary.txt") into tsd_sum_group_ch
     path("TSD_full_log.txt") into tsd_full_group_ch
-    path("pangenie.vcf") into vcf_ch
+    path("pangenie.vcf") into vcf_ch,vcf_merge_ch
 
     script:
     """
@@ -230,7 +230,8 @@ if(params.genotype) {
 
   input:
   file vcfFiles from indexed_vcfs.collect()
-   
+  path pangenie_vcf from vcf_merge_ch
+  
   output:
   file "GraffiTE.merged.genotypes.vcf" into typeref_outputs
   
@@ -238,6 +239,7 @@ if(params.genotype) {
   """
   ls *vcf.gz > vcf.list
   bcftools merge -l vcf.list > GraffiTE.merged.genotypes.vcf
+  bcftools annotate -a ${pangenie_vcf} -c INFO GraffiTE.merged.genotypes.vcf
   """
   }
 }
