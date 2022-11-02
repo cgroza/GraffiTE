@@ -226,7 +226,7 @@ if(params.genotype) {
   }
 
   process mergeVcfs {
-  publishDir "${params.out}/4_Genotyping", mode: 'copy'
+  publishDir "${params.out}/4_Genotyping", mode: 'copy' // , glob: 'GraffiTE.merged.genotypes.vcf.gz'
 
   input:
   file vcfFiles from indexed_vcfs.collect()
@@ -242,7 +242,8 @@ if(params.genotype) {
   bgzip GraffiTE.merged.genotypes.vcf
   bgzip pangenie.vcf
   tabix -p vcf GraffiTE.merged.genotypes.vcf.gz
-  bcftools sort pangenie.vcf.gz | bgzip > pangenie.sorted.vcf.gz
+  bcftools sort pangenie.vcf.gz > pangenie.sorted.vcf
+  bgzip pangenie.sorted.vcf
   tabix -p vcf pangenie.sorted.vcf.gz
   bcftools annotate -a pangenie.sorted.vcf.gz -c INFO GraffiTE.merged.genotypes.vcf.gz
   """
