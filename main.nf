@@ -229,14 +229,14 @@ if(params.genotype) {
   publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
   input:
-  file("${sample_name}_genotyping.vcf.gz") from indexed_vcfs.collect()
+  file vcfFiles from indexed_vcfs.collect()
    
   output:
   file "GraffiTE.merged.genotypes.vcf" into typeref_outputs
   
   script:
   """
-  VCFs=*vcf.gz*
+  VCFs=\$(ls *vcf.gz*)
   bcftools merge <(echo \${VCFs}) > GraffiTE.merged.genotypes.vcf
   """
   }
