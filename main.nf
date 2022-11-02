@@ -215,7 +215,7 @@ if(params.genotype) {
     set val(sample_name), file(sample_reads), file(vcf), file(ref) from input_ch
 
     output:
-    file("${sample_name}_genotyping.vcf.gz") into indexed_vcfs
+    file("${sample_name}_genotyping.vcf.gz*") into indexed_vcfs
 
     script:
     """
