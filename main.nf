@@ -9,9 +9,11 @@ params.tsd_win    = 30 // add default value for TSD window search
 params.cores      = false // set to an integer
 params.mammal     = false
 params.mini_K     = "4G"
-params.stSort_m   = "4G"
+params.stSort_m   = "768M"
 params.stSort_t   = 4
-params.version    = "0.0 beta (2022)"
+params.version    = "0.1 beta (11-02-2022)"
+params.repeatmasker_memory = null
+params.pangenie_memory = null
 
 
 // SAY HELLO
@@ -71,7 +73,8 @@ if(!params.vcf) {
     script:
     """
     mkdir asm
-    minimap2 -a -x asm5 --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm/asm.sorted.bam -
+    minimap2 -a -x asm5 --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} > ${asm}.sam
+    samtools sort -m${params.stSort_m} -@${svim_asm_threads} -o asm/asm.sorted.bam ${asm}.sam
     samtools index asm/asm.sorted.bam
     svim-asm haploid --min_sv_size 100 --types INS,DEL --sample ${asm_name} asm/ asm/asm.sorted.bam ${ref}
     sed 's/svim_asm\\./${asm_name}\\.svim_asm\\./g' asm/variants.vcf > ${asm_name}.vcf
