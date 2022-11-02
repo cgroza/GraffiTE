@@ -239,7 +239,9 @@ if(params.genotype) {
   """
   ls *vcf.gz > vcf.list
   bcftools merge -l vcf.list > GraffiTE.merged.genotypes.vcf
-  bcftools annotate -a ${pangenie_vcf} -c INFO GraffiTE.merged.genotypes.vcf
+  bgzip GraffiTE.merged.genotypes.vcf
+  tabix -p vcf GraffiTE.merged.genotypes.vcf.gz
+  bcftools annotate -a ${pangenie_vcf} -c INFO GraffiTE.merged.genotypes.vcf.gz
   """
   }
 }
