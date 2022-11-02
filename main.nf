@@ -240,10 +240,11 @@ if(params.genotype) {
   ls *vcf.gz > vcf.list
   bcftools merge -l vcf.list > GraffiTE.merged.genotypes.vcf
   bgzip GraffiTE.merged.genotypes.vcf
-  bgzip pangenie.vcf
   tabix -p vcf GraffiTE.merged.genotypes.vcf.gz
-  bcftools sort pangenie.vcf.gz > pangenie.sorted.vcf
-  bgzip pangenie.sorted.vcf
+  grep '#' pangenie.vcf > P_header
+  grep -v '#' pangenie.vcf | sort -1,1 -k2,2n > P_sorted_body
+  cat P_header P_sorted_body > pangenie.sorted.vcf
+  bgzip -c pangenie.sorted.vcf
   tabix -p vcf pangenie.sorted.vcf.gz
   bcftools annotate -a pangenie.sorted.vcf.gz -c INFO GraffiTE.merged.genotypes.vcf.gz
   """
