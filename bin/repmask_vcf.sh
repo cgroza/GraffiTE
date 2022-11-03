@@ -13,14 +13,14 @@ mkdir repeatmasker_dir
 REPMASK_DIR=repeatmasker_dir
 
 # detect number of cores allocated to this nextflow process
-#repmask_cores="$(($(nproc)/4))"
+repmask_cores="$(($(nproc)/4))"
 
 # guard against number of cores smaller than 1
 if [ "${repmask_cores}" -lt "1" ]; then
     repmask_cores="1"
 fi
 
-
+# run RepeatMasker
 RepeatMasker -nolow -lib ${FASTA_LIB} -s -dir ${REPMASK_DIR} -pa $(nproc) ${FASTA_FILE}
 
 REPMASK_OUT=${REPMASK_DIR}/$(basename ${FASTA_FILE}).out

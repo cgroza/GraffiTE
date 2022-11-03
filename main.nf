@@ -14,6 +14,7 @@ params.stSort_t   = 4
 params.version    = "0.1 beta (11-02-2022)"
 params.repeatmasker_memory = null
 params.pangenie_memory = null
+params.svim_asm_memory = null
 
 
 // SAY HELLO
