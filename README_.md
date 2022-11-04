@@ -1,0 +1,405 @@
+![](https://i.imgur.com/jvprOAS.png)
+
+[![status](https://img.shields.io/badge/status:-v0.1_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]()
+
+## Description
+
+`GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies and genotypes the discovered polymorphisms in read sets using a pangenomic approach.
+
+1. First, each alternative assembly is (pseudo)-aligned to the reference genome with [`minimap2`](https://github.com/lh3/minimap2) (set at \~5% divergence max). For each genome considered, structural variants (SVs) are called with [`svim-asm`](https://github.com/eldariont/svim-asm) and only insertions and deletions relative to the reference genome are kept.
+![](https://i.imgur.com/Ouzl83K.png)
+2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided TE-library of repeats of interest. SVs covered at 80% or more by repeats are kept. At this step, TSD are searched for SVs representing a single TE family.
+![](https://i.imgur.com/2qRpojE.png)
+3. Each candidate repeat polymorphism is induced in a graph-genome where TE and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie). Long-read support with [`Girrafe`](https://www.science.org/doi/10.1126/science.abg8871) will be implemented soon!
+![](https://i.imgur.com/EDPRwYe.png)
+
+
+### Simplified workflow
+
+```mermaid
+graph TD;
+I1[Reference Genome]:::data-->S1[minimap2]:::script
+I2[Alternative assemblies]:::data-->S1
+S1--genome-to-genome alignments-->S2[svim-asm]:::script
+S2--SV calling-->S3[SURVIVOR]:::script
+I5[TE library]:::data-->S4
+S3--SV merging-->S4[RepeatMasker]:::script
+S4--filter for TEs-->S5[TSD search]:::script
+S5--annotate variants-->V1[Candidates VCF]:::VCF
+V1-->S6[Pangenie]:::script
+S6--k-mer mapping-->I4[Multi-samples genotypes VCF]:::VCF
+I3[Short Reads]:::data-->S6
+classDef data fill:#09E,stroke:#333,color:#FFF;
+classDef script fill:#5C7,stroke:#333,stroke-width:1px,color:#FFF;
+classDef VCF fill:#EA0,stroke:#333,stroke-width:1px,color:#FFF
+```
+> A more detailed flowchart can be seen [here]()
+
+## Installation
+
+### Prerequisites
+
+`GraffiTE` is a `Nextflow` pipeline, with all the dependencies wrapped in a `Singularity` image. It is thus compatible with any Linux system including HPCs.
+
+- install [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html)
+- install [Singularity](https://apptainer.org/admin-docs/master/installation.html)
+
+### GraffiTE install
+
+To download and run `GraffiTE`, install `nextflow` and use the following command line:
+
+```
+nextflow run cgroza/GraffiTE \
+   --assemblies assemblies.csv \
+   --reads reads.csv \
+   --TE_library library.fa \
+   --reference reference.fa
+```
+
+This will download and cache the `GraffiTE` pipeline and Singularity image for local use. Later runs will skip the slow download step.
+
+## Running GraffiTE
+
+### Parameters
+
+- `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered. One assembly per sample and sample names must be unique.
+
+Example `assemblies.csv`:
+```
+path,sample
+/path/to/assembly/sampleA.fa,sampleA_name
+/path/to/assembly/sampleB.fa,sampleB_name
+/path/to/assembly/sampleZ.fa,sampleZ_name
+
+```
+
+- `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. Only one FASTQ per sample, and sample names must be unique. Paired-end reads must be concatenated in the same file.
+> Note that the current genotyper, `PanGenie` is optimized for short-reads. Long-read support will be available soon!
+
+Example `reads.csv`:
+```
+path,sample
+/path/to/reads/sample1.fastq,sample1_name
+/path/to/reads/sample2.fastq,sample2_name
+/path/to/reads/sampleN.fastq,sampleN_name
+
+```
+
+- `--TE_library`: a FASTA file that lists the consensus sequences of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#type/subtype` for example `AluY#SINE/Alu`
+   - From [DFAM](https://dfam.org/releases/current/families/) (open access): download the latest DFAM release (`Dfam.h5` or `Dfam_curatedonly.h5` files) and use the tool [FamDB](https://github.com/Dfam-consortium/FamDB) to extract the consensus for your model: `famdb.py -i <Dfam.h5> families -f fasta_name -a <taxa> --include-class-in-name > TE_library.fasta`
+   - From [Repbase](https://www.girinst.org/server/RepBase/index.php) (paid subscription): use the "RepeatMasker Edition" libraries
+
+- `--reference`: a reference genome of the species being studied. All assemblies are compared to this reference genome.
+
+### Additional parameters
+
+
+- `--out`: if you would like to change the default output directory (`out/`).
+- `--genotype`: true or false. Use this if you would like to discover polymorphisms in assemblies but you would like to skip genotyping polymorphisms from reads.
+- `--tsd_win`: the length in bp of flanking region (5' and 3' ends) for Target Site Duplication (TSD) search. Default 30bp. By default, 30bp upstream and downstream each variant will be added to search for TSD. (see also TSD section)
+- `--cores`: global CPU parameter. Will apply the chosen integer to all multi-threaded processes.
+- `--vcf`: a *fully phased* VCF file. Use this if you already have a *phased* VCF file that was produced by GraffiTE, or from a difference source and would like to use the graph genotyping step. Note that TE annotation won't be performed on this file (we will work on adding this feature), and only genotyping with Pangenie will be performed.
+- `--mammal`: Apply mammal-specific annotation filters. (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. (see Mammal filter section for more details)
+
+#### Process-specific parameters
+
+##### SV detection
+- `--svim_asm_threads`: number of `minimap2` threads (parameter `-t` in `minimap2`). Overrides `--cores`
+- `--mini_K`: `minimap2` parameter `-K`. *Number of bases loaded into memory to process in a mini-batch. Similar to option -I, K/M/G/k/m/g suffix is accepted. A large NUM helps load balancing in the multi-threading mode, at the cost of increased memory.* Default 500M
+- `--svim_asm_memory`: RAM limit for the SV search (minimap2+svim_asm) process. Default is unset.
+- `--stSort_m`: `samtools sort` parameter `-m` (for each alternative assembly, post-minimap2): *Approximately the maximum required memory per thread, specified either in bytes or with a K, M, or G suffix.* Default in `GraffiTE` is 4G.
+- `--stSort_t`: `samtools sort` parameter `@` (for each alternative assembly, post-minimap2): *Set number of sorting and compression threads.* Default in `GraffiTE` is 4 threads. 
+
+##### SV Annotation (RepeatMasker)
+- `--repeatmasker_threads`: number of RepeatMasker threads. Overrides `--cores`
+- `--repeatmasker_memory`: RAM limit for the RepeatMasker (annotation) process. Default is unset.
+
+##### Genotyping
+- `--pangenie_threads`: number of `Pangenie` threads. Overrides `--cores`
+- `--pangenie_memory`: RAM limit for the Pangenie (genotyping) process. Default is unset.
+
+### Outputs
+
+The results of `GraffiTE` will be produced in a designated folder with the option `--out`. The output folder contains up to 4 folders (3 if `--genotype false` is set). Below is an example of the output folder using two alternative assemblies of the human chromosome 1 (maternal and paternal haplotypes of HG002) and two read-sets from HG002 for genotyping.
+
+```
+OUTPUT_FOLDER/
+├── 1_SV_search
+│   ├── HG002_mat.vcf
+│   └── HG002_pat.vcf
+├── 2_Repeat_Filtering
+│   ├── genotypes_repmasked_filtered.vcf
+│   └── repeatmasker_dir
+│       ├── ALL.onecode.elem_sorted.bak
+│       ├── indels.fa.cat.gz
+│       ├── indels.fa.masked
+│       ├── indels.fa.onecode.out
+│       ├── indels.fa.out
+│       ├── indels.fa.out.length
+│       ├── indels.fa.out.log.txt
+│       ├── indels.fa.tbl
+│       ├── onecode.log
+│       └── OneCode_LTR.dic
+├── 3_TSD_search
+│   ├── pangenie.vcf
+│   ├── TSD_full_log.txt
+│   └── TSD_summary.txt
+└── 4_Genotyping
+    ├── GraffiTE.merged.genotypes.vcf
+    ├── HG002_s1_10X_genotyping.vcf.gz
+    ├── HG002_s1_10X_genotyping.vcf.gz.tbi
+    ├── HG002_s2_10X_genotyping.vcf.gz
+    └── HG002_s2_10X_genotyping.vcf.gz.tbi
+```
+
+- `1_SV_search`
+   - This folder will contain 1 VCF file per alternative assembly. The format is `[assembly_name].vcf` with `[assembly_name]` as set in the file `assemblies.csv`
+- `2_Repeat_Filtering`
+   - `genotypes_repmasked_filtered.vcf` a vcf file with the merged variants detected in each alternative assembly. The merge is made with `SURVIVOR` with the parameters `SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100`. Details about the vcf annotation can be found in the VCF section of the manual. This VCF contains only variants for witch repeats in the `--TE_library` file cover more than 80% of the sequence (can be from 1 or more repeat models).
+   - `repeatmasker_dir`:
+      - `indels.fa.*`: `RepeatMasker` output file. `indels.fa` represents all SV sequences queried to `RepeatMasker`. See the [RepeatMasker documentation](https://www.repeatmasker.org/webrepeatmaskerhelp.html) for more information. 
+      - `ALL.onecode.elem_sorted.bak`: original `OneCodeToFindThemAll` outputs. see [here](https://mobilednajournal.biomedcentral.com/articles/10.1186/1759-8753-5-13) fore more details.
+      - `OneCode_LTR.dic`: `OneCodeToFindThemAll` LTR dictionary automatically produced from `--TE_library` see [here](https://mobilednajournal.biomedcentral.com/articles/10.1186/1759-8753-5-13) fore more details.
+      - `onecode.log`: log file for `OneCodeToFindThemAll` processing.
+- `3_TSD_Search` (see [TSD section](#tsd-module))
+   - `pangenie.vcf` final VCF containing all retained repeat variants and annotation (with TSD if present). This file is used later by `Pangenie` to create the genome-graph onto which reads are mapped for genotyping.
+   - `TSD_summary.txt`: tab delimited output of the TSD search module. 1 line per variant. See [TSD section](#tsd-module) for more information. "PASS" entries are reported in the `pangenie.vcf` and final (with genotypes) VCF. 
+   - `TSD_full_log.txt:`detailed (verbose rich) report of TSD search for each SV (see [TSD section](#tsd-module)).
+- `4_Genotyping`
+   - `GraffiTE.merged.genotypes.vcf`: final mutli-sample VCF with the genotype of each sample in the `--reads` file. See [VCF section](#output-vcfs) for more details.
+   - `*.vcf.gz` individual genotypes (do not contain TE annotation)
+   - `*.vcf.gz.tbi` index for individual VCFs.
+
+> Note that intermediate files will be written in the `./work` folder created by `Nextflow`. Each `Nextflow` process is run in a separate working directory. If an error occurs, `Nextflow` will points to the specific working directory. Moreover, it is possible to resume interrupted jobs if the `./work` folder is intact and you use the same command, plus the `-resume` (1 single `-`) tag after your command. It is recommended to delete the `./work` folder regularly to avoid storage issues (more than space, it can aggregate a LOT of files through time). More info about `Nextflow` usage can be found [here](https://www.nextflow.io/docs/latest/index.html).
+
+#### Output VCFs
+
+`GraffiTE` outputs variants in the [VCF 4.2 format](https://samtools.github.io/hts-specs/VCFv4.2.pdf). Additional fields are added in the INFO column of the VCF to annotate SVs containing TEs (`3_TSD_Search/pangenie.vcf` [do not contain individual genotypes, only the list of variants] and `4_Genotyping/GraffiTE.merged.genotypes.vcf` which contains genotypes columns).
+
+- `3_TSD_Search/pangenie.vcf`
+```
+1       8501990 HG002_mat.svim_asm.INS.94       T       TCAATACACACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTGAGACGGAGTCTCGCTCTGTCGCCCAGGCCGGACTGCGGACTGCAGTGGCGCAATCTCGGCTCACTGCAAGCTCCGCTTCCCGGGTTCACGCCATTCTCCTGCCTCAGCCTCCCCAGTAGCTGGGACTACAGGCGCCCGCCACCGCGCCCGGCTAATTTTTTGTATTTTTAGTAGAGACGGGGTTTCACCGTGTTAGCCAGGATGGTCTCGATCTCCTGACCTCATGATCCACCCGCCTCGGCCTCCCAAAGTGCTGGGACTACAGGCGTGAGCCACCGCGCCCGGC        .       PASS    SUPP=1;SUPP_VEC=10;SVLEN=345;SVTYPE=INS;SVMETHOD=SURVIVOR1.0.7;CHR2=1;END=8501990;CIPOS=0,0;CIEND=0,0;STRANDS=+-;n_hits=1;fragmts=1;match_lengths=316;repeat_ids=AluYb9;matching_classes=SINE/Alu;RM_hit_strands=C;RM_hit_IDs=15016;total_match_length=316;total_match_span=0.913295;mam_filter_1=None;mam_filter_2=None;TSD=AATACACACACTTTTT,AATACACACACTTTTT    GT  1|0
+```
+> An example of AluYb9 insertion relative to the reference genome (hg19 was used for this example). The genotype is always heterozygous in order to create both allele in the graph used for genotyping
+
+- `4_Genotyping/GraffiTE.merged.genotypes.vcf`
+```
+1       8501990 HG002_mat.svim_asm.INS.94       T       TCAATACACACACTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTGAGACGGAGTCTCGCTCTGTCGCCCAGGCCGGACTGCGGACTGCAGTGGCGCAATCTCGGCTCACTGCAAGCTCCGCTTCCCGGGTTCACGCCATTCTCCTGCCTCAGCCTCCCCAGTAGCTGGGACTACAGGCGCCCGCCACCGCGCCCGGCTAATTTTTTGTATTTTTAGTAGAGACGGGGTTTCACCGTGTTAGCCAGGATGGTCTCGATCTCCTGACCTCATGATCCACCCGCCTCGGCCTCCCAAAGTGCTGGGACTACAGGCGTGAGCCACCGCGCCCGGC        .       PASS    UK=51;MA=0;AF=0.5;AK=13,38;CIEND=0,0;CIPOS=0,0;CHR2=1;END=8501990;SVLEN=345;SVMETHOD=SURVIVOR1.0.7;SVTYPE=INS;SUPP_VEC=10;SUPP=1;STRANDS=+-;n_hits=1;match_lengths=316;repeat_ids=AluYb9;matching_classes=SINE/Alu;fragmts=1;RM_hit_strands=C;RM_hit_IDs=15016;total_match_length=316;total_match_span=0.913295;mam_filter_1=None;mam_filter_2=None;TSD=AATACACACACTTTTT,AATACACACACTTTTT      GT:GQ:GL:KC     0/1:10000:-81.8909,0,-64.99:7   0/1:10000:-81.8909,0,-64.99:7
+```
+> An example of AluYb9 insertion relative to the reference genome (hg19 was used for this example). Genotypes are based on read mapping for each individual.
+
+```
+1  33108378 HG002_pat.svim_asm.INS.206 T  TTTTTTTTTTTTGAGACGGAGTCTCGCTCTGTCACCAGACTGGAGTACAATGGCACAATCTCGGCTTACTGCAACTTCCGCCTCCTGGGTTCAAGCAATTCCCCTGCCTCAGCCTCCTGAGTAGCTGGGATTACAGACGTGTGCCACCATGCCTGGCTAATTTTTTGTATTTTA
+GCAGAGACGGAGTTTCACCATGTTGGCCAGGATGCTCTCAATCTCCTTACCTCATGATCCGCCAGCCTCGGCCTCCCAAAGTGCTGGGATTATTACAGGCATGAGCCACAGTCCCAGGTCTTTAGACAAACTCAACCCATTATCAATCAAAAAATGTTTAAATTCACTTATAGCATGGAAGCTACCCCACCCCTCCCCCCTCCCCCCTCCCGCCCCCCCCAGCTTTGAGTTGTCCCACCTTTCTGGACCAAAGCA ATGTATTTCTTAAACTTAATTGATTAATGTCTCATGCCTCTCTGAAATGTATAAAACCAAACTGTGCCCTGACCACCTTGGGCACACTGAGCACATGTTCTCAGGATCTCCAGAGGGCTGTGTCAGGGGCCATGGTCACATTTGGCTCAGAATACATCTCTTCAAATATTTTATAGAGTTCGACTATTTTGTCAACAATTAAAAAGGCACCTATTCAGAAT
+ATTAAAAGTTAAGATTTAATAACATCAACAGTTCTTACTGATTCATCAAATATTTTTTTTTTTGAGACCGAGTCTCGCTCTATCGCCCAGGCTGGAGGGCAGTGGCACAATCTCTGTTCACTGCAACCTCCGCCTCCCGGGTTCAAGCGATTCTCCTGCCTCAGCCTCCCGAATAGCTGGGACTACATGCGCGTGCCACCACGCCTGGCTAATTTTTGTATTTTTAGTAGAGACGGAGTTTCACAACGTTGGCCAGGATGGTCTCGATCCCTTGACCTCATGATCCGCCTGCCTCGGCCTCCCAAAGTGCTGGGATTACAGGTGTGAGCCACCGGCGCCTGGCCAAAACAAAA  .PASS K=301;MA=0;AF=0.5;AK=2,299;CIEND=0,1;CIPOS=0,0;CHR2=1;END=33108378;SVLEN=1002;SVMETHOD=SURVIVOR1.0.7;SVTYPE=INS;SUPP_VEC=11;SUPP=2;STRANDS=+-;n_hits=4;match_lengths=293,331,80,291;repeat_ids=AluSc8,MER4E1,Charlie1a,AluSc;
+matching_classes=SINE/Alu,LTR/ERV1,DNA/hAT-Charlie,SINE/Alu;fragmts=1,1,1,1;RM_hit_strands=C,+,C,C;RM_hit_IDs=28269,28270,28271,28272;total_match_length=991;total_match_span=0.988036;mam_filter_1=None;mam_filter_2=None   GT:GQ:GL:KC 1/1:10000:-450.343,-147.4,0:4 1/1:10000:-450.343,-147.4,0:4
+```
+> A more complex example with `n_hit=4`
+
+VCF column:
+- `(1) CHROM`: chromosome/scaffold/contig 
+- `(2) POS`: position (in bp) of the SV start, relative to the reference genome
+- `(3) ID`: variant name
+- `(4) REF`: reference allele
+- `(5) ALT`: alternative allele
+- `(6) QUAL`: not used
+- `(7) FILTER`: currently not used. "PASS" is used by default but does not inform about variant quality (for now!)
+- `(8) INFO`:
+   - `UK` (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Total number of unique kmers
+   - `MA` (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Number of alleles missing in panel haplotypes
+   - `AF` (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Allele Frequency
+   - `AK` (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Number of unique kmers per allele. Will be -1 for alleles not covered by any input haplotype path
+   - `CIEND` (ignore)
+   - `CIPOS` (ignore)
+   - `CHR2` (ignore)
+   - `END`: End position of the SV on the reference genome
+   - `SVLEN`: Length of the SV (bp), can be negative
+   - `SVMETHOD=SURVIVOR1.0.7;` (ignore)
+   - `SVTYPE`: Type of SV (can be INS or DEL)
+   - `SUPP_VEC`: Support Vector from SURVIVOR (merge of individual loci). SUPP_VEC=01 means two alternative assemblies were used, the SV is absent from the first one and present in the second one.
+   - `SUPP`: Number of assemblies with the variant
+   - `STRANDS=+-;` (ignore)
+   - `n_hits`: number of distinct RepeatMasker hit on the SV
+   - `match_lengths`: length of each RepeatMasker hit. If `n_hits` > 1, lengths of each hit are comma separated
+   - `repeat_ids`: target name of each RepeatMasker hit. If `n_hits` > 1, names for each hit are comma separated
+   - `matching_classes`: classification of each RepeatMasker hit. If `n_hits` > 1, classification for each hit are comma separated
+   - `fragmts`: number of fragments stitched together for each RepeatMasker hit. If `n_hits` > 1, the number of stitched fragments for each hit are comma separated
+   - `RM_hit_strands`: strands for each RepeatMasker hit. If `n_hits` > 1, the strands of each hit are comma separated. Can be `+` or `C` (complement)
+   - `RM_hit_IDs`: unique RepeatMasker hit ID (last column of the `.out` file of repeatmasker). If `n_hits` > 1, hit IDs are comma separated. Fragments stitched with `OneCodeToFindThemAll` are shown separated with `/`.
+   - `total_match_length`: total number of bp covered by repeats in the SV
+   - `total_match_span`: proportion of the SV covered by repeats (minimum is 0.8)
+   - `mam_filter_1`: `5PINV` will be shown if the SV is a LINE1 with a 5' inversion; Null otherwise; (only present if `--mammal` is set)
+   - `mam_filter_2`: `SVA_VNTR` if the SV is a length polymorphism of the VNTR region of an SVA element; Null otherwise; (only present if `--mammal` is set)
+   - `TSD`: Target Site Duplication (left_TSD,right_TSD); only present if TSD passes filters (see TSD section)
+- `(9) FORMAT` and `(10) GENOTYPE`
+   - `GT`: Genotype (0=reference allele, 1=alternative allele, .=missing)
+   - `GQ`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Genotype quality: phred scaled probability that the genotype is wrong.
+   - `GL`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Comma-separated log10-scaled genotype likelihoods for absent, heterozygous, homozygous.
+   - `KC`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Local kmer coverage.
+
+### TSD module
+
+For SVs with a single TE insertion detected (`n_hits=1`, and L1's with the flag `mam_filter_1=5PINV`) target site duplication are search by comparing the flanking regions following this algorithm:
+
+- 1. extract the flanking sequences of each filtered SV: 
+   - 1.1 extract the non-masked base-pairs (non identified as TE by RepeatMasker) in the 5' and 3' end of the SV (these region will often include one TSD)
+   - 1.2 extract an additional (by default 30) bp on each side of the SV from the reference genome.
+- 2. perform the TSD search:
+   - Combine the extracted flanking and create the L (5') and R (3') fragments for each SV. 
+   - If present, trim 5' poly-A or 3' poly-T (leaves only 3 As or Ts) before alignments but keep track of the poly-A/T length.
+   - Call `blastn` to align with a seed of 4 bp 
+   - Applies PASS filters and return summary files. PASS is currently given if:
+      - L and R flanks match within +/- 5 bp of the TE ends (as defined by RepeatMasker, "Ns" nucleotides)
+      - tolerate (TE hit divergence to consensus x alignment length) mismatches+gaps or 1 mismatch+gap if (TE hit divergence to consensus x alignment length) < 1
+      - tolerate offset of +/- poly-A/T length
+
+![](https://i.imgur.com/ZzO1ZcQ.png)
+
+The script also account for the presence of poly-A/T
+
+![](https://i.imgur.com/ejDKo5x.png)
+
+- `TSD_summary.txt` output file (The header is not present in the real file).
+   ```
+   SV_name                          RM_family_name    RM_hit_strand  RM_hit_divergence TSD_length  Mismatches  Gaps    5P_TSD_end   5P_offset      3P_TSD_start    3P_offset     5P_TSD            3P_TSD            FILTER
+   HG002_mat.svim_asm.DEL.1014      AluY              C              2.2               10          0           0       -1           0              1               0             ATTATTATTA        ATTATTATTA        PASS
+   HG002_mat.svim_asm.DEL.1013      L1HS              C              1.3               16          0           0       -15          3              1               0             AGTATTCTGGATTTTT  AGTATTCTGGATTTTT  FAIL
+   G002_mat.svim_asm.DEL.1015       L1HS              +              1.0738            4           0           0       -9           0              1               0             AAAG              AAAG              FAIL
+   HG002_mat.svim_asm.DEL.102       AluYa5            C              0.3               11          0           0       -1           0              1               0             CTGCATACTTT       CTGCATACTTT       PASS
+   HG002_mat.svim_asm.DEL.1011      L1P2              C              6.9               4           0           0       -21          0              1               0             CATC              CATC              FAIL
+   HG002_mat.svim_asm.DEL.1005      AluY              C              1.0               12          0           0       -1           0              1               0             CCAGAAGTCTTT      CCAGAAGTCTTT      PASS
+   HG002_mat.svim_asm.DEL.1010      AluYh3            +              2.4               12          0           0       -1           0              1               0             AATTTCTATCTC      AATTTCTATCTC      PASS
+   ```
+ - `TSD_full_log.txt:`detailed (verbose rich) report of TSD search for each SV.
+   ```
+      --- TSD search for HG002_mat.svim_asm.DEL.1014 ---
+
+   >L|5P_end
+   ACAGGCGTGAGCCTCCACGCCTGGCCTAGATATTATTATTATTATTATTA
+   ||||||||||||||||||||||||||||||||||||||||||||||||||
+   1   5    10   15   20   25   30   35   40   45   50
+   >R|3P_end
+   ATTATTATTAACCTATTTTACAGATGAGGG
+   ||||||||||||||||||||||||||||||||||||||||||||||||||
+   1   5    10   15   20   25   30   35   40   45   50
+
+   3' poly_A: element is in C orientation, will not search for poly_A
+   5' poly_T: 0 bp, will not remove anything for alignment
+
+
+   Building a new DB, current time: 11/02/2022 22:27:12
+   New DB name:   /scratch/cgoubert/GraffiTE/work/d1/3d8805a29e13fad52ed5aa1e7a9e76/L.short.fasta
+   New DB title:  L.short.fasta
+   Sequence type: Nucleotide
+   Keep MBits: T
+   Maximum file size: 1000000000B
+   Adding sequences from FASTA; added 1 sequences in 0.000507116 seconds.
+
+   candidate hits from blastn:
+   R|3P_end        L|5P_end        100.000 10      0       0       1       10      41      50      0.001   19.6
+   R|3P_end        L|5P_end        100.000 4       0       0       1       4       47      50      3.1      8.5
+   R|3P_end        L|5P_end        100.000 10      0       0       1       10      38      47      0.001   19.6
+   R|3P_end        L|5P_end        100.000 10      0       0       1       10      35      44      0.001   19.6
+   R|3P_end        L|5P_end        100.000 10      0       0       1       10      32      41      0.001   19.6
+   R|3P_end        L|5P_end        100.000 8       0       0       3       10      31      38      0.018   15.9
+   R|3P_end        L|5P_end        100.000 4       0       0       12      15      25      28      3.1      8.5
+   R|3P_end        L|5P_end        87.500  8       0       1       14      20      37      44      3.1      8.5
+   R|3P_end        L|5P_end        87.500  8       0       1       14      20      31      38      3.1      8.5
+   R|3P_end        L|5P_end        100.000 4       0       0       20      23      1       4       3.1      8.5
+   R|3P_end        L|5P_end        100.000 4       0       0       22      25      28      31      3.1      8.5
+   R|3P_end        L|5P_end        100.000 4       0       0       25      28      8       11      3.1      8.5
+
+   candidate TSDs:
+   ACAGGCGTGAGCCTCCACGCCTGGCCTAGATATTATTATTATTATTATTA[ <<< AluY C <<< ]ATTATTATTAACCTATTTTACAGATGAGGG
+                                           ‾‾‾‾‾‾‾‾‾‾                  ‾‾‾‾‾‾‾‾‾‾
+
+   PASS
+
+   3' end: nothing to extend
+   5' end: nothing to extend
+   SVname  TEname  Strand  Div     AlnLen  MM      Gaps    5P_TSD_end      5P_offset       3P_TSD_start    3P_offset       5P_TSD  3P_TSD
+   HG002_mat.svim_asm.DEL.1014     AluY    C       2.2     10      0       0       -1      0       1       0       ATTATTATTA      ATTATTATTA      PASS
+   ```
+
+### Mammalian filters `--mammal`
+
+In order to account for the particularities of several TE families, we have introduces a `--mammal` flag that will search for specific features associated with mammalian TEs. So far we are accounting for two particular cases: 5' Inversion of L1 elements and VNTR polymorphism between orthologous SVA insertions. We will try to add more of these filters, for example to detect solo vs full-length LTR polymorphisms. If you would like to see more of these filters, please share your suggestions on the [Issue](https://github.com/cgroza/GraffiTE/issues) page!
+
+#### L1 5' inversion
+
+SV detected by GraffiTE and corresponding to non-canonical TPRT (Twin Priming Reverse Transcription), such as Twin Priming (see here and here) may be skipped by the TSD script because it artificially creates 2 hits instead of one for a single TE insert. 
+
+![](https://i.imgur.com/YfukCpL.png)
+
+Whether or not the L1 is inserted on the + or - strand, at Twin-Primed L1 will have the same pattern with RepeatMasker:
+- hit 1 = C
+- hit2 = + 
+
+![](https://i.imgur.com/NfyCXZd.png)
+> This is because an inversion on the - strand feature will look like + on the consensus (`(-)*(-) = (+)` or a "reverted reverse")
+
+However, we can differentiate the two based on the coordinates of the hit on the TE consensus (cartoon not to scale to compare two L1 insertions with the same consensus):
+
+![](https://i.imgur.com/XtS5FGQ.png)
+
+For each pair (C,+) of hits, we look at the target hit coordinates:
+- if hit 1 ( C ) coordinates are < hit 2 (+), the TE inserted on the + strand (top, blue example)
+- if hit 1 ( C ) coordinates are > hit 2 (+), the TE inserted on the - strand (bottom, orange example)
+
+L1 inversions will be reported with the flag `mam_filter_1=5P_INV` in the INFO field of the VCFs.
+
+#### VNTR polymorphisms in SVA elements
+
+If `GraffiTE` detects an SV annotated as SVA, and the RepeatMasker hit only correspond to the VNTR region of these elements, and if the flanking is an SVA in the same orientation, the variant will be flagged with `mam_filter_2=VNTR_ONLY:SVA_F:544:855` with `SVA_F:544:855` varying according to the element family and VNTR region:
+
+| SVA model   | VNTR period size | Repeat # | start | end |
+| ----------- | ----------- | ----------- |----------- |----------- |
+| SVA_A       | 37          | 10.5        | 436 |855 |
+| SVA_B       | 37          | 10.8        | 431| 867 |
+| SVA_C       | 37          | 10.5        | 432| 851|
+| SVA_D       | 37          | 6.4         | 432| 689|
+| SVA_E       | 37          | 10.8        | 428| 864|
+| SVA_F       | 37          | 10.5        | 435| 857|
+
+![](https://i.imgur.com/l0DPyRL.png)
+
+### `GraffiTE` execution profiles
+By default, the pipeline will inherit the `nextflow` configuration and run accordingly.
+To execute locally, on SLURM, or AWS, pass one of the `-profile` provided with the `GraffiTE`:
+- `standard`
+- `cluster`
+- `cloud`
+
+For example,
+```
+nextflow run cgroza/GraffiTE -profile cluster ...
+```
+will run on SLURM.
+
+## Changing the number of CPUs and memory required by each step
+You may alter the following parameters on the command line or in your own `nextflow` configuration file to change how many CPUs and how much memory will be required by each step.
+
+- Step 1, polymorphisms discovery. The memory requirement depends on the genome size of the species. More cores is faster.
+```
+params.svim_asm_memory
+params.svim_asm_threads
+```
+
+- Step 2, merging polymorphisms. The requirements depends on the number of assemblies.
+```
+params.make_vcf_memory
+params.make_vcf_threads
+```
+- Step 3, genotyping polymorphisms from reads. The memory requirements depend on the genome size and size of the read sets. More cores is faster.
+```
+params.pangenie_memory
+params.pangenie_threads
+```
+
+The requirements are numbers or strings accepted by `nextflow`. For example, 40 for number of CPUs and '100G' for memory.
+
+## Known Issues / Notes / FAQ
+
+- The "stitching" method to identify unique TE insertion from fragmented hits has some degree of limitation. This can be flagrant for full-length LTR insertion, which can show a `n_hits` > 1, and thus wont be run through the TSD module. For now, names between LTR and INT much match (e.g. TIRANT_LTR and TIRANT_I) to be recognized as a single hit. We will make used of the RepeatMasker hit ID in order to improve this stitching procedure. In the meantime, we recommend to check/rename your LTR of interest in the `--TE_library` file. 
+
+- As mentioned above, in order to improve runtime, the TSD module is only run for SVs with a single TE hit. We will improve this feature in order to be able to run the module on all SVs.

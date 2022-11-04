@@ -1,12 +1,14 @@
 Bootstrap: library
 From: ubuntu:20.04
 
-%files
-    repmask_vcf.sh /usr/local/bin
-    fix_vcf.py /usr/local/bin
-    annotate_vcf.R /usr/local/bin
-    one_code_to_find_them_all.pl /usr/local/bin
-    build_dictionary.pl /usr/local/bin
+#%files
+#    repmask_vcf.sh /usr/local/bin
+#    fix_vcf.py /usr/local/bin
+#    annotate_vcf.R /usr/local/bin
+#    one_code_to_find_them_all.pl /usr/local/bin
+#    build_dictionary.pl /usr/local/bin
+#    findTSD.sh /usr/local/bin
+#    TSD_Match.sh /usr/local/bin
 %post
     apt-get -y update
     apt-get install --assume-yes software-properties-common
@@ -24,7 +26,9 @@ From: ubuntu:20.04
     libfile-which-perl \
     libtext-soundex-perl \
     libjson-perl liburi-perl libwww-perl \
-    libdevel-size-perl
+    libdevel-size-perl \
+    bedtools \
+    ncbi-blast+
 
     apt-get install --assume-yes bcftools tabix libbz2-dev liblzma-dev
 
@@ -189,7 +193,7 @@ From: ubuntu:20.04
 
     # Configure RepeatMasker
     cd /opt \
-    && tar -x -f src/RepeatMasker-4.1.2-p1.tar.gz \
+    && tar -x -f src/RepeatMasker-4.1.3.tar.gz \
     && chmod a+w RepeatMasker/Libraries \
     && cd RepeatMasker \
     && perl configure \
@@ -198,7 +202,7 @@ From: ubuntu:20.04
     -libdir=/opt/RepeatMasker/Libraries \
     -trf_prgm=/opt/trf \
     -default_search_engine=rmblast \
-    && cd .. && rm src/RepeatMasker-4.1.2-p1.tar.gz
+    && cd .. && rm src/RepeatMasker-4.1.3.tar.gz
 
     # Configure RepeatModeler
     cd /opt \
