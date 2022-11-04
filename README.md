@@ -274,17 +274,17 @@ VCF column:
 
 ### TSD module
 
-For SVs with a single TE insertion detected (`n_hits=1`, and LINE1s with the flag `mam_filter_1=5P_INV`) target site duplication are searched by comparing the flanking regions following this algorithm:
+For SVs with a single TE insertion detected (`n_hits=1`, and LINE1s with the flag `mam_filter_1=5P_INV`) target site duplication are searched by comparing the flanking regions following this workflow:
 
 - 1 extract the flanking sequences of each filtered SV: 
-   - 1.1 extract the non-masked base-pairs (non identified as TE by RepeatMasker) in the 5' and 3' end of the SV (these region will often include one TSD)
+   - 1.1 extract the bases not identified as repeat by RepeatMasker in the 5' and 3' end of the SV (these regions will often include one TSD, or a partial sequence of the TSD)
    - 1.2 extract an additional (by default 30) bp on each side of the SV from the reference genome.
 - 2 perform the TSD search:
    - Combine the extracted flanking and create the L (5') and R (3') fragments for each SV. 
    - If present, trim 5' poly-A or 3' poly-T (leaves only 3 As or Ts) before alignments but keep track of the poly-A/T length.
    - Call `blastn` to align with a seed of 4 bp 
    - Applies PASS filters and return summary files. PASS is currently given if:
-      - L and R flanks match within +/- 5 bp of the TE ends (as defined by RepeatMasker, "Ns" nucleotides)
+      - L and R flanks match within +/- 5 bp of the TE ends (as defined by `RepeatMasker`, "Ns" nucleotides)
       - tolerate (TE hit divergence to consensus x alignment length) mismatches+gaps or 1 mismatch+gap if (TE hit divergence to consensus x alignment length) < 1
       - tolerate offset of +/- poly-A/T length
 
@@ -358,11 +358,11 @@ The script also account for the presence of poly-A/T
 
 ### Mammalian filters `--mammal`
 
-In order to account for the particularities of several TE families, we have introduces a `--mammal` flag that will search for specific features associated with mammalian TEs. So far we are accounting for two particular cases: 5' Inversion of L1 elements and VNTR polymorphism between orthologous SVA insertions. We will try to add more of these filters, for example to detect solo vs full-length LTR polymorphisms. If you would like to see more of these filters, please share your suggestions on the [Issue](https://github.com/cgroza/GraffiTE/issues) page!
+In order to account for the particularities of several TE families, we have introduced a `--mammal` flag that will search for specific features associated with mammalian TEs. So far we are accounting for two particular cases: 5' Inversion of L1 elements and VNTR polymorphism between orthologous SVA insertions. We will try to add more of these filters, for example to detect solo vs full-length LTR polymorphisms. If you would like to see more of these filters, please share your suggestions on the [Issue](https://github.com/cgroza/GraffiTE/issues) page!
 
 #### L1 5' inversion
 
-SV detected by GraffiTE and corresponding to non-canonical TPRT (Twin Priming Reverse Transcription), such as Twin Priming (see here and here) may be skipped by the TSD script because it artificially creates 2 hits instead of one for a single TE insert. 
+SV detected by GraffiTE and corresponding to non-canonical TPRT (Twin Priming Reverse Transcription), such as Twin Priming (see [here](https://genome.cshlp.org/content/11/12/2059.long) and [here](https://mobilednajournal.biomedcentral.com/articles/10.1186/1759-8753-1-7)) may be skipped by the TSD script because it artificially creates 2 hits instead of one for a single TE insert. 
 
 ![](https://i.imgur.com/YfukCpL.png)
 
@@ -385,7 +385,14 @@ L1 inversions will be reported with the flag `mam_filter_1=5P_INV` in the INFO f
 
 #### VNTR polymorphisms in SVA elements
 
-If `GraffiTE` detects an SV annotated as SVA, and the RepeatMasker hit only correspond to the VNTR region of these elements, and if the flanking is an SVA in the same orientation, the variant will be flagged with `mam_filter_2=VNTR_ONLY:SVA_F:544:855` with `SVA_F:544:855` varying according to the element family and VNTR region:
+<img src="https://i.imgur.com/l0DPyRL.png" alt="drawing" width="500"/>
+
+If `GraffiTE` detects:
+- SV annotated as SVA **and**,
+- RepeatMasker hit corresponding only to the VNTR region of these elements **and**,
+- If the flanking is an SVA in the same orientation
+
+The variant will be flagged with `mam_filter_2=VNTR_ONLY:SVA_F:544:855` with `SVA_F:544:855` varying according to the element family and VNTR region:
 
 | SVA model   | VNTR period size | Repeat # | start | end |
 | ----------- | ----------- | ----------- |----------- |----------- |
@@ -396,7 +403,6 @@ If `GraffiTE` detects an SV annotated as SVA, and the RepeatMasker hit only corr
 | SVA_E       | 37          | 10.8        | 428| 864|
 | SVA_F       | 37          | 10.5        | 435| 857|
 
-![](https://i.imgur.com/l0DPyRL.png)
 
 ### `GraffiTE` execution profiles
 By default, the pipeline will inherit the `nextflow` configuration and run accordingly.
