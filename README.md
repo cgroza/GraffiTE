@@ -4,16 +4,21 @@
 
 ## Description
 
-`GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies and genotypes the discovered polymorphisms in read sets using a pangenomic approach. `GraffiTE` is developed by Cristian Groza and Clément Goubert in [Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the [Genome Centre of McGill University](https://www.mcgillgenomecentre.ca/) (Montréal, Canada).
+`GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies and genotypes the discovered polymorphisms in read sets using a pangenomic approach. `GraffiTE` is developed by **Cristian Groza** and **Clément Goubert** in [Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the [Genome Centre of McGill University](https://www.mcgillgenomecentre.ca/) (Montréal, Canada).
 
 1. First, each alternative assembly is (pseudo)-aligned to the reference genome with [`minimap2`](https://github.com/lh3/minimap2) (set at \~5% divergence max). For each genome considered, structural variants (SVs) are called with [`svim-asm`](https://github.com/eldariont/svim-asm) and only insertions and deletions relative to the reference genome are kept.
 ![](https://i.imgur.com/Ouzl83K.png)
-2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided TE-library of repeats of interest. SVs covered at 80% or more by repeats are kept. At this step, TSD are searched for SVs representing a single TE family.
+2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided library of repeats of interest (.fasta). SVs covered ≥80% by repeats are kept. At this step, target site duplications (TSDs) are searched for SVs spanned by a single TE family.
 ![](https://i.imgur.com/2qRpojE.png)
 3. Each candidate repeat polymorphism is induced in a graph-genome where TE and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie). Long-read support with [`Girrafe`](https://www.science.org/doi/10.1126/science.abg8871) will be implemented soon!
 ![](https://i.imgur.com/EDPRwYe.png)
 
-⚠️ This is a beta version, with no guarantees! Bug/issues as well as comments and suggestions are welcomed in the [Issue](https://github.com/cgroza/GraffiTE/issues) section of this Github.
+----
+
+⚠️ **This is a beta version, with no guarantees! Bug/issues as well as comments and suggestions are welcomed in the [Issue](https://github.com/cgroza/GraffiTE/issues) section of this Github.**
+
+----
+
 
 ### Simplified workflow
 
@@ -62,7 +67,7 @@ classDef VCF fill:#EA0,stroke:#333,stroke-width:1px,color:#FFF
 
 ## Running GraffiTE
 
-The general command to run `GraffiTE` is as follow:
+- The general command to run `GraffiTE` is as follow:
 
 ```
 nextflow run cgroza/GraffiTE \
@@ -72,46 +77,45 @@ nextflow run cgroza/GraffiTE \
    --reads reads.csv
 ```
 
-if using from a local clone of the Github repository
+- If using from a local singularity image and with a clone of the Github repository:
 
 ```
 nextflow run <path-to-install>/GraffiTE/main.nf \
    --assemblies assemblies.csv \
    --TE_library library.fa \
    --reference reference.fa \
-   --reads reads.csv
+   --reads reads.csv [-with-singularity <your-path>/graffite_latest.sif]
 ```
-
-> As a `Nextflow` pipeline, commad line arguments for `GraffiTE` can be distinguished between pipeline-related commands, prefixed with `--` such as `--reference` and `Nextflow`-specific commands, prefixed with `-` such as `-resume`.
+> As a `Nextflow` pipeline, commad line arguments for `GraffiTE` can be distinguished between pipeline-related commands, prefixed with `--` such as `--reference` and `Nextflow`-specific commands, prefixed with `-` such as `-resume` (see [`Nextflow` documentation](https://www.nextflow.io/docs/latest/index.html)).
 
 ### Parameters
 
-- `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered. One assembly per sample and sample names must be unique.
+- `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered. One assembly per sample and sample names must be unique. The header is required.
 
-Example `assemblies.csv`:
-```
-path,sample
-/path/to/assembly/sampleA.fa,sampleA_name
-/path/to/assembly/sampleB.fa,sampleB_name
-/path/to/assembly/sampleZ.fa,sampleZ_name
-```
+   Example `assemblies.csv`:
+   ```
+   path,sample
+   /path/to/assembly/sampleA.fa,sampleA_name
+   /path/to/assembly/sampleB.fa,sampleB_name
+   /path/to/assembly/sampleZ.fa,sampleZ_name
+   ```
 
-- `--TE_library`: a FASTA file that lists the consensus sequences of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#type/subtype` for example `AluY#SINE/Alu`
+- `--TE_library`: a FASTA file that lists the consensus sequences (models) of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#type/subtype` for example `AluY#SINE/Alu`. The library can include a single repeat model or all the known repeat models of your species of interest.
    - From [DFAM](https://dfam.org/releases/current/families/) (open access): download the latest DFAM release (`Dfam.h5` or `Dfam_curatedonly.h5` files) and use the tool [FamDB](https://github.com/Dfam-consortium/FamDB) to extract the consensus for your model: `famdb.py -i <Dfam.h5> families -f fasta_name -a <taxa> --include-class-in-name > TE_library.fasta`
    - From [Repbase](https://www.girinst.org/server/RepBase/index.php) (paid subscription): use the "RepeatMasker Edition" libraries
 
 - `--reference`: a reference genome of the species being studied. All assemblies are compared to this reference genome.
 
-- `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. Only one FASTQ per sample, and sample names must be unique. Paired-end reads must be concatenated in the same file.
-> Note that the current genotyper, `PanGenie` is optimized for short-reads. Long-read support will be available soon!
+- `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. The header is required. Only one FASTQ per sample, and sample names must be unique. Paired-end reads must be concatenated in the same file.
+   > Note that the current genotyper, `PanGenie` is optimized for short-reads. Long-read support will be available soon!
 
-Example `reads.csv`:
-```
-path,sample
-/path/to/reads/sample1.fastq,sample1_name
-/path/to/reads/sample2.fastq,sample2_name
-/path/to/reads/sampleN.fastq,sampleN_name
-```
+   Example `reads.csv`:
+   ```
+   path,sample
+   /path/to/reads/sample1.fastq,sample1_name
+   /path/to/reads/sample2.fastq,sample2_name
+   /path/to/reads/sampleN.fastq,sampleN_name
+   ```
 
 ### Additional parameters
 
@@ -119,9 +123,11 @@ path,sample
 - `--out`: if you would like to change the default output directory (`out/`).
 - `--genotype`: true or false. Use this if you would like to discover polymorphisms in assemblies but you would like to skip genotyping polymorphisms from reads.
 - `--tsd_win`: the length (in bp) of flanking region (5' and 3' ends) for Target Site Duplication (TSD) search. Default 30bp. By default, 30bp upstream and downstream each variant will be added to search for TSD. (see also [TSD section](#tsd-module))
-- `--cores`: global CPU parameter. Will apply the chosen integer to all multi-threaded processes.
-- `--vcf`: a *fully phased* VCF file. Use this if you already have a *phased* VCF file that was produced by GraffiTE, or from a difference source and would like to use the graph genotyping step. Note that TE annotation won't be performed on this file (we will work on adding this feature), and only genotyping with Pangenie will be performed.
-- `--mammal`: Apply mammal-specific annotation filters. (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. (see [Mammal filter section](#mammalian-filters---mammal) for more details)
+- `--cores`: global CPU parameter. Will apply the chosen integer to all multi-threaded processes. See [here](#changing-the-number-of-cpus-and-memory-required-by-each-step) for more customization.
+- `--vcf`: a [*fully phased*](https://github.com/eblerjana/pangenie#input-variants) VCF file. Use this if you already have a *phased* VCF file that was produced by GraffiTE, or from a difference source and would like to use the graph genotyping step. Note that TE annotation won't be performed on this file (we will work on adding this feature), and only genotyping with `Pangenie` will be performed.
+- `--mammal`: Apply mammal-specific annotation filters (see [Mammal filter section](#mammalian-filters---mammal) for more details). 
+   - (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. 
+   - (ii) will search for VNTR polymorphism between orthologous SVA elements.
 
 #### Process-specific parameters
 
@@ -181,21 +187,21 @@ OUTPUT_FOLDER/
     └── HG002_s2_10X_genotyping.vcf.gz.tbi
 ```
 
-- `1_SV_search`
+- `1_SV_search/`
    - This folder will contain 1 VCF file per alternative assembly. The format is `[assembly_name].vcf` with `[assembly_name]` as set in the file `assemblies.csv`
-- `2_Repeat_Filtering`
-   - `genotypes_repmasked_filtered.vcf` a vcf file with the merged variants detected in each alternative assembly. The merge is made with `SURVIVOR` with the parameters `SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100`. Details about the vcf annotation can be found in the VCF section of the manual. This VCF contains only variants for witch repeats in the `--TE_library` file cover more than 80% of the sequence (can be from 1 or more repeat models).
-   - `repeatmasker_dir`:
-      - `indels.fa.*`: `RepeatMasker` output file. `indels.fa` represents all SV sequences queried to `RepeatMasker`. See the [RepeatMasker documentation](https://www.repeatmasker.org/webrepeatmaskerhelp.html) for more information. 
+- `2_Repeat_Filtering/`
+   - `genotypes_repmasked_filtered.vcf` a vcf file with the merged variants detected in each alternative assembly. The merge is made with [`SURVIVOR`](https://github.com/fritzsedlazeck/SURVIVOR) with the parameters `SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100`. Details about the vcf annotation can be found in the [VCF section](#output-vcfs) of the manual. This VCF contains only variants for witch repeats in the `--TE_library` file span more than 80% of the sequence (from 1 or more repeat models).
+   - `repeatmasker_dir/`:
+      - `indels.fa.*`: `RepeatMasker` output files. `indels.fa` represents all SV sequences queried to `RepeatMasker`. See the [RepeatMasker documentation](https://www.repeatmasker.org/webrepeatmaskerhelp.html) for more information. 
       - `ALL.onecode.elem_sorted.bak`: original `OneCodeToFindThemAll` outputs. see [here](https://mobilednajournal.biomedcentral.com/articles/10.1186/1759-8753-5-13) fore more details.
       - `OneCode_LTR.dic`: `OneCodeToFindThemAll` LTR dictionary automatically produced from `--TE_library` see [here](https://mobilednajournal.biomedcentral.com/articles/10.1186/1759-8753-5-13) fore more details.
-      - `onecode.log`: log file for `OneCodeToFindThemAll` processing.
-- `3_TSD_Search` (see [TSD section](#tsd-module))
-   - `pangenie.vcf` final VCF containing all retained repeat variants and annotation (with TSD if present). This file is used later by `Pangenie` to create the genome-graph onto which reads are mapped for genotyping.
-   - `TSD_summary.txt`: tab delimited output of the TSD search module. 1 line per variant. See [TSD section](#tsd-module) for more information. "PASS" entries are reported in the `pangenie.vcf` and final (with genotypes) VCF. 
+      - `onecode.log`: log file for `OneCodeToFindThemAll` process.
+- `3_TSD_Search/` (see [TSD section](#tsd-module))
+   - `pangenie.vcf` final VCF containing all retained repeat variants and annotations (with TSD if passing the TSD filters). This file is used later by `Pangenie` to create the genome-graph onto which reads are mapped for genotyping. (example [here](#output-vcfs))
+   - `TSD_summary.txt`: tab delimited output of the TSD search module. 1 line per variant. See [TSD section](#tsd-module) for more information. "PASS" entries are reported in the `pangenie.vcf` and final (with genotypes) VCF.
    - `TSD_full_log.txt:`detailed (verbose rich) report of TSD search for each SV (see [TSD section](#tsd-module)).
-- `4_Genotyping`
-   - `GraffiTE.merged.genotypes.vcf`: final mutli-sample VCF with the genotype of each sample in the `--reads` file. See [VCF section](#output-vcfs) for more details.
+- `4_Genotyping/`
+   - `GraffiTE.merged.genotypes.vcf`: final mutli-sample VCF with the genotypes for each sample present in the `--reads` file. See [VCF section](#output-vcfs) for more details.
    - `*.vcf.gz` individual genotypes (do not contain TE annotation)
    - `*.vcf.gz.tbi` index for individual VCFs.
 
@@ -203,7 +209,7 @@ OUTPUT_FOLDER/
 
 #### Output VCFs
 
-`GraffiTE` outputs variants in the [VCF 4.2 format](https://samtools.github.io/hts-specs/VCFv4.2.pdf). Additional fields are added in the INFO column of the VCF to annotate SVs containing TEs (`3_TSD_Search/pangenie.vcf` [do not contain individual genotypes, only the list of variants] and `4_Genotyping/GraffiTE.merged.genotypes.vcf` which contains genotypes columns).
+`GraffiTE` outputs variants in the [VCF 4.2 format](https://samtools.github.io/hts-specs/VCFv4.2.pdf). Additional fields are added in the INFO column of the VCF to annotate SVs containing TEs and other repeats (`3_TSD_Search/pangenie.vcf` [do not contain individual genotypes, only the list of variants] and `4_Genotyping/GraffiTE.merged.genotypes.vcf` which contains a genotype column for each reads-set).
 
 - `3_TSD_Search/pangenie.vcf`
 ```
@@ -248,7 +254,7 @@ VCF column:
    - `SUPP_VEC`: Support Vector from SURVIVOR (merge of individual loci). SUPP_VEC=01 means two alternative assemblies were used, the SV is absent from the first one and present in the second one.
    - `SUPP`: Number of assemblies with the variant
    - `STRANDS=+-;` (ignore)
-   - `n_hits`: number of distinct RepeatMasker hit on the SV
+   - `n_hits`: number of distinct RepeatMasker hits on the SV
    - `match_lengths`: length of each RepeatMasker hit. If `n_hits` > 1, lengths of each hit are comma separated
    - `repeat_ids`: target name of each RepeatMasker hit. If `n_hits` > 1, names for each hit are comma separated
    - `matching_classes`: classification of each RepeatMasker hit. If `n_hits` > 1, classification for each hit are comma separated
@@ -257,7 +263,7 @@ VCF column:
    - `RM_hit_IDs`: unique RepeatMasker hit ID (last column of the `.out` file of repeatmasker). If `n_hits` > 1, hit IDs are comma separated. Fragments stitched with `OneCodeToFindThemAll` are shown separated with `/`.
    - `total_match_length`: total number of bp covered by repeats in the SV
    - `total_match_span`: proportion of the SV covered by repeats (minimum is 0.8)
-   - `mam_filter_1`: `5PINV` will be shown if the SV is a LINE1 with a 5' inversion; Null otherwise; (only present if `--mammal` is set)
+   - `mam_filter_1`: `5P_INV` will be shown if the SV is a LINE1 with a 5' inversion; Null otherwise; (only present if `--mammal` is set)
    - `mam_filter_2`: `SVA_VNTR` if the SV is a length polymorphism of the VNTR region of an SVA element; Null otherwise; (only present if `--mammal` is set)
    - `TSD`: Target Site Duplication (left_TSD,right_TSD); only present if TSD passes filters (see TSD section)
 - `(9) FORMAT` and `(10) GENOTYPE`
@@ -268,12 +274,12 @@ VCF column:
 
 ### TSD module
 
-For SVs with a single TE insertion detected (`n_hits=1`, and L1's with the flag `mam_filter_1=5PINV`) target site duplication are search by comparing the flanking regions following this algorithm:
+For SVs with a single TE insertion detected (`n_hits=1`, and LINE1s with the flag `mam_filter_1=5P_INV`) target site duplication are searched by comparing the flanking regions following this algorithm:
 
-- 1. extract the flanking sequences of each filtered SV: 
+- 1 extract the flanking sequences of each filtered SV: 
    - 1.1 extract the non-masked base-pairs (non identified as TE by RepeatMasker) in the 5' and 3' end of the SV (these region will often include one TSD)
    - 1.2 extract an additional (by default 30) bp on each side of the SV from the reference genome.
-- 2. perform the TSD search:
+- 2 perform the TSD search:
    - Combine the extracted flanking and create the L (5') and R (3') fragments for each SV. 
    - If present, trim 5' poly-A or 3' poly-T (leaves only 3 As or Ts) before alignments but keep track of the poly-A/T length.
    - Call `blastn` to align with a seed of 4 bp 
@@ -427,8 +433,17 @@ params.pangenie_threads
 
 The requirements are numbers or strings accepted by `nextflow`. For example, 40 for number of CPUs and '100G' for memory.
 
+### Resource usage example:
+
+(this section will be updated based on our ongoing tests)
+
+- Human chromosome 1: 10 cpu, 80Gb RAM. SV discovery \~30mn to 1h per genome, but can be improved by fine tuning the process-specific parameters.
+- *Drosophila melanogaster* full genomes: 4 cpu, 40Gb RAM. SV discovery \~15mn per genome.
+
 ## Known Issues / Notes / FAQ
 
-- The "stitching" method to identify unique TE insertion from fragmented hits has some degree of limitation. This can be flagrant for full-length LTR insertion, which can show a `n_hits` > 1, and thus wont be run through the TSD module. For now, names between LTR and INT much match (e.g. TIRANT_LTR and TIRANT_I) to be recognized as a single hit. We will make used of the RepeatMasker hit ID in order to improve this stitching procedure. In the meantime, we recommend to check/rename your LTR of interest in the `--TE_library` file. 
+- The "stitching" method to identify unique TE insertion from fragmented hits has some degree of limitation. This can be flagrant for full-length LTR insertion, which can show `n_hits` > 1, and thus wont be recognized as a "single" element insertion, nor run through the TSD module. For now, names between LTR and I(nternal) sequences much match in the header name (e.g. TIRANT_LTR and TIRANT_I) to be automatically recognized as a single hit. We will make use of the RepeatMasker hit ID in order to improve this stitching procedure. In the meantime, we recommend to check/rename your LTR of interest in the `--TE_library` file. 
 
 - As mentioned above, in order to improve runtime, the TSD module is only run for SVs with a single TE hit. We will improve this feature in order to be able to run the module on all SVs.
+
+- There are currently several bottlenecks in the pipeline: `samtools sort` can be tricky to parallelize properly (piped from `minimap2` alignments, which are often fast) and the performance will depends on the genomes size, complexity and the parameter used. `RepeatMasker` can be slow with a large number of SVs and a large library, hang-on! If you find satisfactory combinations of parameters for your model, please share them in the issues section! Thanks!
