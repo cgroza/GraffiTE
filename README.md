@@ -4,7 +4,7 @@
 
 ## Description
 
-`GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies and genotypes the discovered polymorphisms in read sets using a pangenomic approach.
+`GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies and genotypes the discovered polymorphisms in read sets using a pangenomic approach. `GraffiTE` is developed by Cristian Groza and Clément Goubert in [Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the [Genome Centre of McGill University](https://www.mcgillgenomecentre.ca/) (Montréal, Canada).
 
 1. First, each alternative assembly is (pseudo)-aligned to the reference genome with [`minimap2`](https://github.com/lh3/minimap2) (set at \~5% divergence max). For each genome considered, structural variants (SVs) are called with [`svim-asm`](https://github.com/eldariont/svim-asm) and only insertions and deletions relative to the reference genome are kept.
 ![](https://i.imgur.com/Ouzl83K.png)
@@ -13,6 +13,7 @@
 3. Each candidate repeat polymorphism is induced in a graph-genome where TE and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie). Long-read support with [`Girrafe`](https://www.science.org/doi/10.1126/science.abg8871) will be implemented soon!
 ![](https://i.imgur.com/EDPRwYe.png)
 
+⚠️ This is a beta version, with no guarantees! Bug/issues as well as comments and suggestions are welcomed in the [Issue](https://github.com/cgroza/GraffiTE/issues) section of this Github.
 
 ### Simplified workflow
 
@@ -33,7 +34,7 @@ classDef data fill:#09E,stroke:#333,color:#FFF;
 classDef script fill:#5C7,stroke:#333,stroke-width:1px,color:#FFF;
 classDef VCF fill:#EA0,stroke:#333,stroke-width:1px,color:#FFF
 ```
-> A more detailed flowchart can be seen [here]()
+> A more detailed flowchart can be seen [here](https://github.com/cgroza/GraffiTE/blob/main/README_pipeline_full.md)
 
 ## Installation
 
@@ -46,19 +47,42 @@ classDef VCF fill:#EA0,stroke:#333,stroke-width:1px,color:#FFF
 
 ### GraffiTE install
 
-To download and run `GraffiTE`, install `nextflow` and use the following command line:
+- If an internet connection is accessible from the compute nodes, the general command shown in the next section will download and cache the `GraffiTE` pipeline and Singularity image for local use. Later runs will skip the slow download step.
+
+- Alternatively, this repository can be cloned and the singularity image downloaded at a specific location:
+   - 1. Clone the Github repository
+   ```
+   git clone https://github.com/cgroza/GraffiTE.git
+   ```
+   - 2. Pull the singularity image (this is long but only required once)
+   ```
+   singularity pull --arch amd64 graffite_latest.sif library://clemgoub/graffite/graffite:latest
+   ```
+   - 3. Override the default image path in the file `nextflow.config` from `library://clemgoub/graffite/graffite:latest` to `<your-path>/graffite_latest.sif`. Alternatively, the `Nextflow` command `-with-singularity <your-path>/graffite_latest.sif` can be used when running `GraffiTE` (it will override the presets in `nextflow.config`).
+
+## Running GraffiTE
+
+The general command to run `GraffiTE` is as follow:
 
 ```
 nextflow run cgroza/GraffiTE \
    --assemblies assemblies.csv \
-   --reads reads.csv \
    --TE_library library.fa \
-   --reference reference.fa
+   --reference reference.fa \
+   --reads reads.csv
 ```
 
-This will download and cache the `GraffiTE` pipeline and Singularity image for local use. Later runs will skip the slow download step.
+if using from a local clone of the Github repository
 
-## Running GraffiTE
+```
+nextflow run <path-to-install>/GraffiTE/main.nf \
+   --assemblies assemblies.csv \
+   --TE_library library.fa \
+   --reference reference.fa \
+   --reads reads.csv
+```
+
+> As a `Nextflow` pipeline, commad line arguments for `GraffiTE` can be distinguished between pipeline-related commands, prefixed with `--` such as `--reference` and `Nextflow`-specific commands, prefixed with `-` such as `-resume`.
 
 ### Parameters
 
@@ -70,8 +94,13 @@ path,sample
 /path/to/assembly/sampleA.fa,sampleA_name
 /path/to/assembly/sampleB.fa,sampleB_name
 /path/to/assembly/sampleZ.fa,sampleZ_name
-
 ```
+
+- `--TE_library`: a FASTA file that lists the consensus sequences of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#type/subtype` for example `AluY#SINE/Alu`
+   - From [DFAM](https://dfam.org/releases/current/families/) (open access): download the latest DFAM release (`Dfam.h5` or `Dfam_curatedonly.h5` files) and use the tool [FamDB](https://github.com/Dfam-consortium/FamDB) to extract the consensus for your model: `famdb.py -i <Dfam.h5> families -f fasta_name -a <taxa> --include-class-in-name > TE_library.fasta`
+   - From [Repbase](https://www.girinst.org/server/RepBase/index.php) (paid subscription): use the "RepeatMasker Edition" libraries
+
+- `--reference`: a reference genome of the species being studied. All assemblies are compared to this reference genome.
 
 - `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. Only one FASTQ per sample, and sample names must be unique. Paired-end reads must be concatenated in the same file.
 > Note that the current genotyper, `PanGenie` is optimized for short-reads. Long-read support will be available soon!
@@ -82,33 +111,26 @@ path,sample
 /path/to/reads/sample1.fastq,sample1_name
 /path/to/reads/sample2.fastq,sample2_name
 /path/to/reads/sampleN.fastq,sampleN_name
-
 ```
-
-- `--TE_library`: a FASTA file that lists the consensus sequences of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#type/subtype` for example `AluY#SINE/Alu`
-   - From [DFAM](https://dfam.org/releases/current/families/) (open access): download the latest DFAM release (`Dfam.h5` or `Dfam_curatedonly.h5` files) and use the tool [FamDB](https://github.com/Dfam-consortium/FamDB) to extract the consensus for your model: `famdb.py -i <Dfam.h5> families -f fasta_name -a <taxa> --include-class-in-name > TE_library.fasta`
-   - From [Repbase](https://www.girinst.org/server/RepBase/index.php) (paid subscription): use the "RepeatMasker Edition" libraries
-
-- `--reference`: a reference genome of the species being studied. All assemblies are compared to this reference genome.
 
 ### Additional parameters
 
 
 - `--out`: if you would like to change the default output directory (`out/`).
 - `--genotype`: true or false. Use this if you would like to discover polymorphisms in assemblies but you would like to skip genotyping polymorphisms from reads.
-- `--tsd_win`: the length in bp of flanking region (5' and 3' ends) for Target Site Duplication (TSD) search. Default 30bp. By default, 30bp upstream and downstream each variant will be added to search for TSD. (see also TSD section)
+- `--tsd_win`: the length (in bp) of flanking region (5' and 3' ends) for Target Site Duplication (TSD) search. Default 30bp. By default, 30bp upstream and downstream each variant will be added to search for TSD. (see also [TSD section](#tsd-module))
 - `--cores`: global CPU parameter. Will apply the chosen integer to all multi-threaded processes.
 - `--vcf`: a *fully phased* VCF file. Use this if you already have a *phased* VCF file that was produced by GraffiTE, or from a difference source and would like to use the graph genotyping step. Note that TE annotation won't be performed on this file (we will work on adding this feature), and only genotyping with Pangenie will be performed.
-- `--mammal`: Apply mammal-specific annotation filters. (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. (see Mammal filter section for more details)
+- `--mammal`: Apply mammal-specific annotation filters. (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. (see [Mammal filter section](#mammalian-filters---mammal) for more details)
 
 #### Process-specific parameters
 
 ##### SV detection
 - `--svim_asm_threads`: number of `minimap2` threads (parameter `-t` in `minimap2`). Overrides `--cores`
 - `--mini_K`: `minimap2` parameter `-K`. *Number of bases loaded into memory to process in a mini-batch. Similar to option -I, K/M/G/k/m/g suffix is accepted. A large NUM helps load balancing in the multi-threading mode, at the cost of increased memory.* Default 500M
-- `--svim_asm_memory`: RAM limit for the SV search (minimap2+svim_asm) process. Default is unset.
-- `--stSort_m`: `samtools sort` parameter `-m` (for each alternative assembly, post-minimap2): *Approximately the maximum required memory per thread, specified either in bytes or with a K, M, or G suffix.* Default in `GraffiTE` is 4G.
-- `--stSort_t`: `samtools sort` parameter `@` (for each alternative assembly, post-minimap2): *Set number of sorting and compression threads.* Default in `GraffiTE` is 4 threads. 
+- `--svim_asm_memory`: RAM limit for the SV search (`minimap2`+`svim_asm`) process. Default is unset.
+- `--stSort_m`: `samtools sort` parameter `-m` (for each alternative assembly, post-`minimap2`): *Approximately the maximum required memory per thread, specified either in bytes or with a K, M, or G suffix.* Default in `GraffiTE` is 4G.
+- `--stSort_t`: `samtools sort` parameter `@` (for each alternative assembly, post-`minimap2`): *Set number of sorting and compression threads.* Default in `GraffiTE` is 4 threads. 
 
 ##### SV Annotation (RepeatMasker)
 - `--repeatmasker_threads`: number of RepeatMasker threads. Overrides `--cores`
@@ -118,9 +140,16 @@ path,sample
 - `--pangenie_threads`: number of `Pangenie` threads. Overrides `--cores`
 - `--pangenie_memory`: RAM limit for the Pangenie (genotyping) process. Default is unset.
 
+#### `Nextflow` parameters
+
+`Nextflow`-specific parameters can be passed in addition to those presented above. These parameters can be distinguished by the use of a single `-`, such as `-resume`. See `Nextflow` documentation for more details.
+
+- `-resume`: if nothing is changed in the command line and the `/work` folder created by `Nextflow`, the pipeline will resume after the last chached process.
+- `-with-singularity`: if a local singularity image is used, this parameter will override the default image path given in `nextflow.config`.
+
 ### Outputs
 
-The results of `GraffiTE` will be produced in a designated folder with the option `--out`. The output folder contains up to 4 folders (3 if `--genotype false` is set). Below is an example of the output folder using two alternative assemblies of the human chromosome 1 (maternal and paternal haplotypes of HG002) and two read-sets from HG002 for genotyping.
+The results of `GraffiTE` will be produced in a designated folder with the option `--out`. The output folder contains up to 4 sub-folders (3 if `--genotype false` is set). Below is an example of the output folder using two alternative assemblies of the human chromosome 1 (maternal and paternal haplotypes of HG002) and two read-sets from HG002 for genotyping.
 
 ```
 OUTPUT_FOLDER/
