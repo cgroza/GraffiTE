@@ -1,5 +1,6 @@
 params.vcf        = false
 params.genotype   = true
+params.graph_method  = "pangenie" //or giraffe
 params.reads      = "reads.csv"
 params.assemblies = "assemblies.csv"
 params.reference  = "reference.fa"
@@ -205,28 +206,57 @@ if(!params.vcf) {
 }
 
 if(params.genotype) {
+    Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
+    if(params.graph_method == "pangenie") {
+        reads_ch.combine(vcf_ch).combine(ref_geno_ch).set{input_ch}
+        process pangenie {
+            cpus pangenie_threads
+            memory params.pangenie_memory
+            publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
-  Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
-  reads_ch.combine(vcf_ch).combine(ref_geno_ch).set{input_ch}
+            input:
+            set val(sample_name), file(sample_reads), file(vcf), file(ref) from input_ch
 
-  process pangenie {
-    cpus pangenie_threads
-    memory params.pangenie_memory
-    publishDir "${params.out}/4_Genotyping", mode: 'copy'
+            output:
+            file("${sample_name}_genotyping.vcf.gz*") into indexed_vcfs
 
-    input:
-    set val(sample_name), file(sample_reads), file(vcf), file(ref) from input_ch
+            script:
+            """
+            PanGenie -t ${pangenie_threads} -j ${pangenie_threads} -s ${sample_name} -i ${sample_reads} -r ${ref} -v ${vcf} -o ${sample_name}
+            bgzip ${sample_name}_genotyping.vcf
+            tabix -p vcf ${sample_name}_genotyping.vcf.gz
+            """
+        }
+    }
+    else if(params.graph_method == "giraffe") {
+        process makeGiraffe {
+            input:
+            file(vcf) from vcf_ch
+            file(fasta) from ref_geno_ch
 
-    output:
-    file("${sample_name}_genotyping.vcf.gz*") into indexed_vcfs
+            output:
+            file("index") into giraffe_index_ch
 
-    script:
-    """
-    PanGenie -t ${pangenie_threads} -j ${pangenie_threads} -s ${sample_name} -i ${sample_reads} -r ${ref} -v ${vcf} -o ${sample_name}
-    bgzip ${sample_name}_genotyping.vcf
-    tabix -p vcf ${sample_name}_genotyping.vcf.gz
-    """
-  }
+            script:
+            """
+            mkdir inddex
+            vg autoindex -p index/index -w giraffe -v ${vcf} -r ${fasta}
+            """
+        }
+
+        reads_ch.combine(giraffe_index_ch).set{reads_align_ch}
+        process giraffeAlignReads {
+            input:
+            set val(sample_name), file(sample_reads), file(giraffe_index) from reads_align_ch
+
+            output:
+            set val(sample_name), file("${sample_name}.gam") into gam_ch
+
+            script:
+            """
+            """
+        }
+    }
 
   process mergeVcfs {
   publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
