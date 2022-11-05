@@ -245,6 +245,9 @@ From: ubuntu:20.04
     apt-get autoremove --assume-yes
     apt-get clean --assume-yes
 
+    wget -O /usr/local/bin/vg https://github.com/vgteam/vg/releases/download/v1.43.0/vg 
+    chmod +x /usr/local/bin/vg
+
 %environment
     export LC_ALL=C
     export LANG=C
