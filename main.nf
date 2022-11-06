@@ -231,6 +231,8 @@ if(params.genotype) {
 
     else if(params.graph_method == "giraffe") {
         process makeGiraffe {
+            cpus pangenie_threads
+            memory params.pangenie_memory
             input:
             file vcf from vcf_ch
             file fasta from ref_geno_ch
