@@ -202,7 +202,7 @@ if(!params.vcf) {
 
 } else {
   // if a vcf is provided as parameter, skip discovery and go directly to genotyping
-  Channel.fromPath(params.vcf).set{vcf_ch}
+    Channel.fromPath(params.vcf).set{vcf_ch; vcf_merge_ch}
 }
 
 if(params.genotype) {
