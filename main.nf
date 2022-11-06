@@ -240,7 +240,8 @@ if(params.genotype) {
 
             script:
             """
-            mkdir inddex
+            tabix ${vcf}
+            mkdir index
             vg autoindex -p index/index -w giraffe -v ${vcf} -r ${fasta}
             vg snarls index/index.giraffe.gbz > index/index.pb
             """
