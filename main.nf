@@ -91,7 +91,7 @@ if(!params.graffite_vcf) {
     Channel.fromPath(params.vcf).into{raw_vcf_ch}
     Channel.fromPath(params.TE_library).set{TE_library_ch}
 
-  process repeatmasker {
+  process repeatmasker_fromVCF {
     cpus repeatmasker_threads
     memory params.repeatmasker_memory
     publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
