@@ -245,7 +245,7 @@ if(params.genotype) {
             bcftools sort -Oz -o sorted.vcf.gz ${vcf}
             tabix sorted.vcf.gz
             mkdir index
-            vg autoindex -p index/index -w giraffe -v sorted.gz -r ${fasta}
+            vg autoindex -p index/index -w giraffe -v sorted.vcf.gz -r ${fasta}
             vg snarls index/index.giraffe.gbz > index/index.pb
             """
         }
