@@ -1,3 +1,4 @@
+params.graffite_vcf = false
 params.vcf        = false
 params.genotype   = true
 params.graph_method  = "pangenie" //or giraffe
@@ -202,7 +203,7 @@ if(!params.vcf) {
 
 } else {
   // if a vcf is provided as parameter, skip discovery and go directly to genotyping
-    Channel.fromPath(params.vcf).into{vcf_ch; vcf_merge_ch}
+    Channel.fromPath(params.graffite_vcf).into{vcf_ch; vcf_merge_ch}
 }
 
 if(params.genotype) {
