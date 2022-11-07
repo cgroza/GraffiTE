@@ -88,7 +88,7 @@ if(!params.graffite_vcf || !params.vcf) {
 if(!params.graffite_vcf) {
 
   if(params.vcf){
-    Channel.fromPath(params.vcf).into{raw_vcf_ch}
+    Channel.fromPath(params.vcf).set{raw_vcf_ch}
     Channel.fromPath(params.TE_library).set{TE_library_ch}
 
   process repeatmasker_fromVCF {
