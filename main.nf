@@ -56,7 +56,7 @@ if(params.cores) {
 
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
 
-if(!params.vcf) {
+if(!params.graffite_vcf || !params.vcf) {
     Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
         [row.sample, file(row.path, checkIfExists:true)]}.set{asm_ch}
   asm_ch.combine(ref_asm_ch).set{svim_in_ch}
@@ -83,7 +83,56 @@ if(!params.vcf) {
     """
   }
 
+}
+
+if(!params.graffite_vcf) {
+
+  if(params.vcf){
+    Channel.fromPath(params.vcf).into{raw_vcf_ch}
+    Channel.fromPath(params.TE_library).set{TE_library_ch}
+
   process repeatmasker {
+    cpus repeatmasker_threads
+    memory params.repeatmasker_memory
+    publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
+
+    input:
+    file("genotypes.vcf") from raw_vcf_ch
+    file(TE_library) from TE_library_ch
+    file(ref_fasta) from ref_repeatmasker_ch
+
+    output:
+    file("genotypes_repmasked_filtered.vcf") into tsd_ch, tsd_search_ch, tsd_gather_ch
+    path("repeatmasker_dir/") into tsd_RM_ch, tsd_search_RM_ch // my hope is to export the output within their folder
+
+    script:
+    if(params.mammal)
+    """
+    repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library} MAM
+    bcftools view -G genotypes_repmasked.vcf.gz | \
+    awk -v FS='\t' -v OFS='\t' \
+    '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
+    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | \
+    bcftools view -i 'INFO/total_match_span > 0.80' -o genotypes_repmasked_temp.vcf
+    fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
+    """
+    else
+    """
+    ls *.vcf > vcfs.txt
+    SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100 genotypes.vcf
+    repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library}
+    bcftools view -G genotypes_repmasked.vcf.gz | \
+    awk -v FS='\t' -v OFS='\t' \
+    '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
+    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | \
+    bcftools view -i 'INFO/total_match_span > 0.80' -o genotypes_repmasked_temp.vcf
+    fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
+    """
+    }
+
+  } else {
+
+    process repeatmasker {
     cpus repeatmasker_threads
     memory params.repeatmasker_memory
     publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
@@ -122,6 +171,8 @@ if(!params.vcf) {
     bcftools view -i 'INFO/total_match_span > 0.80' -o genotypes_repmasked_temp.vcf
     fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
     """
+    }
+
   }
 
   process tsd_prep {
