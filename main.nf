@@ -56,7 +56,7 @@ if(params.cores) {
 
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
 
-if(!params.graffite_vcf || !params.vcf) {
+if(!params.graffite_vcf | !params.vcf) {
     Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
         [row.sample, file(row.path, checkIfExists:true)]}.set{asm_ch}
   asm_ch.combine(ref_asm_ch).set{svim_in_ch}
