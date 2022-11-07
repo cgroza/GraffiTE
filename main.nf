@@ -242,10 +242,10 @@ if(params.genotype) {
 
             script:
             """
-            bgzip ${vcf}
-            tabix ${vcf}.gz
+            bcftools sort -Oz -o sorted.vcf.gz ${vcf}
+            tabix sorted.vcf.gz
             mkdir index
-            vg autoindex -p index/index -w giraffe -v ${vcf}.gz -r ${fasta}
+            vg autoindex -p index/index -w giraffe -v sorted.gz -r ${fasta}
             vg snarls index/index.giraffe.gbz > index/index.pb
             """
         }
