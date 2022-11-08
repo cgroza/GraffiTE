@@ -14,9 +14,14 @@ params.mini_K     = "500M"
 params.stSort_m   = "4G"
 params.stSort_t   = 4
 params.version    = "0.1 beta (11-02-2022)"
+
+// ideally, we should have defaults relative to genome size
+params.svim_asm_memory = null
 params.repeatmasker_memory = null
 params.pangenie_memory = null
-params.svim_asm_memory = null
+params.giraffe_make_memory = null
+params.giraffe_align_memory = null
+params.giraffe_genotype_memory = null
 
 
 // SAY HELLO
@@ -48,10 +53,12 @@ if(params.cores) {
     repeatmasker_threads = params.cores
     svim_asm_threads     = params.cores
     pangenie_threads     = params.cores
+    giraffe_threads      = params.cores
 } else {
     repeatmasker_threads = params.repeatmasker_threads
     svim_asm_threads     = params.svim_asm_threads
     pangenie_threads     = params.pangenie_threads
+    giraffe_threads      = params.giraffe_threads
 }
 
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
@@ -234,7 +241,7 @@ if(!params.graffite_vcf) {
     output:
     path("TSD_summary.txt") into tsd_sum_group_ch
     path("TSD_full_log.txt") into tsd_full_group_ch
-    path("pangenie.vcf") into vcf_ch, vcf_merge_ch
+    path("pangenome.vcf") into vcf_ch, vcf_merge_ch
 
     script:
     """
@@ -248,7 +255,7 @@ if(!params.graffite_vcf) {
     TSD_FILE=TSD_annotation
     bgzip \${TSD_FILE}
     tabix -s1 -b2 -e2 \${TSD_FILE}.gz
-    bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,ID,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenie.vcf
+    bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,ID,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenome.vcf
     """
   }
 
@@ -283,8 +290,8 @@ if(params.genotype) {
 
     else if(params.graph_method == "giraffe") {
         process makeGiraffe {
-            cpus pangenie_threads
-            memory params.pangenie_memory
+            cpus giraffe_threads
+            memory params.giraffe_make_memory
             input:
             file vcf from vcf_ch
             file fasta from ref_geno_ch
@@ -294,17 +301,18 @@ if(params.genotype) {
 
             script:
             """
-            tabix ${vcf}
+            bcftools sort -Oz -o sorted.vcf.gz ${vcf}
+            tabix sorted.vcf.gz
             mkdir index
-            vg autoindex -p index/index -w giraffe -v ${vcf} -r ${fasta}
+            vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v sorted.vcf.gz -r ${fasta}
             vg snarls index/index.giraffe.gbz > index/index.pb
             """
         }
 
         reads_ch.combine(giraffe_index_align_ch).set{reads_align_ch}
         process giraffeAlignReads {
-            cpus pangenie_threads
-            memory params.pangenie_memory
+            cpus giraffe_threads
+            memory params.giraffe_align_memory
             input:
             set val(sample_name), file(sample_reads), file("index") from reads_align_ch
 
@@ -320,8 +328,8 @@ if(params.genotype) {
 
         giraffe_aligned_ch.combine(giraffe_index_call_ch).set{giraffe_pack_ch}
         process giraffeGenotype {
-            cpus pangenie_threads
-            memory params.pangenie_memory
+            cpus giraffe_threads
+            memory params.giraffe_genotype_memory
 
             input:
             set val(sample_name), file(gam), file(pack), file("index") from giraffe_pack_ch
@@ -343,7 +351,7 @@ if(params.genotype) {
 
   input:
   file vcfFiles from indexed_vcfs.collect()
-  path pangenie_vcf from vcf_merge_ch
+  path pangenome_vcf from vcf_merge_ch
 
   output:
   file "GraffiTE.merged.genotypes.vcf" into typeref_outputs
@@ -354,12 +362,12 @@ if(params.genotype) {
   bcftools merge -l vcf.list > GraffiTE.merged.genotypes.vcf
   bgzip GraffiTE.merged.genotypes.vcf
   tabix -p vcf GraffiTE.merged.genotypes.vcf.gz
-  grep '#' pangenie.vcf > P_header
-  grep -v '#' pangenie.vcf | sort -k1,1 -k2,2n > P_sorted_body
-  cat P_header P_sorted_body > pangenie.sorted.vcf
-  bgzip pangenie.sorted.vcf
-  tabix -p vcf pangenie.sorted.vcf.gz
-  bcftools annotate -a pangenie.sorted.vcf.gz -c CHROM,POS,ID,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
+  grep '#' ${pangenome_vcf} > P_header
+  grep -v '#' ${pangenome_vcf} | sort -k1,1 -k2,2n > P_sorted_body
+  cat P_header P_sorted_body > pangenome.sorted.vcf
+  bgzip pangenome.sorted.vcf
+  tabix -p vcf pangenome.sorted.vcf.gz
+  bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
   """
   }
 }
