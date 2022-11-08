@@ -63,7 +63,7 @@ classDef VCF fill:#EA0,stroke:#333,stroke-width:1px,color:#FFF
    ```
    singularity pull --arch amd64 graffite_latest.sif library://cgroza/collection/graffite:latest
    ```
-   - 3. Override the default image path in the file `nextflow.config` from `library://clemgoub/graffite/graffite:latest` to `<your-path>/graffite_latest.sif`. Alternatively, the `Nextflow` command `-with-singularity <your-path>/graffite_latest.sif` can be used when running `GraffiTE` (it will override the presets in `nextflow.config`).
+   - 3. Override the default image path in the file `nextflow.config` from `library://cgroza/collection/graffite:latest` to `<your-path>/graffite_latest.sif`. Alternatively, the `Nextflow` command `-with-singularity <your-path>/graffite_latest.sif` can be used when running `GraffiTE` (it will override the presets in `nextflow.config`).
 
 ## Running GraffiTE
 
