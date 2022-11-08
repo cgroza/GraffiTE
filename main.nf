@@ -182,7 +182,7 @@ if(!params.vcf) {
     output:
     path("TSD_summary.txt") into tsd_sum_group_ch
     path("TSD_full_log.txt") into tsd_full_group_ch
-    path("pangenie.vcf") into vcf_ch, vcf_merge_ch
+    path("pangenome.vcf") into vcf_ch, vcf_merge_ch
 
     script:
     """
@@ -196,7 +196,7 @@ if(!params.vcf) {
     TSD_FILE=TSD_annotation
     bgzip \${TSD_FILE}
     tabix -s1 -b2 -e2 \${TSD_FILE}.gz
-    bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,ID,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenie.vcf
+    bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,ID,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenome.vcf
     """
   }
 
