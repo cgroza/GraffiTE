@@ -292,7 +292,7 @@ if(params.genotype) {
 
   input:
   file vcfFiles from indexed_vcfs.collect()
-  path pangenie_vcf from vcf_merge_ch
+  path pangenome_vcf from vcf_merge_ch
 
   output:
   file "GraffiTE.merged.genotypes.vcf" into typeref_outputs
@@ -303,12 +303,12 @@ if(params.genotype) {
   bcftools merge -l vcf.list > GraffiTE.merged.genotypes.vcf
   bgzip GraffiTE.merged.genotypes.vcf
   tabix -p vcf GraffiTE.merged.genotypes.vcf.gz
-  grep '#' pangenie.vcf > P_header
-  grep -v '#' pangenie.vcf | sort -k1,1 -k2,2n > P_sorted_body
-  cat P_header P_sorted_body > pangenie.sorted.vcf
-  bgzip pangenie.sorted.vcf
-  tabix -p vcf pangenie.sorted.vcf.gz
-  bcftools annotate -a pangenie.sorted.vcf.gz -c CHROM,POS,ID,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
+  grep '#' ${pangenome_vcf} > P_header
+  grep -v '#' ${pangenome_vcf} | sort -k1,1 -k2,2n > P_sorted_body
+  cat P_header P_sorted_body > pangenome.sorted.vcf
+  bgzip pangenome.sorted.vcf
+  tabix -p vcf pangenome.sorted.vcf.gz
+  bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
   """
   }
 }
