@@ -10,7 +10,7 @@
 ![](https://i.imgur.com/Ouzl83K.png)
 2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided library of repeats of interest (.fasta). SVs covered ≥80% by repeats are kept. At this step, target site duplications (TSDs) are searched for SVs spanned by a single TE family.
 ![](https://i.imgur.com/2qRpojE.png)
-3. Each candidate repeat polymorphism is induced in a graph-genome where TE and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie) or [`Girrafe`](https://www.science.org/doi/10.1126/science.abg8871).
+3. Each candidate repeat polymorphism is induced in a graph-genome where TE and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie) or [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871).
 ![](https://i.imgur.com/EDPRwYe.png)
 
 ----
