@@ -30,7 +30,7 @@ From: ubuntu:20.04
     bedtools \
     ncbi-blast+
 
-    apt-get install --assume-yes tabix libbz2-dev liblzma-dev
+    apt-get install --assume-yes tabix libbz2-dev liblzma-dev libgsl-dev
 
     git clone --recursive https://github.com/samtools/htslib.git
     cd htslib
