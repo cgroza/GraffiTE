@@ -13,9 +13,14 @@ params.mini_K     = "500M"
 params.stSort_m   = "4G"
 params.stSort_t   = 4
 params.version    = "0.1 beta (11-02-2022)"
+
+// ideally, we should have defaults relative to genome size
+params.svim_asm_memory = null
 params.repeatmasker_memory = null
 params.pangenie_memory = null
-params.svim_asm_memory = null
+params.giraffe_make_memory = null
+params.giraffe_align_memory = null
+params.giraffe_genotype_memory = null
 
 
 // SAY HELLO
@@ -47,10 +52,12 @@ if(params.cores) {
     repeatmasker_threads = params.cores
     svim_asm_threads     = params.cores
     pangenie_threads     = params.cores
+    giraffe_threads      = params.cores
 } else {
     repeatmasker_threads = params.repeatmasker_threads
     svim_asm_threads     = params.svim_asm_threads
     pangenie_threads     = params.pangenie_threads
+    giraffe_threads      = params.giraffe_threads
 }
 
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
@@ -231,8 +238,8 @@ if(params.genotype) {
 
     else if(params.graph_method == "giraffe") {
         process makeGiraffe {
-            cpus pangenie_threads
-            memory params.pangenie_memory
+            cpus giraffe_threads
+            memory params.giraffe_make_memory
             input:
             file vcf from vcf_ch
             file fasta from ref_geno_ch
@@ -252,8 +259,8 @@ if(params.genotype) {
 
         reads_ch.combine(giraffe_index_align_ch).set{reads_align_ch}
         process giraffeAlignReads {
-            cpus pangenie_threads
-            memory params.pangenie_memory
+            cpus giraffe_threads
+            memory params.giraffe_align_memory
             input:
             set val(sample_name), file(sample_reads), file("index") from reads_align_ch
 
@@ -269,8 +276,8 @@ if(params.genotype) {
 
         giraffe_aligned_ch.combine(giraffe_index_call_ch).set{giraffe_pack_ch}
         process giraffeGenotype {
-            cpus pangenie_threads
-            memory params.pangenie_memory
+            cpus giraffe_threads
+            memory params.giraffe_genotype_memory
 
             input:
             set val(sample_name), file(gam), file(pack), file("index") from giraffe_pack_ch
