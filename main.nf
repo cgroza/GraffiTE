@@ -255,7 +255,7 @@ if(!params.graffite_vcf) {
     TSD_FILE=TSD_annotation
     bgzip \${TSD_FILE}
     tabix -s1 -b2 -e2 \${TSD_FILE}.gz
-    bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,ID,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenome.vcf
+    bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,~ID,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenome.vcf
     """
   }
 
@@ -367,7 +367,7 @@ if(params.genotype) {
   cat P_header P_sorted_body > pangenome.sorted.vcf
   bgzip pangenome.sorted.vcf
   tabix -p vcf pangenome.sorted.vcf.gz
-  bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
+  bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,~ID,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
   """
   }
 }
