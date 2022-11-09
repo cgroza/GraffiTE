@@ -300,12 +300,12 @@ if(params.genotype) {
             switch(params.graph_method) {
                 case "giraffe":
                     """
-                    vg giraffe -t ${pangenie_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
+                    vg giraffe -t ${graph_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
                     """ + pack
                     break
                 case "graphaligner":
                     """
-                    GraphAligner -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.gam
+                    GraphAligner -t ${graph_threads} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.gam
                     """ + pack
                     break
             }
