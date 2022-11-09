@@ -1,6 +1,5 @@
 #!/usr/bin/env Rscript
 
-library(biomartr)
 library(optparse)
 library(dplyr)
 library(stringr)
