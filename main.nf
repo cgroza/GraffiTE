@@ -238,14 +238,9 @@ if(params.genotype) {
 
     else if(params.graph_method != "pangenie") {
         // will be useful to know the graph filenames later
-        graph = ""
-        switch(params.graph_method) {
-            case "giraffe":
-                graph = "index.giraffe.gbz"
-                break
-            case "graphaligner":
-                graph = "index.vg"
-                break
+        graph = switch(params.graph_method) {
+            case "giraffe" ->  "index.giraffe.gbz"
+            case "graphaligner" -> "index.vg"
         }
 
         process makeGraph {
@@ -258,25 +253,21 @@ if(params.genotype) {
             output:
             file "index" into graph_index_ch, vg_index_call_ch
 
-            prep = """
+            script:
+            """
             bcftools sort -Oz -o sorted.vcf.gz ${vcf}
             tabix sorted.vcf.gz
             mkdir index
-            """
-            script:
-            switch(params.graph_method) {
-                case "giraffe":
-                    prep + """
+            """ +
+                switch(params.graph_method) {
+                    case "giraffe" -> """
                     vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v sorted.vcf.gz -r ${fasta}
                     """
-                    break
-                case "graphaligner":
-                    prep + """
+                    case "graphaligner" -> """
                     export TMPDIR=$PWD
                     vg construct -a  -r ${fasta} -v ${vcf} -m 1024 > index/index.vg
                     """
-                    break
-            } + """
+                } + """
             vg snarls index/${graph} > index/index.pb
             """
         }
@@ -293,16 +284,12 @@ if(params.genotype) {
 
             script:
             switch(params.graph_method) {
-                case "giraffe":
-                    """
+                case "giraffe" -> """
                     vg giraffe -t ${pangenie_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
                     """
-                    break
-                case "graphaligner":
-                    """
+                case "graphaligner" -> """
                     GraphAligner -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.gam
                     """
-                    break
             } + """
             vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack
             """
