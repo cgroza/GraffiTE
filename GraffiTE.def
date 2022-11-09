@@ -97,8 +97,6 @@ From: ubuntu:20.04
     pip3 install --upgrade numpy
 
     R --slave -e 'install.packages(c("XML", "dplyr", "stringr", "tidyr", "readr", "vcfR", "optparse"), repos="https://cloud.r-project.org/")'
-    R --slave -e 'if (!require(c("BiocManager"), quietly = TRUE)) install.packages(c("BiocManager")); BiocManager::install(c("biomaRt", "Biostrings"), type = "source")'
-    R --slave -e 'install.packages(c("biomartr"), repos="https://cloud.r-project.org/")'
 
     git clone https://github.com/Dfam-consortium/TETools.git
     bash TETools/getsrc.sh
