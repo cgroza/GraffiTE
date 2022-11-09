@@ -57,7 +57,7 @@ if(params.cores) {
     repeatmasker_threads = params.repeatmasker_threads
     svim_asm_threads     = params.svim_asm_threads
     pangenie_threads     = params.pangenie_threads
-    graph_threads      = params.giraffe_threads
+    graph_threads      = params.graph_threads
 }
 
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
@@ -258,6 +258,7 @@ if(params.genotype) {
             output:
             file "index" into graph_index_ch, vg_index_call_ch
 
+            script:
             prep = """
             bcftools sort -Oz -o sorted.vcf.gz ${vcf}
             tabix sorted.vcf.gz
@@ -266,7 +267,6 @@ if(params.genotype) {
             finish = """
             vg snarls index/${graph} > index/index.pb
             """
-            script:
             switch(params.graph_method) {
                 case "giraffe":
                     prep + """
@@ -292,11 +292,11 @@ if(params.genotype) {
             output:
             set val(sample_name), file("${sample_name}.gam"), file("${sample_name}.pack") into aligned_ch
 
+            script:
             pack =  """
             vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack
             """
 
-            script:
             switch(params.graph_method) {
                 case "giraffe":
                     """
