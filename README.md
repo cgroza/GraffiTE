@@ -281,6 +281,16 @@ VCF column:
    - `GL`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Comma-separated log10-scaled genotype likelihoods for absent, heterozygous, homozygous.
    - `KC`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Local kmer coverage.
 
+When using Giraffe and `vg call`, the following fields are also present:
+- `AT`: Allele traversal as path in graph
+- `DP`: Total Depth
+- `AD`: Allelic depths for the ref and alt alleles in the order listed">
+- `MAD`: Minimum site allele depth
+- `GL`: Genotype Likelihood, log10-scaled likelihoods of the data given the called genotype for each possible genotype generated from the reference and alternate alleles given the sample ploidy
+- `GQ`: Genotype Quality, the Phred-scaled probability estimate of the called genotype
+- `GP`: Genotype Probability, the log-scaled posterior probability of the called genotype
+- `XD`: eXpected Depth, background coverage as used for the Poisson model
+
 ### TSD module
 
 For SVs with a single TE insertion detected (`n_hits=1`, and LINE1s with the flag `mam_filter_1=5P_INV`) target site duplication are searched by comparing the flanking regions following this workflow:
