@@ -206,10 +206,17 @@ if(!params.graffite_vcf) {
     """
   }
 
+  if(!params.cores){
+    params.tsdthreads = Runtime.runtime.availableProcessors()
+    } else {
+      params.tsdthreads = params.cores
+  }
+
   process tsd_search {
+    cpu = params.tsdthreads
 
     input:
-    val indels from tsd_search_input.splitText()
+    val indels from tsd_search_input.splitText(by = ${tsdthreads})
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
     file("flanking_sequences.fasta") from tsd_search_flanking.toList()
