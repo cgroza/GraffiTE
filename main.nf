@@ -238,9 +238,14 @@ if(params.genotype) {
 
     else if(params.graph_method != "pangenie") {
         // will be useful to know the graph filenames later
-        graph = switch(params.graph_method) {
-            case "giraffe" ->  "index.giraffe.gbz"
-            case "graphaligner" -> "index.vg"
+        String graph =  ""
+        switch(params.graph_method) {
+            case "giraffe":
+                graph = "index.giraffe.gbz"
+                break
+            case "graphaligner":
+                graph = "index.vg"
+                break
         }
 
         process makeGraph {
@@ -253,23 +258,28 @@ if(params.genotype) {
             output:
             file "index" into graph_index_ch, vg_index_call_ch
 
-            script:
-            """
+            prep = """
             bcftools sort -Oz -o sorted.vcf.gz ${vcf}
             tabix sorted.vcf.gz
             mkdir index
-            """ +
-                switch(params.graph_method) {
-                    case "giraffe" -> """
-                    vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v sorted.vcf.gz -r ${fasta}
-                    """
-                    case "graphaligner" -> """
-                    export TMPDIR=$PWD
-                    vg construct -a  -r ${fasta} -v ${vcf} -m 1024 > index/index.vg
-                    """
-                } + """
+            """
+            finish = """
             vg snarls index/${graph} > index/index.pb
             """
+            script:
+            switch(params.graph_method) {
+                case "giraffe":
+                    prep + """
+                    vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v sorted.vcf.gz -r ${fasta}
+                    """ + finish
+                    break
+                case "graphaligner":
+                    prep + """
+                    export TMPDIR=$PWD
+                    vg construct -a  -r ${fasta} -v ${vcf} -m 1024 > index/index.vg
+                    """ + finish
+                    break
+            }
         }
 
         reads_ch.combine(graph_index_ch).set{reads_align_ch}
@@ -282,17 +292,23 @@ if(params.genotype) {
             output:
             set val(sample_name), file("${sample_name}.gam"), file("${sample_name}.pack") into aligned_ch
 
-            script:
-            switch(params.graph_method) {
-                case "giraffe" -> """
-                    vg giraffe -t ${pangenie_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
-                    """
-                case "graphaligner" -> """
-                    GraphAligner -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.gam
-                    """
-            } + """
+            pack =  """
             vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack
             """
+
+            script:
+            switch(params.graph_method) {
+                case "giraffe":
+                    """
+                    vg giraffe -t ${pangenie_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
+                    """ + pack
+                    break
+                case "graphaligner":
+                    """
+                    GraphAligner -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.gam
+                    """ + pack
+                    break
+            }
         }
 
         aligned_ch.combine(vg_index_call_ch).set{graph_pack_ch}
