@@ -216,7 +216,7 @@ if(!params.graffite_vcf) {
     cpu = params.tsdthreads
 
     input:
-    val indels from tsd_search_input.splitText(by = params.tsdthreads.toInteger())
+    val indels from tsd_search_input.splitText( by: params.tsdthreads )
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
     file("flanking_sequences.fasta") from tsd_search_flanking.toList()
