@@ -10,7 +10,7 @@
 ![](https://i.imgur.com/Ouzl83K.png)
 2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided library of repeats of interest (.fasta). SVs covered ≥80% by repeats are kept. At this step, target site duplications (TSDs) are searched for SVs spanned by a single TE family.
 ![](https://i.imgur.com/2qRpojE.png)
-3. Each candidate repeat polymorphism is induced in a graph-genome where TE and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie) or [`Girrafe`](https://www.science.org/doi/10.1126/science.abg8871).
+3. Each candidate repeat polymorphism is induced in a graph-genome where TE and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie) or [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871).
 ![](https://i.imgur.com/EDPRwYe.png)
 
 ----
@@ -61,9 +61,9 @@ classDef VCF fill:#EA0,stroke:#333,stroke-width:1px,color:#FFF
    ```
    - 2. Pull the singularity image (this is long but only required once)
    ```
-   singularity pull --arch amd64 graffite_latest.sif library://clemgoub/graffite/graffite:latest
+   singularity pull --arch amd64 graffite_latest.sif library://cgroza/collection/graffite:latest
    ```
-   - 3. Override the default image path in the file `nextflow.config` from `library://clemgoub/graffite/graffite:latest` to `<your-path>/graffite_latest.sif`. Alternatively, the `Nextflow` command `-with-singularity <your-path>/graffite_latest.sif` can be used when running `GraffiTE` (it will override the presets in `nextflow.config`).
+   - 3. Override the default image path in the file `nextflow.config` from `library://cgroza/collection/graffite:latest` to `<your-path>/graffite_latest.sif`. Alternatively, the `Nextflow` command `-with-singularity <your-path>/graffite_latest.sif` can be used when running `GraffiTE` (it will override the presets in `nextflow.config`).
 
 ## Running GraffiTE
 
@@ -92,7 +92,7 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 ### Parameters
 
 - `--graph_method`: can be `pangenie` or `giraffe`, select which graph method will be used to genotyped TEs. Default is `pangenie`.
-- `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered. One assembly per sample and sample names must be unique. The header is required.
+- `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered. One assembly per sample and sample names must be unique. **The header is required**.
 
    Example `assemblies.csv`:
    ```
@@ -108,7 +108,7 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 
 - `--reference`: a reference genome of the species being studied. All assemblies are compared to this reference genome.
 
-- `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. The header is required. Only one FASTQ per sample, and sample names must be unique. Paired-end reads must be interleaved in the same file.
+- `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. **The header is required**. Only one FASTQ per sample, and sample names must be unique. Paired-end reads must be interleaved in the same file.
    > Note that the current genotyper, `PanGenie` is optimized for short-reads. Long-read support will be available soon!
 
    Example `reads.csv`:
