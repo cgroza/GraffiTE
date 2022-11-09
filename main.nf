@@ -216,7 +216,7 @@ if(!params.graffite_vcf) {
     cpu = params.tsdthreads
 
     input:
-    val indels from tsd_search_input.splitText( by: params.tsdthreads )
+    file indels from tsd_search_input.splitText( by: params.tsdthreads )
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
     file("flanking_sequences.fasta") from tsd_search_flanking.toList()
@@ -230,9 +230,8 @@ if(!params.graffite_vcf) {
     script:
     """
     cp repeatmasker_dir/repeatmasker_dir/* .
-    echo ${indels} > indels 
-    findTSD.sh indels
-    name="\$(head -n 1 <(echo ${indels}))"
+    findTSD.sh ${indels}
+    name="batch_\$(head -n 1 ${indels})"
     mv TSD_summary.txt \${name}.TSD_summary.txt
     mv TSD_full_log.txt \${name}.TSD_full_log.txt
     """
