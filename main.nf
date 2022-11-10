@@ -206,17 +206,10 @@ if(!params.graffite_vcf) {
     """
   }
 
-  if(!params.cores){
-    params.tsdthreads = Runtime.runtime.availableProcessors()
-    } else {
-      params.tsdthreads = params.cores
-  }
-
   process tsd_search {
-    cpu = params.tsdthreads
 
     input:
-    file indels from tsd_search_input.splitText( by: params.tsdthreads )
+    val indels from tsd_search_input.splitText()
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
     file("flanking_sequences.fasta") from tsd_search_flanking.toList()
@@ -231,7 +224,7 @@ if(!params.graffite_vcf) {
     """
     cp repeatmasker_dir/repeatmasker_dir/* .
     findTSD.sh ${indels}
-    name="batch_\$(head -n 1 ${indels})"
+    name="\$(head -n 1 <(echo ${indels}))"
     mv TSD_summary.txt \${name}.TSD_summary.txt
     mv TSD_full_log.txt \${name}.TSD_full_log.txt
     """
