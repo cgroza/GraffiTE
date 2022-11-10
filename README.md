@@ -148,8 +148,8 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 - `--pangenie_threads`: number of `Pangenie` threads. Overrides `--cores`
 - `--pangenie_memory`: RAM limit for the Pangenie (genotyping) process. Default is unset.
 
-##### Genotyping with Giraffe
-- `--graph_threads`: number of threads to use with Giraffe. Overrides `--cores`
+##### Genotyping with Giraffe, GraphAligner and `vg call`
+- `--graph_threads`: number of threads to use with Giraffe, GraphAligner and `vg call`. Overrides `--cores`
 - `--make_graph_memory`: RAM limit for creating the graph with `vg autoindex` (Giraffe) or `vg construct` (GraphAligner). Default is unset.
 - `--graph_align_memory`: RAM limit for aligning reads to the graph with `vg giraffe` or `GraphAligner`. Default is unset.
 - `--vg_call_memory`: RAM limit for calling SVs with `vg call` on graph alignments. Default is unset.
@@ -281,7 +281,7 @@ VCF column:
    - `GL`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Comma-separated log10-scaled genotype likelihoods for absent, heterozygous, homozygous.
    - `KC`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Local kmer coverage.
 
-When using Giraffe and `vg call`, the following fields are also present:
+When using Giraffe and GraphAligner with `vg call`, the following fields are also present:
 - `AT`: Allele traversal as path in graph
 - `DP`: Total Depth
 - `AD`: Allelic depths for the ref and alt alleles in the order listed">
