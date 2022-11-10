@@ -10,7 +10,7 @@
 ![](https://i.imgur.com/Ouzl83K.png)
 2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided library of repeats of interest (.fasta). SVs covered ≥80% by repeats are kept. At this step, target site duplications (TSDs) are searched for SVs spanned by a single TE family.
 ![](https://i.imgur.com/2qRpojE.png)
-3. Each candidate repeat polymorphism is induced in a graph-genome where TE and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie) or [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871).
+3. Each candidate repeat polymorphism is induced in a graph-genome where TE and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie), [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871) or  [`GraphAligner`](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02157-2).
 ![](https://i.imgur.com/EDPRwYe.png)
 
 ----
@@ -148,11 +148,11 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 - `--pangenie_threads`: number of `Pangenie` threads. Overrides `--cores`
 - `--pangenie_memory`: RAM limit for the Pangenie (genotyping) process. Default is unset.
 
-##### Genotyping with Giraffe
-- `--giraffe_threads`: number of threads to use with Giraffe. Overrides `--cores`
-- `--giraffe_make_memory`: RAM limit for creating the Giraffe graph with `vg autoindex`. Default is unset.
-- `--giraffe_align_memory`: RAM limit for aligning reads to the Giraffe graph with `vg giraffe`. Default is unset.
-- `--giraffe_genotype_memory`: RAM limit for calling SVs with `vg call` on Giraffe read to graph alignments. Default is unset.
+##### Genotyping with Giraffe, GraphAligner and `vg call`
+- `--graph_threads`: number of threads to use with Giraffe, GraphAligner and `vg call`. Overrides `--cores`
+- `--make_graph_memory`: RAM limit for creating the graph with `vg autoindex` (Giraffe) or `vg construct` (GraphAligner). Default is unset.
+- `--graph_align_memory`: RAM limit for aligning reads to the graph with `vg giraffe` or `GraphAligner`. Default is unset.
+- `--vg_call_memory`: RAM limit for calling SVs with `vg call` on graph alignments. Default is unset.
 
 #### `Nextflow` parameters
 
@@ -280,6 +280,16 @@ VCF column:
    - `GQ`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Genotype quality: phred scaled probability that the genotype is wrong.
    - `GL`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Comma-separated log10-scaled genotype likelihoods for absent, heterozygous, homozygous.
    - `KC`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Local kmer coverage.
+
+When using Giraffe and GraphAligner with `vg call`, the following fields are also present:
+- `AT`: Allele traversal as path in graph
+- `DP`: Total Depth
+- `AD`: Allelic depths for the ref and alt alleles in the order listed">
+- `MAD`: Minimum site allele depth
+- `GL`: Genotype Likelihood, log10-scaled likelihoods of the data given the called genotype for each possible genotype generated from the reference and alternate alleles given the sample ploidy
+- `GQ`: Genotype Quality, the Phred-scaled probability estimate of the called genotype
+- `GP`: Genotype Probability, the log-scaled posterior probability of the called genotype
+- `XD`: eXpected Depth, background coverage as used for the Poisson model
 
 ### TSD module
 

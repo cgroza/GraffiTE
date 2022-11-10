@@ -19,9 +19,9 @@ params.version    = "0.1 beta (11-02-2022)"
 params.svim_asm_memory = null
 params.repeatmasker_memory = null
 params.pangenie_memory = null
-params.giraffe_make_memory = null
-params.giraffe_align_memory = null
-params.giraffe_genotype_memory = null
+params.make_graph_memory = null
+params.graph_align_memory = null
+params.vg_call_memory = null
 
 
 // SAY HELLO
@@ -53,12 +53,12 @@ if(params.cores) {
     repeatmasker_threads = params.cores
     svim_asm_threads     = params.cores
     pangenie_threads     = params.cores
-    giraffe_threads      = params.cores
+    graph_threads      = params.cores
 } else {
     repeatmasker_threads = params.repeatmasker_threads
     svim_asm_threads     = params.svim_asm_threads
     pangenie_threads     = params.pangenie_threads
-    giraffe_threads      = params.giraffe_threads
+    graph_threads      = params.graph_threads
 }
 
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
@@ -281,72 +281,116 @@ if(params.genotype) {
 
             script:
             """
-            PanGenie -t ${pangenie_threads} -j ${pangenie_threads} -s ${sample_name} -i ${sample_reads} -r ${ref} -v ${vcf} -o ${sample_name}
+            if file -L ${sample_reads} | grep gzip;
+            then
+            gunzip -c ${sample_reads} > reads.fq
+            else
+                ln ${sample_reads} reads.fq
+            fi;
+            PanGenie -t ${pangenie_threads} -j ${pangenie_threads} -s ${sample_name} -i reads.fq -r ${ref} -v ${vcf} -o ${sample_name}
+            rm -f reads.fq
             bgzip ${sample_name}_genotyping.vcf
             tabix -p vcf ${sample_name}_genotyping.vcf.gz
             """
         }
     }
 
-    else if(params.graph_method == "giraffe") {
-        process makeGiraffe {
-            cpus giraffe_threads
-            memory params.giraffe_make_memory
+    else if(params.graph_method != "pangenie") {
+        // will be useful to know the graph filenames later
+        String graph =  ""
+        switch(params.graph_method) {
+            case "giraffe":
+                graph = "index.giraffe.gbz"
+                break
+            case "graphaligner":
+                graph = "index.vg"
+                break
+        }
+
+        process makeGraph {
+            cpus graph_threads
+            memory params.make_graph_memory
             input:
             file vcf from vcf_ch
             file fasta from ref_geno_ch
 
             output:
-            file "index" into giraffe_index_align_ch, giraffe_index_call_ch
+            file "index" into graph_index_ch, vg_index_call_ch
 
             script:
-            """
+            prep = """
             bcftools sort -Oz -o sorted.vcf.gz ${vcf}
             tabix sorted.vcf.gz
             mkdir index
-            vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v sorted.vcf.gz -r ${fasta}
-            vg snarls index/index.giraffe.gbz > index/index.pb
             """
+            finish = """
+            vg snarls index/${graph} > index/index.pb
+            """
+            switch(params.graph_method) {
+                case "giraffe":
+                    prep + """
+                    vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v sorted.vcf.gz -r ${fasta}
+                    """ + finish
+                    break
+                case "graphaligner":
+                    prep + """
+                    export TMPDIR=$PWD
+                    vg construct -a  -r ${fasta} -v ${vcf} -m 1024 > index/index.vg
+                    """ + finish
+                    break
+            }
         }
 
-        reads_ch.combine(giraffe_index_align_ch).set{reads_align_ch}
-        process giraffeAlignReads {
-            cpus giraffe_threads
-            memory params.giraffe_align_memory
+        reads_ch.combine(graph_index_ch).set{reads_align_ch}
+        process graphAlignReads {
+            cpus graph_threads
+            memory params.graph_align_memory
             input:
             set val(sample_name), file(sample_reads), file("index") from reads_align_ch
 
             output:
-            set val(sample_name), file("${sample_name}.gam"), file("${sample_name}.pack") into giraffe_aligned_ch
+            set val(sample_name), file("${sample_name}.gam"), file("${sample_name}.pack") into aligned_ch
 
             script:
+            pack =  """
+            vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack
             """
-            vg giraffe -t ${pangenie_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
-            vg pack -x index/index.giraffe.gbz -g ${sample_name}.gam -o ${sample_name}.pack
-            """
+
+            switch(params.graph_method) {
+                case "giraffe":
+                    """
+                    vg giraffe -t ${graph_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
+                    """ + pack
+                    break
+                case "graphaligner":
+                    """
+                    GraphAligner -t ${graph_threads} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.gam
+                    """ + pack
+                    break
+            }
         }
 
-        giraffe_aligned_ch.combine(giraffe_index_call_ch).set{giraffe_pack_ch}
-        process giraffeGenotype {
-            cpus giraffe_threads
-            memory params.giraffe_genotype_memory
+        aligned_ch.combine(vg_index_call_ch).set{graph_pack_ch}
+        process vgCall {
+            cpus graph_threads
+            memory params.vg_call_memory
 
             input:
-            set val(sample_name), file(gam), file(pack), file("index") from giraffe_pack_ch
+            set val(sample_name), file(gam), file(pack), file("index") from graph_pack_ch
 
             output:
             file("${sample_name}.vcf.gz*") into indexed_vcfs
 
             script:
             """
-            vg call -a -r index/index.pb -s ${sample_name} -k ${pack} index/index.giraffe.gbz > ${sample_name}.vcf
+            vg call -a -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} > ${sample_name}.vcf
             bgzip ${sample_name}.vcf
             tabix ${sample_name}.vcf.gz
             """
         }
     }
 
-  process mergeVcfs {
+process mergeVcfs {
   publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
 
   input:
