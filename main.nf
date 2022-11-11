@@ -1,7 +1,7 @@
 params.graffite_vcf = false
 params.vcf        = false
 params.genotype   = true
-params.graph_method  = "pangenie" //or giraffe
+params.graph_method  = "pangenie" // or giraffe or graphaligner
 params.reads      = "reads.csv"
 params.assemblies = "assemblies.csv"
 params.reference  = "reference.fa"
@@ -13,7 +13,7 @@ params.mammal     = false
 params.mini_K     = "500M"
 params.stSort_m   = "4G"
 params.stSort_t   = 4
-params.version    = "0.1 beta (11-02-2022)"
+params.version    = "0.2 beta (11-11-2022)"
 
 // ideally, we should have defaults relative to genome size
 params.svim_asm_memory = null

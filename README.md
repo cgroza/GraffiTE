@@ -1,6 +1,6 @@
 ![](https://i.imgur.com/jvprOAS.png)
 
-[![status](https://img.shields.io/badge/status:-v0.1_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]()
+[![status](https://img.shields.io/badge/status:-v0.2_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]()
 
 ## Description
 
@@ -8,10 +8,10 @@
 
 1. First, each alternative assembly is (pseudo)-aligned to the reference genome with [`minimap2`](https://github.com/lh3/minimap2) (set at \~5% divergence max). For each genome considered, structural variants (SVs) are called with [`svim-asm`](https://github.com/eldariont/svim-asm) and only insertions and deletions relative to the reference genome are kept.
 ![](https://i.imgur.com/Ouzl83K.png)
-2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided library of repeats of interest (.fasta). SVs covered ≥80% by repeats are kept. At this step, target site duplications (TSDs) are searched for SVs spanned by a single TE family.
+2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided library of repeats of interest (.fasta). SVs covered ≥80% by repeats are kept. At this step, target site duplications (TSDs) are searched for SVs representing a single TE family.
 ![](https://i.imgur.com/2qRpojE.png)
-3. Each candidate repeat polymorphism is induced in a graph-genome where TE and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie), [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871) or  [`GraphAligner`](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02157-2).
-![](https://i.imgur.com/EDPRwYe.png)
+3. Each candidate repeat polymorphism is induced in a graph-genome where TEs and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie), [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871) or  [`GraphAligner`](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02157-2).
+![](https://i.imgur.com/UyT62yp.png)
 
 ----
 
@@ -19,27 +19,56 @@
 
 ----
 
+### Changelog
 
-### Simplified workflow
+- **beta 0.2 (11-11-22)**:
+   - adds two new read aligners: [`giraffe`](https://github.com/vgteam/vg#mapping) (short read optimized, works also with long-reads) and [`graphAligner`](https://github.com/maickrau/GraphAligner) (long-read, error-prone compliant). 
+      - usage: `--graph_method [pangenie/giraffe/graphaligner]` default: `pangenie` (short accurate reads)
+   - adds `--vcf` input option: requires a sequence resolved (REF and ALT allele sequences in VCF). Will bypass genome alignments and proceed with repeat annotations, TSD search, and reads mapping (optional).
+   - adds `--graffite_vcf` input option: requires a VCF created by `GraffiTE` (in the outputs `3_TSD_search/pangemome.vcf`). Will skip all steps but read mapping.
+   - bug fix: remove the dependency to `biomartr`
+- **beta 0.1 (11-02-22)**: first release
+>It is required to update both the repository (`git pull`) and image to see changes
+
+----
+
+### Workflow
 
 ```mermaid
 graph TD;
-I1[Reference Genome]:::data-->S1[minimap2]:::script
-I2[Alternative assemblies]:::data-->S1
+I1[Reference Genome \n --reference]:::data-->S1
+I2[Alternative assemblies \n --assemblies]:::data-->S1
+I2bis[known SVs VCF \n --vcf]:::data2-.bypasses upstream \n processes...->S4
+subgraph SV detect
+S1[minimap2]:::script
 S1--genome-to-genome alignments-->S2[svim-asm]:::script
-S2--SV calling-->S3[SURVIVOR]:::script
-I5[TE library]:::data-->S4
+end
+S2--per sample SV calls-->S3
+I5[Repeat library \n --TE_library]:::data----->S4
+subgraph Repeats Annotation
+S3[SURVIVOR]:::script
 S3--SV merging-->S4[RepeatMasker]:::script
 S4--filter for TEs-->S5[TSD search]:::script
 S5--annotate variants-->V1[Candidates VCF]:::VCF
-V1-->S6[Pangenie]:::script
-S6--k-mer mapping-->I4[Multi-samples genotypes VCF]:::VCF
-I3[Short Reads]:::data-->S6
+end
+V1-->Genotyping
+I7[GraffiTE VCF \n --graffite_vcf]:::data2-.bypasses upstream \n processes.....->V1
+subgraph Genotyping
+S6choice[--graph_method]:::data2
+S6choice--"[default]"-->S6.1
+S6choice-.giraffe.->S6.2
+S6choice-.graphaligner.->S6.3
+S6.1[Pangenie \n short-reads]:::script
+S6.2[Giraffe \n short/long]:::script
+S6.3[graphAligner \n long-reads]:::script
+end
+Genotyping-->I4[Multi-samples genotypes VCF]:::VCF
+I3[Read sets \n --reads]:::data-------->Genotyping
 classDef data fill:#09E,stroke:#333,color:#FFF;
+classDef data2 fill:#08F9,stroke:#333,color:#FFF,stroke-dasharray:5;
 classDef script fill:#5C7,stroke:#333,stroke-width:1px,color:#FFF;
 classDef VCF fill:#EA0,stroke:#333,stroke-width:1px,color:#FFF
 ```
-> A more detailed flowchart can be seen [here](https://github.com/cgroza/GraffiTE/blob/main/README_pipeline_full.md)
 
 ## Installation
 
@@ -91,7 +120,6 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 
 ### Parameters
 
-- `--graph_method`: can be `pangenie` or `giraffe`, select which graph method will be used to genotyped TEs. Default is `pangenie`.
 - `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered. One assembly per sample and sample names must be unique. **The header is required**.
 
    Example `assemblies.csv`:
@@ -107,6 +135,8 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
    - From [Repbase](https://www.girinst.org/server/RepBase/index.php) (paid subscription): use the "RepeatMasker Edition" libraries
 
 - `--reference`: a reference genome of the species being studied. All assemblies are compared to this reference genome.
+
+- `--graph_method`: can be `pangenie` or `giraffe`, select which graph method will be used to genotyped TEs. Default is `pangenie`.
 
 - `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. **The header is required**. Only one FASTQ per sample, and sample names must be unique. Paired-end reads must be interleaved in the same file.
    > Note that the current genotyper, `PanGenie` is optimized for short-reads. Long-read support will be available soon!
@@ -126,7 +156,8 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 - `--genotype`: true or false. Use this if you would like to discover polymorphisms in assemblies but you would like to skip genotyping polymorphisms from reads.
 - `--tsd_win`: the length (in bp) of flanking region (5' and 3' ends) for Target Site Duplication (TSD) search. Default 30bp. By default, 30bp upstream and downstream each variant will be added to search for TSD. (see also [TSD section](#tsd-module))
 - `--cores`: global CPU parameter. Will apply the chosen integer to all multi-threaded processes. See [here](#changing-the-number-of-cpus-and-memory-required-by-each-step) for more customization.
-- `--vcf`: a [*fully phased*](https://github.com/eblerjana/pangenie#input-variants) VCF file. Use this if you already have a *phased* VCF file that was produced by GraffiTE, or from a difference source and would like to use the graph genotyping step. Note that TE annotation won't be performed on this file (we will work on adding this feature), and only genotyping with `Pangenie` will be performed.
+- `--vcf`: a **sequence resolved** VCF containing both REF and ALT variants sequences. This option will bypasse the SV discovery and will proceed to annotate and filter the input VCF for repeats and TSD, as well as genoyping (unless `--genotype false` is set)
+- `--graffite_vcf` a [*fully phased*](https://github.com/eblerjana/pangenie#input-variants) VCF file. Use this if you already have a *phased* VCF file that was produced by GraffiTE (see output: `3_TSD_Search/pangemome.vcf`), or from a difference source and would like to use the graph genotyping step. Note that TE annotation won't be performed on this file (we will work on adding this feature), and only genotyping with `Pangenie` will be performed.
 - `--mammal`: Apply mammal-specific annotation filters (see [Mammal filter section](#mammalian-filters---mammal) for more details). 
    - (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. 
    - (ii) will search for VNTR polymorphism between orthologous SVA elements.
@@ -185,7 +216,7 @@ OUTPUT_FOLDER/
 │       ├── onecode.log
 │       └── OneCode_LTR.dic
 ├── 3_TSD_search
-│   ├── pangenie.vcf
+│   ├── pangenome.vcf
 │   ├── TSD_full_log.txt
 │   └── TSD_summary.txt
 └── 4_Genotyping
@@ -206,7 +237,7 @@ OUTPUT_FOLDER/
       - `OneCode_LTR.dic`: `OneCodeToFindThemAll` LTR dictionary automatically produced from `--TE_library` see [here](https://mobilednajournal.biomedcentral.com/articles/10.1186/1759-8753-5-13) fore more details.
       - `onecode.log`: log file for `OneCodeToFindThemAll` process.
 - `3_TSD_Search/` (see [TSD section](#tsd-module))
-   - `pangenie.vcf` final VCF containing all retained repeat variants and annotations (with TSD if passing the TSD filters). This file is used later by `Pangenie` to create the genome-graph onto which reads are mapped for genotyping. (example [here](#output-vcfs))
+   - `pangenome.vcf` final VCF containing all retained repeat variants and annotations (with TSD if passing the TSD filters). This file is used later by `Pangenie`,`Giraffe` or `graphAligner` to create the genome-graph onto which reads are mapped for genotyping. (example [here](#output-vcfs)). Can be re-used for genotyping only with `--graffite_vcf pangenome.vcf`
    - `TSD_summary.txt`: tab delimited output of the TSD search module. 1 line per variant. See [TSD section](#tsd-module) for more information. "PASS" entries are reported in the `pangenie.vcf` and final (with genotypes) VCF.
    - `TSD_full_log.txt:`detailed (verbose rich) report of TSD search for each SV (see [TSD section](#tsd-module)).
 - `4_Genotyping/`
@@ -281,7 +312,7 @@ VCF column:
    - `GL`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Comma-separated log10-scaled genotype likelihoods for absent, heterozygous, homozygous.
    - `KC`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Local kmer coverage.
 
-When using Giraffe and GraphAligner with `vg call`, the following fields are also present:
+When using `Giraffe` and `GraphAligner` with `vg call`, the following fields are also present:
 - `AT`: Allele traversal as path in graph
 - `DP`: Total Depth
 - `AD`: Allelic depths for the ref and alt alleles in the order listed">
@@ -470,5 +501,7 @@ The requirements are numbers or strings accepted by `nextflow`. For example, 40 
 - The "stitching" method to identify unique TE insertion from fragmented hits has some degree of limitation. This can be flagrant for full-length LTR insertion, which can show `n_hits` > 1, and thus wont be recognized as a "single" element insertion, nor run through the TSD module. For now, names between LTR and I(nternal) sequences much match in the header name (e.g. TIRANT_LTR and TIRANT_I) to be automatically recognized as a single hit. We will make use of the RepeatMasker hit ID in order to improve this stitching procedure. In the meantime, we recommend to check/rename your LTR of interest in the `--TE_library` file. 
 
 - As mentioned above, in order to improve runtime, the TSD module is only run for SVs with a single TE hit. We will improve this feature in order to be able to run the module on all SVs.
+
+- The TSD module will currently spawn one process per TSD, which can create a lot of folders and files. Make sure to delete the `work/` folder regularly to stay below quotas!
 
 - There are currently several bottlenecks in the pipeline: `samtools sort` can be tricky to parallelize properly (piped from `minimap2` alignments, which are often fast) and the performance will depends on the genomes size, complexity and the parameter used. `RepeatMasker` can be slow with a large number of SVs and a large library, hang-on! If you find satisfactory combinations of parameters for your model, please share them in the issues section! Thanks!
