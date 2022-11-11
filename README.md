@@ -34,41 +34,7 @@
 
 ### Workflow
 
-```mermaid
-graph TD;
-I1[Reference Genome \n --reference]:::data-->S1
-I2[Alternative assemblies \n --assemblies]:::data-->S1
-I2bis[known SVs VCF \n --vcf]:::data2-.bypasses upstream \n processes...->S4
-subgraph SV detect
-S1[minimap2]:::script
-S1--genome-to-genome alignments-->S2[svim-asm]:::script
-end
-S2--per sample SV calls-->S3
-I5[Repeat library \n --TE_library]:::data----->S4
-subgraph Repeats Annotation
-S3[SURVIVOR]:::script
-S3--SV merging-->S4[RepeatMasker]:::script
-S4--filter for TEs-->S5[TSD search]:::script
-S5--annotate variants-->V1[Candidates VCF]:::VCF
-end
-V1-->Genotyping
-I7[GraffiTE VCF \n --graffite_vcf]:::data2-.bypasses upstream \n processes.....->V1
-subgraph Genotyping
-S6choice[--graph_method]:::data2
-S6choice--"[default]"-->S6.1
-S6choice-.giraffe.->S6.2
-S6choice-.graphaligner.->S6.3
-S6.1[Pangenie \n short-reads]:::script
-S6.2[Giraffe \n short/long]:::script
-S6.3[graphAligner \n long-reads]:::script
-end
-Genotyping-->I4[Multi-samples genotypes VCF]:::VCF
-I3[Read sets \n --reads]:::data-------->Genotyping
-classDef data fill:#09E,stroke:#333,color:#FFF;
-classDef data2 fill:#08F9,stroke:#333,color:#FFF,stroke-dasharray:5;
-classDef script fill:#5C7,stroke:#333,stroke-width:1px,color:#FFF;
-classDef VCF fill:#EA0,stroke:#333,stroke-width:1px,color:#FFF
-```
+![](https://i.imgur.com/3SUQ6kF.png)
 
 ## Installation
 
