@@ -102,7 +102,7 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 
 - `--reference`: a reference genome of the species being studied. All assemblies are compared to this reference genome.
 
-- `--graph_method`: can be `pangenie` or `giraffe`, select which graph method will be used to genotyped TEs. Default is `pangenie`.
+- `--graph_method`: can be `pangenie`, `giraffe` or `graphaligner`, select which graph method will be used to genotyped TEs. Default is `pangenie`. Note that both `giraffe` and `graphaligner` will spawn a process called `graphAlignReads`, while `pangenie` will spawn a process called `pangenie`.
 
 - `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. **The header is required**. Only one FASTQ per sample, and sample names must be unique. Paired-end reads must be interleaved in the same file.
    > Note that the current genotyper, `PanGenie` is optimized for short-reads. Long-read support will be available soon!
