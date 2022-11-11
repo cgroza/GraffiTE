@@ -229,14 +229,7 @@ if(params.genotype) {
 
             script:
             """
-            if file -L ${sample_reads} | grep gzip;
-            then
-            gunzip -c ${sample_reads} > reads.fq
-            else
-                ln ${sample_reads} reads.fq
-            fi;
-            PanGenie -t ${pangenie_threads} -j ${pangenie_threads} -s ${sample_name} -i reads.fq -r ${ref} -v ${vcf} -o ${sample_name}
-            rm -f reads.fq
+            PanGenie -t ${pangenie_threads} -j ${pangenie_threads} -s ${sample_name} -i <(zcat -f ${sample_reads}) -r ${ref} -v ${vcf} -o ${sample_name}
             bgzip ${sample_name}_genotyping.vcf
             tabix -p vcf ${sample_name}_genotyping.vcf.gz
             """
