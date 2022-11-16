@@ -153,6 +153,8 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 - `--make_graph_memory`: RAM limit for creating the graph with `vg autoindex` (Giraffe) or `vg construct` (GraphAligner). Default is unset.
 - `--graph_align_memory`: RAM limit for aligning reads to the graph with `vg giraffe` or `GraphAligner`. Default is unset.
 - `--vg_call_memory`: RAM limit for calling SVs with `vg call` on graph alignments. Default is unset.
+- `--min_mapq`: Minimum mapping quality to consider when counting read depth on nodes. Default is 0.
+- `--min_support`: Minimum required read depth on `allele,bubble` to consider for genotyping. The first number is the minimum read depth on allele, and the second is the minimum depth on the entire bubble/locus. Default is `2,4`.
 
 #### `Nextflow` parameters
 

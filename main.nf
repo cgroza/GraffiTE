@@ -21,7 +21,8 @@ params.pangenie_memory = null
 params.make_graph_memory = null
 params.graph_align_memory = null
 params.vg_call_memory = null
-
+params.min_mapq = 0
+params.min_support = "2,4"
 
 // SAY HELLO
 
@@ -294,7 +295,7 @@ if(params.genotype) {
 
             script:
             pack =  """
-            vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack
+            vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
             """
 
             switch(params.graph_method) {
@@ -324,7 +325,7 @@ if(params.genotype) {
 
             script:
             """
-            vg call -a -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} > ${sample_name}.vcf
+            vg call -a -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} > ${sample_name}.vcf
             bgzip ${sample_name}.vcf
             tabix ${sample_name}.vcf.gz
             """
