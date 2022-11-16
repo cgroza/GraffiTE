@@ -1,6 +1,7 @@
+params.graffite_vcf = false
 params.vcf        = false
 params.genotype   = true
-params.graph_method  = "pangenie" //or giraffe
+params.graph_method  = "pangenie" // or giraffe or graphaligner
 params.reads      = "reads.csv"
 params.assemblies = "assemblies.csv"
 params.reference  = "reference.fa"
@@ -12,7 +13,7 @@ params.mammal     = false
 params.mini_K     = "500M"
 params.stSort_m   = "4G"
 params.stSort_t   = 4
-params.version    = "0.1 beta (11-02-2022)"
+params.version    = "0.2 beta (11-11-2022)"
 
 // ideally, we should have defaults relative to genome size
 params.svim_asm_memory = null
@@ -63,7 +64,7 @@ if(params.cores) {
 
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
 
-if(!params.vcf) {
+if(!params.graffite_vcf && !params.vcf) {
     Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
         [row.sample, file(row.path, checkIfExists:true)]}.set{asm_ch}
   asm_ch.combine(ref_asm_ch).set{svim_in_ch}
@@ -90,7 +91,56 @@ if(!params.vcf) {
     """
   }
 
-  process repeatmasker {
+}
+
+if(!params.graffite_vcf) {
+
+  if(params.vcf){
+    Channel.fromPath(params.vcf).set{raw_vcf_ch}
+    Channel.fromPath(params.TE_library).set{TE_library_ch}
+
+  process repeatmasker_fromVCF {
+    cpus repeatmasker_threads
+    memory params.repeatmasker_memory
+    publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
+
+    input:
+    file("genotypes.vcf") from raw_vcf_ch
+    file(TE_library) from TE_library_ch
+    file(ref_fasta) from ref_repeatmasker_ch
+
+    output:
+    file("genotypes_repmasked_filtered.vcf") into tsd_ch, tsd_search_ch, tsd_gather_ch
+    path("repeatmasker_dir/") into tsd_RM_ch, tsd_search_RM_ch // my hope is to export the output within their folder
+
+    script:
+    if(params.mammal)
+    """
+    repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library} MAM
+    bcftools view -G genotypes_repmasked.vcf.gz | \
+    awk -v FS='\t' -v OFS='\t' \
+    '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
+    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | \
+    bcftools view -i 'INFO/total_match_span > 0.80' -o genotypes_repmasked_temp.vcf
+    fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
+    """
+    else
+    """
+    ls *.vcf > vcfs.txt
+    SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100 genotypes.vcf
+    repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library}
+    bcftools view -G genotypes_repmasked.vcf.gz | \
+    awk -v FS='\t' -v OFS='\t' \
+    '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
+    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | \
+    bcftools view -i 'INFO/total_match_span > 0.80' -o genotypes_repmasked_temp.vcf
+    fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
+    """
+    }
+
+  } else {
+
+    process repeatmasker {
     cpus repeatmasker_threads
     memory params.repeatmasker_memory
     publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
@@ -129,6 +179,8 @@ if(!params.vcf) {
     bcftools view -i 'INFO/total_match_span > 0.80' -o genotypes_repmasked_temp.vcf
     fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
     """
+    }
+
   }
 
   process tsd_prep {
@@ -204,13 +256,13 @@ if(!params.vcf) {
     TSD_FILE=TSD_annotation
     bgzip \${TSD_FILE}
     tabix -s1 -b2 -e2 \${TSD_FILE}.gz
-    bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,ID,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenome.vcf
+    bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,~ID,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenome.vcf
     """
   }
 
 } else {
   // if a vcf is provided as parameter, skip discovery and go directly to genotyping
-    Channel.fromPath(params.vcf).into{vcf_ch; vcf_merge_ch}
+    Channel.fromPath(params.graffite_vcf).into{vcf_ch; vcf_merge_ch}
 }
 
 if(params.genotype) {
@@ -332,28 +384,28 @@ if(params.genotype) {
         }
     }
 
-    process mergeVcfs {
-        publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
+process mergeVcfs {
+  publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
 
-        input:
-        file vcfFiles from indexed_vcfs.collect()
-        path pangenome_vcf from vcf_merge_ch
+  input:
+  file vcfFiles from indexed_vcfs.collect()
+  path pangenome_vcf from vcf_merge_ch
 
-        output:
-        file "GraffiTE.merged.genotypes.vcf" into typeref_outputs
+  output:
+  file "GraffiTE.merged.genotypes.vcf" into typeref_outputs
 
-        script:
-        """
-        ls *vcf.gz > vcf.list
-        bcftools merge -l vcf.list > GraffiTE.merged.genotypes.vcf
-        bgzip GraffiTE.merged.genotypes.vcf
-        tabix -p vcf GraffiTE.merged.genotypes.vcf.gz
-        grep '#' ${pangenome_vcf} > P_header
-        grep -v '#' ${pangenome_vcf} | sort -k1,1 -k2,2n > P_sorted_body
-        cat P_header P_sorted_body > pangenome.sorted.vcf
-        bgzip pangenome.sorted.vcf
-        tabix -p vcf pangenome.sorted.vcf.gz
-        bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
-        """
-    }
+  script:
+  """
+  ls *vcf.gz > vcf.list
+  bcftools merge -l vcf.list > GraffiTE.merged.genotypes.vcf
+  bgzip GraffiTE.merged.genotypes.vcf
+  tabix -p vcf GraffiTE.merged.genotypes.vcf.gz
+  grep '#' ${pangenome_vcf} > P_header
+  grep -v '#' ${pangenome_vcf} | sort -k1,1 -k2,2n > P_sorted_body
+  cat P_header P_sorted_body > pangenome.sorted.vcf
+  bgzip pangenome.sorted.vcf
+  tabix -p vcf pangenome.sorted.vcf.gz
+  bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
+  """
+  }
 }

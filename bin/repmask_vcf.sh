@@ -132,7 +132,7 @@ then
     echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
     bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
-    -c CHROM,POS,ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span,INFO/mam_filter_1,INFO/mam_filter_2 $VCF | \
+    -c CHROM,POS,~ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span,INFO/mam_filter_1,INFO/mam_filter_2 $VCF | \
     bcftools view -Oz -o ${OUT_VCF}
 
 else
@@ -154,6 +154,6 @@ else
     echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
     bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
-    -c CHROM,POS,ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span $VCF | \
+    -c CHROM,POS,~ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span $VCF | \
     bcftools view -Oz -o ${OUT_VCF}
 fi
