@@ -102,10 +102,10 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 
 - `--reference`: a reference genome of the species being studied. All assemblies are compared to this reference genome.
 
-- `--graph_method`: can be `pangenie`, `giraffe` or `graphaligner`, select which graph method will be used to genotyped TEs. Default is `pangenie`. Note that both `giraffe` and `graphaligner` will spawn a process called `graphAlignReads`, while `pangenie` will spawn a process called `pangenie`.
+- `--graph_method`: can be `pangenie`, `giraffe` or `graphaligner`, select which graph method will be used to genotyped TEs. Default is `pangenie` and it is optimized for short-reads. `giraffe` can handle both short and long reads, and `graphaligner` is optimized for long reads. 
+>Note that both `giraffe` and `graphaligner` will spawn a process called `graphAlignReads`, while `pangenie` will spawn a process called `pangenie`.
 
-- `--reads`: a CSV file that lists the read sets (FASTQs) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. **The header is required**. Only one FASTQ per sample, and sample names must be unique. Paired-end reads must be interleaved in the same file.
-   > Note that the current genotyper, `PanGenie` is optimized for short-reads. Long-read support will be available soon!
+- `--reads`: a CSV file that lists the read sets (FASTQ/FASTQ.GZ) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. **The header is required**. Only one FASTQ/FASTQ.GZ per sample, and sample names must be unique. Paired-end reads must be interleaved in the same file (`Pangenie`).
 
    Example `reads.csv`:
    ```
@@ -122,8 +122,8 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 - `--genotype`: true or false. Use this if you would like to discover polymorphisms in assemblies but you would like to skip genotyping polymorphisms from reads.
 - `--tsd_win`: the length (in bp) of flanking region (5' and 3' ends) for Target Site Duplication (TSD) search. Default 30bp. By default, 30bp upstream and downstream each variant will be added to search for TSD. (see also [TSD section](#tsd-module))
 - `--cores`: global CPU parameter. Will apply the chosen integer to all multi-threaded processes. See [here](#changing-the-number-of-cpus-and-memory-required-by-each-step) for more customization.
-- `--vcf`: a **sequence resolved** VCF containing both REF and ALT variants sequences. This option will bypasse the SV discovery and will proceed to annotate and filter the input VCF for repeats and TSD, as well as genoyping (unless `--genotype false` is set)
-- `--graffite_vcf` a [*fully phased*](https://github.com/eblerjana/pangenie#input-variants) VCF file. Use this if you already have a *phased* VCF file that was produced by GraffiTE (see output: `3_TSD_Search/pangenome.vcf`), or from a difference source and would like to use the graph genotyping step. Note that TE annotation won't be performed on this file (we will work on adding this feature), and only genotyping with `Pangenie` will be performed.
+- `--vcf`: a *sequence resolved* VCF containing both REF and ALT variants sequences. This option will bypasse the SV discovery and will proceed to annotate and filter the input VCF for repeats and TSD, as well as genoyping (unless `--genotype false` is set)
+- `--graffite_vcf`: Use this if you already have a VCF file that was produced by GraffiTE (see output: `3_TSD_Search/pangenome.vcf`), or from a difference source and would like to use the graph genotyping step. The file must be a [fully-phased](https://github.com/eblerjana/pangenie#input-variants) VCF. Note that TE annotation won't be performed on this file (see `--vcf` instead), and only genotyping will be performed.
 - `--mammal`: Apply mammal-specific annotation filters (see [Mammal filter section](#mammalian-filters---mammal) for more details). 
    - (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. 
    - (ii) will search for VNTR polymorphism between orthologous SVA elements.
