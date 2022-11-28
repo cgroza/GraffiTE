@@ -1,7 +1,7 @@
 params.graffite_vcf = false
 params.vcf        = false
 params.RM_vcf     = false // mainly for debug. Requires --RM_dir
-params.RM_dir     = false // mainly for debug. Requires --RM_vcf
+//params.RM_dir     = false // mainly for debug. Requires --RM_vcf
 params.genotype   = true
 params.graph_method  = "pangenie" // or giraffe or graphaligner
 params.reads      = "reads.csv"
@@ -142,14 +142,14 @@ if(!params.graffite_vcf && !params.RM_vcf) {
 
   } else if(!params.RM_vcf){
 
-    process test {
+    // process test {
 
-    echo true
+    // echo true
 
-    """
-    echo "we are at the wrong place"
-    """
-    }
+    // """
+    // echo "we are at the wrong place"
+    // """
+    // }
 
     process repeatmasker {
     cpus repeatmasker_threads
@@ -197,18 +197,18 @@ if(!params.graffite_vcf && !params.RM_vcf) {
   // if --RM_vcf is given, starts here and set the input channel
   if(params.RM_vcf){
     Channel.fromPath(params.RM_vcf).into{tsd_ch; tsd_search_ch; tsd_gather_ch}
-    Channel.fromPath(params.RM_dir).into{tsd_RM_ch; tsd_search_RM_ch}
+    Channel.fromPath('repeatmasker_dir/*').into{tsd_RM_ch; tsd_search_RM_ch}
     //Channel.fromPath(params.reference).into{ref_tsd_ch; ref_tsd_search_ch}
   }
 
-  process test {
+//   process test2 {
 
-    echo true
+//     echo true
 
-    """
-    echo "we are at the right place"
-    """
-}
+//     """
+//     echo "we are at the right place"
+//     """
+// }
 
   process tsd_prep {
     // cpus params.tsd_search_threads
