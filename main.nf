@@ -140,7 +140,7 @@ if(!params.graffite_vcf && !params.RM_vcf) {
     """
     }
 
-  } else {
+  } else if(!params.RM_vcf){
 
     process repeatmasker {
     cpus repeatmasker_threads
@@ -189,7 +189,7 @@ if(!params.graffite_vcf && !params.RM_vcf) {
   if(params.RM_vcf){
     Channel.fromPath(params.RM_vcf).into{tsd_ch; tsd_search_ch; tsd_gather_ch}
     Channel.fromPath(params.RM_dir).into{tsd_RM_ch; tsd_search_RM_ch}
-    Channel.fromPath(params.reference).into{ref_tsd_ch; ref_tsd_search_ch}
+    //Channel.fromPath(params.reference).into{ref_tsd_ch; ref_tsd_search_ch}
   }
 
   process tsd_prep {
