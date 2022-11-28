@@ -142,6 +142,15 @@ if(!params.graffite_vcf && !params.RM_vcf) {
 
   } else if(!params.RM_vcf){
 
+    process test {
+
+    echo true
+
+    """
+    echo "we are at the wrong place"
+    """
+    }
+
     process repeatmasker {
     cpus repeatmasker_threads
     memory params.repeatmasker_memory
@@ -191,6 +200,15 @@ if(!params.graffite_vcf && !params.RM_vcf) {
     Channel.fromPath(params.RM_dir).into{tsd_RM_ch; tsd_search_RM_ch}
     //Channel.fromPath(params.reference).into{ref_tsd_ch; ref_tsd_search_ch}
   }
+
+  process test {
+
+    echo true
+
+    """
+    echo "we are at the right place"
+    """
+}
 
   process tsd_prep {
     // cpus params.tsd_search_threads
