@@ -189,6 +189,7 @@ if(!params.graffite_vcf && !params.RM_vcf) {
   if(params.RM_vcf){
     Channel.fromPath(params.RM_vcf).set{tsd_ch}
     Channel.fromPath(params.RM_dir).set{tsd_RM_ch}
+    Channel.fromPath(params.reference).set{ref_tsd_ch}
   }
   process tsd_prep {
     // cpus params.tsd_search_threads
