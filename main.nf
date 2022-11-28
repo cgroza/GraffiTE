@@ -1,6 +1,7 @@
 params.graffite_vcf = false
 params.vcf        = false
-params.RM_vcf     = false
+params.RM_vcf     = false // mainly for debug. Requires --RM_dir
+params.RM_dir     = false // mainly for debug. Requires --RM_vcf
 params.genotype   = true
 params.graph_method  = "pangenie" // or giraffe or graphaligner
 params.reads      = "reads.csv"
@@ -187,6 +188,7 @@ if(!params.graffite_vcf && !params.RM_vcf) {
   // if --RM_vcf is given, starts here and set the input channel
   if(params.RM_vcf){
     Channel.fromPath(params.RM_vcf).set{tsd_ch}
+    Channel.fromPath(params.RM_dir).set{tsd_RM_ch}
   }
   process tsd_prep {
     // cpus params.tsd_search_threads
