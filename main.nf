@@ -95,7 +95,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
 
 }
 
-if(!params.graffite_vcf && !params.RM_vcf) {
+if(!params.graffite_vcf) {
 
   if(params.vcf){
     Channel.fromPath(params.vcf).set{raw_vcf_ch}
