@@ -197,7 +197,7 @@ if(!params.graffite_vcf) {
   // if --RM_vcf is given, starts here and set the input channel
   if(params.RM_vcf){
     Channel.fromPath(params.RM_vcf).into{tsd_ch; tsd_search_ch; tsd_gather_ch}
-    Channel.fromPath('repeatmasker_dir/*').into{tsd_RM_ch; tsd_search_RM_ch}
+    Channel.fromPath(params.RM_dir).into{tsd_RM_ch; tsd_search_RM_ch}
     //Channel.fromPath(params.reference).into{ref_tsd_ch; ref_tsd_search_ch}
   }
 
