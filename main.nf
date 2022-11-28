@@ -1,5 +1,6 @@
 params.graffite_vcf = false
 params.vcf        = false
+params.RM_vcf     = false
 params.genotype   = true
 params.graph_method  = "pangenie" // or giraffe or graphaligner
 params.reads      = "reads.csv"
@@ -64,7 +65,7 @@ if(params.cores) {
 
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
 
-if(!params.graffite_vcf && !params.vcf) {
+if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
         [row.sample, file(row.path, checkIfExists:true)]}.set{asm_ch}
   asm_ch.combine(ref_asm_ch).set{svim_in_ch}
@@ -93,7 +94,7 @@ if(!params.graffite_vcf && !params.vcf) {
 
 }
 
-if(!params.graffite_vcf) {
+if(!params.graffite_vcf && !params.RM_vcf) {
 
   if(params.vcf){
     Channel.fromPath(params.vcf).set{raw_vcf_ch}
@@ -183,6 +184,10 @@ if(!params.graffite_vcf) {
 
   }
 
+  // if --RM_vcf is given, starts here and set the input channel
+  if(params.RM_vcf){
+    Channel.fromPath(params.RM_vcf).set{tsd_ch}
+  }
   process tsd_prep {
     // cpus params.tsd_search_threads
     // memory params.tsd_search_memory
