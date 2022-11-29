@@ -202,7 +202,8 @@ if(!params.graffite_vcf) {
     file(ref_fasta) from ref_tsd_ch
 
     output:
-    file("indels.txt") into tsd_search_input, tsd_count_input
+    file("indels.txt") into tsd_search_input
+    val "indel_len" into tsd_count_input
     file("SV_sequences_L_R_trimmed_WIN.fa") into tsd_search_SV
     file("flanking_sequences.fasta") into tsd_search_flanking
 
@@ -210,11 +211,12 @@ if(!params.graffite_vcf) {
     """
     cp repeatmasker_dir/repeatmasker_dir/* .
     prepTSD.sh ${ref_fasta} ${params.tsd_win}
+    wc -l indels.txt > indel_len
     """
   }
 
   // make TSD batch size according to # of TSDs and available cpus
-  tsd_len = tsd_count_input.countLines().map { it }.toInteger()
+  tsd_len = tsd_count_input.toInteger()
   println tsd_len
   //println ${nproc}
   if(params.cpus){
