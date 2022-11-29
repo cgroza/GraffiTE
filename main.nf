@@ -217,7 +217,7 @@ if(!params.graffite_vcf) {
   tsd_len = tsd_count_input.countLines()
   println tsd_len
   println \${nproc}
-  batch.size = tsd_len/\${nproc}
+  batch.size = tsd_len/${nproc}
   bs = batch.size.round()
 
   // this second process actually search for TSDs
