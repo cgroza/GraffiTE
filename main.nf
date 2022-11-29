@@ -218,9 +218,9 @@ if(!params.graffite_vcf) {
   println tsd_len
   //println ${nproc}
   if(params.cpus){
-  batch.size = tsd_len/params.cpus
-  } else { batch.size = tsd_len}
-  bs = batch.size.round()
+  batch_size = tsd_len/params.cpus
+  } else { batch_size = tsd_len}
+  bs = batch_size.round()
 
   // this second process actually search for TSDs
   process tsd_search {
