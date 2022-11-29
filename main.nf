@@ -216,7 +216,7 @@ if(!params.graffite_vcf) {
   }
 
   // make TSD batch size according to # of TSDs and available cpus
-  tsd_len = tsd_count_input.readLines().size()
+  tsd_len = tsd_count_input.file().countLines()
   println tsd_len
   //println ${nproc}
   if(params.cpus){
