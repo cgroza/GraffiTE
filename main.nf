@@ -230,10 +230,7 @@ if(!params.graffite_vcf) {
     script:
     """
     cp repeatmasker_dir/repeatmasker_dir/* .
-    findTSD.sh ${indels}
-    #name="\$(head -n 1 <(echo ${indels}))"
-    #mv TSD_summary.txt \${name}.TSD_summary.txt
-    #mv TSD_full_log.txt \${name}.TSD_full_log.txt
+    TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta ${indels}
     """
   }
   // this process combine the TSD search into single output files
