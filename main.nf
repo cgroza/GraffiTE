@@ -1,31 +1,31 @@
-params.graffite_vcf = false
-params.vcf        = false
-params.RM_vcf     = false // mainly for debug. Requires --RM_dir
-//params.RM_dir     = false // mainly for debug. Requires --RM_vcf
-params.genotype   = true
+params.graffite_vcf  = false
+params.vcf           = false
+params.RM_vcf        = false // mainly for debug. Requires --RM_dir
+params.RM_dir        = false // mainly for debug. Requires --RM_vcf
+params.genotype      = true
 params.graph_method  = "pangenie" // or giraffe or graphaligner
-params.reads      = "reads.csv"
-params.assemblies = "assemblies.csv"
-params.reference  = "reference.fa"
-params.TE_library = "TE_library.fa"
-params.out        = "out"
-params.tsd_win    = 30 // add default value for TSD window search
-params.cores      = false // set to an integer
-params.mammal     = false
-params.mini_K     = "500M"
-params.stSort_m   = "4G"
-params.stSort_t   = 4
-params.version    = "0.2 beta (11-11-2022)"
+params.reads         = "reads.csv"
+params.assemblies    = "assemblies.csv"
+params.reference     = "reference.fa"
+params.TE_library    = "TE_library.fa"
+params.out           = "out"
+params.tsd_win       = 30 // add default value for TSD window search
+params.cores         = false // set to an integer
+params.mammal        = false
+params.mini_K        = "500M"
+params.stSort_m      = "4G"
+params.stSort_t      = 4
+params.version       = "0.2 beta (11-11-2022)"
 
 // ideally, we should have defaults relative to genome size
-params.svim_asm_memory = null
+params.svim_asm_memory     = null
 params.repeatmasker_memory = null
-params.pangenie_memory = null
-params.make_graph_memory = null
-params.graph_align_memory = null
-params.vg_call_memory = null
-params.min_mapq = 0
-params.min_support = "2,4"
+params.pangenie_memory     = null
+params.make_graph_memory   = null
+params.graph_align_memory  = null
+params.vg_call_memory      = null
+params.min_mapq            = 0
+params.min_support         = "2,4"
 
 // SAY HELLO
 
@@ -56,22 +56,25 @@ if(params.cores) {
     repeatmasker_threads = params.cores
     svim_asm_threads     = params.cores
     pangenie_threads     = params.cores
-    graph_threads      = params.cores
+    graph_threads        = params.cores
 } else {
     repeatmasker_threads = params.repeatmasker_threads
     svim_asm_threads     = params.svim_asm_threads
     pangenie_threads     = params.pangenie_threads
-    graph_threads      = params.graph_threads
+    graph_threads        = params.graph_threads
 }
 
+// initiate channels that will provide the reference genome to processes
 Channel.fromPath(params.reference).into{ref_geno_ch; ref_asm_ch; ref_repeatmasker_ch; ref_tsd_ch; ref_tsd_search_ch}
 
+// if the user provide alternative assemblies, align and call SV
+// initiate channels 
 if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
         [row.sample, file(row.path, checkIfExists:true)]}.set{asm_ch}
   asm_ch.combine(ref_asm_ch).set{svim_in_ch}
   Channel.fromPath(params.TE_library).set{TE_library_ch}
-
+// This process perform alternative assemblies alignments and SV calling for each file in --assemblies
   process svim_asm {
     cpus svim_asm_threads
     memory params.svim_asm_memory
@@ -94,9 +97,9 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
   }
 
 }
-
+// if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
 if(!params.graffite_vcf) {
-
+  // in case the RepeatMasker input is an already available sequence resolved VCF  
   if(params.vcf){
     Channel.fromPath(params.vcf).set{raw_vcf_ch}
     Channel.fromPath(params.TE_library).set{TE_library_ch}
@@ -113,7 +116,7 @@ if(!params.graffite_vcf) {
 
     output:
     file("genotypes_repmasked_filtered.vcf") into tsd_ch, tsd_search_ch, tsd_gather_ch
-    path("repeatmasker_dir/") into tsd_RM_ch, tsd_search_RM_ch // my hope is to export the output within their folder
+    path("repeatmasker_dir/") into tsd_RM_ch, tsd_search_RM_ch
 
     script:
     if(params.mammal)
@@ -139,17 +142,8 @@ if(!params.graffite_vcf) {
     fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
     """
     }
-
+    // otherwise, merge individuals' VCFs from the svim_asm process and annotate with RepeatMasker
   } else if(!params.RM_vcf){
-
-    // process test {
-
-    // echo true
-
-    // """
-    // echo "we are at the wrong place"
-    // """
-    // }
 
     process repeatmasker {
     cpus repeatmasker_threads
@@ -163,7 +157,7 @@ if(!params.graffite_vcf) {
 
     output:
     file("genotypes_repmasked_filtered.vcf") into tsd_ch, tsd_search_ch, tsd_gather_ch
-    path("repeatmasker_dir/") into tsd_RM_ch, tsd_search_RM_ch // my hope is to export the output within their folder
+    path("repeatmasker_dir/") into tsd_RM_ch, tsd_search_RM_ch
 
     script:
     if(params.mammal)
@@ -198,34 +192,19 @@ if(!params.graffite_vcf) {
   if(params.RM_vcf){
     Channel.fromPath(params.RM_vcf).into{tsd_ch; tsd_search_ch; tsd_gather_ch}
     Channel.fromPath(params.RM_dir).into{tsd_RM_ch; tsd_search_RM_ch}
-    //Channel.fromPath(params.reference).into{ref_tsd_ch; ref_tsd_search_ch}
-  }
-
-//   process test2 {
-
-//     echo true
-
-//     """
-//     echo "we are at the right place"
-//     """
-// }
-
+    }
+  // this first TSD process stage the list of SV to scan
   process tsd_prep {
-    // cpus params.tsd_search_threads
-    // memory params.tsd_search_memory
-    // publishDir "${params.out}", mode: 'copy'
 
     input:
     file("genotypes_repmasked_filtered.vcf") from tsd_ch
-    path("repeatmasker_dir/*") from tsd_RM_ch // my hope is that this will pull the files from the repeatmasker_dir to the working directory
+    path("repeatmasker_dir/*") from tsd_RM_ch
     file(ref_fasta) from ref_tsd_ch
 
     output:
     file("indels.txt") into tsd_search_input
     file("SV_sequences_L_R_trimmed_WIN.fa") into tsd_search_SV
     file("flanking_sequences.fasta") into tsd_search_flanking
-    //file("pangenie.vcf") into vcf_ch
-    //path("TSD_*.txt") into tsd_out_ch
 
     script:
     """
@@ -233,15 +212,15 @@ if(!params.graffite_vcf) {
     prepTSD.sh ${ref_fasta} ${params.tsd_win}
     """
   }
-
+  // this second process actually search for TSDs
   process tsd_search {
 
     input:
-    val indels from tsd_search_input.splitText()
+    val indels from tsd_search_input.splitText( by: 2 )
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
     file("flanking_sequences.fasta") from tsd_search_flanking.toList()
-    path("repeatmasker_dir/*") from tsd_search_RM_ch.toList() // my hope is that this will pull the files from the repeatmasker_dir to the working directory
+    path("repeatmasker_dir/*") from tsd_search_RM_ch.toList()
     file(ref_fasta) from ref_tsd_search_ch.toList()
 
     output:
@@ -257,7 +236,7 @@ if(!params.graffite_vcf) {
     mv TSD_full_log.txt \${name}.TSD_full_log.txt
     """
   }
-
+  // this process combine the TSD search into single output files
   process tsd_report {
     publishDir "${params.out}/3_TSD_search", mode: 'copy'
 
