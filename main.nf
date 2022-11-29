@@ -217,7 +217,7 @@ if(!params.graffite_vcf) {
   tsd_len = tsd_count_input.countLines()
   println tsd_len
   //println ${nproc}
-  if(params.cpu){
+  if(params.cpus){
   batch.size = tsd_len/params.cpus
   } else { batch.size = tsd_len}
   bs = batch.size.round()
