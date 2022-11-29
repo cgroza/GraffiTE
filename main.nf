@@ -216,7 +216,7 @@ if(!params.graffite_vcf) {
   process tsd_search {
 
     input:
-    val indels from tsd_search_input.splitText( by: 2 )
+    file indels from tsd_search_input.splitText( by: 2 )
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
     file("flanking_sequences.fasta") from tsd_search_flanking.toList()
