@@ -5,11 +5,12 @@
 
 SVSEQ=$1 # SV_sequences_L_R_trimmed_WIN.fa
 FLANK=$2 # flanking_sequences.fasta
-indels=$3 # get the indel name directly from nextflow
+indels=$(cat $3)  
 VERBOSE=$4 # for debug only
+name=$(cat $3 | head -n 1)
 
 # clean the summary file if exists
-rm TSD_summary.txt 2> /dev/null
+rm $name.TSD_summary.txt 2> /dev/null
 
 # def main function
 function tsdfind {
@@ -127,10 +128,10 @@ Rshort=$(awk 'BEGIN {OFS = "\n"}; /^>/ {print(substr(sequence_id, 2)" "sequence_
 # check if no short sequence is empty, in which case call bypass alignment and return no TSD
 if (( $Lshort == 0 ))
 then
-	echo -e "$i" "$TE" "$strand" "$DIV" "NA\tNA\tNA\tNA\tNA\tNA\tNA\tpoly-T\tNA\tFAIL" | sed 's/\n//g;s/ /\t/g' | tee -a TSD_summary.txt
+	echo -e "$i" "$TE" "$strand" "$DIV" "NA\tNA\tNA\tNA\tNA\tNA\tNA\tpoly-T\tNA\tFAIL" | sed 's/\n//g;s/ /\t/g' | tee -a $name.TSD_summary.txt
 elif (( $Rshort == 0 ))
 	then
-		echo -e "$i" "$TE" "$strand" "$DIV" "NA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tpoly-A\tFAIL" | sed 's/\n//g;s/ /\t/g' | tee -a TSD_summary.txt
+		echo -e "$i" "$TE" "$strand" "$DIV" "NA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tpoly-A\tFAIL" | sed 's/\n//g;s/ /\t/g' | tee -a $name.TSD_summary.txt
 else
 	#make blast db for short L sequence
 	#makeblastdb -in L.short.fasta -out L.short.fasta -dbtype="nucl" &> /dev/null
@@ -228,10 +229,10 @@ else
 				RTSDextF=${RTSDext}
 			fi
 			echo -e "SVname\tTEname\tStrand\tDiv\tAlnLen\tMM\tGaps\t5P_TSD_end\t5P_offset\t3P_TSD_start\t3P_offset\t5P_TSD\t3P_TSD"
-			echo -e "$i" "$TE" "$strand" "$DIV" "$length" "$MM" "$gaps" "$(($Lend-$Llen-1))" "$offsetL" "$((Rstart+$offsetR))" "$offsetR" "$LTSDextF" "$RTSDextF" "PASS" | sed 's/\n//g;s/ /\t/g' | tee -a TSD_summary.txt
+			echo -e "$i" "$TE" "$strand" "$DIV" "$length" "$MM" "$gaps" "$(($Lend-$Llen-1))" "$offsetL" "$((Rstart+$offsetR))" "$offsetR" "$LTSDextF" "$RTSDextF" "PASS" | sed 's/\n//g;s/ /\t/g' | tee -a $name.TSD_summary.txt
 		else
 			echo -e "SVname\tTEname\tStrand\tDiv\tAlnLen\tMM\tGaps\t5P_TSD_end\t5P_offset\t3P_TSD_start\t3P_offset\t5P_TSD\t3P_TSD"
-			echo "$output" | tee -a TSD_summary.txt
+			echo "$output" | tee -a $name.TSD_summary.txt
 	fi # close loop for elongation
 fi # close loop that check if one end is poly-A or poly-T and skip
 # close loop and feed it with each selected (1 TE hit) SV name
@@ -241,7 +242,7 @@ done <<< "$indels"
 # exec and print output according to verbose option
 if [[ ${VERBOSE} == "V" ]]
 then
-	tsdfind | tee TSD_full_log.txt
+	tsdfind | tee $name.TSD_full_log.txt
 else
-	tsdfind > TSD_full_log.txt
+	tsdfind > $name.TSD_full_log.txt
 fi
