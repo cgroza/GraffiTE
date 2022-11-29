@@ -214,7 +214,7 @@ if(!params.graffite_vcf) {
   }
 
   // make TSD batch size according to # of TSDs and available cpus
-  tsd_len = tsd_count_input.countLines()
+  tsd_len = tsd_count_input.countLines().map { it }.toInteger()
   println tsd_len
   //println ${nproc}
   if(params.cpus){
@@ -226,7 +226,7 @@ if(!params.graffite_vcf) {
   process tsd_search {
 
     input:
-    file indels from tsd_search_input.splitText( by: ${bs} )
+    file indels from tsd_search_input.splitText( by: bs )
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
     file("flanking_sequences.fasta") from tsd_search_flanking.toList()
