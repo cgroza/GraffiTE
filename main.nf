@@ -202,7 +202,7 @@ if(!params.graffite_vcf) {
     file(ref_fasta) from ref_tsd_ch
 
     output:
-    file("indels.txt") into tsd_search_input
+    file("indels.txt") into tsd_search_input, tsd_count_input
     file("SV_sequences_L_R_trimmed_WIN.fa") into tsd_search_SV
     file("flanking_sequences.fasta") into tsd_search_flanking
 
@@ -212,11 +212,19 @@ if(!params.graffite_vcf) {
     prepTSD.sh ${ref_fasta} ${params.tsd_win}
     """
   }
+
+  // make TSD batch size according to # of TSDs and available cpus
+  tsd_len = tsd_count_input.countLines()
+  println tsd_len
+  println \${nproc}
+  batch.size = tsd_len/\${nproc}
+  bs = batch.size.round()
+
   // this second process actually search for TSDs
   process tsd_search {
 
     input:
-    file indels from tsd_search_input.splitText( by: 2 )
+    file indels from tsd_search_input.splitText( by: ${bs} )
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
     file("flanking_sequences.fasta") from tsd_search_flanking.toList()
