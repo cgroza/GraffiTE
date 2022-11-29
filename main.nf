@@ -1,21 +1,22 @@
-params.graffite_vcf  = false
-params.vcf           = false
-params.RM_vcf        = false // mainly for debug. Requires --RM_dir
-params.RM_dir        = false // mainly for debug. Requires --RM_vcf
-params.genotype      = true
-params.graph_method  = "pangenie" // or giraffe or graphaligner
-params.reads         = "reads.csv"
-params.assemblies    = "assemblies.csv"
-params.reference     = "reference.fa"
-params.TE_library    = "TE_library.fa"
-params.out           = "out"
-params.tsd_win       = 30 // add default value for TSD window search
-params.cores         = false // set to an integer
-params.mammal        = false
-params.mini_K        = "500M"
-params.stSort_m      = "4G"
-params.stSort_t      = 4
-params.version       = "0.2 beta (11-11-2022)"
+params.graffite_vcf   = false
+params.vcf            = false
+params.RM_vcf         = false // mainly for debug. Requires --RM_dir
+params.RM_dir         = false // mainly for debug. Requires --RM_vcf
+params.genotype       = true
+params.graph_method   = "pangenie" // or giraffe or graphaligner
+params.reads          = "reads.csv"
+params.assemblies     = "assemblies.csv"
+params.reference      = "reference.fa"
+params.TE_library     = "TE_library.fa"
+params.out            = "out"
+params.tsd_win        = 30 // add default value for TSD window search
+params.cores          = false // set to an integer
+params.mammal         = false
+params.mini_K         = "500M"
+params.stSort_m       = "4G"
+params.stSort_t       = 4
+params.version        = "0.2 beta (11-11-2022)"
+params.tsd_batch_size = 100
 
 // ideally, we should have defaults relative to genome size
 params.svim_asm_memory     = null
@@ -211,24 +212,24 @@ if(!params.graffite_vcf) {
     """
     cp repeatmasker_dir/repeatmasker_dir/* .
     prepTSD.sh ${ref_fasta} ${params.tsd_win}
-    wc -l indels.txt > indel_len
+    #wc -l indels.txt > indel_len
     """
   }
 
   // make TSD batch size according to # of TSDs and available cpus
-  tsd_len = tsd_count_input.file().countLines()
-  println tsd_len
+  //tsd_len = tsd_count_input.file().countLines()
+  //println tsd_len
   //println ${nproc}
-  if(params.cpus){
-  batch_size = tsd_len/params.cpus
-  } else { batch_size = tsd_len}
-  bs = batch_size.round()
+  //if(params.cpus){
+  //batch_size = tsd_len/params.cpus
+  //} else { batch_size = tsd_len}
+  //bs = batch_size.round()
 
   // this second process actually search for TSDs
   process tsd_search {
 
     input:
-    file indels from tsd_search_input.splitText( by: bs )
+    file indels from tsd_search_input.splitText( by: params.tsd_batch_size )
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
     file("SV_sequences_L_R_trimmed_WIN.fa") from tsd_search_SV.toList()
     file("flanking_sequences.fasta") from tsd_search_flanking.toList()
