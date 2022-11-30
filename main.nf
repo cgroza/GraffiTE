@@ -15,7 +15,7 @@ params.mammal         = false
 params.mini_K         = "500M"
 params.stSort_m       = "4G"
 params.stSort_t       = 4
-params.version        = "0.2 beta (11-11-2022)"
+params.version        = "0.2.1 beta (11-30-2022)"
 params.tsd_batch_size = 100
 
 // ideally, we should have defaults relative to genome size

@@ -21,12 +21,16 @@
 
 ### Changelog
 
+- **beta 0.2.1 (11-30-22)**:
+   - :new: feature: adds `--RM_vcf` and `--RM_dir` input options. Allows to start a run directly at the TSD search step by providing the VCF and `repeatmasker_dir` produced by the processes `repeatmasker` or `repeatmasker_fromVCF` (found in the output folder `2_Repeat_Filtering`). This is useful if a run crashed during any of the TSD search processes and the job is not recoverable by Nextflow. Providing `--RM_vcf` and `--RM_dir` will bypass SV calling with `minimap2/svim_asm` (`svim_asm` process) and `repeatmasker/repeatmasker_fromVCF` processes.
+   - :beetle: bug fix: TSD search is now performed by batches of 100 variants, which will reduce by a factor 100 the number of temporary working directories (which can cause storage to run over inodes' quota). If more than 100 variants are present, TSDs will be searched in parallel batches (up to the number of available CPUs).
+
 - **beta 0.2 (11-11-22)**:
-   - adds two new read aligners: [`giraffe`](https://github.com/vgteam/vg#mapping) (short read optimized, works also with long-reads) and [`graphAligner`](https://github.com/maickrau/GraphAligner) (long-read, error-prone compliant). 
+   - :new: feature:  adds two new read aligners: [`giraffe`](https://github.com/vgteam/vg#mapping) (short read optimized, works also with long-reads) and [`graphAligner`](https://github.com/maickrau/GraphAligner) (long-read, error-prone compliant). 
       - usage: `--graph_method [pangenie/giraffe/graphaligner]` default: `pangenie` (short accurate reads)
-   - adds `--vcf` input option: requires a sequence resolved (REF and ALT allele sequences in VCF). Will bypass genome alignments and proceed with repeat annotations, TSD search, and reads mapping (optional).
-   - adds `--graffite_vcf` input option: requires a VCF created by `GraffiTE` (in the outputs `3_TSD_search/pangemome.vcf`). Will skip all steps but read mapping.
-   - bug fix: remove the dependency to `biomartr`
+   - :new: feature:  adds `--vcf` input option: requires a sequence resolved (REF and ALT allele sequences in VCF). Will bypass genome alignments and proceed with repeat annotations, TSD search, and reads mapping (optional).
+   - :new: feature:  adds `--graffite_vcf` input option: requires a VCF created by `GraffiTE` (in the outputs `3_TSD_search/pangemome.vcf`). Will skip all steps but read mapping.
+   - :beetle: bug fix: remove the dependency to `biomartr`
 - **beta 0.1 (11-02-22)**: first release
 >It is required to update both the repository (`git pull`) and image to see changes
 
@@ -127,6 +131,7 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 - `--mammal`: Apply mammal-specific annotation filters (see [Mammal filter section](#mammalian-filters---mammal) for more details). 
    - (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. 
    - (ii) will search for VNTR polymorphism between orthologous SVA elements.
+- `--RM_vcf` and `--RM_dir`: use to restart a run at the TSD search step. Requires the output `--RM_vcf 2_Repeat_Filtering/genotypes_repmasked_filtered.vcf` and `--RM_dir 2_Repeat_Filtering/repeatmasker_dir`. Will bypass SV detection and repeat filtering (`repeatmasker`) steps (`--assemblies` is not needed).
 
 #### Process-specific parameters
 
