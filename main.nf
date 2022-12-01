@@ -328,16 +328,27 @@ if(params.genotype) {
             file "index" into graph_index_ch, vg_index_call_ch
 
             script:
-            """
-            export TMPDIR=$PWD
+            prep = """
             bcftools sort -Oz -o sorted.vcf.gz ${vcf}
             tabix sorted.vcf.gz
             mkdir index
-            vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v sorted.vcf.gz -r ${fasta}
-            vg snarls index/index.giraffe.gbz > index/index.giraffe.gbz.pb
-            vg convert -v index/index.giraffe.gbz > index/index.vg
-            vg snarls index/index.vg > index/index.vg.pb
             """
+            finish = """
+            vg snarls index/${graph} > index/index.pb
+            """
+            switch(params.graph_method) {
+                case "giraffe":
+                    prep + """
+                    vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v sorted.vcf.gz -r ${fasta}
+                    """ + finish
+                    break
+                case "graphaligner":
+                    prep + """
+                    export TMPDIR=$PWD
+                    vg construct -a  -r ${fasta} -v ${vcf} -m 1024 > index/index.vg
+                    """ + finish
+                    break
+            }
         }
 
         reads_ch.combine(graph_index_ch).set{reads_align_ch}
@@ -382,7 +393,7 @@ if(params.genotype) {
 
             script:
             """
-            vg call -a -m ${params.min_support} -r index/${graph}.pb -s ${sample_name} -k ${pack} index/${graph} > ${sample_name}.vcf
+            vg call -a -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} > ${sample_name}.vcf
             bgzip ${sample_name}.vcf
             tabix ${sample_name}.vcf.gz
             """
