@@ -132,8 +132,6 @@ if(!params.graffite_vcf) {
     """
     else
     """
-    ls *.vcf > vcfs.txt
-    SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100 genotypes.vcf
     repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library}
     bcftools view -G genotypes_repmasked.vcf.gz | \
     awk -v FS='\t' -v OFS='\t' \
