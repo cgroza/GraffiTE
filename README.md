@@ -1,10 +1,10 @@
 ![](https://i.imgur.com/jvprOAS.png)
 
-[![status](https://img.shields.io/badge/status:-v0.2_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]()
+[![status](https://img.shields.io/badge/status:-v0.2.1_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]()
 
 ## Description
 
-`GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies and genotypes the discovered polymorphisms in read sets using a pangenomic approach. `GraffiTE` is developed by **Cristian Groza** and **Clément Goubert** in [Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the [Genome Centre of McGill University](https://www.mcgillgenomecentre.ca/) (Montréal, Canada).
+`GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies and genotypes the discovered polymorphisms in read sets using a pangenomic approach. `GraffiTE` is developed by **Cristian Groza** and **Clément Goubert** in [Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the [Genome Centre of McGill University](https://www.mcgillgenomecentre.ca/) (Montréal, Canada). `GraffiTE` is based on the concept developped in [Groza et al., 2022](https://link.springer.com/protocol/10.1007/978-1-0716-2883-6_5).
 
 1. First, each alternative assembly is (pseudo)-aligned to the reference genome with [`minimap2`](https://github.com/lh3/minimap2) (set at \~5% divergence max). For each genome considered, structural variants (SVs) are called with [`svim-asm`](https://github.com/eldariont/svim-asm) and only insertions and deletions relative to the reference genome are kept.
 ![](https://i.imgur.com/Ouzl83K.png)
