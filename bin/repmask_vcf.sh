@@ -78,7 +78,7 @@ join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t
  sort -k1,1 -k2,2n > ${ANNOT_FILE}
 
 # if --mammal if set, search for L1 5' inversion (Twin Priming and similar) and if SVA hits are within VNTR only (non retrotransposition polymorphism)
-if [[ MAM == "MAM" ]]
+if [[ ${MAM} == "MAM" ]]
 then
     echo "Mammalian filters ON. Filtering..."
     # FILTER 1: L1 Twin Priming and similar
