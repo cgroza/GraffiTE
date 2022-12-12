@@ -157,6 +157,7 @@ if(!params.graffite_vcf) {
     output:
     file("genotypes_repmasked_filtered.vcf") into tsd_ch, tsd_search_ch, tsd_gather_ch
     path("repeatmasker_dir/") into tsd_RM_ch, tsd_search_RM_ch
+    file("vcfs.txt") into vcf_list
 
     script:
     if(params.mammal)
