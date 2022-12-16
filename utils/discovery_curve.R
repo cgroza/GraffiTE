@@ -5,12 +5,16 @@ library(ggrepel)
 library(tidyverse)
 library(optparse)
 
+theme_set(theme_bw(base_size = 14))
+
 discovery_curve <- function(ref_vcf, type = c("polymorphism", "TE"), nperm = 100) {
   vcf_matrix <- lapply(str_split(extract.info(ref_vcf, "SUPP_VEC"), ""), as.numeric)
   na_entries <- is.na(vcf_matrix)
   vcf_matrix <- vcf_matrix[!na_entries] %>%
     simplify2array() %>%
     t()
+
+  pca_matrix <- t(vcf_matrix)
 
   if (type == "TE") {
     indels <- str_length(getALT(ref_vcf)) - str_length(getREF(ref_vcf))
@@ -36,15 +40,18 @@ discovery_curve <- function(ref_vcf, type = c("polymorphism", "TE"), nperm = 100
       permutation = i
     )
   }
-  bind_rows(lapply(1:1000, permute_curve)) %>%
-    group_by(genome) %>%
-    summarise(
-      MeanTEs = mean(TEs),
-      SdTEs = sd(TEs),
-      nperm = n(),
-      lowCI = MeanTEs - qnorm(0.975) * (SdTEs / sqrt(nperm)),
-      highCI = MeanTEs + qnorm(0.975) * (SdTEs / sqrt(nperm)),
-      )
+  return(list(
+    curve = bind_rows(lapply(1:nperm, permute_curve)) %>%
+      group_by(genome) %>%
+      summarise(
+        MeanTEs = mean(TEs),
+        SdTEs = sd(TEs),
+        nperm = n(),
+        lowCI = MeanTEs - qnorm(0.975) * (SdTEs / sqrt(nperm)),
+        highCI = MeanTEs + qnorm(0.975) * (SdTEs / sqrt(nperm)),
+      ),
+    pca = pca_matrix
+  ))
 }
 
 filter_vcf_freq <- function(ref_vcf, min_freq = 0, max_freq = Inf, nhits = c("any", "single")) {
@@ -65,24 +72,23 @@ filter_vcf_freq <- function(ref_vcf, min_freq = 0, max_freq = Inf, nhits = c("an
 }
 
 plot_curves <- function(vcf, rare_freq, fixed_freq, nperm, type = c("polymorphism", "TE")) {
-  theme_set(theme_bw(base_size = 14))
 
   n_genomes <- str_length(extract.info(vcf, "SUPP_VEC")[1])
   rare_freq_break <- ceiling(n_genomes * rare_freq)
   fixed_freq_break <- ceiling(n_genomes * fixed_freq)
 
   df <- bind_rows(
-    discovery_curve(filter_vcf_freq(vcf, 1, rare_freq_break, nhits = "any"), type, nperm) %>%
+    discovery_curve(filter_vcf_freq(vcf, 1, rare_freq_break, nhits = "any"), type, nperm)$curve %>%
     mutate(Frequency = "Rare", Variants = "All"),
-    discovery_curve(filter_vcf_freq(vcf, rare_freq_break, fixed_freq_break, nhits = "any"), type, nperm) %>%
+    discovery_curve(filter_vcf_freq(vcf, rare_freq_break, fixed_freq_break, nhits = "any"), type, nperm)$curve %>%
     mutate(Frequency = "Common", Variants = "All"),
-    discovery_curve(filter_vcf_freq(vcf, fixed_freq_break, n_genomes, nhits = "any"), type, nperm) %>%
+    discovery_curve(filter_vcf_freq(vcf, fixed_freq_break, n_genomes, nhits = "any"), type, nperm)$curve %>%
     mutate(Frequency = "Fixed", Variants = "All"),
-    discovery_curve(filter_vcf_freq(vcf, 1, rare_freq_break, nhits = "single"), type, nperm) %>%
+    discovery_curve(filter_vcf_freq(vcf, 1, rare_freq_break, nhits = "single"), type, nperm)$curve %>%
     mutate(Frequency = "Rare", Variants = "nhits=1"),
-    discovery_curve(filter_vcf_freq(vcf, rare_freq_break, fixed_freq_break, nhits = "single"), type, nperm) %>%
+    discovery_curve(filter_vcf_freq(vcf, rare_freq_break, fixed_freq_break, nhits = "single"), type, nperm)$curve %>%
     mutate(Frequency = "Common", Variants = "nhits=1"),
-    discovery_curve(filter_vcf_freq(vcf, fixed_freq_break, n_genomes, nhits = "single"), type, nperm) %>%
+    discovery_curve(filter_vcf_freq(vcf, fixed_freq_break, n_genomes, nhits = "single"), type, nperm)$curve %>%
     mutate(Frequency = "Fixed", Variants = "nhits=1")
   ) %>%
     mutate(
@@ -138,3 +144,10 @@ plot_curves(vcf, opt$rare, opt$fixed, opt$nperm, "TE")
 ggsave(paste0(opt$out, "_TEs.pdf"))
 plot_curves(vcf, opt$rare, opt$fixed, opt$nperm, "polymorphism")
 ggsave(paste0(opt$out, "_polymorphisms.pdf"))
+
+pca_matrix <- discovery_curve(vcf, "polymorphism", 1)$pca
+pca <- as_tibble(prcomp(pca_matrix)$x)
+
+ggplot(pca) +
+  geom_point(aes(x = PC1, y = PC2))
+ggsave(paste0(opt$out, "_pca.pdf"))
