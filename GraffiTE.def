@@ -93,7 +93,7 @@ From: ubuntu:20.04
     echo `git rev-parse --short HEAD` > /metadata/pangenie.git.version
     cd ${HOME}
 
-    pip3 install pysam pyparsing svim-asm pandas vcfpy
+    pip3 install pysam pyparsing svim-asm pandas vcfpy sniffles
     pip3 install --upgrade numpy
 
     R --slave -e 'install.packages(c("XML", "dplyr", "stringr", "tidyr", "readr", "vcfR", "optparse"), repos="https://cloud.r-project.org/")'
