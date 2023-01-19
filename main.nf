@@ -163,6 +163,11 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
 
 // if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
 if(!params.graffite_vcf) {
+  // if --RM_vcf is given, starts here and set the input channel
+  if(params.RM_vcf){
+    Channel.fromPath(params.RM_vcf).into{tsd_ch; tsd_search_ch; tsd_gather_ch}
+    Channel.fromPath(params.RM_dir).into{tsd_RM_ch; tsd_search_RM_ch}
+  } else {
   // Repeatmask the input VCF since it was newly created by GraffiTE or provided by the user
   Channel.fromPath(params.TE_library).set{TE_library_ch}
   process repeatmaskVCF {
@@ -201,13 +206,7 @@ if(!params.graffite_vcf) {
     fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
     """
     }
-    // otherwise, merge individuals' VCFs from the svim_asm process and annotate with RepeatMasker
-
-  // if --RM_vcf is given, starts here and set the input channel
-  if(params.RM_vcf){
-    Channel.fromPath(params.RM_vcf).into{tsd_ch; tsd_search_ch; tsd_gather_ch}
-    Channel.fromPath(params.RM_dir).into{tsd_RM_ch; tsd_search_RM_ch}
-    }
+  }
   // this first TSD process stage the list of SV to scan
   process tsd_prep {
     input:
