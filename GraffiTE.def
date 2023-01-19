@@ -182,7 +182,7 @@ From: ubuntu:20.04
     && cd mafft-7.471-without-extensions/core \
     && sed -i 's#^PREFIX =.*#PREFIX = /opt/mafft#' Makefile \
     && make clean && make && make install \
-    && make clean && cd .. && mafft-7.471-without-extensions-src.tgz
+    && make clean && cd .. && rm mafft-7.471-without-extensions-src.tgz
 
     # Compile NINJA
     cd /opt \
