@@ -148,7 +148,7 @@ From: ubuntu:20.04
     && make -C src && make -C src install \
     && cp 00README bin/ \
     && sed -i 's#^\$path =.*#$path = "/opt/RECON/bin";#' scripts/recon.pl \
-    && cd .. && RECON-1.08.tar.gz
+    && cd .. && rm RECON-1.08.tar.gz
 
     # Compile cd-hit
     cd /opt/src
@@ -231,7 +231,7 @@ From: ubuntu:20.04
     -repeatmasker_dir=/opt/RepeatMasker \
     -rmblast_dir=/opt/rmblast/bin -rscout_dir=/opt/RepeatScout \
     -trf_dir=/opt \
-    -ucsctools_dir=/opt/ucsc_tools && cd .. && src/RepeatModeler-2.0.4.tar.gz
+    -ucsctools_dir=/opt/ucsc_tools && cd .. && rm src/RepeatModeler-2.0.4.tar.gz
 
     cd $HOME
     # Install dependencies and some basic utilities
