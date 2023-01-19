@@ -82,7 +82,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
   // if the user provides long reads
   if(params.longreads) {
     Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
-      [row.sample, file(row.path, checkIfExists:true), type]}.combine(ref_sniffles_sample_call_ch).set{sniffles_sample_call_in_ch}
+      [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_sniffles_sample_call_ch).set{sniffles_sample_call_in_ch}
     process sniffles_sample_call {
       publishDir "${params.out}/1_SV_search", mode: 'copy'
 
