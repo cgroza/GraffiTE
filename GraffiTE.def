@@ -203,7 +203,7 @@ From: ubuntu:20.04
 
     # Configure RepeatMasker
     cd /opt \
-    && tar -x -f src/RepeatMasker-4.1.3-p1.tar.gz \
+    && tar -x -f src/RepeatMasker-4.1.4.tar.gz \
     && chmod a+w RepeatMasker/Libraries \
     && cd RepeatMasker \
     && perl configure \
@@ -212,12 +212,12 @@ From: ubuntu:20.04
     -libdir=/opt/RepeatMasker/Libraries \
     -trf_prgm=/opt/trf \
     -default_search_engine=rmblast \
-    && cd .. && rm src/RepeatMasker-4.1.3-p1.tar.gz
+    && cd .. && rm src/RepeatMasker-4.1.4.tar.gz
 
     # Configure RepeatModeler
     cd /opt \
-    && tar -x -f src/RepeatModeler-2.0.3.tar.gz \
-    && mv RepeatModeler-2.0.3 RepeatModeler \
+    && tar -x -f src/RepeatModeler-2.0.4.tar.gz \
+    && mv RepeatModeler-2.0.4 RepeatModeler \
     && cd RepeatModeler \
     && perl configure \
     -cdhit_dir=/opt/cd-hit -genometools_dir=/opt/genometools/bin \
