@@ -112,15 +112,16 @@ From: ubuntu:20.04
     # Extract RMBlast
     cd /opt \
     && mkdir rmblast \
-    && tar --strip-components=1 -x -f src/rmblast-2.11.0+-x64-linux.tar.gz -C rmblast \
-    && rm src/rmblast-2.11.0+-x64-linux.tar.gz
+    && tar --strip-components=1 -x -f src/rmblast-2.13.0+-x64-linux.tar.gz -C rmblast \
+    && rm src/rmblast-2.13.0+-x64-linux.tar.gz
 
     # Compile HMMER
     cd /opt/src
     tar -x -f hmmer-3.3.2.tar.gz \
     && cd hmmer-3.3.2 \
     && ./configure --prefix=/opt/hmmer && make && make install \
-    && make clean
+    && make clean \
+    && cd .. && rm hmmer-3.3.2.tar.gz
 
     # Compile TRF
     cd /opt/src
@@ -128,14 +129,16 @@ From: ubuntu:20.04
     && cd TRF-4.09.1 \
     && mkdir build && cd build \
     && ../configure && make && cp ./src/trf /opt/trf \
-    && cd .. && rm -r build
+    && cd .. && rm -r build \
+    && cd .. && rm trf-4.09.1.tar.gz
 
     # Compile RepeatScout
     cd /opt/src
     tar -x -f RepeatScout-1.0.6.tar.gz \
     && cd RepeatScout-1.0.6 \
     && sed -i 's#^INSTDIR =.*#INSTDIR = /opt/RepeatScout#' Makefile \
-        && make && make install
+    && make && make install \
+    && cd .. && rm RepeatScout-1.0.6.tar.gz 
 
     # Compile and configure RECON
     cd /opt/src
@@ -144,20 +147,22 @@ From: ubuntu:20.04
     && cd ../RECON \
     && make -C src && make -C src install \
     && cp 00README bin/ \
-    && sed -i 's#^\$path =.*#$path = "/opt/RECON/bin";#' scripts/recon.pl
+    && sed -i 's#^\$path =.*#$path = "/opt/RECON/bin";#' scripts/recon.pl \
+    && cd .. && RECON-1.08.tar.gz
 
     # Compile cd-hit
     cd /opt/src
     tar -x -f cd-hit-v4.8.1-2019-0228.tar.gz \
     && cd cd-hit-v4.8.1-2019-0228 \
-    && make && mkdir /opt/cd-hit && PREFIX=/opt/cd-hit make install
+    && make && mkdir /opt/cd-hit && PREFIX=/opt/cd-hit make install \
+    && cd .. && rm cd-hit-v4.8.1-2019-0228.tar.gz
 
     # Compile genometools (for ltrharvest)
     cd /opt/src
     tar -x -f gt-1.6.0.tar.gz \
     && cd genometools-1.6.0 \
     && make -j4 cairo=no && make cairo=no prefix=/opt/genometools install \
-    && make cleanup
+    && make cleanup && cd .. && rm gt-1.6.0.tar.gz
 
     # Configure LTR_retriever
     cd /opt \
@@ -169,7 +174,7 @@ From: ubuntu:20.04
             -e 's#RepeatMasker=#RepeatMasker=/opt/RepeatMasker#' \
             -e 's#HMMER=#HMMER=/opt/hmmer/bin#' \
             -e 's#CDHIT=#CDHIT=/opt/cd-hit#' \
-            paths
+            paths && cd .. && rm src/LTR_retriever-2.9.0.tar.gz
 
     # Compile MAFFT
     cd /opt/src
@@ -177,7 +182,7 @@ From: ubuntu:20.04
     && cd mafft-7.471-without-extensions/core \
     && sed -i 's#^PREFIX =.*#PREFIX = /opt/mafft#' Makefile \
     && make clean && make && make install \
-    && make clean
+    && make clean && cd .. && mafft-7.471-without-extensions-src.tgz
 
     # Compile NINJA
     cd /opt \
@@ -199,7 +204,7 @@ From: ubuntu:20.04
     && sed -i 's/-o coseg/-o coseg -lm/g' Makefile \
     && sed -i 's@#!.*perl@#!/usr/bin/perl@' preprocessAlignments.pl runcoseg.pl refineConsSeqs.pl \
         && sed -i 's#use lib "/usr/local/RepeatMasker";#use lib "/opt/RepeatMasker";#' preprocessAlignments.pl \
-        && make
+        && make && cd .. && rm src/coseg-0.2.2.tar.gz
 
     # Configure RepeatMasker
     cd /opt \
@@ -226,7 +231,7 @@ From: ubuntu:20.04
     -repeatmasker_dir=/opt/RepeatMasker \
     -rmblast_dir=/opt/rmblast/bin -rscout_dir=/opt/RepeatScout \
     -trf_dir=/opt \
-    -ucsctools_dir=/opt/ucsc_tools
+    -ucsctools_dir=/opt/ucsc_tools && cd .. && src/RepeatModeler-2.0.4.tar.gz
 
     cd $HOME
     # Install dependencies and some basic utilities
