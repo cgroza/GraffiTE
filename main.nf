@@ -87,7 +87,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
       publishDir "${params.out}/1_SV_search", mode: 'copy'
 
       cpus sniffles_threads
-      memory sniffles_memory
+      memory params.sniffles_memory
       input:
       set val(sample_name), file(longreads), val(type), file(ref) from sniffles_sample_call_in_ch
 
@@ -103,7 +103,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     }
     process sniffles_population_call {
       cpus sniffles_threads
-      memory sniflles_memory
+      memory params.sniflles_memory
       input:
       file("*.snf") from sniffles_sample_call_out_ch.collect()
       file(ref) from ref_sniffles_population_call_ch
