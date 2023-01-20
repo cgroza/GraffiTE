@@ -5,8 +5,8 @@ params.RM_dir         = false // mainly for debug. Requires --RM_vcf
 params.genotype       = true
 params.graph_method   = "pangenie" // or giraffe or graphaligner
 params.reads          = "reads.csv"
-params.longreads      = "longreads.csv" // if you want to use sniffles on long read alignments
-params.assemblies     = "assemblies.csv"
+params.longreads      = false // if you want to use sniffles on long read alignments
+params.assemblies     = false // if you want to use svim-asm on genome alignments
 params.reference      = "reference.fa"
 params.TE_library     = "TE_library.fa"
 params.out            = "out"
@@ -118,7 +118,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     }
   }
   // if the user provides alternative assemblies, align and call SV
-  else {
+  else if (params.assemblies){
     Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
       [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch).set{svim_in_ch}
     process svim_asm {
