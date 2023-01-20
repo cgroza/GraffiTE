@@ -171,7 +171,7 @@ if(!params.graffite_vcf) {
   } else {
   // Repeatmask the input VCF since it was newly created by GraffiTE or provided by the user
   Channel.fromPath(params.TE_library).set{TE_library_ch}
-  process repeatmaskVCF {
+  process repeatmask_VCF {
     cpus repeatmasker_threads
     memory params.repeatmasker_memory
     publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
@@ -329,7 +329,7 @@ if(params.genotype) {
         break
     }
 
-    process makeGraph {
+    process make_graph {
       cpus graph_threads
       memory params.make_graph_memory
       input:
@@ -412,7 +412,7 @@ if(params.genotype) {
     }
   }
 
-  process mergeVcfs {
+  process merge_VCFs {
     publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
 
     input:
