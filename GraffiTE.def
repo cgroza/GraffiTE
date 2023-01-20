@@ -148,7 +148,7 @@ From: ubuntu:20.04
     && make -C src && make -C src install \
     && cp 00README bin/ \
     && sed -i 's#^\$path =.*#$path = "/opt/RECON/bin";#' scripts/recon.pl \
-    && cd .. && rm RECON-1.08.tar.gz
+    && cd .. && rm src/RECON-1.08.tar.gz
 
     # Compile cd-hit
     cd /opt/src
