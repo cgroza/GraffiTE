@@ -364,7 +364,7 @@ if(params.genotype) {
     }
 
     reads_ch.combine(graph_index_ch).set{reads_align_ch}
-    process graphAlignReads {
+    process graph_align_reads {
       cpus graph_threads
       memory params.graph_align_memory
       input:
@@ -393,7 +393,7 @@ if(params.genotype) {
     }
 
     aligned_ch.combine(vg_index_call_ch).set{graph_pack_ch}
-    process vgCall {
+    process vg_call {
       cpus graph_threads
       memory params.vg_call_memory
 
