@@ -106,14 +106,14 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
       cpus sniffles_threads
       memory params.sniffles_memory
       input:
-      file("*.snf") from sniffles_sample_call_out_ch.collect()
-      file(ref) from ref_sniffles_population_call_ch
+      file snfs from sniffles_sample_call_out_ch.collect()
+      file ref from ref_sniffles_population_call_ch
 
       output:
       file "genotypes.vcf" into raw_vcf_ch
 
       """
-      sniffles --threads ${sniffles_threads} --reference ${ref} --input *.snf --vcf genotypes.vcf
+      sniffles --threads ${sniffles_threads} --reference ${ref} --input ${snfs} --vcf genotypes.vcf
       """
     }
   }
