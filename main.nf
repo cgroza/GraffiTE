@@ -146,7 +146,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
       cpus svim_asm_threads
       memory params.svim_asm_memory
       input:
-      file(vcfs) from sv_out_ch.map{sample -> sample[1]}.collect()
+      file(vcfs) from svim_out_ch.map{sample -> sample[1]}.collect()
 
       output:
       file "genotypes.vcf" into raw_vcf_ch
