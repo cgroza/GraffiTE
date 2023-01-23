@@ -4,9 +4,9 @@
 
 ## Description
 
-`GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies and genotypes the discovered polymorphisms in read sets using a pangenomic approach. `GraffiTE` is developed by **Cristian Groza** and **Clément Goubert** in [Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the [Genome Centre of McGill University](https://www.mcgillgenomecentre.ca/) (Montréal, Canada). `GraffiTE` is based on the concept developped in [Groza et al., 2022](https://link.springer.com/protocol/10.1007/978-1-0716-2883-6_5).
+`GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies or long read datasets and genotypes the discovered polymorphisms in read sets using a pangenomic approach. `GraffiTE` is developed by **Cristian Groza** and **Clément Goubert** in [Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the [Genome Centre of McGill University](https://www.mcgillgenomecentre.ca/) (Montréal, Canada). `GraffiTE` is based on the concept developped in [Groza et al., 2022](https://link.springer.com/protocol/10.1007/978-1-0716-2883-6_5).
 
-1. First, each alternative assembly is (pseudo)-aligned to the reference genome with [`minimap2`](https://github.com/lh3/minimap2) (set at \~5% divergence max). For each genome considered, structural variants (SVs) are called with [`svim-asm`](https://github.com/eldariont/svim-asm) and only insertions and deletions relative to the reference genome are kept.
+1. First, each genome assembly or longread dataset is aligned to the reference genome with [`minimap2`](https://github.com/lh3/minimap2). For each sample considered, structural variants (SVs) are called with [`svim-asm`](https://github.com/eldariont/svim-asm) if using assemblies or `sniffnes` if using longreads and only insertions and deletions relative to the reference genome are kept.
 ![](https://i.imgur.com/Ouzl83K.png)
 2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided library of repeats of interest (.fasta). SVs covered ≥80% by repeats are kept. At this step, target site duplications (TSDs) are searched for SVs representing a single TE family.
 ![](https://i.imgur.com/2qRpojE.png)
@@ -98,6 +98,15 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
    /path/to/assembly/sampleA.fa,sampleA_name
    /path/to/assembly/sampleB.fa,sampleB_name
    /path/to/assembly/sampleZ.fa,sampleZ_name
+   ```
+- `--longreads`: a CSV file that lists the longreads FASTQ, sample names, and type of longreads (hifi/pb/ont) from which polymorphisms are to be discovered. One FASTQ per sample and sample names must be unique. **The header is required**.
+
+   Example `longreads.csv`:
+   ```
+   path,sample,type
+   /path/to/assembly/sampleA.fq.gz,sampleA_name,pb
+   /path/to/assembly/sampleB.fq.gz,sampleB_name,hifi
+   /path/to/assembly/sampleZ.fq.gz,sampleZ_name,ont
    ```
 
 - `--TE_library`: a FASTA file that lists the consensus sequences (models) of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#type/subtype` for example `AluY#SINE/Alu`. The library can include a single repeat model or all the known repeat models of your species of interest.
