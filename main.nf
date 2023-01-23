@@ -97,7 +97,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
 
       script:
       """
-      minimap2 -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
+      minimap2 -t ${sniffles_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
       samtools index ${sample_name}.bam
       sniffles --threads ${sniffles_threads} --reference ${ref} --input ${sample_name}.bam --snf ${sample_name}.snf --vcf ${sample_name}.vcf
       """
