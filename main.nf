@@ -84,10 +84,10 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
       [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_sniffles_sample_call_ch).set{sniffles_sample_call_in_ch}
     process sniffles_sample_call {
-      publishDir "${params.out}/1_SV_search", mode: 'copy'
-
       cpus sniffles_threads
       memory params.sniffles_memory
+      publishDir "${params.out}/1_SV_search", mode: 'copy'
+
       input:
       set val(sample_name), file(longreads), val(type), file(ref) from sniffles_sample_call_in_ch
 
@@ -105,6 +105,8 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     process sniffles_population_call {
       cpus sniffles_threads
       memory params.sniffles_memory
+      publishDir "${params.out}/1_SV_search", mode: 'copy'
+
       input:
       file snfs from sniffles_sample_call_out_ch.collect()
       file ref from ref_sniffles_population_call_ch
@@ -113,6 +115,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
       file "genotypes.vcf" into raw_vcf_ch
 
       """
+      ls *.vcf > vcfs.txt
       sniffles --threads ${sniffles_threads} --reference ${ref} --input ${snfs} --vcf genotypes.vcf
       """
     }
@@ -145,11 +148,14 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     process survivor_merge {
       cpus svim_asm_threads
       memory params.svim_asm_memory
+      publishDir "${params.out}/1_SV_search", mode: 'copy'
+
       input:
       file(vcfs) from svim_out_ch.map{sample -> sample[1]}.collect()
 
       output:
       file "genotypes.vcf" into raw_vcf_ch
+      file "vcfs.txt"
 
       script:
       """
