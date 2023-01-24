@@ -18,6 +18,7 @@ params.stSort_m       = "4G"
 params.stSort_t       = 4
 params.version        = "0.2.2 beta (01-20-2023)"
 params.tsd_batch_size = 100
+params.asm_divergence = "asm5"
 
 // ideally, we should have defaults relative to genome size
 params.svim_asm_memory     = null
@@ -140,7 +141,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
       script:
       """
       mkdir asm
-      minimap2 -a -x asm5 --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm/asm.sorted.bam -
+      minimap2 -a -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm/asm.sorted.bam -
       samtools index asm/asm.sorted.bam
       svim-asm haploid --min_sv_size 100 --types INS,DEL --sample ${asm_name} asm/ asm/asm.sorted.bam ${ref}
       sed 's/svim_asm\\./${asm_name}\\.svim_asm\\./g' asm/variants.vcf > ${asm_name}.vcf
