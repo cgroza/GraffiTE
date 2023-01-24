@@ -99,7 +99,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
       """
       minimap2 -t ${sniffles_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
       samtools index ${sample_name}.bam
-      sniffles --threads ${sniffles_threads} --reference ${ref} --input ${sample_name}.bam --snf ${sample_name}.snf --vcf ${sample_name}.vcf --report-seq
+      sniffles --minsvlen 100 --threads ${sniffles_threads} --reference ${ref} --input ${sample_name}.bam --snf ${sample_name}.snf --vcf ${sample_name}.vcf --report-seq
       """
     }
     process sniffles_population_call {
@@ -117,8 +117,8 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
 
       """
       ls *.vcf > vcfs.txt
-      sniffles --report-seq --threads ${sniffles_threads} --reference ${ref} --input ${snfs} --vcf genotypes_unfiltered.vcf
-      bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE== "DEL"' genotypes_unfiltered.vcf | awk '$5 != "<INS>" && $5 != "<DEL>"' > genotypes.vcf
+      sniffles --minsvlen 100  --threads ${sniffles_threads} --reference ${ref} --input ${snfs} --vcf genotypes_unfiltered.vcf
+      bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '$5 != "<INS>" && $5 != "<DEL>"' > genotypes.vcf
       """
     }
   }
