@@ -113,10 +113,12 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
 
       output:
       file "genotypes.vcf" into raw_vcf_ch
+      file "vcfs.txt"
 
       """
       ls *.vcf > vcfs.txt
-      sniffles --threads ${sniffles_threads} --reference ${ref} --input ${snfs} --vcf genotypes.vcf
+      sniffles --threads ${sniffles_threads} --reference ${ref} --input ${snfs} --vcf genotypes_unfiltered.vcf
+      bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE== "DEL"' genotypes_unfiltered.vcf | awk '$5 != "<INS>" && $5 != "<DEL>"' > genotypes.vcf
       """
     }
   }
