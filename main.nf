@@ -26,10 +26,22 @@ params.sniffles_memory     = null
 params.repeatmasker_memory = null
 params.pangenie_memory     = null
 params.make_graph_memory   = null
+params.make_graph_threads  = null
 params.graph_align_memory  = null
+params.graph_align_theads  = null
 params.vg_call_memory      = null
+params.vg_call_threads     = null
 params.min_mapq            = 0
 params.min_support         = "2,4"
+
+//adding time directive options for some processes
+params.graph_align_time    = "12h"
+params.svim_asm_time       = "1h"
+params.sniffles_time       = "2h"
+params.repeatmasker_time   = "2h"
+
+//adding some memory default
+params.tsd_memory          = "10G"
 
 // SAY HELLO
 
@@ -39,7 +51,7 @@ log.info """
  ██▒ ▀█▒▓██ ▒ ██▒▒████▄    ▓██   ▒▓██           ██▒ ▓▒▓█   ▀
 ▒██░▄▄▄░▓██ ░▄█ ▒▒██  ▀█▄  ▒████ ░▒████ ░▒██▒▒ ▓██░ ▒░▒███
 ░▓█  ██▓▒██▀▀█▄  ░██▄▄▄▄██ ░▓█▒  ░░▓█▒  ░░██░░ ▓██▓ ░ ▒▓█  ▄
-░▒▓███▀▒░██▓ ▒██▒ ▓█   ▓██▒░▒█░   ░▒█░   ░██░  ▒██▒ ░ ░▒████▒
+░▒▓███▀▒░██▓ ▒██▒  █   ▓██▒░▒█░   ░▒█░   ░██░  ▒██▒ ░ ░▒████▒
  ░▒   ▒ ░ ▒▓ ░▒▓░ ▒▒   ▓▒█░ ▒ ░    ▒ ░   ░▓    ▒ ░░   ░░ ▒░ ░
   ░   ░   ░▒ ░ ▒░  ▒   ▒▒ ░ ░      ░      ▒ ░    ░     ░ ░  ░
 ░ ░   ░   ░░   ░   ░   ▒    ░ ░    ░ ░    ▒ ░  ░         ░
@@ -60,13 +72,15 @@ if(params.cores) {
   repeatmasker_threads = params.cores
   svim_asm_threads     = params.cores
   pangenie_threads     = params.cores
-  graph_threads        = params.cores
+  graph_align_threads  = params.cores
+  vg_call_threads      = params.cores
   sniffles_threads     = params.cores
 } else {
   repeatmasker_threads = params.repeatmasker_threads
   svim_asm_threads     = params.svim_asm_threads
   pangenie_threads     = params.pangenie_threads
-  graph_threads        = params.graph_threads
+  graph_align_threads  = params.graph_align_threads
+  vg_call_threads      = params.vg_call_threads
   sniffles_threads     = params.sniffles_threads
 }
 
@@ -87,6 +101,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     process sniffles_sample_call {
       cpus sniffles_threads
       memory params.sniffles_memory
+      time params.sniffles_time
       publishDir "${params.out}/1_SV_search", mode: 'copy'
 
       input:
@@ -130,6 +145,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     process svim_asm {
       cpus svim_asm_threads
       memory params.svim_asm_memory
+      time params.svim_asm_time
       publishDir "${params.out}/1_SV_search", mode: 'copy'
 
       input:
@@ -183,6 +199,7 @@ if(!params.graffite_vcf) {
   process repeatmask_VCF {
     cpus repeatmasker_threads
     memory params.repeatmasker_memory
+    time params.repeatmasker_time
     publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
 
     input:
@@ -219,6 +236,8 @@ if(!params.graffite_vcf) {
   }
   // this first TSD process stage the list of SV to scan
   process tsd_prep {
+    memory params.tsd_memory
+
     input:
     file("genotypes_repmasked_filtered.vcf") from tsd_ch
     path("repeatmasker_dir/*") from tsd_RM_ch
@@ -249,6 +268,8 @@ if(!params.graffite_vcf) {
 
   // this second process actually search for TSDs
   process tsd_search {
+    memory params.tsd_memory
+
     input:
     file indels from tsd_search_input.splitText( by: params.tsd_batch_size )
     file("genotypes_repmasked_filtered.vcf") from tsd_search_ch.toList()
@@ -269,6 +290,7 @@ if(!params.graffite_vcf) {
   }
   // this process combine the TSD search into single output files
   process tsd_report {
+    memory params.tsd_memory
     publishDir "${params.out}/3_TSD_search", mode: 'copy'
 
     input:
@@ -309,6 +331,7 @@ if(params.genotype) {
     process pangenie {
       cpus pangenie_threads
       memory params.pangenie_memory
+      time params.graph_align_time
       publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
       input:
@@ -339,7 +362,7 @@ if(params.genotype) {
     }
 
     process make_graph {
-      cpus graph_threads
+      cpus params.make_graph_threads
       memory params.make_graph_memory
       input:
       file vcf from vcf_ch
@@ -374,8 +397,9 @@ if(params.genotype) {
 
     reads_ch.combine(graph_index_ch).set{reads_align_ch}
     process graph_align_reads {
-      cpus graph_threads
+      cpus graph_align_threads
       memory params.graph_align_memory
+      time params.graph_align_time
       input:
       set val(sample_name), file(sample_reads), file("index") from reads_align_ch
 
@@ -390,12 +414,12 @@ if(params.genotype) {
       switch(params.graph_method) {
         case "giraffe":
           """
-          vg giraffe -t ${graph_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
+          vg giraffe -t ${graph__align_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
           """ + pack
           break
         case "graphaligner":
           """
-          GraphAligner -t ${graph_threads} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.gam
+          GraphAligner -t ${graph_align_threads} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.gam
           """ + pack
           break
       }
@@ -403,7 +427,7 @@ if(params.genotype) {
 
     aligned_ch.combine(vg_index_call_ch).set{graph_pack_ch}
     process vg_call {
-      cpus graph_threads
+      cpus vg_call_threads
       memory params.vg_call_memory
 
       input:
