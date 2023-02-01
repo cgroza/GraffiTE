@@ -1,6 +1,6 @@
 ![](https://i.imgur.com/jvprOAS.png)
 
-[![status](https://img.shields.io/badge/status:-v0.2.1_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]()
+[![status](https://img.shields.io/badge/status:-v0.2.2_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]()
 
 ## Description
 
