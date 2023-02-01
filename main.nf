@@ -16,7 +16,7 @@ params.mammal         = false
 params.mini_K         = "500M"
 params.stSort_m       = "4G"
 params.stSort_t       = 4
-params.version        = "0.2.2 beta (01-20-2023)"
+params.version        = "0.2.2 beta (02-01-2023)"
 params.tsd_batch_size = 100
 params.asm_divergence = "asm5"
 
@@ -26,7 +26,7 @@ params.sniffles_memory     = null
 params.repeatmasker_memory = null
 params.pangenie_memory     = null
 params.make_graph_memory   = null
-params.make_graph_threads  = null
+params.make_graph_threads  = null 
 params.graph_align_memory  = null
 params.graph_align_theads  = null
 params.vg_call_memory      = null
@@ -38,6 +38,7 @@ params.min_support         = "2,4"
 params.graph_align_time    = "12h"
 params.svim_asm_time       = "1h"
 params.sniffles_time       = "2h"
+params.pangenie_time       = "2h"
 params.repeatmasker_time   = "2h"
 
 //adding some memory default
@@ -331,7 +332,7 @@ if(params.genotype) {
     process pangenie {
       cpus pangenie_threads
       memory params.pangenie_memory
-      time params.graph_align_time
+      time params.pangenie_time
       publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
       input:

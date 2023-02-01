@@ -6,8 +6,8 @@
 
 `GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies or long read datasets and genotypes the discovered polymorphisms in read sets using a pangenomic approach. `GraffiTE` is developed by **Cristian Groza** and **Clément Goubert** in [Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the [Genome Centre of McGill University](https://www.mcgillgenomecentre.ca/) (Montréal, Canada). `GraffiTE` is based on the concept developped in [Groza et al., 2022](https://link.springer.com/protocol/10.1007/978-1-0716-2883-6_5).
 
-1. First, each genome assembly or longread dataset is aligned to the reference genome with [`minimap2`](https://github.com/lh3/minimap2). For each sample considered, structural variants (SVs) are called with [`svim-asm`](https://github.com/eldariont/svim-asm) if using assemblies or `sniffles` if using longreads and only insertions and deletions relative to the reference genome are kept.
-![](https://i.imgur.com/Ouzl83K.png)
+1. First, each genome assembly or long read dataset is aligned to the reference genome with [`minimap2`](https://github.com/lh3/minimap2). For each sample considered, structural variants (SVs) are called with [`svim-asm`](https://github.com/eldariont/svim-asm) if using assemblies or [`sniffles2`](https://github.com/fritzsedlazeck/Sniffles) if using long reads and only insertions and deletions relative to the reference genome are kept.
+![](https://i.imgur.com/V5NHK3G.png)
 2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided library of repeats of interest (.fasta). SVs covered ≥80% by repeats are kept. At this step, target site duplications (TSDs) are searched for SVs representing a single TE family.
 ![](https://i.imgur.com/2qRpojE.png)
 3. Each candidate repeat polymorphism is induced in a graph-genome where TEs and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie), [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871) or  [`GraphAligner`](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02157-2).
@@ -20,25 +20,52 @@
 ----
 
 ### Changelog
+**beta 0.2.2 (02-01-22)**:
+<p>
 
-- **beta 0.2.1 (11-30-22)**:
-   - :new: feature: adds `--RM_vcf` and `--RM_dir` input options. Allows to start a run directly at the TSD search step by providing the VCF and `repeatmasker_dir` produced by the processes `repeatmasker` or `repeatmasker_fromVCF` (found in the output folder `2_Repeat_Filtering`). This is useful if a run crashed during any of the TSD search processes and the job is not recoverable by Nextflow. Providing `--RM_vcf` and `--RM_dir` will bypass SV calling with `minimap2/svim_asm` (`svim_asm` process) and `repeatmasker/repeatmasker_fromVCF` processes.
-   - :beetle: bug fix: TSD search is now performed by batches of 100 variants, which will reduce by a factor 100 the number of temporary working directories (which can cause storage to run over inodes' quota). If more than 100 variants are present, TSDs will be searched in parallel batches (up to the number of available CPUs).
+- :new: feature: adds `sniffles2` as an alternative to `svim-asm` in order to start SV search from long reads (instead of a genomic assembly).
+   - Using the parameter `--longreads` instead of `--assembly` (see inputs) will prompt `GraffiTE` to use `sniffles2`
+   - For now, `svim-asm` and `sniffles2` pipeline are separated (either `--longreads` or `--assembly`. We will soon allow to merge the findings of both callers before filtering for repeats.
+- :new: feature: adds a divergence preset option to `minimap2` ahead of `svim-asm`. Use the flag `--asm_divergence <asm5/asm10/asm20>`. Defaults is `asm5` (< 5% expected divergence between assembly and reference genome). [See minimap2 documentation](https://lh3.github.io/minimap2/minimap2.html).
+- :new: `time`, `cpu` and `memory` directives options added to control the resources needed for each `GraffiTE` process. Useful to optimize scheduler requests while using the `cluster` profile of `GraffiTE`. See details here.
 
-- **beta 0.2 (11-11-22)**:
-   - :new: feature:  adds two new read aligners: [`giraffe`](https://github.com/vgteam/vg#mapping) (short read optimized, works also with long-reads) and [`graphAligner`](https://github.com/maickrau/GraphAligner) (long-read, error-prone compliant). 
-      - usage: `--graph_method [pangenie/giraffe/graphaligner]` default: `pangenie` (short accurate reads)
-   - :new: feature:  adds `--vcf` input option: requires a sequence resolved (REF and ALT allele sequences in VCF). Will bypass genome alignments and proceed with repeat annotations, TSD search, and reads mapping (optional).
-   - :new: feature:  adds `--graffite_vcf` input option: requires a VCF created by `GraffiTE` (in the outputs `3_TSD_search/pangemome.vcf`). Will skip all steps but read mapping.
-   - :beetle: bug fix: remove the dependency to `biomartr`
-- **beta 0.1 (11-02-22)**: first release
+<details><summary>beta 0.2.1 (11-30-22 - click to drop-down details):</summary>
+<p>
+
+- :new: feature: adds `--RM_vcf` and `--RM_dir` input options. Allows to start a run directly at the TSD search step by providing the VCF and `repeatmasker_dir` produced by the processes `repeatmasker` or `repeatmasker_fromVCF` (found in the output folder `2_Repeat_Filtering`). This is useful if a run crashed during any of the TSD search processes and the job is not recoverable by Nextflow. Providing `--RM_vcf` and `--RM_dir` will bypass SV calling with `minimap2/svim_asm` (`svim_asm` process) and `repeatmasker/repeatmasker_fromVCF` processes.
+- :beetle: bug fix: TSD search is now performed by batches of 100 variants, which will reduce by a factor 100 the number of temporary working directories (which can cause storage to run over inodes' quota). If more than 100 variants are present, TSDs will be searched in parallel batches (up to the number of available CPUs).
+
+</p>
+</details>
+
+<details><summary>beta 0.2 (11-11-22 - click to drop-down details):</summary>
+<p>
+
+- :new: feature:  adds two new read aligners: [`giraffe`](https://github.com/vgteam/vg#mapping) (short read optimized, works also with long-reads) and [`graphAligner`](https://github.com/maickrau/GraphAligner) (long-read, error-prone compliant). 
+   - usage: `--graph_method [pangenie/giraffe/graphaligner]` default: `pangenie` (short accurate reads)
+- :new: feature:  adds `--vcf` input option: requires a sequence resolved (REF and ALT allele sequences in VCF). Will bypass genome alignments and proceed with repeat annotations, TSD search, and reads mapping (optional).
+- :new: feature:  adds `--graffite_vcf` input option: requires a VCF created by `GraffiTE` (in the outputs `3_TSD_search/pangemome.vcf`). Will skip all steps but read mapping.
+- :beetle: bug fix: remove the dependency to `biomartr`
+
+</p>
+</details>
+
+
+
+<details><summary>beta 0.1 (11-02-22 - click to drop-down details):</summary>
+<p>
+
+- first release
+
+</p>
+</details>
+
 >It is required to update both the repository (`git pull`) and image to see changes
-
 ----
 
 ### Workflow
 
-![](https://i.imgur.com/3SUQ6kF.png)
+![](https://i.imgur.com/X0jOkVn.png)
 
 ## Installation
 
@@ -90,7 +117,9 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 
 ### Parameters
 
-- `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered. One assembly per sample and sample names must be unique. **The header is required**.
+#### Input files
+
+- `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered. One assembly per sample and sample names must be unique. **The header is required**. 
 
    Example `assemblies.csv`:
    ```
@@ -99,26 +128,31 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
    /path/to/assembly/sampleB.fa,sampleB_name
    /path/to/assembly/sampleZ.fa,sampleZ_name
    ```
-- `--asm_divergence`: minimap2 parameter for assembly divergence. Values are `asm5`, `asm10`, `asm20`.
+
+OR
+
 - `--longreads`: a CSV file that lists the longreads FASTQ, sample names, and type of longreads (hifi/pb/ont) from which polymorphisms are to be discovered. One FASTQ per sample and sample names must be unique. **The header is required**.
 
    Example `longreads.csv`:
    ```
    path,sample,type
-   /path/to/assembly/sampleA.fq.gz,sampleA_name,pb
-   /path/to/assembly/sampleB.fq.gz,sampleB_name,hifi
-   /path/to/assembly/sampleZ.fq.gz,sampleZ_name,ont
+   /path/to/reads/sampleA.fq.gz,sampleA_name,pb
+   /path/to/reads/sampleB.fq.gz,sampleB_name,hifi
+   /path/to/reads/sampleZ.fq.gz,sampleZ_name,ont
    ```
+
+AND (always required)
+
 - `--TE_library`: a FASTA file that lists the consensus sequences (models) of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#type/subtype` for example `AluY#SINE/Alu`. The library can include a single repeat model or all the known repeat models of your species of interest.
    - From [DFAM](https://dfam.org/releases/current/families/) (open access): download the latest DFAM release (`Dfam.h5` or `Dfam_curatedonly.h5` files) and use the tool [FamDB](https://github.com/Dfam-consortium/FamDB) to extract the consensus for your model: `famdb.py -i <Dfam.h5> families -f fasta_name -a <taxa> --include-class-in-name > TE_library.fasta`
    - From [Repbase](https://www.girinst.org/server/RepBase/index.php) (paid subscription): use the "RepeatMasker Edition" libraries
 
-- `--reference`: a reference genome of the species being studied. All assemblies are compared to this reference genome.
+- `--reference`: a reference genome of the species being studied. All assemblies or long-reads  in input are compared to this reference genome.
 
 - `--graph_method`: can be `pangenie`, `giraffe` or `graphaligner`, select which graph method will be used to genotyped TEs. Default is `pangenie` and it is optimized for short-reads. `giraffe` can handle both short and long reads, and `graphaligner` is optimized for long reads. 
 >Note that both `giraffe` and `graphaligner` will spawn a process called `graphAlignReads`, while `pangenie` will spawn a process called `pangenie`.
 
-- `--reads`: a CSV file that lists the read sets (FASTQ/FASTQ.GZ) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. **The header is required**. Only one FASTQ/FASTQ.GZ per sample, and sample names must be unique. Paired-end reads must be interleaved in the same file (`Pangenie`).
+- `--reads`: a CSV file that lists the read sets (FASTQ/FASTQ.GZ) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. **The header is required**. Only one FASTQ/FASTQ.GZ per sample, and sample names must be unique. Paired-end reads must be interleaved in the same file (`Pangenie`). In case `--longreads` is used as input, the same table can be used for `--longreads` and `--reads` (but not the opposite: `type` column is needed in `--longreads`, optional for `--reads`).
 
    Example `reads.csv`:
    ```
@@ -127,43 +161,72 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
    /path/to/reads/sample2.fastq,sample2_name
    /path/to/reads/sampleN.fastq,sampleN_name
    ```
+   or
+   ```
+   path,sample,type
+   /path/to/reads/sampleA.fq.gz,sampleA_name,pb
+   /path/to/reads/sampleB.fq.gz,sampleB_name,hifi
+   /path/to/reads/sampleZ.fq.gz,sampleZ_name,ont
+   ```
 
-### Additional parameters
-
+#### Additional parameters
 
 - `--out`: if you would like to change the default output directory (`out/`).
 - `--genotype`: true or false. Use this if you would like to discover polymorphisms in assemblies but you would like to skip genotyping polymorphisms from reads.
 - `--tsd_win`: the length (in bp) of flanking region (5' and 3' ends) for Target Site Duplication (TSD) search. Default 30bp. By default, 30bp upstream and downstream each variant will be added to search for TSD. (see also [TSD section](#tsd-module))
 - `--cores`: global CPU parameter. Will apply the chosen integer to all multi-threaded processes. See [here](#changing-the-number-of-cpus-and-memory-required-by-each-step) for more customization.
-- `--vcf`: a *sequence resolved* VCF containing both REF and ALT variants sequences. This option will bypasse the SV discovery and will proceed to annotate and filter the input VCF for repeats and TSD, as well as genoyping (unless `--genotype false` is set)
-- `--graffite_vcf`: Use this if you already have a VCF file that was produced by GraffiTE (see output: `3_TSD_Search/pangenome.vcf`), or from a difference source and would like to use the graph genotyping step. The file must be a [fully-phased](https://github.com/eblerjana/pangenie#input-variants) VCF. Note that TE annotation won't be performed on this file (see `--vcf` instead), and only genotyping will be performed.
 - `--mammal`: Apply mammal-specific annotation filters (see [Mammal filter section](#mammalian-filters---mammal) for more details). 
    - (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. 
    - (ii) will search for VNTR polymorphism between orthologous SVA elements.
-- `--RM_vcf` and `--RM_dir`: use to restart a run at the TSD search step. Requires the output `--RM_vcf 2_Repeat_Filtering/genotypes_repmasked_filtered.vcf` and `--RM_dir 2_Repeat_Filtering/repeatmasker_dir`. Will bypass SV detection and repeat filtering (`repeatmasker`) steps (`--assemblies` is not needed).
+
+#### Pipeline Shortcuts
+
+These parameters can be used to bypass different steps of the pipeline.
+
+- `--vcf`: a *sequence resolved* VCF containing both REF and ALT variants sequences. This option will bypass the SV discovery and will proceed to annotate and filter the input VCF for repeats and TSD, as well as genoyping (unless `--genotype false` is set)
+- `--RM_vcf`+`--RM_dir`: bypasses SV discovery and filtering (RepeatMasker) and starts at the TSD search process. `--RM_vcf` can be found in the outputs: `2_Repeat_Filtering/genotypes_repmasked_filtered.vcf` and `--RM_dir` in `2_Repeat_Filtering/repeatmasker_dir`
+- `--graffite_vcf`: Use this if you already have a VCF file that was produced by GraffiTE (see output: `3_TSD_Search/pangenome.vcf`), or from a difference source and would like to use the graph genotyping step. The file must be a [fully-phased](https://github.com/eblerjana/pangenie#input-variants) VCF. Note that TE annotation won't be performed on this file (see `--vcf` instead), and only genotyping will be performed.
 
 #### Process-specific parameters
 
-##### SV detection
+##### SV detection with `svim-asm` (from assemblies)
+
 - `--svim_asm_threads`: number of `minimap2` threads (parameter `-t` in `minimap2`). Overrides `--cores`
-- `--mini_K`: `minimap2` parameter `-K`. *Number of bases loaded into memory to process in a mini-batch. Similar to option -I, K/M/G/k/m/g suffix is accepted. A large NUM helps load balancing in the multi-threading mode, at the cost of increased memory.* Default 500M
 - `--svim_asm_memory`: RAM limit for the SV search (`minimap2`+`svim_asm`) process. Default is unset.
+- `--svim_asm_time`: for `cluster` profile, max time for the scheduler for this process. Default is 1h.
+- `--asm_divergence`: divergence preset option for `minimap2` ahead of `svim-asm`. Use the flag . `asm5`/`asm10`/`asm20`  Defaults is `asm5` (< 5% expected divergence between assembly and reference genome). [See minimap2 documentation](https://lh3.github.io/minimap2/minimap2.html).
+- `--mini_K`: `minimap2` parameter `-K`. *Number of bases loaded into memory to process in a mini-batch. Similar to option -I, K/M/G/k/m/g suffix is accepted. A large NUM helps load balancing in the multi-threading mode, at the cost of increased memory.* Default 500M
 - `--stSort_m`: `samtools sort` parameter `-m` (for each alternative assembly, post-`minimap2`): *Approximately the maximum required memory per thread, specified either in bytes or with a K, M, or G suffix.* Default in `GraffiTE` is 4G.
 - `--stSort_t`: `samtools sort` parameter `@` (for each alternative assembly, post-`minimap2`): *Set number of sorting and compression threads.* Default in `GraffiTE` is 4 threads. 
+
+##### SV detection with `sniffles2` (from long reads)
+
+-`--sniffles_threads`:  number of `minimap2` threads (parameter `-t` in `minimap2`). Overrides `--cores`
+-`--sniffles_memory`: RAM limit for the SV search (`minimap2`+`sniffles2`) process. Default is unset.
+-`--sniffles_time`: for `cluster` profile, max time for the scheduler for this process. Default is 2h.
+- `--stSort_m`: `samtools sort` parameter `-m` (for each long-read alignment, post-`minimap2`): *Approximately the maximum required memory per thread, specified either in bytes or with a K, M, or G suffix.* Default in `GraffiTE` is 4G.
+- `--stSort_t`: `samtools sort` parameter `@` (for each long-read alignment, post-`minimap2`): *Set number of sorting and compression threads.* Default in `GraffiTE` is 4 threads. 
 
 ##### SV Annotation (RepeatMasker)
 - `--repeatmasker_threads`: number of RepeatMasker threads. Overrides `--cores`
 - `--repeatmasker_memory`: RAM limit for the RepeatMasker (annotation) process. Default is unset.
+- `--repeatmasker_time`: for `cluster` profile, max time for the scheduler for this process. Default is 2h.
 
 ##### Genotyping with Pangenie
 - `--pangenie_threads`: number of `Pangenie` threads. Overrides `--cores`
 - `--pangenie_memory`: RAM limit for the Pangenie (genotyping) process. Default is unset.
+- `--pangenie_time`: for `cluster` profile, max time for the scheduler for this process. Default is 2h.
 
 ##### Genotyping with Giraffe, GraphAligner and `vg call`
 - `--graph_threads`: number of threads to use with Giraffe, GraphAligner and `vg call`. Overrides `--cores`
+- `--make_graph_threads`: threads for creating the graph with `vg autoindex` (Giraffe) or `vg construct` (GraphAligner). Default is unset.
 - `--make_graph_memory`: RAM limit for creating the graph with `vg autoindex` (Giraffe) or `vg construct` (GraphAligner). Default is unset.
+
+- `--graph_align_theads`: threads for aligning reads to the graph with `vg giraffe` or `GraphAligner`. Default is unset.
 - `--graph_align_memory`: RAM limit for aligning reads to the graph with `vg giraffe` or `GraphAligner`. Default is unset.
-- `--vg_call_memory`: RAM limit for calling SVs with `vg call` on graph alignments. Default is unset.
+
+- `--vg_call_threads`: threads for calling genotypes with `vg call` on graph alignments. Default is unset.
+- `--vg_call_memory`: RAM limit for calling genotypes with `vg call` on graph alignments. Default is unset.
 - `--min_mapq`: Minimum mapping quality to consider when counting read depth on nodes. Default is 0.
 - `--min_support`: Minimum required read depth on `allele,bubble` to consider for genotyping. The first number is the minimum read depth on allele, and the second is the minimum depth on the entire bubble/locus. Default is `2,4`.
 
