@@ -22,15 +22,16 @@ params.asm_divergence = "asm5"
 
 // ideally, we should have defaults relative to genome size
 params.svim_asm_memory     = null
+params.svim_asm_threads    = 1
 params.sniffles_memory     = null
 params.repeatmasker_memory = null
 params.pangenie_memory     = null
 params.make_graph_memory   = null
-params.make_graph_threads  = null 
+params.make_graph_threads  = 1 
 params.graph_align_memory  = null
-params.graph_align_theads  = null
+params.graph_align_theads  = 1
 params.vg_call_memory      = null
-params.vg_call_threads     = null
+params.vg_call_threads     = 1
 params.min_mapq            = 0
 params.min_support         = "2,4"
 
@@ -103,7 +104,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
       cpus sniffles_threads
       memory params.sniffles_memory
       time params.sniffles_time
-      publishDir "${params.out}/1_SV_search", mode: 'copy'
+      publishDir "${params.out}/1_SV_search/sniffles2_individual_VCFs", mode: 'copy'
 
       input:
       set val(sample_name), file(longreads), val(type), file(ref) from sniffles_sample_call_in_ch
@@ -129,25 +130,25 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
       file ref from ref_sniffles_population_call_ch
 
       output:
-      file "genotypes.vcf" into raw_vcf_ch
+      file "*variants.vcf" into sn_variants_ch
       file "snfs.tsv"
 
       """
       ls *.snf > snfs.tsv
       sniffles --minsvlen 100  --threads ${sniffles_threads} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
-      bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 != "<INS>" && \$5 != "<DEL>"' > genotypes.vcf
+      bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 != "<INS>" && \$5 != "<DEL>"' > sniffles2_variants.vcf
       """
     }
   }
   // if the user provides alternative assemblies, align and call SV
-  else if (params.assemblies){
+  if (params.assemblies){
     Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
       [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch).set{svim_in_ch}
     process svim_asm {
       cpus svim_asm_threads
       memory params.svim_asm_memory
       time params.svim_asm_time
-      publishDir "${params.out}/1_SV_search", mode: 'copy'
+      publishDir "${params.out}/1_SV_search/svim-asm_individual_VCFs/", mode: 'copy'
 
       input:
       set val(asm_name), file(asm), file(ref) from svim_in_ch
@@ -174,29 +175,84 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
       file(vcfs) from svim_out_ch.map{sample -> sample[1]}.collect()
 
       output:
-      file "genotypes.vcf" into raw_vcf_ch
+      file "*variants.vcf" into sv_variants_ch
       file "vcfs.txt"
 
       script:
       """
       ls *.vcf > vcfs.txt
-      SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100 genotypes.vcf
+      SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100 svim-asm_variants.vcf
       """
     }
   }
-} else if(params.vcf){
-  Channel.fromPath(params.vcf).set{raw_vcf_ch}
+
+  if (params.assemblies && params.longreads){
+    process merge_svim_sniffles2 {
+
+      publishDir "${params.out}/1_SV_search", mode: 'copy'
+
+      input:
+      file(svim_vcf) from sv_variants_ch
+      file(sniffles_vcf) from sn_variants_ch
+
+      output:
+      file "svim-sniffles_merged_variants.vcf" into sv_sn_variants_ch
+
+      script:
+      """
+      ls sniffles2_variants.vcf svim-asm_variants.vcf > svim-sniffles2.vcfs.txt
+      SURVIVOR merge svim-sniffles2.vcfs.txt 0.1 0 0 0 0 100 svim-sniffles2_merge_genotypes.vcf
+
+
+      # header part to keep
+      HEADERTOP=\$(grep '#' svim-sniffles2_merge_genotypes.vcf | grep -v 'CHROM')
+      # modify last header line to fit content
+      HEADERLINE=\$(grep '#CHROM' svim-sniffles2_merge_genotypes.vcf | awk '{print \$1"\t"\$2"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\tFORMAT\tGT"}')
+      # add new info fields
+      HEADERMORE=\$(mktemp)
+      echo -e '##INFO=<ID=sniffles2_SUPP,Number=1,Type=String,Description="Support vector from sniffle2-population calls">' >> \${HEADERMORE}
+      echo -e '##INFO=<ID=sniffles2_SVLEN,Number=1,Type=Integer,Description="SV length as called by sniffles2-population">' >> \${HEADERMORE}
+      echo -e '##INFO=<ID=sniffles2_SVTYPE,Number=1,Type=String,Description="Type of SV from sniffle2-population calls">' >> \${HEADERMORE}
+      echo -e '##INFO=<ID=sniffles2_ID,Number=1,Type=String,Description="ID from sniffle2-population calls">' >> \${HEADERMORE}
+      echo -e '##INFO=<ID=svim-asm_SUPP,Number=1,Type=String,Description="Support vector from svim-asm calls">' >> \${HEADERMORE}
+      echo -e '##INFO=<ID=svim-asm_SVLEN,Number=1,Type=Integer,Description="SV length as called by svim-asm">' >> \${HEADERMORE}
+      echo -e '##INFO=<ID=svim-asm_SVTYPE,Number=1,Type=String,Description="Type of SV from svim-asm calls">' >> \${HEADERMORE}
+      echo -e '##INFO=<ID=svim-asm_ID,Number=1,Type=String,Description="ID from svim-asm calls">' >> \${HEADERMORE}
+      # arrange the body part
+      BODY=\$(mktemp)
+      paste -d ";" <(grep -v '#' svim-sniffles2_merge_genotypes.vcf | \
+      cut -f 1-8) <(grep -v '#' svim-sniffles2_merge_genotypes.vcf | \
+      cut -f 10 | sed 's/:/\t/g' | \
+      awk '{print "sniffles2_SUPP="\$2";sniffles2_SVLEN="\$3";sniffles2_SVTYPE="\$7";sniffles2_ID="\$8}') <(grep -v '#' svim-sniffles2_merge_genotypes.vcf | \
+      cut -f 11 | sed 's/:/\t/g' | awk '{print "svim-asm_SUPP="\$2";svim-asm_SVLEN="\$3";svim-asm_SVTYPE="\$7";svim-asm_ID="\$8"\t\\.\t\\."}') >> \${BODY}
+      # concatenate and save "variants" file
+      cat <(echo "\${HEADERTOP}") \${HEADERMORE} <(echo "\${HEADERLINE}") \${BODY} > svim-sniffles_merged_variants.vcf
+      """
+
+    }
+  }
 }
 
 // if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
 if(!params.graffite_vcf) {
-  // if --RM_vcf is given, starts here and set the input channel
+  // except if --RM_vcf is given, in which case skip RepeatMasker here and set the input channel
   if(params.RM_vcf){
     Channel.fromPath(params.RM_vcf).into{tsd_ch; tsd_search_ch; tsd_gather_ch}
     Channel.fromPath(params.RM_dir).into{tsd_RM_ch; tsd_search_RM_ch}
   } else {
   // Repeatmask the input VCF since it was newly created by GraffiTE or provided by the user
   Channel.fromPath(params.TE_library).set{TE_library_ch}
+  // we need to set the vcf input depending what was given
+  if(params.longreads && !params.assemblies){
+    sn_variants_ch.set { raw_vcf_ch }
+    } else if (params.assemblies && !params.longreads){
+      sv_variants_ch.set { raw_vcf_ch }
+      } else if (params.assemblies && params.longreads){
+        sv_sn_variants_ch.set { raw_vcf_ch }
+      } else if(params.vcf){
+        Channel.fromPath(params.vcf).set{raw_vcf_ch}
+      }
+
   process repeatmask_VCF {
     cpus repeatmasker_threads
     memory params.repeatmasker_memory
