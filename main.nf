@@ -181,7 +181,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
       script:
       """
       ls *.vcf > vcfs.txt
-      SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100 svim-asm_variants.vcf
+      SURVIVOR merge vcfs.txt 0.1 0 1 0 0 100 svim-asm_variants.vcf
       """
     }
   }
@@ -201,7 +201,7 @@ if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
       script:
       """
       ls sniffles2_variants.vcf svim-asm_variants.vcf > svim-sniffles2.vcfs.txt
-      SURVIVOR merge svim-sniffles2.vcfs.txt 0.1 0 0 0 0 100 svim-sniffles2_merge_genotypes.vcf
+      SURVIVOR merge svim-sniffles2.vcfs.txt 0.1 0 1 0 0 100 svim-sniffles2_merge_genotypes.vcf
 
 
       # header part to keep
