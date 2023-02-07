@@ -21,19 +21,23 @@ params.tsd_batch_size = 100
 params.asm_divergence = "asm5"
 
 // ideally, we should have defaults relative to genome size
-params.svim_asm_memory     = null
-params.svim_asm_threads    = 1
-params.sniffles_memory     = null
-params.repeatmasker_memory = null
-params.pangenie_memory     = null
-params.make_graph_memory   = null
-params.make_graph_threads  = 1 
-params.graph_align_memory  = null
-params.graph_align_theads  = 1
-params.vg_call_memory      = null
-params.vg_call_threads     = 1
-params.min_mapq            = 0
-params.min_support         = "2,4"
+params.svim_asm_memory      = null
+params.svim_asm_threads     = 1
+params.sniffles_memory      = null
+params.sniffles_threads     = 1
+params.repeatmasker_memory  = null
+params.repeatmasker_threads = 1
+params.pangenie_memory      = null
+params.pangenie_threads     = 1
+params.make_graph_memory    = null
+params.make_graph_threads   = 1 
+params.graph_align_memory   = null
+params.graph_align_theads   = 1
+params.vg_call_memory       = null
+params.vg_call_threads      = 1
+params.min_mapq             = 0
+params.min_support          = "2,4"
+
 
 //adding time directive options for some processes
 params.graph_align_time    = "12h"
@@ -44,6 +48,7 @@ params.repeatmasker_time   = "2h"
 
 //adding some memory default
 params.tsd_memory          = "10G"
+params.merge_vcf_memory    = "10G"
 
 // SAY HELLO
 
@@ -503,6 +508,7 @@ if(params.genotype) {
   }
 
   process merge_VCFs {
+    memory params.merge_vcf_memory
     publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
 
     input:
