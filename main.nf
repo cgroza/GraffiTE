@@ -462,6 +462,8 @@ if(params.genotype) {
       cpus graph_align_threads
       memory params.graph_align_memory
       time params.graph_align_time
+      errorStrategy 'finish'
+
       input:
       set val(sample_name), file(sample_reads), file("index") from reads_align_ch
 
