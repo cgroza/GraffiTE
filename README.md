@@ -10,6 +10,7 @@
 ![](https://i.imgur.com/V5NHK3G.png)
 2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided library of repeats of interest (.fasta). SVs covered ≥80% by repeats are kept. At this step, target site duplications (TSDs) are searched for SVs representing a single TE family.
 ![](https://i.imgur.com/2qRpojE.png)
+
 3. Each candidate repeat polymorphism is induced in a graph-genome where TEs and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie), [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871) or  [`GraphAligner`](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02157-2).
 ![](https://i.imgur.com/UyT62yp.png)
 
@@ -20,7 +21,14 @@
 ----
 
 ### Changelog
-**beta 0.2.2 (02-01-22)**:
+**beta 0.2.3 (02-21-22)**:
+
+- :new: feature: You can now perform the initial SV search from both assemblies and long-read together. The variants discovered with each method will be merged together for the filtering and genotyping.
+- :new: parameters with defaults added to control time, cpu and memory for each process. This is useful to manage cluster requests when `-profile cluster` is used.
+- :beetle: bug fix: merging of variant now only occurs for the same SVTYPE flag (INS or DEL).
+
+
+<details><summary>beta 0.2.2 (02-01-22):</summary>
 <p>
 
 - :new: feature: adds `sniffles2` as an alternative to `svim-asm` in order to start SV search from long reads (instead of a genomic assembly).
@@ -28,6 +36,9 @@
    - For now, `svim-asm` and `sniffles2` pipeline are separated (either `--longreads` or `--assembly`. We will soon allow to merge the findings of both callers before filtering for repeats.
 - :new: feature: adds a divergence preset option to `minimap2` ahead of `svim-asm`. Use the flag `--asm_divergence <asm5/asm10/asm20>`. Defaults is `asm5` (< 5% expected divergence between assembly and reference genome). [See minimap2 documentation](https://lh3.github.io/minimap2/minimap2.html).
 - :new: `time`, `cpu` and `memory` directives options added to control the resources needed for each `GraffiTE` process. Useful to optimize scheduler requests while using the `cluster` profile of `GraffiTE`. See details here.
+
+</p>
+</details>
 
 <details><summary>beta 0.2.1 (11-30-22 - click to drop-down details):</summary>
 <p>
@@ -195,6 +206,8 @@ These parameters can be used to bypass different steps of the pipeline.
 - `--svim_asm_memory`: RAM limit for the SV search (`minimap2`+`svim_asm`) process. Default is unset.
 - `--svim_asm_time`: for `cluster` profile, max time for the scheduler for this process. Default is 1h.
 - `--asm_divergence`: divergence preset option for `minimap2` ahead of `svim-asm`. Use the flag . `asm5`/`asm10`/`asm20`  Defaults is `asm5` (< 5% expected divergence between assembly and reference genome). [See minimap2 documentation](https://lh3.github.io/minimap2/minimap2.html).
+
+
 - `--mini_K`: `minimap2` parameter `-K`. *Number of bases loaded into memory to process in a mini-batch. Similar to option -I, K/M/G/k/m/g suffix is accepted. A large NUM helps load balancing in the multi-threading mode, at the cost of increased memory.* Default 500M
 - `--stSort_m`: `samtools sort` parameter `-m` (for each alternative assembly, post-`minimap2`): *Approximately the maximum required memory per thread, specified either in bytes or with a K, M, or G suffix.* Default in `GraffiTE` is 4G.
 - `--stSort_t`: `samtools sort` parameter `@` (for each alternative assembly, post-`minimap2`): *Set number of sorting and compression threads.* Default in `GraffiTE` is 4 threads. 
@@ -218,15 +231,16 @@ These parameters can be used to bypass different steps of the pipeline.
 - `--pangenie_time`: for `cluster` profile, max time for the scheduler for this process. Default is 2h.
 
 ##### Genotyping with Giraffe, GraphAligner and `vg call`
-- `--graph_threads`: number of threads to use with Giraffe, GraphAligner and `vg call`. Overrides `--cores`
-- `--make_graph_threads`: threads for creating the graph with `vg autoindex` (Giraffe) or `vg construct` (GraphAligner). Default is unset.
+- `--make_graph_threads`: threads for creating the graph with `vg autoindex` (Giraffe) or `vg construct` (GraphAligner). Default is 1.
 - `--make_graph_memory`: RAM limit for creating the graph with `vg autoindex` (Giraffe) or `vg construct` (GraphAligner). Default is unset.
 
-- `--graph_align_theads`: threads for aligning reads to the graph with `vg giraffe` or `GraphAligner`. Default is unset.
+- `--graph_align_theads`: threads for aligning reads to the graph with `vg giraffe` or `GraphAligner`. Default is 1.
 - `--graph_align_memory`: RAM limit for aligning reads to the graph with `vg giraffe` or `GraphAligner`. Default is unset.
+- `--graph_align_time`: for `cluster` profile, max time for the scheduler for this process. Default is 12h.
 
-- `--vg_call_threads`: threads for calling genotypes with `vg call` on graph alignments. Default is unset.
+- `--vg_call_threads`: threads for calling genotypes with `vg call` on graph alignments. Default is 1.
 - `--vg_call_memory`: RAM limit for calling genotypes with `vg call` on graph alignments. Default is unset.
+
 - `--min_mapq`: Minimum mapping quality to consider when counting read depth on nodes. Default is 0.
 - `--min_support`: Minimum required read depth on `allele,bubble` to consider for genotyping. The first number is the minimum read depth on allele, and the second is the minimum depth on the entire bubble/locus. Default is `2,4`.
 

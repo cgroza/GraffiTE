@@ -16,7 +16,7 @@ params.mammal         = false
 params.mini_K         = "500M"
 params.stSort_m       = "4G"
 params.stSort_t       = 4
-params.version        = "0.2.2 beta (02-01-2023)"
+params.version        = "0.2.3 beta (02-21-2023)"
 params.tsd_batch_size = 100
 params.asm_divergence = "asm5"
 
