@@ -478,7 +478,7 @@ if(params.genotype) {
       switch(params.graph_method) {
         case "giraffe":
           """
-          vg giraffe -t ${graph__align_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
+          vg giraffe -t ${graph_align_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
           """ + pack
           break
         case "graphaligner":
