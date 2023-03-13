@@ -126,7 +126,7 @@ nextflow run <path-to-install>/GraffiTE/main.nf \
 ```
 > As a `Nextflow` pipeline, commad line arguments for `GraffiTE` can be distinguished between pipeline-related commands, prefixed with `--` such as `--reference` and `Nextflow`-specific commands, prefixed with `-` such as `-resume` (see [`Nextflow` documentation](https://www.nextflow.io/docs/latest/index.html)).
 
-A small test set is included in the ``test/human_test_set.tar.gz` file.
+A small test set is included in the `test/human_test_set.tar.gz` file.
 Download and decompress the file and run:
 ```
 nextflow run https://github.com/cgroza/GraffiTE --reference hs37d5.chr22.fa --assemblies assemblies.csv --reads reads.csv --TE_library human_DFAM3.6.fasta
