@@ -224,8 +224,10 @@ beta 0.1 (11-02-22 - click to drop-down details):
 
    </details>
 
->It is required to update both the repository (``git pull``) and image to see changes
-=====================================================================================
+*It is required to update both the repository (``git pull``) and image
+to see changes*
+
+--------------
 
 Workflow
 ========

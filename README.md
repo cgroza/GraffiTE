@@ -71,7 +71,8 @@
 </p>
 </details>
 
->It is required to update both the repository (`git pull`) and image to see changes
+*It is required to update both the repository (`git pull`) and image to see changes*
+
 ----
 
 ## Workflow
