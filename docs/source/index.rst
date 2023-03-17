@@ -940,7 +940,7 @@ L1 inversions will be reported with the flag ``mam_filter_1=5P_INV`` in
 the INFO field of the VCFs.
 
 VNTR polymorphisms in SVA elements
-----------------------------------
+==================================
 
 If ``GraffiTE`` detects: - SV annotated as SVA **and**, - RepeatMasker
 hit corresponding only to the VNTR region of these elements **and**, -

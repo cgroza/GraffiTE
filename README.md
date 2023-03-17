@@ -500,7 +500,7 @@ For each pair (C,+) of hits, we look at the target hit coordinates:
 
 L1 inversions will be reported with the flag `mam_filter_1=5P_INV` in the INFO field of the VCFs.
 
-### VNTR polymorphisms in SVA elements
+## VNTR polymorphisms in SVA elements
 
 <img src="https://i.imgur.com/l0DPyRL.png" alt="drawing" width="500"/>
 
