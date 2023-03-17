@@ -20,7 +20,7 @@
 
 ----
 
-### Changelog
+## Changelog
 **beta 0.2.3 (02-21-22)**:
 
 - :new: feature: You can now perform the initial SV search from both assemblies and long-read together. The variants discovered with each method will be merged together for the filtering and genotyping.
@@ -74,7 +74,7 @@
 >It is required to update both the repository (`git pull`) and image to see changes
 ----
 
-### Workflow
+## Workflow
 
 ![](https://i.imgur.com/X0jOkVn.png)
 
@@ -133,7 +133,7 @@ nextflow run https://github.com/cgroza/GraffiTE --reference hs37d5.chr22.fa --as
 ```
 This will show a complete run of the GraffiTE pipeline, with the output stored in `out`.
 
-### Parameters
+## Parameters
 
 #### Input files
 
@@ -259,7 +259,7 @@ These parameters can be used to bypass different steps of the pipeline.
 - `-with-singularity`: if a local singularity image is used, this parameter will override the default image path given in `nextflow.config`.
 - `-with-report report.html`: for a Nextflow report on resource usage to help tune the CPU and memory parameters for your genome/species.
 
-### Outputs
+## Outputs
 
 The results of `GraffiTE` will be produced in a designated folder with the option `--out`. The output folder contains up to 4 sub-folders (3 if `--genotype false` is set). Below is an example of the output folder using two alternative assemblies of the human chromosome 1 (maternal and paternal haplotypes of HG002) and two read-sets from HG002 for genotyping.
 
@@ -388,7 +388,7 @@ When using `Giraffe` and `GraphAligner` with `vg call`, the following fields are
 - `GP`: Genotype Probability, the log-scaled posterior probability of the called genotype
 - `XD`: eXpected Depth, background coverage as used for the Poisson model
 
-### TSD module
+## TSD module
 
 For SVs with a single TE insertion detected (`n_hits=1`, and LINE1s with the flag `mam_filter_1=5P_INV`) target site duplication are searched by comparing the flanking regions following this workflow:
 
@@ -472,11 +472,11 @@ The script also account for the presence of poly-A/T
    HG002_mat.svim_asm.DEL.1014     AluY    C       2.2     10      0       0       -1      0       1       0       ATTATTATTA      ATTATTATTA      PASS
    ```
 
-### Mammalian filters `--mammal`
+## Mammalian filters `--mammal`
 
 In order to account for the particularities of several TE families, we have introduced a `--mammal` flag that will search for specific features associated with mammalian TEs. So far we are accounting for two particular cases: 5' Inversion of L1 elements and VNTR polymorphism between orthologous SVA insertions. We will try to add more of these filters, for example to detect solo vs full-length LTR polymorphisms. If you would like to see more of these filters, please share your suggestions on the [Issue](https://github.com/cgroza/GraffiTE/issues) page!
 
-#### L1 5' inversion
+## L1 5' inversion
 
 SV detected by GraffiTE and corresponding to non-canonical TPRT (Twin Priming Reverse Transcription), such as Twin Priming (see [here](https://genome.cshlp.org/content/11/12/2059.long) and [here](https://mobilednajournal.biomedcentral.com/articles/10.1186/1759-8753-1-7)) may be skipped by the TSD script because it artificially creates 2 hits instead of one for a single TE insert. 
 
@@ -499,7 +499,7 @@ For each pair (C,+) of hits, we look at the target hit coordinates:
 
 L1 inversions will be reported with the flag `mam_filter_1=5P_INV` in the INFO field of the VCFs.
 
-#### VNTR polymorphisms in SVA elements
+### VNTR polymorphisms in SVA elements
 
 <img src="https://i.imgur.com/l0DPyRL.png" alt="drawing" width="500"/>
 
@@ -520,7 +520,7 @@ The variant will be flagged with `mam_filter_2=VNTR_ONLY:SVA_F:544:855` with `SV
 | SVA_F       | 37          | 10.5        | 435| 857|
 
 
-### `GraffiTE` execution profiles
+## `GraffiTE` execution profiles
 By default, the pipeline will inherit the `nextflow` configuration and run accordingly.
 To execute locally, on SLURM, or AWS, pass one of the `-profile` provided with the `GraffiTE`:
 - `standard`
@@ -533,7 +533,7 @@ nextflow run cgroza/GraffiTE -profile cluster ...
 ```
 will run on SLURM.
 
-## Changing the number of CPUs and memory required by each step
+## Specifying memory and CPU allocation at each step
 You may alter the following parameters on the command line or in your own `nextflow` configuration file to change how many CPUs and how much memory will be required by each step.
 
 - Step 1, polymorphisms discovery. The memory requirement depends on the genome size of the species. More cores is faster.
@@ -555,7 +555,7 @@ params.pangenie_threads
 
 The requirements are numbers or strings accepted by `nextflow`. For example, 40 for number of CPUs and '100G' for memory.
 
-### Resource usage example:
+## Resource usage example:
 
 (this section will be updated based on our ongoing tests)
 

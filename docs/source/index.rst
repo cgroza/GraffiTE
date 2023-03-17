@@ -50,7 +50,7 @@ of this Github.**
 --------------
 
 Changelog
----------
+=========
 
 **beta 0.2.3 (02-21-22)**:
 
@@ -228,7 +228,7 @@ beta 0.1 (11-02-22 - click to drop-down details):
 =====================================================================================
 
 Workflow
---------
+========
 
 .. image:: https://i.imgur.com/X0jOkVn.png
 
@@ -329,10 +329,10 @@ This will show a complete run of the GraffiTE pipeline, with the output
 stored in ``out``.
 
 Parameters
-----------
+==========
 
 Input files
-~~~~~~~~~~~
+-----------
 
 -  ``--assemblies``: a CSV file that lists the genome assemblies and
    sample names from which polymorphisms are to be discovered. One
@@ -400,7 +400,7 @@ AND (always required)
    ``path,sample,type  /path/to/reads/sampleA.fq.gz,sampleA_name,pb  /path/to/reads/sampleB.fq.gz,sampleB_name,hifi  /path/to/reads/sampleZ.fq.gz,sampleZ_name,ont``
 
 Additional parameters
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 -  ``--out``: if you would like to change the default output directory
    (``out/``).
@@ -432,7 +432,7 @@ Additional parameters
            elements.
 
 Pipeline Shortcuts
-~~~~~~~~~~~~~~~~~~
+------------------
 
 These parameters can be used to bypass different steps of the pipeline.
 
@@ -454,10 +454,10 @@ These parameters can be used to bypass different steps of the pipeline.
    ``--vcf`` instead), and only genotyping will be performed.
 
 Process-specific parameters
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 SV detection with ``svim-asm`` (from assemblies)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  ``--svim_asm_threads``: number of ``minimap2`` threads (parameter
    ``-t`` in ``minimap2``). Overrides ``--cores``
@@ -490,7 +490,7 @@ SV detection with ``svim-asm`` (from assemblies)
    compression threads.* Default in ``GraffiTE`` is 4 threads.
 
 SV detection with ``sniffles2`` (from long reads)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -``--sniffles_threads``: number of ``minimap2`` threads (parameter
 ``-t`` in ``minimap2``). Overrides ``--cores`` -``--sniffles_memory``:
@@ -506,7 +506,7 @@ post-``minimap2``): *Set number of sorting and compression threads.*
 Default in ``GraffiTE`` is 4 threads.
 
 SV Annotation (RepeatMasker)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  ``--repeatmasker_threads``: number of RepeatMasker threads. Overrides
    ``--cores``
@@ -516,7 +516,7 @@ SV Annotation (RepeatMasker)
    scheduler for this process. Default is 2h.
 
 Genotyping with Pangenie
-^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  ``--pangenie_threads``: number of ``Pangenie`` threads. Overrides
    ``--cores``
@@ -526,7 +526,7 @@ Genotyping with Pangenie
    scheduler for this process. Default is 2h.
 
 Genotyping with Giraffe, GraphAligner and ``vg call``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  ``--make_graph_threads``: threads for creating the graph with
    ``vg autoindex`` (Giraffe) or ``vg construct`` (GraphAligner).
@@ -560,7 +560,7 @@ Genotyping with Giraffe, GraphAligner and ``vg call``
    bubble/locus. Default is ``2,4``.
 
 ``Nextflow`` parameters
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 
 ``Nextflow``-specific parameters can be passed in addition to those
 presented above. These parameters can be distinguished by the use of a
@@ -577,7 +577,7 @@ more details.
    to help tune the CPU and memory parameters for your genome/species.
 
 Outputs
--------
+=======
 
 The results of ``GraffiTE`` will be produced in a designated folder with
 the option ``--out``. The output folder contains up to 4 sub-folders (3
@@ -686,7 +686,7 @@ for genotyping.
    be found `here <https://www.nextflow.io/docs/latest/index.html>`__.
 
 Output VCFs
-~~~~~~~~~~~
+-----------
 
 ``GraffiTE`` outputs variants in the `VCF 4.2
 format <https://samtools.github.io/hts-specs/VCFv4.2.pdf>`__. Additional
@@ -798,7 +798,7 @@ probability of the called genotype - ``XD``: eXpected Depth, background
 coverage as used for the Poisson model
 
 TSD module
-----------
+==========
 
 For SVs with a single TE insertion detected (``n_hits=1``, and LINE1s
 with the flag ``mam_filter_1=5P_INV``) target site duplication are
@@ -893,7 +893,7 @@ The script also account for the presence of poly-A/T
       HG002_mat.svim_asm.DEL.1014     AluY    C       2.2     10      0       0       -1      0       1       0       ATTATTATTA      ATTATTATTA      PASS
 
 Mammalian filters ``--mammal``
-------------------------------
+==============================
 
 In order to account for the particularities of several TE families, we
 have introduced a ``--mammal`` flag that will search for specific
@@ -906,7 +906,7 @@ suggestions on the `Issue <https://github.com/cgroza/GraffiTE/issues>`__
 page!
 
 L1 5’ inversion
-~~~~~~~~~~~~~~~
+===============
 
 SV detected by GraffiTE and corresponding to non-canonical TPRT (Twin
 Priming Reverse Transcription), such as Twin Priming (see
@@ -938,7 +938,7 @@ L1 inversions will be reported with the flag ``mam_filter_1=5P_INV`` in
 the INFO field of the VCFs.
 
 VNTR polymorphisms in SVA elements
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------
 
 If ``GraffiTE`` detects: - SV annotated as SVA **and**, - RepeatMasker
 hit corresponding only to the VNTR region of these elements **and**, -
@@ -960,7 +960,7 @@ SVA_F     37               10.5     435   857
 ========= ================ ======== ===== ===
 
 ``GraffiTE`` execution profiles
--------------------------------
+===============================
 
 By default, the pipeline will inherit the ``nextflow`` configuration and
 run accordingly. To execute locally, on SLURM, or AWS, pass one of the
@@ -975,8 +975,8 @@ For example,
 
 will run on SLURM.
 
-Changing the number of CPUs and memory required by each step
-============================================================
+Specifying memory and CPU allocation at each step
+=================================================
 
 You may alter the following parameters on the command line or in your
 own ``nextflow`` configuration file to change how many CPUs and how much
@@ -1011,7 +1011,7 @@ The requirements are numbers or strings accepted by ``nextflow``. For
 example, 40 for number of CPUs and ‘100G’ for memory.
 
 Resource usage example:
------------------------
+=======================
 
 (this section will be updated based on our ongoing tests)
 
