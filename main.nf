@@ -41,10 +41,10 @@ params.min_support          = "2,4"
 
 //adding time directive options for some processes
 params.graph_align_time    = "12h"
-params.svim_asm_time       = "1h"
-params.sniffles_time       = "2h"
-params.pangenie_time       = "2h"
-params.repeatmasker_time   = "2h"
+params.svim_asm_time       = "12h"
+params.sniffles_time       = "12h"
+params.pangenie_time       = "12h"
+params.repeatmasker_time   = "12h"
 
 //adding some memory default
 params.tsd_memory          = "10G"
