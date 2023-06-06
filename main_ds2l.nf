@@ -91,47 +91,58 @@ vg_call_threads      = params.vg_call_threads
 sniffles_threads     = params.sniffles_threads
 }
 
+String graph =  ""
+switch(params.graph_method) {
+  case "giraffe":
+    graph = "index.giraffe.gbz"
+    break
+  case "graphaligner":
+    graph = "index.vg"
+    break
+}
+
 
 process sniffles_sample_call {
-cpus sniffles_threads
-memory params.sniffles_memory
-time params.sniffles_time
-publishDir "${params.out}/1_SV_search/sniffles2_individual_VCFs", mode: 'copy'
+  cpus sniffles_threads
+  memory params.sniffles_memory
+  time params.sniffles_time
+  publishDir "${params.out}/1_SV_search/sniffles2_individual_VCFs", mode: 'copy'
 
-input:
-set val(sample_name), file(longreads), val(type), file(ref)
+  input:
+  set val(sample_name), file(longreads), val(type), file(ref)
 
-output:
-file "${sample_name}.snf", emit: sniffles_sample_call_out_ch
-file "${sample_name}.vcf"
+  output:
+  file "${sample_name}.snf", emit: sniffles_sample_call_out_ch
+  file "${sample_name}.vcf"
 
-script:
-"""
-minimap2 -t ${sniffles_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
+  script:
+  """
+  minimap2 -t ${sniffles_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
   samtools index ${sample_name}.bam
-sniffles --minsvlen 100 --threads ${sniffles_threads} --reference ${ref} --input ${sample_name}.bam --snf ${sample_name}.snf --vcf ${sample_name}.vcf
-"""
+  sniffles --minsvlen 100 --threads ${sniffles_threads} --reference ${ref} --input ${sample_name}.bam --snf ${sample_name}.snf --vcf ${sample_name}.vcf
+  """
 }
 
 process sniffles_population_call {
-cpus sniffles_threads
-memory params.sniffles_memory
-publishDir "${params.out}/1_SV_search", mode: 'copy'
+  cpus sniffles_threads
+  memory params.sniffles_memory
+  publishDir "${params.out}/1_SV_search", mode: 'copy'
 
-input:
-file snfs
-file ref
+  input:
+  file snfs
+  file ref
 
-output:
-file "*variants.vcf", emit: sn_variants_ch
-file "snfs.tsv"
+  output:
+  file "*variants.vcf", emit: sn_variants_ch
+  file "snfs.tsv"
 
-"""
-ls *.snf > snfs.tsv
-sniffles --minsvlen 100  --threads ${sniffles_threads} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
-bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 != "<INS>" && \$5 != "<DEL>"' > sniffles2_variants.vcf
+  """
+  ls *.snf > snfs.tsv
+  sniffles --minsvlen 100  --threads ${sniffles_threads} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
+  bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 != "<INS>" && \$5 != "<DEL>"' > sniffles2_variants.vcf
   """
 }
+
 process svim_asm {
   cpus svim_asm_threads
   memory params.svim_asm_memory
@@ -148,7 +159,7 @@ process svim_asm {
   """
   mkdir asm
   minimap2 -a -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm/asm.sorted.bam -
-    samtools index asm/asm.sorted.bam
+  samtools index asm/asm.sorted.bam
   svim-asm haploid --min_sv_size 100 --types INS,DEL --sample ${asm_name} asm/ asm/asm.sorted.bam ${ref}
   sed 's/svim_asm\\./${asm_name}\\.svim_asm\\./g' asm/variants.vcf > ${asm_name}.vcf
   """
@@ -464,5 +475,63 @@ workflow {
     if(params.assemblies && params.longreads) {
       merge_svim_sniffles2(survivor_merge.sv_variants_ch, sniffles_population_call.sn_variants_ch)
     }
+  }
+
+  // if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
+  if(!params.graffite_vcf) {
+    // except if --RM_vcf is given, in which case skip RepeatMasker here and set the input channel
+    if(params.RM_vcf){
+      Channel.fromPath(params.RM_vcf).into{tsd_ch; tsd_search_ch; tsd_gather_ch}
+      Channel.fromPath(params.RM_dir).into{tsd_RM_ch; tsd_search_RM_ch}
+    } else {
+      Channel.fromPath(params.TE_library).set{TE_library_ch}
+      // we need to set the vcf input depending what was given
+      if(params.longreads && !params.assemblies){
+        sniffles_population_call.sn_variants_ch.set { raw_vcf_ch }
+      } else if (params.assemblies && !params.longreads){
+        svim_asm.sv_variants_ch.set { raw_vcf_ch }
+      } else if (params.assemblies && params.longreads){
+        merge_svim_sniffles2.sv_sn_variants_ch.set { raw_vcf_ch }
+      } else if(params.vcf){
+        Channel.fromPath(params.vcf).set{raw_vcf_ch}
+      }
+      repeatmask_VCF(raw_vcf_ch, ref_repeatmasker_ch)
+    }
+    tsd_prep(tsd_ch, tsd_RM_ch, ref_tsd_ch)
+    tsd_search(tsd_search_input.splitText( by: params.tsd_batch_size),
+               tsd_search_ch.toList(),
+               tsd_prep.tsd_search_SV.toList(),
+               tsd_prep.tsd_search_flanking.toList(),
+               tsd_search_RM_ch.toList(),
+               ref_tsd_search_ch.toList())
+    tsd_report(tsd_search.tsd_out_ch.collect(),
+               tsd_search.tsd_full_out_ch.collect(),
+               tsd_gather_ch)
+    tsd_report.vcf_ch.into(vcf_ch)
+    tsd_report.vcf_merge_ch.into(vcf_merge_ch)
+  } else {
+    // if a vcf is provided as parameter, skip discovery and go directly to genotyping
+    Channel.fromPath(params.graffite_vcf).into{vcf_ch; vcf_merge_ch}
+  }
+
+  if(params.genotype) {
+    Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
+
+    if(params.graph_method == "pangenie") {
+      reads_ch.combine(vcf_ch).combine(ref_geno_ch).set{input_ch}
+      pangenie(input_ch)
+      pangenie.indexed_vcfs(indexed_vcfs)
+    }
+
+    else if(params.graph_method != "pangenie") {
+      make_graph(vcf_ch, ref_geno_ch)
+      reads_ch.combine(make_graph.graph_index_ch).set{reads_align_ch}
+      graph_align_reads(reads_align_ch)
+      aligned_ch.combine(vg_index_call_ch).set{graph_pack_ch}
+      vg_call(graph_pack_ch)
+      vg_call.indexed_vcfs.into(indexed_vcfs)
+    }
+
+    merge_VCFs(indexed_vcfs.collect(), vcf_merge_ch)
   }
 }
