@@ -483,7 +483,7 @@ workflow {
       if(params.longreads && !params.assemblies){
         sniffles_population_call.sn_variants_ch.set { raw_vcf_ch }
       } else if (params.assemblies && !params.longreads){
-        svim_asm.sv_variants_ch.set { raw_vcf_ch }
+        svim_asm.out.sv_variants_ch.set { raw_vcf_ch }
       } else if (params.assemblies && params.longreads){
         merge_svim_sniffles2.sv_sn_variants_ch.set { raw_vcf_ch }
       } else if(params.vcf){
