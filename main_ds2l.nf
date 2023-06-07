@@ -483,7 +483,7 @@ workflow {
     }
     if(params.assemblies) {
       Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
-        [row.sample, path(row.path, checkIfExists:true)]}.combine(ref_asm_ch).set{svim_in_ch}
+        [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch).set{svim_in_ch}
       svim_asm(svim_in_ch)
       survivor_merge(svim_asm.out.svim_out_ch.map{sample -> sample[1]}.collect())
     }
@@ -532,7 +532,7 @@ workflow {
   }
 
   if(params.genotype) {
-    Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, path(row.path, checkIfExists:true)]}.set{reads_ch}
+    Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
 
     if(params.graph_method == "pangenie") {
       reads_ch.combine(vcf_ch).combine(ref_asm_ch).set{input_ch}
