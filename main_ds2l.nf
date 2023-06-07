@@ -456,18 +456,18 @@ workflow {
         [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{sniffles_sample_call_in_ch}
 
       sniffles_sample_call(sniffles_sample_call_in_ch)
-      sniffles_population_call(sniffles_sample_call.sniffles_sample_call_out_ch.collect(),
+      sniffles_population_call(sniffles_sample_call.out.sniffles_sample_call_out_ch.collect(),
                                ref_asm_ch)
     }
     if(params.assemblies) {
       Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
         [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch).set{svim_in_ch}
       svim_asm(svim_in_ch)
-      survivor_merge(svim_asm.svim_out_ch.map{sample -> sample[1]}.collect())
+      survivor_merge(svim_asm.out.svim_out_ch.map{sample -> sample[1]}.collect())
     }
 
     if(params.assemblies && params.longreads) {
-      merge_svim_sniffles2(survivor_merge.sv_variants_ch, sniffles_population_call.sn_variants_ch)
+      merge_svim_sniffles2(survivor_merge.out.sv_variants_ch, sniffles_population_call.out.sn_variants_ch)
     }
   }
 
@@ -494,14 +494,14 @@ workflow {
     tsd_prep(RM_vcf_ch, RM_dir_ch, ref_asm_ch)
     tsd_search(tsd_search_input.splitText( by: params.tsd_batch_size),
                RM_vcf_ch.toList(),
-               tsd_prep.tsd_search_SV.toList(),
-               tsd_prep.tsd_search_flanking.toList(),
+               tsd_prep.out.tsd_search_SV.toList(),
+               tsd_prep.out.tsd_search_flanking.toList(),
                RM_dir_ch.toList(),
                ref_asm_ch.toList())
-    tsd_report(tsd_search.tsd_out_ch.collect(),
-               tsd_search.tsd_full_out_ch.collect(),
+    tsd_report(tsd_search.out.tsd_out_ch.collect(),
+               tsd_search.out.tsd_full_out_ch.collect(),
                RM_vcf_ch)
-    tsd_report.vcf_ch.set{vcf_ch}
+    tsd_report.out.vcf_ch.set{vcf_ch}
   } else {
     // if a vcf is provided as parameter, skip discovery and go directly to genotyping
     Channel.fromPath(params.graffite_vcf).set{vcf_ch}
@@ -513,17 +513,17 @@ workflow {
     if(params.graph_method == "pangenie") {
       reads_ch.combine(vcf_ch).combine(ref_asm_ch).set{input_ch}
       pangenie(input_ch)
-      pangenie.indexed_vcfs(indexed_vcfs)
+      pangenie.out.indexed_vcfs(indexed_vcfs)
     }
 
     else if(params.graph_method != "pangenie") {
       make_graph(vcf_ch, ref_asm_ch)
-      reads_ch.combine(make_graph.graph_index_ch).set{reads_align_ch}
+      reads_ch.combine(make_graph.out.graph_index_ch).set{reads_align_ch}
       graph_align_reads(reads_align_ch)
-      aligned_ch.combine(graph_index_call_ch).set{graph_pack_ch}
+      aligned_ch.combine(make_graph.out.graph_index_ch).set{graph_pack_ch}
       vg_call(graph_pack_ch)
     }
 
-    merge_VCFs(vg_call.indexed_vcfs.collect(), vcf_ch)
+    merge_VCFs(vg_call.out.indexed_vcfs.collect(), vcf_ch)
   }
 }
