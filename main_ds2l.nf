@@ -548,6 +548,6 @@ workflow {
       vg_call(graph_pack_ch)
     }
 
-    merge_VCFs(vg_call.out.indexed_vcfs.collect(), vcf_ch)
+    merge_VCFs(indexed_vcfs.collect(), vcf_ch)
   }
 }
