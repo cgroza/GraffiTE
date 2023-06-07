@@ -287,6 +287,28 @@ process tsd_prep {
   """
 }
 
+process tsd_search {
+  memory params.tsd_memory
+
+  input:
+  file indels
+  path("genotypes_repmasked_filtered.vcf")
+  path("SV_sequences_L_R_trimmed_WIN.fa")
+  path("flanking_sequences.fasta")
+  path("repeatmasker_dir/*")
+  path(ref_fasta)
+
+  output:
+  path('*TSD_summary.txt'), emit: tsd_out_ch
+  path('*TSD_full_log.txt'), emit: tsd_full_out_ch
+
+  script:
+  """
+  cp repeatmasker_dir/repeatmasker_dir/* .
+  TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta ${indels}
+  """
+}
+
 process tsd_report {
   memory params.tsd_memory
   publishDir "${params.out}/3_TSD_search", mode: 'copy'
@@ -495,7 +517,7 @@ workflow {
     }
     tsd_prep(RM_vcf_ch, RM_dir_ch, ref_asm_ch)
     tsd_search(tsd_prep.out.tsd_search_input.splitText( by: params.tsd_batch_size),
-               RM_vcf_ch.RM_vcf_ch.toList(),
+               RM_vcf_ch.toList(),
                tsd_prep.out.tsd_search_SV.toList(),
                tsd_prep.out.tsd_search_flanking.toList(),
                RM_dir_ch.toList(),
