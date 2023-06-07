@@ -490,10 +490,12 @@ workflow {
         Channel.fromPath(params.vcf).set{raw_vcf_ch}
       }
       repeatmask_VCF(raw_vcf_ch, TE_library_ch, ref_asm_ch)
+      repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
+      repeatmask_VCF.out.RM_dir_ch.set{RM_dir_ch}
     }
     tsd_prep(RM_vcf_ch, RM_dir_ch, ref_asm_ch)
-    tsd_search(tsd_search_input.splitText( by: params.tsd_batch_size),
-               RM_vcf_ch.toList(),
+    tsd_search(tsd_prep.out.tsd_search_input.splitText( by: params.tsd_batch_size),
+               RM_vcf_ch.RM_vcf_ch.toList(),
                tsd_prep.out.tsd_search_SV.toList(),
                tsd_prep.out.tsd_search_flanking.toList(),
                RM_dir_ch.toList(),
