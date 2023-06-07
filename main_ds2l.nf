@@ -109,7 +109,7 @@ process sniffles_sample_call {
   publishDir "${params.out}/1_SV_search/sniffles2_individual_VCFs", mode: 'copy'
 
   input:
-  set val(sample_name), file(longreads), val(type), file(ref)
+  tuple val(sample_name), file(longreads), val(type), file(ref)
 
   output:
   file "${sample_name}.snf", emit: sniffles_sample_call_out_ch
@@ -150,10 +150,10 @@ process svim_asm {
   publishDir "${params.out}/1_SV_search/svim-asm_individual_VCFs/", mode: 'copy'
 
   input:
-  set val(asm_name), file(asm), file(ref)
+  tuple val(asm_name), file(asm), file(ref)
 
   output:
-  set val(asm_name), file("${asm_name}.vcf"), emit: svim_out_ch
+  tuple val(asm_name), file("${asm_name}.vcf"), emit: svim_out_ch
 
   script:
   """
@@ -324,7 +324,7 @@ process pangenie {
   publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
   input:
-  set val(sample_name), file(sample_reads), file(vcf), file(ref)
+  tuple val(sample_name), file(sample_reads), file(vcf), file(ref)
 
   output:
   file("${sample_name}_genotyping.vcf.gz*"), emit: indexed_vcfs
@@ -378,10 +378,10 @@ process graph_align_reads {
   errorStrategy 'finish'
 
   input:
-  set val(sample_name), file(sample_reads), file("index")
+  tuple val(sample_name), file(sample_reads), file("index")
 
   output:
-  set val(sample_name), file("${sample_name}.gam"), file("${sample_name}.pack"), emit: aligned_ch
+  tuple val(sample_name), file("${sample_name}.gam"), file("${sample_name}.pack"), emit: aligned_ch
 
   script:
   pack =  """
@@ -407,7 +407,7 @@ process vg_call {
   memory params.vg_call_memory
 
   input:
-  set val(sample_name), file(gam), file(pack), file("index")
+  tuple val(sample_name), file(gam), file(pack), file("index")
 
   output:
   file("${sample_name}.vcf.gz*"), emit: indexed_vcfs
