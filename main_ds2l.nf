@@ -475,7 +475,7 @@ workflow {
   if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     if(params.longreads) {
       Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
-        [row.sample, path(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{sniffles_sample_call_in_ch}
+        [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{sniffles_sample_call_in_ch}
 
       sniffles_sample_call(sniffles_sample_call_in_ch)
       sniffles_population_call(sniffles_sample_call.out.sniffles_sample_call_out_ch.collect(),
