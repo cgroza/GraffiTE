@@ -507,7 +507,7 @@ workflow {
       } else if (params.assemblies && !params.longreads){
         survivor_merge.out.sv_variants_ch.set { raw_vcf_ch }
       } else if (params.assemblies && params.longreads){
-        merge_svim_sniffles2.sv_sn_variants_ch.set { raw_vcf_ch }
+        merge_svim_sniffles2.out.sv_sn_variants_ch.set { raw_vcf_ch }
       } else if(params.vcf){
         Channel.fromPath(params.vcf).set{raw_vcf_ch}
       }
