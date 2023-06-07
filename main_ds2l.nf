@@ -537,7 +537,7 @@ workflow {
     if(params.graph_method == "pangenie") {
       reads_ch.combine(vcf_ch).combine(ref_asm_ch).set{input_ch}
       pangenie(input_ch)
-      pangenie.out.indexed_vcfs(indexed_vcfs)
+      pangenie.out.indexed_vcfs.set{indexed_vcfs}
     }
 
     else if(params.graph_method != "pangenie") {
