@@ -30,7 +30,7 @@ params.repeatmasker_threads = 1
 params.pangenie_memory      = null
 params.pangenie_threads     = 1
 params.make_graph_memory    = null
-params.make_graph_threads   = 1 
+params.make_graph_threads   = 1
 params.graph_align_memory   = null
 params.graph_align_theads   = 1
 params.vg_call_memory       = null
@@ -239,8 +239,8 @@ process repeatmask_VCF {
   file(ref_fasta)
 
   output:
-  file("genotypes_repmasked_filtered.vcf"), emit: tsd_ch, tsd_search_ch, tsd_gather_ch
-  path("repeatmasker_dir/"), emit: tsd_RM_ch, tsd_search_RM_ch
+  file("genotypes_repmasked_filtered.vcf"), emit: RM_vcf_ch
+  path("repeatmasker_dir/"), emit: RM_dir_ch
 
   script:
   if(params.mammal)
@@ -274,7 +274,7 @@ process tsd_prep {
   file(ref_fasta)
 
   output:
-  file("indels.txt"), emit: tsd_search_input, tsd_count_input
+  file("indels.txt"), emit: tsd_search_input
 
   file("SV_sequences_L_R_trimmed_WIN.fa"), emit: tsd_search_SV
   file("flanking_sequences.fasta"), emit: tsd_search_flanking
@@ -299,7 +299,7 @@ process tsd_report {
   output:
   path("TSD_summary.txt"), emit: tsd_sum_group_ch
   path("TSD_full_log.txt"), emit: tsd_full_group_ch
-  path("pangenome.vcf"), emit: vcf_ch, vcf_merge_ch
+  path("pangenome.vcf"), emit: vcf_ch
 
   script:
   """
@@ -345,7 +345,7 @@ process make_graph {
   file fasta
 
   output:
-  file "index", emit: graph_index_ch, vg_index_call_ch
+  file "index", emit: graph_index_ch
 
   script:
   prep = """
@@ -448,22 +448,16 @@ process merge_VCFs {
 
 workflow {
   // initiate channels that will provide the reference genome to processes
-  Channel.fromPath(params.reference).into{ref_geno_ch;
-                                          ref_asm_ch;
-                                          ref_sniffles_sample_call_ch;
-                                          ref_sniffles_population_call_ch;
-                                          ref_repeatmasker_ch;
-                                          ref_tsd_ch;
-                                          ref_tsd_search_ch}
+  Channel.fromPath(params.reference).set{ref_asm_ch}
 
   if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     if(params.longreads) {
       Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
-        [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_sniffles_sample_call_ch).set{sniffles_sample_call_in_ch}
+        [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{sniffles_sample_call_in_ch}
 
       sniffles_sample_call(sniffles_sample_call_in_ch)
       sniffles_population_call(sniffles_sample_call.sniffles_sample_call_out_ch.collect(),
-                               ref_sniffles_population_call_ch)
+                               ref_asm_ch)
     }
     if(params.assemblies) {
       Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
@@ -481,8 +475,8 @@ workflow {
   if(!params.graffite_vcf) {
     // except if --RM_vcf is given, in which case skip RepeatMasker here and set the input channel
     if(params.RM_vcf){
-      Channel.fromPath(params.RM_vcf).into{tsd_ch; tsd_search_ch; tsd_gather_ch}
-      Channel.fromPath(params.RM_dir).into{tsd_RM_ch; tsd_search_RM_ch}
+      Channel.fromPath(params.RM_vcf).set{RM_vcf_ch}
+      Channel.fromPath(params.RM_dir).set{RM_dir_ch}
     } else {
       Channel.fromPath(params.TE_library).set{TE_library_ch}
       // we need to set the vcf input depending what was given
@@ -495,43 +489,41 @@ workflow {
       } else if(params.vcf){
         Channel.fromPath(params.vcf).set{raw_vcf_ch}
       }
-      repeatmask_VCF(raw_vcf_ch, ref_repeatmasker_ch)
+      repeatmask_VCF(raw_vcf_ch, ref_asm_ch)
     }
-    tsd_prep(tsd_ch, tsd_RM_ch, ref_tsd_ch)
+    tsd_prep(RM_vcf_ch, RM_dir_ch, ref_asm_ch)
     tsd_search(tsd_search_input.splitText( by: params.tsd_batch_size),
-               tsd_search_ch.toList(),
+               RM_vcf_ch.toList(),
                tsd_prep.tsd_search_SV.toList(),
                tsd_prep.tsd_search_flanking.toList(),
-               tsd_search_RM_ch.toList(),
-               ref_tsd_search_ch.toList())
+               RM_dir_ch.toList(),
+               ref_asm_ch.toList())
     tsd_report(tsd_search.tsd_out_ch.collect(),
                tsd_search.tsd_full_out_ch.collect(),
-               tsd_gather_ch)
-    tsd_report.vcf_ch.into(vcf_ch)
-    tsd_report.vcf_merge_ch.into(vcf_merge_ch)
+               RM_vcf_ch)
+    tsd_report.vcf_ch.set{vcf_ch}
   } else {
     // if a vcf is provided as parameter, skip discovery and go directly to genotyping
-    Channel.fromPath(params.graffite_vcf).into{vcf_ch; vcf_merge_ch}
+    Channel.fromPath(params.graffite_vcf).set{vcf_ch}
   }
 
   if(params.genotype) {
     Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
 
     if(params.graph_method == "pangenie") {
-      reads_ch.combine(vcf_ch).combine(ref_geno_ch).set{input_ch}
+      reads_ch.combine(vcf_ch).combine(ref_asm_ch).set{input_ch}
       pangenie(input_ch)
       pangenie.indexed_vcfs(indexed_vcfs)
     }
 
     else if(params.graph_method != "pangenie") {
-      make_graph(vcf_ch, ref_geno_ch)
+      make_graph(vcf_ch, ref_asm_ch)
       reads_ch.combine(make_graph.graph_index_ch).set{reads_align_ch}
       graph_align_reads(reads_align_ch)
-      aligned_ch.combine(vg_index_call_ch).set{graph_pack_ch}
+      aligned_ch.combine(graph_index_call_ch).set{graph_pack_ch}
       vg_call(graph_pack_ch)
-      vg_call.indexed_vcfs.into(indexed_vcfs)
     }
 
-    merge_VCFs(indexed_vcfs.collect(), vcf_merge_ch)
+    merge_VCFs(vg_call.indexed_vcfs.collect(), vcf_ch)
   }
 }
