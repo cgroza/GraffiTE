@@ -489,7 +489,7 @@ workflow {
       } else if(params.vcf){
         Channel.fromPath(params.vcf).set{raw_vcf_ch}
       }
-      repeatmask_VCF(raw_vcf_ch, ref_asm_ch)
+      repeatmask_VCF(raw_vcf_ch, TE_library_ch, ref_asm_ch)
     }
     tsd_prep(RM_vcf_ch, RM_dir_ch, ref_asm_ch)
     tsd_search(tsd_search_input.splitText( by: params.tsd_batch_size),
