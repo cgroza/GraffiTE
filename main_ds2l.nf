@@ -109,11 +109,11 @@ process sniffles_sample_call {
   publishDir "${params.out}/1_SV_search/sniffles2_individual_VCFs", mode: 'copy'
 
   input:
-  tuple val(sample_name), file(longreads), val(type), file(ref)
+  tuple val(sample_name), path(longreads), val(type), path(ref)
 
   output:
-  file "${sample_name}.snf", emit: sniffles_sample_call_out_ch
-  file "${sample_name}.vcf"
+  path("${sample_name}.snf"), emit: sniffles_sample_call_out_ch
+  path("${sample_name}.vcf")
 
   script:
   """
@@ -129,12 +129,12 @@ process sniffles_population_call {
   publishDir "${params.out}/1_SV_search", mode: 'copy'
 
   input:
-  file snfs
-  file ref
+  path(snfs)
+  path(ref)
 
   output:
-  file "*variants.vcf", emit: sn_variants_ch
-  file "snfs.tsv"
+  path("*variants.vcf"), emit: sn_variants_ch
+  path("snfs.tsv")
 
   """
   ls *.snf > snfs.tsv
@@ -150,10 +150,10 @@ process svim_asm {
   publishDir "${params.out}/1_SV_search/svim-asm_individual_VCFs/", mode: 'copy'
 
   input:
-  tuple val(asm_name), file(asm), file(ref)
+  tuple val(asm_name), path(asm), path(ref)
 
   output:
-  tuple val(asm_name), file("${asm_name}.vcf"), emit: svim_out_ch
+  tuple val(asm_name), path("${asm_name}.vcf"), emit: svim_out_ch
 
   script:
   """
@@ -171,11 +171,11 @@ process survivor_merge {
   publishDir "${params.out}/1_SV_search", mode: 'copy'
 
   input:
-  file(vcfs)
+  path(vcfs)
 
   output:
-  file "*variants.vcf", emit: sv_variants_ch
-  file "vcfs.txt"
+  path("*variants.vcf"), emit: sv_variants_ch
+  path("vcfs.txt")
 
   script:
   """
@@ -188,11 +188,11 @@ process merge_svim_sniffles2 {
   publishDir "${params.out}/1_SV_search", mode: 'copy'
 
   input:
-  file(svim_vcf)
-  file(sniffles_vcf)
+  path(svim_vcf)
+  path(sniffles_vcf)
 
   output:
-  file "svim-sniffles_merged_variants.vcf", emit: sv_sn_variants_ch
+  path("svim-sniffles_merged_variants.vcf"), emit: sv_sn_variants_ch
 
   script:
   """
@@ -234,12 +234,12 @@ process repeatmask_VCF {
   publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
 
   input:
-  file("genotypes.vcf")
-  file(TE_library)
-  file(ref_fasta)
+  path("genotypes.vcf")
+  path(TE_library)
+  path(ref_fasta)
 
   output:
-  file("genotypes_repmasked_filtered.vcf"), emit: RM_vcf_ch
+  path("genotypes_repmasked_filtered.vcf"), emit: RM_vcf_ch
   path("repeatmasker_dir/"), emit: RM_dir_ch
 
   script:
@@ -269,15 +269,15 @@ process tsd_prep {
   memory params.tsd_memory
 
   input:
-  file("genotypes_repmasked_filtered.vcf")
+  path("genotypes_repmasked_filtered.vcf")
   path("repeatmasker_dir/*")
-  file(ref_fasta)
+  path(ref_fasta)
 
   output:
-  file("indels.txt"), emit: tsd_search_input
+  path("indels.txt"), emit: tsd_search_input
 
-  file("SV_sequences_L_R_trimmed_WIN.fa"), emit: tsd_search_SV
-  file("flanking_sequences.fasta"), emit: tsd_search_flanking
+  path("SV_sequences_L_R_trimmed_WIN.fa"), emit: tsd_search_SV
+  path("flanking_sequences.fasta"), emit: tsd_search_flanking
 
   script:
   """
@@ -324,10 +324,10 @@ process pangenie {
   publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
   input:
-  tuple val(sample_name), file(sample_reads), file(vcf), file(ref)
+  tuple val(sample_name), path(sample_reads), path(vcf), path(ref)
 
   output:
-  file("${sample_name}_genotyping.vcf.gz*"), emit: indexed_vcfs
+  path("${sample_name}_genotyping.vcf.gz*"), emit: indexed_vcfs
 
   script:
   """
@@ -341,11 +341,11 @@ process make_graph {
   cpus params.make_graph_threads
   memory params.make_graph_memory
   input:
-  file vcf
-  file fasta
+  path(vcf)
+  path(fasta)
 
   output:
-  file "index", emit: graph_index_ch
+  path("index"), emit: graph_index_ch
 
   script:
   prep = """
@@ -378,10 +378,10 @@ process graph_align_reads {
   errorStrategy 'finish'
 
   input:
-  tuple val(sample_name), file(sample_reads), file("index")
+  tuple val(sample_name), path(sample_reads), path("index")
 
   output:
-  tuple val(sample_name), file("${sample_name}.gam"), file("${sample_name}.pack"), emit: aligned_ch
+  tuple val(sample_name), path("${sample_name}.gam"), path("${sample_name}.pack"), emit: aligned_ch
 
   script:
   pack =  """
@@ -407,10 +407,10 @@ process vg_call {
   memory params.vg_call_memory
 
   input:
-  tuple val(sample_name), file(gam), file(pack), file("index")
+  tuple val(sample_name), path(gam), path(pack), path("index")
 
   output:
-  file("${sample_name}.vcf.gz*"), emit: indexed_vcfs
+  path("${sample_name}.vcf.gz*"), emit: indexed_vcfs
 
   script:
   """
@@ -425,11 +425,11 @@ process merge_VCFs {
   publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
 
   input:
-  file vcfFiles
-  path pangenome_vcf
+  path(vcfFiles)
+  path(pangenome_vcf)
 
   output:
-  file "GraffiTE.merged.genotypes.vcf", emit: typeref_outputs
+  path("GraffiTE.merged.genotypes.vcf"), emit: typeref_outputs
 
   script:
   """
@@ -453,7 +453,7 @@ workflow {
   if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     if(params.longreads) {
       Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
-        [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{sniffles_sample_call_in_ch}
+        [row.sample, path(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{sniffles_sample_call_in_ch}
 
       sniffles_sample_call(sniffles_sample_call_in_ch)
       sniffles_population_call(sniffles_sample_call.out.sniffles_sample_call_out_ch.collect(),
@@ -461,7 +461,7 @@ workflow {
     }
     if(params.assemblies) {
       Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
-        [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch).set{svim_in_ch}
+        [row.sample, path(row.path, checkIfExists:true)]}.combine(ref_asm_ch).set{svim_in_ch}
       svim_asm(svim_in_ch)
       survivor_merge(svim_asm.out.svim_out_ch.map{sample -> sample[1]}.collect())
     }
@@ -508,7 +508,7 @@ workflow {
   }
 
   if(params.genotype) {
-    Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
+    Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, path(row.path, checkIfExists:true)]}.set{reads_ch}
 
     if(params.graph_method == "pangenie") {
       reads_ch.combine(vcf_ch).combine(ref_asm_ch).set{input_ch}
