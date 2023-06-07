@@ -544,8 +544,9 @@ workflow {
       make_graph(vcf_ch, ref_asm_ch)
       reads_ch.combine(make_graph.out.graph_index_ch).set{reads_align_ch}
       graph_align_reads(reads_align_ch)
-      aligned_ch.combine(make_graph.out.graph_index_ch).set{graph_pack_ch}
+      graph_align_reads.out.aligned_ch.combine(make_graph.out.graph_index_ch).set{graph_pack_ch}
       vg_call(graph_pack_ch)
+      vg_call.out.indexed_vcfs.set{indexed_vcfs}
     }
 
     merge_VCFs(indexed_vcfs.collect(), vcf_ch)
