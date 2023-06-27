@@ -21,6 +21,9 @@
 ----
 
 ## Changelog
+**beta 0.2.4 (06-27-23)**:
+- Refactored `GraffiTE` to use the DSL2 Nextflow syntax.
+
 **beta 0.2.3 (02-21-22)**:
 
 - :new: feature: You can now perform the initial SV search from both assemblies and long-read together. The variants discovered with each method will be merged together for the filtering and genotyping.

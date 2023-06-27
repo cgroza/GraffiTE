@@ -51,6 +51,8 @@ of this Github.**
 
 Changelog
 =========
+**beta 0.2.4 (06-27-23)**:
+- Refactored `GraffiTE` to use the DSL2 Nextflow syntax.
 
 **beta 0.2.3 (02-21-22)**:
 
