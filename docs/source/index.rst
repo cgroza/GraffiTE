@@ -274,7 +274,8 @@ GraffiTE install
          once)
 
    ::
-
+      apptainer remote add --no-login SylabsCloud cloud.sycloud.io
+      apptainer remote use SylabsCloud
       apptainer pull --arch amd64 graffite_latest.sif library://cgroza/collection/graffite:latest
 
    -  
