@@ -83,23 +83,23 @@
 
 ### Prerequisites
 
-`GraffiTE` is a `Nextflow` pipeline, with all the dependencies wrapped in a `Singularity` image. It is thus compatible with any Linux system including HPCs.
+`GraffiTE` is a `Nextflow` pipeline, with all the dependencies wrapped in an `Apptainer` image. It is thus compatible with any Linux system including HPCs.
 
 - install [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html)
-- install [Singularity](https://apptainer.org/admin-docs/master/installation.html)
+- install [Apptainer](https://apptainer.org/admin-docs/master/installation.html)
 
 ### GraffiTE install
 
-- If an internet connection is accessible from the compute nodes, the general command shown in the next section will download and cache the `GraffiTE` pipeline and Singularity image for local use. Later runs will skip the slow download step.
+- If an internet connection is accessible from the compute nodes, the general command shown in the next section will download and cache the `GraffiTE` pipeline and Apptainer image for local use. Later runs will skip the slow download step.
 
-- Alternatively, this repository can be cloned and the singularity image downloaded at a specific location:
+- Alternatively, this repository can be cloned and the apptainer image downloaded at a specific location:
    - 1. Clone the Github repository
    ```
    git clone https://github.com/cgroza/GraffiTE.git
    ```
-   - 2. Pull the singularity image (this is long but only required once)
+   - 2. Pull the apptainer image (this is long but only required once)
    ```
-   singularity pull --arch amd64 graffite_latest.sif library://cgroza/collection/graffite:latest
+   apptainer pull --arch amd64 graffite_latest.sif library://cgroza/collection/graffite:latest
    ```
    - 3. Override the default image path in the file `nextflow.config` from `library://cgroza/collection/graffite:latest` to `<your-path>/graffite_latest.sif`. Alternatively, the `Nextflow` command `-with-singularity <your-path>/graffite_latest.sif` can be used when running `GraffiTE` (it will override the presets in `nextflow.config`).
 
@@ -116,7 +116,7 @@ nextflow run cgroza/GraffiTE \
    --reads reads.csv
 ```
 
-- If using from a local singularity image and with a clone of the Github repository:
+- If using from a local apptainer image and with a clone of the Github repository:
 
 ```
 nextflow run <path-to-install>/GraffiTE/main.nf \
@@ -257,7 +257,7 @@ These parameters can be used to bypass different steps of the pipeline.
 `Nextflow`-specific parameters can be passed in addition to those presented above. These parameters can be distinguished by the use of a single `-`, such as `-resume`. See `Nextflow` documentation for more details.
 
 - `-resume`: if nothing is changed in the command line and the `/work` folder created by `Nextflow`, the pipeline will resume after the last chached process.
-- `-with-singularity`: if a local singularity image is used, this parameter will override the default image path given in `nextflow.config`.
+- `-with-singularity`: if a local apptainer image is used, this parameter will override the default image path given in `nextflow.config`.
 - `-with-report report.html`: for a Nextflow report on resource usage to help tune the CPU and memory parameters for your genome/species.
 
 ## Outputs

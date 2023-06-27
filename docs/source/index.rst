@@ -241,23 +241,23 @@ Prerequisites
 -------------
 
 ``GraffiTE`` is a ``Nextflow`` pipeline, with all the dependencies
-wrapped in a ``Singularity`` image. It is thus compatible with any Linux
+wrapped in an ``Apptainer`` image. It is thus compatible with any Linux
 system including HPCs.
 
 -  install
    `Nextflow <https://www.nextflow.io/docs/latest/getstarted.html>`__
 -  install
-   `Singularity <https://apptainer.org/admin-docs/master/installation.html>`__
+   `Apptainer <https://apptainer.org/admin-docs/master/installation.html>`__
 
 GraffiTE install
 ----------------
 
 -  If an internet connection is accessible from the compute nodes, the
    general command shown in the next section will download and cache the
-   ``GraffiTE`` pipeline and Singularity image for local use. Later runs
+   ``GraffiTE`` pipeline and Apptainer image for local use. Later runs
    will skip the slow download step.
 
--  Alternatively, this repository can be cloned and the singularity
+-  Alternatively, this repository can be cloned and the apptainer
    image downloaded at a specific location:
 
    -  
@@ -270,12 +270,12 @@ GraffiTE install
 
    -  
 
-      2. Pull the singularity image (this is long but only required
+      2. Pull the apptainer image (this is long but only required
          once)
 
    ::
 
-      singularity pull --arch amd64 graffite_latest.sif library://cgroza/collection/graffite:latest
+      apptainer pull --arch amd64 graffite_latest.sif library://cgroza/collection/graffite:latest
 
    -  
 
@@ -301,7 +301,7 @@ Running GraffiTE
       --graph_method pangenie \
       --reads reads.csv
 
--  If using from a local singularity image and with a clone of the
+-  If using from a local apptainer image and with a clone of the
    Github repository:
 
 ::
@@ -572,7 +572,7 @@ more details.
 -  ``-resume``: if nothing is changed in the command line and the
    ``/work`` folder created by ``Nextflow``, the pipeline will resume
    after the last chached process.
--  ``-with-singularity``: if a local singularity image is used, this
+-  ``-with-singularity``: if a local apptainer image is used, this
    parameter will override the default image path given in
    ``nextflow.config``.
 -  ``-with-report report.html``: for a Nextflow report on resource usage
