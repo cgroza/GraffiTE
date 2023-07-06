@@ -153,7 +153,7 @@ This will show a complete run of the GraffiTE pipeline, with the output stored i
    /path/to/assembly/sampleZ.fa,sampleZ_name
    ```
 
-OR
+AND/OR
 
 - `--longreads`: a CSV file that lists the longreads FASTQ, sample names, and type of longreads (hifi/pb/ont) from which polymorphisms are to be discovered. One FASTQ per sample and sample names must be unique. **The header is required**.
 
