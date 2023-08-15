@@ -377,6 +377,7 @@ process make_graph {
   """
   finish = """
   vg snarls index/${graph} > index/index.pb
+  vg gbwt -v sorted.vcf.gz -x ${graph} > index/sorted.gbwt
   """
   switch(params.graph_method) {
     case "giraffe":
@@ -436,7 +437,7 @@ process vg_call {
 
   script:
   """
-  vg call -a -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} > ${sample_name}.vcf
+  vg call -g index/sorted.gbwt -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} > ${sample_name}.vcf
   bgzip ${sample_name}.vcf
   tabix ${sample_name}.vcf.gz
   """
