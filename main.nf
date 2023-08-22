@@ -387,7 +387,7 @@ process make_graph {
       break
     case "graphaligner":
       prep + """
-      // export TMPDIR=$PWD
+      # export TMPDIR=$PWD
       vg construct -a  -r ${fasta} -v ${vcf} -m 1024 > index/index.vg
       """ + finish
       break
