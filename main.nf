@@ -377,7 +377,7 @@ process make_graph {
   """
   finish = """
   vg snarls index/${graph} > index/index.pb
-  vg gbwt -v sorted.vcf.gz -x ${graph} -o index/sorted.gbwt
+  vg gbwt -v sorted.vcf.gz -x index/${graph} -o index/sorted.gbwt
   """
   switch(params.graph_method) {
     case "giraffe":
