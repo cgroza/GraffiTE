@@ -112,19 +112,19 @@ process map_asm {
   tuple val(asm_name), path(asm), path(ref)
 
   output:
-  tuple val(asm_name), path("asm/asm.sorted.bam"), path(ref), emit: map_asm_ch
+  tuple val(asm_name), path("asm.sorted.bam"), path(ref), emit: map_asm_ch
 
   script:
   if(params.aligner == "minimap2") {
     """
-    minimap2 -a -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm/asm.sorted.bam -
+    minimap2 -a -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
       """
   }
   else if(params.aligner == "winnowmap") {
     """
     meryl count k=19 output merylDB ${ref}
     meryl print greater-than distinct=0.9998 merylDB > repetitive_k19.txt
-    winnowmap -a  -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} -W repetitive_k19.txt ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm/asm.sorted.bam -
+    winnowmap -a  -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} -W repetitive_k19.txt ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
     """
   }
 }
