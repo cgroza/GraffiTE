@@ -146,7 +146,7 @@ process map_longreads {
     minimap2 -t ${sniffles_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
       """
   }
-  else if(prarams.aligner == "winnowmap") {
+  else if(params.aligner == "winnowmap") {
     """
     meryl count k=15 output merylDB ${ref}
     meryl print greater-than distinct=0.9998 merylDB > repetitive_k15.txt
