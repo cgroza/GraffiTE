@@ -120,7 +120,7 @@ process map_asm {
     minimap2 -a -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm/asm.sorted.bam -
       """
   }
-  else if(prarams.aligner == "winnowmap") {
+  else if(params.aligner == "winnowmap") {
     """
     meryl count k=19 output merylDB ${ref}
     meryl print greater-than distinct=0.9998 merylDB > repetitive_k19.txt
