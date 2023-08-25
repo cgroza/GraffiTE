@@ -22,6 +22,10 @@ params.asm_divergence = "asm5"
 params.aligner        = "minimap2" // or winnowmap
 
 // ideally, we should have defaults relative to genome size
+params.map_longreads_memory = null
+params.map_longreads_threads = 1
+params.map_asm_memory = null
+params.map_asm_threads = 1
 params.svim_asm_memory      = null
 params.svim_asm_threads     = 1
 params.sniffles_memory      = null
@@ -41,6 +45,8 @@ params.min_support          = "2,4"
 
 
 //adding time directive options for some processes
+params.map_asm_time = "3h"
+params.map_longreads_time = "12h"
 params.graph_align_time    = "12h"
 params.svim_asm_time       = "12h"
 params.sniffles_time       = "12h"
@@ -77,6 +83,8 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 // if user uses global preset for number of cores
 if(params.cores) {
+map_asm_threads      = params.cores
+repeatmasker_threads = params.cores
 repeatmasker_threads = params.cores
 svim_asm_threads     = params.cores
 pangenie_threads     = params.cores
@@ -84,12 +92,14 @@ graph_align_threads  = params.cores
 vg_call_threads      = params.cores
 sniffles_threads     = params.cores
 } else {
-repeatmasker_threads = params.repeatmasker_threads
-svim_asm_threads     = params.svim_asm_threads
-pangenie_threads     = params.pangenie_threads
-graph_align_threads  = params.graph_align_threads
-vg_call_threads      = params.vg_call_threads
-sniffles_threads     = params.sniffles_threads
+map_longreads_threads = params.map_longreads_threads
+map_asm_threads       = params.map_asm_threads
+repeatmasker_threads  = params.repeatmasker_threads
+svim_asm_threads      = params.svim_asm_threads
+pangenie_threads      = params.pangenie_threads
+graph_align_threads   = params.graph_align_threads
+vg_call_threads       = params.vg_call_threads
+sniffles_threads      = params.sniffles_threads
 }
 
 String graph =  ""
@@ -104,9 +114,9 @@ switch(params.graph_method) {
 
 
 process map_asm {
-  cpus svim_asm_threads
-  memory params.svim_asm_memory
-  time params.svim_asm_time
+  cpus map_asm_threads
+  memory params.map_asm_memory
+  time params.map_asm_time
 
   input:
   tuple val(asm_name), path(asm), path(ref)
@@ -130,9 +140,9 @@ process map_asm {
 }
 
 process map_longreads {
-  cpus sniffles_threads
-  memory params.sniffles_memory
-  time params.sniffles_time
+  cpus map_longreads_threads
+  memory params.map_longreads_memory
+  time params.map_longreads_time
 
   input:
   tuple val(sample_name), path(longreads), val(type), path(ref)
