@@ -464,7 +464,7 @@ process merge_VCFs {
   cat P_header P_sorted_body > pangenome.sorted.vcf
   bgzip pangenome.sorted.vcf
   tabix -p vcf pangenome.sorted.vcf.gz
-  bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,~ID,REF,ALT,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
+  bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,REF,ALT,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
   """
 }
 
