@@ -503,7 +503,7 @@ workflow {
       Channel.fromPath(params.TE_library).set{TE_library_ch}
       // we need to set the vcf input depending what was given
       if(params.longreads && !params.assemblies){
-        sniffles_population_call.sn_variants_ch.set { raw_vcf_ch }
+        sniffles_population_call.out.sn_variants_ch.set { raw_vcf_ch }
       } else if (params.assemblies && !params.longreads){
         survivor_merge.out.sv_variants_ch.set { raw_vcf_ch }
       } else if (params.assemblies && params.longreads){
