@@ -1,4 +1,4 @@
-#GraffiTE paper // supporting data and code
+# GraffiTE paper // supporting data and code
 
 This directory contains analysis scripts associated with the GraffiTE paper. 
 Associated datasets can be downloaded from [Zenondo]() (the archive uses the same directory topology).
