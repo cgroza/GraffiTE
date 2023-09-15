@@ -1,6 +1,6 @@
 ![](https://i.imgur.com/jvprOAS.png)
 
-[![status](https://img.shields.io/badge/status:-v0.2.5_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]()
+[![status](https://img.shields.io/badge/status:-v0.2.5_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]() [![status: preprint](https://img.shields.io/badge/preprint:-BioRxiv:doi.org/10.1101/2023.09.11.557209-red)](https://doi.org/10.1101/2023.09.11.557209)
 
 ## Description
 
@@ -13,6 +13,8 @@
 
 3. Each candidate repeat polymorphism is induced in a graph-genome where TEs and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie), [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871) or  [`GraphAligner`](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02157-2).
 ![](https://i.imgur.com/UyT62yp.png)
+
+🗞️ GraffiTE preprint now on [BioRxiv](https://doi.org/10.1101/2023.09.11.557209)!
 
 ----
 
