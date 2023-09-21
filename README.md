@@ -1,6 +1,6 @@
 ![](https://i.imgur.com/jvprOAS.png)
 
-[![status](https://img.shields.io/badge/status:-v0.2.3_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]()
+[![status](https://img.shields.io/badge/status:-v0.2.5_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]() [![status: preprint](https://img.shields.io/badge/preprint:-BioRxiv:doi.org/10.1101/2023.09.11.557209-red)](https://doi.org/10.1101/2023.09.11.557209)
 
 ## Description
 
@@ -14,6 +14,8 @@
 3. Each candidate repeat polymorphism is induced in a graph-genome where TEs and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie), [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871) or  [`GraphAligner`](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02157-2).
 ![](https://i.imgur.com/UyT62yp.png)
 
+🗞️ GraffiTE preprint now on [BioRxiv](https://doi.org/10.1101/2023.09.11.557209)!
+
 ----
 
 ⚠️ **This is a beta version, with no guarantees! Bug/issues as well as comments and suggestions are welcomed in the [Issue](https://github.com/cgroza/GraffiTE/issues) section of this Github.**
@@ -21,15 +23,29 @@
 ----
 
 ## Changelog
-**beta 0.2.4 (06-27-23)**:
+
+**beta 0.2.5 (09-11-23):**
+- :beetle: bug fix: fix a VCF annotation issue that was happening when two distinct variants shared the same VCF POS field. Annotations are now distinct depending on the variant sequence.
+- cleanup GraphAligner VCF outputs for clarity.
+
+
+<details><summary>beta 0.2.4 (06-27-23)**:</summary>
+<p>
+
 - Refactored `GraffiTE` to use the DSL2 Nextflow syntax.
 
-**beta 0.2.3 (02-21-22)**:
+</p>
+</details>
+
+<details><summary>beta 0.2.3 (02-21-22):</summary>
+<p>
 
 - :new: feature: You can now perform the initial SV search from both assemblies and long-read together. The variants discovered with each method will be merged together for the filtering and genotyping.
 - :new: parameters with defaults added to control time, cpu and memory for each process. This is useful to manage cluster requests when `-profile cluster` is used.
 - :beetle: bug fix: merging of variant now only occurs for the same SVTYPE flag (INS or DEL).
 
+</p>
+</details>
 
 <details><summary>beta 0.2.2 (02-01-22):</summary>
 <p>

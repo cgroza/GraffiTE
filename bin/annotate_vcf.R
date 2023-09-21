@@ -108,7 +108,7 @@ annot <- left_join(vcf_df, rep_mask, by = "qry_id") %>%
   #mutate(total_match_span = total_match_length / qry_length) %>%
     select(-c(qry_length)) %>%
     arrange(CHROM, POS, qry_id) %>%
-    select(CHROM, POS, qry_id, n_hits, fragmts, match_lengths, repeat_ids, matching_classes, strands, RM_id) #, total_match_length, total_match_span)
+    select(CHROM, POS, qry_id, REF, ALT, n_hits, fragmts, match_lengths, repeat_ids, matching_classes, strands, RM_id) #, total_match_length, total_match_span)
 
 write_tsv(annot, file = opt$annotation, col_names = F)
 print(colnames(annot))

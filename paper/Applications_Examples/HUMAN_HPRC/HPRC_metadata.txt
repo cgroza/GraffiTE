@@ -1,0 +1,48 @@
+Sample	Cohort	Sex	FamilyID	Subpopulation	Region	Label
+HG01123	HPRC	female	CLM02	CLM	AMR	Colombians, Medelin
+HG01258	HPRC	male	CLM16	CLM	AMR	Colombians, Medelin
+HG01358	HPRC	male	CLM31	CLM	AMR	Colombians, Medelin
+HG01361	HPRC	female	CLM32	CLM	AMR	Colombians, Medelin
+HG01891	HPRC	female	BB05	ACB	AFR	African Caribbean, Barbados
+HG02257	HPRC	female	BB21	ACB	AFR	African Caribbean, Barbados
+HG02486	HPRC	male	BB55	ACB	AFR	African Caribbean, Barbados
+HG02559	HPRC	female	BB68	ACB	AFR	African Caribbean, Barbados
+HG02572	HPRC	male	GB21	GWD	AFR	Gambian, Western Division
+HG03516	HPRC	female	NG107	ESN	AFR	Esan, Nigeria
+HG00438	HPRC	female	SH012	CHS	EAS	Southern Han Chinese
+HG00621	HPRC	male	SH066	CHS	EAS	Southern Han Chinese
+HG00673	HPRC	male	SH079	CHS	EAS	Southern Han Chinese
+HG00735	HPRC	female	PR06	PUR	AMR	Puerto Rican, Puerto Rico
+HG00741	HPRC	female	PR09	PUR	AMR	Puerto Rican, Puerto Rico
+HG01071	HPRC	female	PR17	PUR	AMR	Puerto Rican, Puerto Rico
+HG01106	HPRC	male	PR25	PUR	AMR	Puerto Rican, Puerto Rico
+HG01175	HPRC	female	PR36	PUR	AMR	Puerto Rican, Puerto Rico
+HG01928	HPRC	male	PEL011	PEL	AMR	Peruvian, Lima
+HG01952	HPRC	male	PEL019	PEL	AMR	Peruvian, Lima
+HG01978	HPRC	female	PEL26	PEL	AMR	Peruvian, Lima
+HG02148	HPRC	female	PEL39	PEL	AMR	Peruvian, Lima
+HG02622	HPRC	female	GB31	GWD	AFR	Gambian, Western Division
+HG02630	HPRC	female	GB33	GWD	AFR	Gambian, Western Division
+HG02717	HPRC	male	GB50	GWD	AFR	Gambian, Western Division
+HG02886	HPRC	female	GB89	GWD	AFR	Gambian, Western Division
+HG03453	HPRC	female	SL50	MSL	AFR	Mende, Sierra Leone
+HG03540	HPRC	female	GB125	GWD	AFR	Gambian, Western Division
+HG03579	HPRC	male	SL72	MSL	AFR	Mende, Sierra Leone
+HG002	HPRC_PLUS	male	3140	ASJ	ASJ	Ashkenazim Jewish, Europe (GIAB)
+HG005	HPRC_PLUS	male	3150	CHI	EAS	Chinese (GIAB)
+HG00733	HPRC_PLUS	female	PR05	PUR	AMR	Puerto Rican, Puerto Rico
+HG01109	HPRC_PLUS	male	PR33	PUR	AMR	Puerto Rican, Puerto Rico
+HG01243	HPRC_PLUS	male	PR22	PUR	AMR	Puerto Rican, Puerto Rico
+HG02080	HPRC_PLUS	female	VN068	KHV	EAS	Kinh Vietnamese
+HG02109	HPRC_PLUS	female	BB18	ACB	AFR	African Caribbean, Barbados
+HG02145	HPRC_PLUS	male	BB20	ACB	AFR	African Caribbean, Barbados
+HG02723	HPRC_PLUS	female	GB52	GWD	AFR	Gambian, Western Division
+HG02818	HPRC_PLUS	female	GB66	GWD	AFR	Gambian, Western Division
+HG03486	HPRC_PLUS	female	SL61	MSL	AFR	Mende, Sierra Leone
+HG03492	HPRC_PLUS	male	PK43	PJL	SAS	Punjabi
+NA18906	HPRC_PLUS	female	Y020	YRI	AFR	Yoruba, Nigeria
+NA19240	HPRC_PLUS	female	Y117	YRI	AFR	Yoruba, Nigeria
+NA20129	HPRC_PLUS	female	2433	ASW	AFR	African Ancestry, South-West US
+NA21309	HPRC_PLUS	female	2565	KEN	AFR	Maasai, Kenya
+HG02055	HPRC_PLUS	male	BB15	ACB	AFR	African Caribbean, Barbados
+HG03098	HPRC_PLUS	male	SL16	MSL	AFR	Mende, Sierra Leone
