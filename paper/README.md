@@ -13,7 +13,7 @@ Associated datasets can be downloaded from [Zenondo](https://zenodo.org/record/8
 
 - R analyses: `GraffiTE.GIAB.sveval.R`
 - data: `sveval_VCFS` directory (Zenondo archive): the directory contains the filtered (see paper's method) VCF files for each method and different coverage levels. See also R code file.
-	- "Truth" VCF conaining high-quality calls for Alu, L1 and SVA elements in the individual HG002. Derived from [Genome In A Bottle](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_SVs_Integration_v0.6/).
+	- `GIAB.Tier1.Alu.L1.SVA.250bp.vcf`: "Truth" VCF conaining high-quality calls for Alu, L1 and SVA elements in the individual HG002. Derived from [Genome In A Bottle](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_SVs_Integration_v0.6/).
  
 ## Application Examples
 
