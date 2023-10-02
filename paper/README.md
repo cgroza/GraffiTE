@@ -1,9 +1,7 @@
 # GraffiTE paper // supporting data and code
 
 This directory contains analysis scripts associated with the GraffiTE paper. 
-Associated datasets can be downloaded from [Zenondo]() (the archive uses the same directory topology).
-
->note (09-11-24): I am currently awaiting the BioRxiv DOI to push the data to Zenondo, for specifics, please [email me](mailto:goubert.clement@gmail.com) directly -- CG.
+Associated datasets can be downloaded from [Zenondo](https://zenodo.org/record/8400868) (the archive uses the same directory topology).
 
 ## Simulations
 
@@ -15,7 +13,8 @@ Associated datasets can be downloaded from [Zenondo]() (the archive uses the sam
 
 - R analyses: `GraffiTE.GIAB.sveval.R`
 - data: `sveval_VCFS` directory (Zenondo archive): the directory contains the filtered (see paper's method) VCF files for each method and different coverage levels. See also R code file.
-
+	- "Truth" VCF conaining high-quality calls for Alu, L1 and SVA elements in the individual HG002. Derived from [Genome In A Bottle](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data/AshkenazimTrio/analysis/NIST_SVs_Integration_v0.6/).
+ 
 ## Application Examples
 
 ### Human (HPRC)
