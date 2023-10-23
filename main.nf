@@ -83,8 +83,8 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 // if user uses global preset for number of cores
 if(params.cores) {
+map_longreads_threads = params.cores
 map_asm_threads      = params.cores
-repeatmasker_threads = params.cores
 repeatmasker_threads = params.cores
 svim_asm_threads     = params.cores
 pangenie_threads     = params.cores
