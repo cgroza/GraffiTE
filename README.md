@@ -109,7 +109,12 @@
 
 ### GraffiTE install
 
-- If an internet connection is accessible from the compute nodes, the general command shown in the next section will download and cache the `GraffiTE` pipeline and Apptainer image for local use. Later runs will skip the slow download step.
+- If an internet connection is accessible from the compute nodes, the general command shown in the next section will download and cache the `GraffiTE` pipeline and Apptainer image for local use. Later runs will skip the slow download step. It is however required to add the repository to the apptainer list, by typing:
+
+```
+apptainer remote add --no-login SylabsCloud cloud.sycloud.io
+apptainer remote use SylabsCloud
+```
 
 - Alternatively, this repository can be cloned and the apptainer image downloaded at a specific location:
    - 1. Clone the Github repository
@@ -123,6 +128,28 @@
    apptainer pull --arch amd64 graffite_latest.sif library://cgroza/collection/graffite:latest
    ```
    - 3. Override the default image path in the file `nextflow.config` from `library://cgroza/collection/graffite:latest` to `<your-path>/graffite_latest.sif`. Alternatively, the `Nextflow` command `-with-singularity <your-path>/graffite_latest.sif` can be used when running `GraffiTE` (it will override the presets in `nextflow.config`).
+
+## Important note
+
+We are aware of a common issue araising when the pipeline call a temporary directory (/tmp). The most common symptom is that though the program may complete without error, it skips over "tsd_search" and "tsd_report". The program wont produce a vcf file (`3_TSD_search/pangenome.vcf`) and the vcf in `2_Repeat_Filter` has no variants. While we will try to fix this in a next update, an easy fix is to ammend the `nextflow.config` file as follow. 
+
+1. Locate the file:
+   - Either in `~/.nextflow/assets/cgroza/GraffiTE/nextflow.config`
+   - or in the cloned GitHub repository.
+
+2. Ammend the file:
+
+replace:
+```
+singularity.runOptions = '--contain'
+```
+
+with
+
+```
+singularity.runOptions = '--contain -B <path-to-writable-dir>/:/tmp'
+```
+> replace `<path-to-writable-dir>` with any writable path on your host machine
 
 ## Running GraffiTE
 
