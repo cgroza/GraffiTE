@@ -16,7 +16,6 @@ params.mammal         = false
 params.mini_K         = "500M"
 params.stSort_m       = "4G"
 params.stSort_t       = 4
-params.version        = "0.2.5 beta (09-11-2023)"
 params.tsd_batch_size = 100
 params.asm_divergence = "asm5"
 params.aligner        = "minimap2" // or winnowmap
@@ -71,7 +70,7 @@ log.info """
 ░ ░   ░   ░░   ░   ░   ▒    ░ ░    ░ ░    ▒ ░  ░         ░
 ░    ░           ░  ░               ░              ░  ░
 
-V . ${params.version}
+V . ${workflow.commitId}
 
 Find and Genotype Transposable Elements Insertion Polymorphisms
 in Genome Assemblies using a Pangenomic Approach
