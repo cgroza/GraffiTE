@@ -19,8 +19,13 @@ params.stSort_t       = 4
 params.version        = "0.2.5 beta (09-11-2023)"
 params.tsd_batch_size = 100
 params.asm_divergence = "asm5"
+params.aligner        = "minimap2" // or winnowmap
 
 // ideally, we should have defaults relative to genome size
+params.map_longreads_memory = null
+params.map_longreads_threads = 1
+params.map_asm_memory = null
+params.map_asm_threads = 1
 params.svim_asm_memory      = null
 params.svim_asm_threads     = 1
 params.sniffles_memory      = null
@@ -40,6 +45,8 @@ params.min_support          = "2,4"
 
 
 //adding time directive options for some processes
+params.map_asm_time = "3h"
+params.map_longreads_time = "12h"
 params.graph_align_time    = "12h"
 params.svim_asm_time       = "12h"
 params.sniffles_time       = "12h"
@@ -76,6 +83,8 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 // if user uses global preset for number of cores
 if(params.cores) {
+map_longreads_threads = params.cores
+map_asm_threads      = params.cores
 repeatmasker_threads = params.cores
 svim_asm_threads     = params.cores
 pangenie_threads     = params.cores
@@ -83,12 +92,14 @@ graph_align_threads  = params.cores
 vg_call_threads      = params.cores
 sniffles_threads     = params.cores
 } else {
-repeatmasker_threads = params.repeatmasker_threads
-svim_asm_threads     = params.svim_asm_threads
-pangenie_threads     = params.pangenie_threads
-graph_align_threads  = params.graph_align_threads
-vg_call_threads      = params.vg_call_threads
-sniffles_threads     = params.sniffles_threads
+map_longreads_threads = params.map_longreads_threads
+map_asm_threads       = params.map_asm_threads
+repeatmasker_threads  = params.repeatmasker_threads
+svim_asm_threads      = params.svim_asm_threads
+pangenie_threads      = params.pangenie_threads
+graph_align_threads   = params.graph_align_threads
+vg_call_threads       = params.vg_call_threads
+sniffles_threads      = params.sniffles_threads
 }
 
 String graph =  ""
@@ -102,6 +113,60 @@ switch(params.graph_method) {
 }
 
 
+process map_asm {
+  cpus map_asm_threads
+  memory params.map_asm_memory
+  time params.map_asm_time
+
+  input:
+  tuple val(asm_name), path(asm), path(ref)
+
+  output:
+  tuple val(asm_name), path("asm.sorted.bam"), path(ref), emit: map_asm_ch
+
+  script:
+  if(params.aligner == "minimap2") {
+    """
+    minimap2 -a -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
+      """
+  }
+  else if(params.aligner == "winnowmap") {
+    """
+    meryl count k=19 output merylDB ${ref}
+    meryl print greater-than distinct=0.9998 merylDB > repetitive_k19.txt
+    winnowmap -a  -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} -W repetitive_k19.txt ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
+    """
+  }
+}
+
+process map_longreads {
+  cpus map_longreads_threads
+  memory params.map_longreads_memory
+  time params.map_longreads_time
+
+  input:
+  tuple val(sample_name), path(longreads), val(type), path(ref)
+
+  output:
+  tuple val(sample_name), path("${sample_name}.bam"), path(ref), emit: map_longreads_ch
+
+  script:
+  if(params.aligner == "minimap2") {
+    """
+    minimap2 -t ${sniffles_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
+      """
+  }
+  else if(params.aligner == "winnowmap") {
+    """
+    meryl count k=15 output merylDB ${ref}
+    meryl print greater-than distinct=0.9998 merylDB > repetitive_k15.txt
+
+    winnowmap -W repetitive_k15.txt -t ${sniffles_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
+    """
+  }
+
+}
+
 process sniffles_sample_call {
   cpus sniffles_threads
   memory params.sniffles_memory
@@ -109,7 +174,7 @@ process sniffles_sample_call {
   publishDir "${params.out}/1_SV_search/sniffles2_individual_VCFs", mode: 'copy'
 
   input:
-  tuple val(sample_name), path(longreads), val(type), path(ref)
+  tuple val(sample_name), path(longreads_bam), path(ref)
 
   output:
   path("${sample_name}.snf"), emit: sniffles_sample_call_out_ch
@@ -117,9 +182,8 @@ process sniffles_sample_call {
 
   script:
   """
-  minimap2 -L -t ${sniffles_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
   samtools index ${sample_name}.bam
-  sniffles --minsvlen 100 --threads ${sniffles_threads} --reference ${ref} --input ${sample_name}.bam --snf ${sample_name}.snf --vcf ${sample_name}.vcf
+  sniffles --minsvlen 100 --threads ${sniffles_threads} --reference ${ref} --input ${longreads_bam} --snf ${sample_name}.snf --vcf ${sample_name}.vcf
   """
 }
 
@@ -150,7 +214,7 @@ process svim_asm {
   publishDir "${params.out}/1_SV_search/svim-asm_individual_VCFs/", mode: 'copy'
 
   input:
-  tuple val(asm_name), path(asm), path(ref)
+  tuple val(asm_name), path(asm_bam), path(ref)
 
   output:
   tuple val(asm_name), path("${asm_name}.vcf"), emit: svim_out_ch
@@ -158,9 +222,8 @@ process svim_asm {
   script:
   """
   mkdir asm
-  minimap2 -L -a -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm/asm.sorted.bam -
-  samtools index asm/asm.sorted.bam
-  svim-asm haploid --min_sv_size 100 --types INS,DEL --sample ${asm_name} asm/ asm/asm.sorted.bam ${ref}
+  samtools index ${asm_bam}
+  svim-asm haploid --min_sv_size 100 --types INS,DEL --sample ${asm_name} asm/ ${asm_bam} ${ref}
   sed 's/svim_asm\\./${asm_name}\\.svim_asm\\./g' asm/variants.vcf > ${asm_name}.vcf
   """
 }
@@ -475,16 +538,18 @@ workflow {
   if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     if(params.longreads) {
       Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
-        [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{sniffles_sample_call_in_ch}
+        [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{map_longreads_in_ch}
 
-      sniffles_sample_call(sniffles_sample_call_in_ch)
+      map_longreads(map_longreads_in_ch)
+      sniffles_sample_call(map_longreads.out.map_longreads_ch)
       sniffles_population_call(sniffles_sample_call.out.sniffles_sample_call_out_ch.collect(),
                                ref_asm_ch)
     }
     if(params.assemblies) {
       Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
-        [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch).set{svim_in_ch}
-      svim_asm(svim_in_ch)
+        [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch).set{map_asm_in_ch}
+      map_asm(map_asm_in_ch)
+      svim_asm(map_asm.out.map_asm_ch)
       survivor_merge(svim_asm.out.svim_out_ch.map{sample -> sample[1]}.collect())
     }
 
