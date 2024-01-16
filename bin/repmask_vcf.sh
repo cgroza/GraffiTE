@@ -73,7 +73,7 @@ paste -d "\t" <(echo -e "${i}") <(grep -w "${i}" merge.bed | awk '{print ($3-$2)
 done
 # merge with ${ANNOT_FILE}_1
 join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t/g' | \
- awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$13}' | \
+ awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$15}' | \
  awk '{if (NF == 10) {print $0"\t0\t0"} else {print $0}}' | \
  sort -k1,1 -k2,2n > ${ANNOT_FILE}
 
@@ -82,7 +82,7 @@ if [[ ${MAM} == "MAM" ]]
 then
     echo "Mammalian filters ON. Filtering..."
     # FILTER 1: L1 Twin Priming and similar
-    TwP=$(awk '{if ($4 == 2 && $9 == "C,+" && $8~/LINE/) {names = split($7,n,",",seps); ids = split($10, i,",",seps); if (names n[1] == names n[2] && ids i[1] == ids i[2]) {print $0"\tTwP"}}}' vcf_annotation | awk '{print $3}')
+    TwP=$(awk '{if ($6 == 2 && $10 == "C,+" && $8~/LINE/) {names = split($9,n,",",seps); ids = split($11, i,",",seps); if (names n[1] == names n[2] && ids i[1] == ids i[2]) {print $0"\tTwP"}}}' vcf_annotation | awk '{print $3}')
     rm TwP.txt &> /dev/null
     for i in $TwP 
     do
@@ -93,7 +93,7 @@ then
 
     # FILTER 2: SVA VNTR
     # get coordinates of each putative TE in TE (single TE hits)
-    awk '$4 == 1 && $12 > 0.9 {print $1"_"$2"\t"$1"\t"$2"\t"($2+1)"\t"$6"\t"$8}' vcf_annotation | grep 'SVA' | sort -k1,1 > SVA_candidates
+    awk '$6 == 1 && $14 > 0.9 {print $1"_"$2"\t"$1"\t"$2"\t"($2+1)"\t"$8"\t"$10}' vcf_annotation | grep 'SVA' | sort -k1,1 > SVA_candidates
     join -17 -25 <(join -11 -21 SVA_candidates <(awk 'NR > 3 && !/^\#/ {print $1"_"$2"\t"$3}' genotypes.vcf | \
      sort -k1,1) | sort -k7,7) <(sort -k5,5 repeatmasker_dir/indels.fa.onecode.out) | \
      sed 's/ /\t/g' | \
@@ -108,9 +108,9 @@ then
     echo -e "SVA_F\t435\t857\t+" >> SVA_VNTR.bed
     bedtools intersect -wao -a <(sort -k1,1 -k2,2n SVA_candidates.bed) -b SVA_VNTR.bed | awk '{if ($9/($3-$2) > 0.9) {print $4"\tVNTR_ONLY:"$5":"$2":"$3}}' | sort -k1,1 > SVA_VNTR.txt
 
-    join -a1 -13 -21 <(sort -k3,3 vcf_annotation) <(sort -k1,1 TwP.txt) | sed 's/ /\t/g' | awk '{if (NF == 12) {print $0"\tNone"} else {print $0}}' > vcf_annotation.temp
-    join -a1 -11 -21 <(sort -k1,1 vcf_annotation.temp) SVA_VNTR.txt | sed 's/ /\t/g' | awk '{if (NF == 13) {print $0"\tNone"} else {print $0}}' | \
-     awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14}' | sort -k1,1 -k2,2n > ${ANNOT_FILE}
+    join -a1 -13 -21 <(sort -k3,3 vcf_annotation) <(sort -k1,1 TwP.txt) | sed 's/ /\t/g' | awk '{if (NF == 14) {print $0"\tNone"} else {print $0}}' > vcf_annotation.temp
+    join -a1 -11 -21 <(sort -k1,1 vcf_annotation.temp) SVA_VNTR.txt | sed 's/ /\t/g' | awk '{if (NF == 15) {print $0"\tNone"} else {print $0}}' | \
+     awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14"\t"$15"\t"$16}' | sort -k1,1 -k2,2n > ${ANNOT_FILE}
 
     echo "writing vcf..."
     bgzip ${ANNOT_FILE}
@@ -133,7 +133,7 @@ then
 
     cat <(grep '#' ${VCF}) <(grep -v '#' ${VCF} | sort -k1,1 -k2,2n) > genotypes.sorted.vcf
     bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
-    -c CHROM,POS,~ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span,INFO/mam_filter_1,INFO/mam_filter_2 genotypes.sorted.vcf | \
+    -c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span,INFO/mam_filter_1,INFO/mam_filter_2 genotypes.sorted.vcf | \
     bcftools view -Oz -o ${OUT_VCF}
 
 else
@@ -156,6 +156,6 @@ else
 
     cat <(grep '#' ${VCF}) <(grep -v '#' ${VCF} | sort -k1,1 -k2,2n) > genotypes.sorted.vcf
     bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
-    -c CHROM,POS,~ID,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span genotypes.sorted.vcf | \
+    -c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span genotypes.sorted.vcf | \
     bcftools view -Oz -o ${OUT_VCF}
 fi

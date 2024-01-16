@@ -16,7 +16,7 @@ params.mammal         = false
 params.mini_K         = "500M"
 params.stSort_m       = "4G"
 params.stSort_t       = 4
-params.version        = "0.2.4 beta (06-27-2023)"
+params.version        = "0.2.5 beta (09-11-2023)"
 params.tsd_batch_size = 100
 params.asm_divergence = "asm5"
 params.aligner        = "minimap2" // or winnowmap
@@ -37,7 +37,7 @@ params.pangenie_threads     = 1
 params.make_graph_memory    = null
 params.make_graph_threads   = 1
 params.graph_align_memory   = null
-params.graph_align_theads   = 1
+params.graph_align_threads   = 1
 params.vg_call_memory       = null
 params.vg_call_threads      = 1
 params.min_mapq             = 0
@@ -390,15 +390,15 @@ process tsd_report {
   """
   cat ${x} > TSD_summary.txt
   cat ${y} > TSD_full_log.txt
-  join -13 -21 <(grep -v "#" genotypes_repmasked_filtered.vcf | cut -f 1-3 | sort -k3,3) <(grep 'PASS' TSD_summary.txt | awk '{print \$1"\t"\$(NF-2)","\$(NF-1)}' | sort -k1,1) | \
-    awk '{print \$2"\t"\$3"\t"\$1"\t"\$4}' | \
+  join -13 -21 <(grep -v "#" genotypes_repmasked_filtered.vcf | cut -f 1-5 | sort -k3,3) <(grep 'PASS' TSD_summary.txt | awk '{print \$1"\t"\$(NF-2)","\$(NF-1)}' | sort -k1,1) | \
+    awk '{print \$2"\t"\$3"\t"\$1"\t"\$4"\t"\$5"\t"\$6}' | \
     sort -k1,1 -k2,2n > TSD_annotation
   HDR_FILE=\$(mktemp)
   echo -e '##INFO=<ID=TSD,Number=1,Type=String,Description="Target site duplication sequence passing filters">' >> \${HDR_FILE}
   TSD_FILE=TSD_annotation
   bgzip \${TSD_FILE}
   tabix -s1 -b2 -e2 \${TSD_FILE}.gz
-  bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,~ID,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenome.vcf
+  bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,~ID,REF,ALT,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenome.vcf
   """
 }
 
@@ -527,7 +527,7 @@ process merge_VCFs {
   cat P_header P_sorted_body > pangenome.sorted.vcf
   bgzip pangenome.sorted.vcf
   tabix -p vcf pangenome.sorted.vcf.gz
-  bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
+  bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,REF,ALT,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
   """
 }
 
