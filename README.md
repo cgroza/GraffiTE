@@ -261,13 +261,13 @@ These parameters can be used to bypass different steps of the pipeline.
 - `--map_asm_threads`: number of cores allocated to `minimap2` or `winnowmap` in the `map_asm` process. Overrides `--cores`.
 - `--map_asm_memory`: RAM limit for the `minimap2` or `winnowmap` in the `map_asm` process. Default is unset.
 - `--map_asm_time`: for `cluster` profile, max time for the scheduler for the `map_asm` process. Default is 1h.
-- `--svim_asm_threads`: number of cores allocated to `svim_asm` process. Overrides `--cores`
+- `--svim_asm_threads`: number of cores allocated to `svim_asm` process. Overrides `--cores`.
 - `--svim_asm_memory`: RAM limit for the SV search in `svim_asm` process. Default is unset.
 - `--svim_asm_time`: for `cluster` profile, max time for the scheduler for this process. Default is 1h.
 - `--asm_divergence`: divergence preset option for `minimap2` ahead of `svim-asm`. Use the flag . `asm5`/`asm10`/`asm20`  Defaults is `asm5` (< 5% expected divergence between assembly and reference genome). [See minimap2 documentation](https://lh3.github.io/minimap2/minimap2.html).
 
 
-- `--mini_K`: `minimap2` parameter `-K`. *Number of bases loaded into memory to process in a mini-batch. Similar to option -I, K/M/G/k/m/g suffix is accepted. A large NUM helps load balancing in the multi-threading mode, at the cost of increased memory.* Default 500M
+- `--mini_K`: `minimap2` parameter `-K`. *Number of bases loaded into memory to process in a mini-batch. Similar to option -I, K/M/G/k/m/g suffix is accepted. A large NUM helps load balancing in the multi-threading mode, at the cost of increased memory.* Default 500M.
 - `--stSort_m`: `samtools sort` parameter `-m` (for each alternative assembly, post-`minimap2`): *Approximately the maximum required memory per thread, specified either in bytes or with a K, M, or G suffix.* Default in `GraffiTE` is 4G.
 - `--stSort_t`: `samtools sort` parameter `@` (for each alternative assembly, post-`minimap2`): *Set number of sorting and compression threads.* Default in `GraffiTE` is 4 threads. 
 
@@ -276,19 +276,19 @@ These parameters can be used to bypass different steps of the pipeline.
 - `--map_longreads_threads`: number of cores allocated to `minimap2` or `winnowmap` in the `map_longreads` process. Overrides `--cores`.
 - `--map_longreads_memory`: RAM limit for the `minimap2` or `winnowmap` in the `map_longreads` process. Default is unset.
 - `--map_longreads_time`: for `cluster` profile, max time for the scheduler for the `map_longreads` process. Default is 1h.
--`--sniffles_threads`:  number of `minimap2` threads (parameter `-t` in `minimap2`). Overrides `--cores`
+-`--sniffles_threads`:  number of `minimap2` threads (parameter `-t` in `minimap2`). Overrides `--cores`.
 -`--sniffles_memory`: RAM limit for the SV search (`minimap2`+`sniffles2`) process. Default is unset.
 -`--sniffles_time`: for `cluster` profile, max time for the scheduler for this process. Default is 2h.
 - `--stSort_m`: `samtools sort` parameter `-m` (for each long-read alignment, post-`minimap2`): *Approximately the maximum required memory per thread, specified either in bytes or with a K, M, or G suffix.* Default in `GraffiTE` is 4G.
 - `--stSort_t`: `samtools sort` parameter `@` (for each long-read alignment, post-`minimap2`): *Set number of sorting and compression threads.* Default in `GraffiTE` is 4 threads. 
 
 ##### SV Annotation (RepeatMasker)
-- `--repeatmasker_threads`: number of RepeatMasker threads. Overrides `--cores`
+- `--repeatmasker_threads`: number of RepeatMasker threads. Overrides `--cores`.
 - `--repeatmasker_memory`: RAM limit for the RepeatMasker (annotation) process. Default is unset.
 - `--repeatmasker_time`: for `cluster` profile, max time for the scheduler for this process. Default is 2h.
 
 ##### Genotyping with Pangenie
-- `--pangenie_threads`: number of `Pangenie` threads. Overrides `--cores`
+- `--pangenie_threads`: number of `Pangenie` threads. Overrides `--cores`.
 - `--pangenie_memory`: RAM limit for the Pangenie (genotyping) process. Default is unset.
 - `--pangenie_time`: for `cluster` profile, max time for the scheduler for this process. Default is 2h.
 
