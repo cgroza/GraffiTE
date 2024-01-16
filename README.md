@@ -258,8 +258,11 @@ These parameters can be used to bypass different steps of the pipeline.
 
 ##### SV detection with `svim-asm` (from assemblies)
 
-- `--svim_asm_threads`: number of `minimap2` threads (parameter `-t` in `minimap2`). Overrides `--cores`
-- `--svim_asm_memory`: RAM limit for the SV search (`minimap2`+`svim_asm`) process. Default is unset.
+- `--map_asm_threads`: number of cores allocated to `minimap2` or `winnowmap` in the `map_asm` process. Overrides `--cores`.
+- `--map_asm_memory`: RAM limit for the `minimap2` or `winnowmap` in the `map_asm` process. Default is unset.
+- `--map_asm_time`: for `cluster` profile, max time for the scheduler for the `map_asm` process. Default is 1h.
+- `--svim_asm_threads`: number of cores allocated to `svim_asm` process. Overrides `--cores`
+- `--svim_asm_memory`: RAM limit for the SV search in `svim_asm` process. Default is unset.
 - `--svim_asm_time`: for `cluster` profile, max time for the scheduler for this process. Default is 1h.
 - `--asm_divergence`: divergence preset option for `minimap2` ahead of `svim-asm`. Use the flag . `asm5`/`asm10`/`asm20`  Defaults is `asm5` (< 5% expected divergence between assembly and reference genome). [See minimap2 documentation](https://lh3.github.io/minimap2/minimap2.html).
 
@@ -270,6 +273,9 @@ These parameters can be used to bypass different steps of the pipeline.
 
 ##### SV detection with `sniffles2` (from long reads)
 
+- `--map_longreads_threads`: number of cores allocated to `minimap2` or `winnowmap` in the `map_longreads` process. Overrides `--cores`.
+- `--map_longreads_memory`: RAM limit for the `minimap2` or `winnowmap` in the `map_longreads` process. Default is unset.
+- `--map_longreads_time`: for `cluster` profile, max time for the scheduler for the `map_longreads` process. Default is 1h.
 -`--sniffles_threads`:  number of `minimap2` threads (parameter `-t` in `minimap2`). Overrides `--cores`
 -`--sniffles_memory`: RAM limit for the SV search (`minimap2`+`sniffles2`) process. Default is unset.
 -`--sniffles_time`: for `cluster` profile, max time for the scheduler for this process. Default is 2h.
