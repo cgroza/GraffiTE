@@ -126,14 +126,14 @@ process map_asm {
   script:
   if(params.aligner == "minimap2") {
     """
-    minimap2 -a -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
+    minimap2 -a -x ${params.asm_divergence} --cs -r2k -t ${map_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
       """
   }
   else if(params.aligner == "winnowmap") {
     """
     meryl count k=19 output merylDB ${ref}
     meryl print greater-than distinct=0.9998 merylDB > repetitive_k19.txt
-    winnowmap -a  -x ${params.asm_divergence} --cs -r2k -t ${svim_asm_threads} -K ${params.mini_K} -W repetitive_k19.txt ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
+    winnowmap -a  -x ${params.asm_divergence} --cs -r2k -t ${map_asm_threads} -K ${params.mini_K} -W repetitive_k19.txt ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
     """
   }
 }
@@ -152,7 +152,7 @@ process map_longreads {
   script:
   if(params.aligner == "minimap2") {
     """
-    minimap2 -t ${sniffles_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
+    minimap2 -t ${map_longreads_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
       """
   }
   else if(params.aligner == "winnowmap") {
@@ -160,7 +160,7 @@ process map_longreads {
     meryl count k=15 output merylDB ${ref}
     meryl print greater-than distinct=0.9998 merylDB > repetitive_k15.txt
 
-    winnowmap -W repetitive_k15.txt -t ${sniffles_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
+    winnowmap -W repetitive_k15.txt -t ${map_longreads_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
     """
   }
 
