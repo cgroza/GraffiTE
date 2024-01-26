@@ -573,7 +573,7 @@ workflow {
       } else if (params.assemblies && params.longreads){
         merge_svim_sniffles2.out.sv_sn_variants_ch.set { raw_vcf_ch }
       } else if(params.vcf){
-        Channel.fromPath(params.vcf).set{raw_vcf_ch}
+        Channel.fromPath(params.vcf, checkIfExists : true).set{raw_vcf_ch}
       }
       repeatmask_VCF(raw_vcf_ch, TE_library_ch, ref_asm_ch)
       repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
