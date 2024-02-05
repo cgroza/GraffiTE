@@ -424,6 +424,7 @@ process pangenie {
 process make_graph {
   cpus params.make_graph_threads
   memory params.make_graph_memory
+  time params.make_graph_time
   input:
   path(vcf)
   path(fasta)
