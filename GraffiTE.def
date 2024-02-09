@@ -55,7 +55,7 @@ From: ubuntu:20.04
     && cd hmmer-* \
     && ./configure --prefix=/opt/hmmer && make && make install \
     && make clean \
-    && cd .. && rm hmmer-*.tar.gz
+    && cd .. && rm src/hmmer-*.tar.gz
 
     # Compile TRF
     cd /opt
@@ -64,7 +64,7 @@ From: ubuntu:20.04
     && mkdir build && cd build \
     && ../configure && make && cp ./src/trf /opt/trf \
     && cd .. && rm -r build \
-    && cd .. && rm trf-*.tar.gz
+    && cd .. && src/rm trf-*.tar.gz
 
     # Compile RepeatScout
     cd /opt
@@ -72,7 +72,7 @@ From: ubuntu:20.04
     && cd RepeatScout-* \
     && sed -i 's#^INSTDIR =.*#INSTDIR = /opt/RepeatScout#' Makefile \
     && make && make install \
-    && cd .. && rm RepeatScout-*.tar.gz 
+    && cd .. && rm src/RepeatScout-*.tar.gz 
 
     # Compile and configure RECON
     cd /opt
