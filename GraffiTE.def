@@ -144,6 +144,9 @@ From: ubuntu:20.04
     cd /opt \
     && tar -x -f src/RepeatMasker-*.tar.gz \
     && chmod a+w RepeatMasker/Libraries \
+    && chmod a+w RepeatMasker/Libraries/famdb \
+    && gunzip src/dfam38_full.0.h5.gz \
+    && mv src/dfam38_full.0.h5 /opt/RepeatMasker/Libraries/famdb/dfam38_full.0.h5 \
     && cd RepeatMasker \
     && perl configure \
     -hmmer_dir=/opt/hmmer/bin \
