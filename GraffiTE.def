@@ -64,7 +64,7 @@ From: ubuntu:20.04
     && mkdir build && cd build \
     && ../configure && make && cp ./src/trf /opt/trf \
     && cd .. && rm -r build \
-    && cd .. && src/rm trf-*.tar.gz
+    && cd .. && rm src/trf-*.tar.gz
 
     # Compile RepeatScout
     cd /opt
