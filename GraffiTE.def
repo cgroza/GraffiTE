@@ -227,7 +227,6 @@ From: ubuntu:20.04
     cmake ..
     make -j 4
     cp src/PanGenie /usr/local/bin
-    cp src/PanGenie-graph /usr/local/bin
     cd ..
     echo `git rev-parse --short HEAD` > /metadata/pangenie.git.version
     cd ${HOME}
