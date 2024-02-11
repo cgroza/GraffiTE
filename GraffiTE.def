@@ -132,22 +132,26 @@ From: ubuntu:20.04
     && chmod +x /opt/ucsc_tools/*
 
     # Compile and configure coseg
+
     cd /opt \
-    && tar -x -f src/coseg-*.tar.gz \
-    && cd coseg \
-    && sed -i 's/-o coseg/-o coseg -lm/g' Makefile \
+    && mkdir coseg \
+    && tar -x -f src/coseg-*.tar.gz -C ./coseg \
+    && cd coseg/coseg-coseg-* \
+    && mv * ../ \
+    && cd ../ \
     && sed -i 's@#!.*perl@#!/usr/bin/perl@' preprocessAlignments.pl runcoseg.pl refineConsSeqs.pl \
-        && sed -i 's#use lib "/usr/local/RepeatMasker";#use lib "/opt/RepeatMasker";#' preprocessAlignments.pl \
-        && make && cd .. && rm src/coseg-*.tar.gz
+    && sed -i 's#use lib "/usr/local/RepeatMasker";#use lib "/opt/RepeatMasker";#' preprocessAlignments.pl \
+    && make && cd /opt/ && rm -r src/coseg-*.tar.gz
+
 
     # Configure RepeatMasker
     cd /opt \
     && tar -x -f src/RepeatMasker-*.tar.gz \
     && chmod a+w RepeatMasker/Libraries \
     && chmod a+w RepeatMasker/Libraries/famdb \
+    && cd RepeatMasker \
     && gunzip src/dfam38_full.0.h5.gz \
     && mv src/dfam38_full.0.h5 /opt/RepeatMasker/Libraries/famdb/dfam38_full.0.h5 \
-    && cd RepeatMasker \
     && perl configure \
     -hmmer_dir=/opt/hmmer/bin \
     -rmblast_dir=/opt/rmblast/bin \
@@ -170,6 +174,15 @@ From: ubuntu:20.04
     -trf_dir=/opt \
     -ucsctools_dir=/opt/ucsc_tools && cd .. && rm src/RepeatModeler-*.tar.gz
 
+    # delete unecessary source files
+    rm -rf /opt/src
+
+    git clone https://github.com/marbl/Winnowmap.git
+    cd Winnowmap
+    make -j8
+    cp bin/* /usr/local/bin/
+    cd ..
+    rm -r Winnowmap
 
     git clone --recursive https://github.com/samtools/htslib.git
     cd htslib
