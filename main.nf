@@ -236,7 +236,7 @@ process survivor_merge {
   path(vcfs)
 
   output:
-  path("*variants.vcf"), emit: sv_variants_ch
+  path("svim-asm_variants.vcf"), emit: sv_variants_ch
   path("vcfs.txt")
 
   script:
