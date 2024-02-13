@@ -1,6 +1,8 @@
 ![](https://i.imgur.com/jvprOAS.png)
 
-[![status](https://img.shields.io/badge/status:-v0.2.5_beta-orange)]() [![status: support](https://img.shields.io/badge/support:-yes-green)]() [![status: preprint](https://img.shields.io/badge/preprint:-BioRxiv:doi.org/10.1101/2023.09.11.557209-red)](https://doi.org/10.1101/2023.09.11.557209)
+[![status: support](https://img.shields.io/badge/support:-yes-green)]() [![status: preprint](https://img.shields.io/badge/preprint:-BioRxiv:doi.org/10.1101/2023.09.11.557209-red)](https://doi.org/10.1101/2023.09.11.557209)
+
+🗞️ GraffiTE preprint now on [BioRxiv](https://doi.org/10.1101/2023.09.11.557209)!
 
 ## Description
 
@@ -14,8 +16,6 @@
 3. Each candidate repeat polymorphism is induced in a graph-genome where TEs and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie), [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871) or  [`GraphAligner`](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02157-2).
 ![](https://i.imgur.com/UyT62yp.png)
 
-🗞️ GraffiTE preprint now on [BioRxiv](https://doi.org/10.1101/2023.09.11.557209)!
-
 ----
 
 ⚠️ **This is a beta version, with no guarantees! Bug/issues as well as comments and suggestions are welcomed in the [Issue](https://github.com/cgroza/GraffiTE/issues) section of this Github.**
@@ -24,12 +24,22 @@
 
 ## Changelog
 
-**beta 0.2.5 (09-11-23):**
+**Last update: 02/13/24**
+- Since > beta 0.2.5 we switched versioning to commit id. Please refer to the commit ID of the version of GraffiTE you are using if you need support.
+- :beetle: bug fix: recently, the L1 inversion flag was not working (`--mammal`). It has now been fixed.
+- Winnowmap is now available as an alternative mapper instead of Minimap2. To enable Winnowmap, use the flag `--aligner winnowmap`; default remains minimap2.
+
+<details><summary>beta 0.2.5 (09-11-23):</summary>
+<p>
+   
 - :beetle: bug fix: fix a VCF annotation issue that was happening when two distinct variants shared the same VCF POS field. Annotations are now distinct depending on the variant sequence.
 - cleanup GraphAligner VCF outputs for clarity.
 
+</p>
+</details>
 
-<details><summary>beta 0.2.4 (06-27-23)**:</summary>
+
+<details><summary>beta 0.2.4 (06-27-23):</summary>
 <p>
 
 - Refactored `GraffiTE` to use the DSL2 Nextflow syntax.
