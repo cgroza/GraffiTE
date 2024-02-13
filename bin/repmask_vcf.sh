@@ -82,7 +82,7 @@ if [[ ${MAM} == "MAM" ]]
 then
     echo "Mammalian filters ON. Filtering..."
     # FILTER 1: L1 Twin Priming and similar
-    TwP=$(awk '{if ($6 == 2 && $10 == "C,+" && $8~/LINE/) {names = split($9,n,",",seps); ids = split($11, i,",",seps); if (names n[1] == names n[2] && ids i[1] == ids i[2]) {print $0"\tTwP"}}}' vcf_annotation | awk '{print $3}')
+    TwP=$(awk '{if ($6 == 2 && $11 == "C,+" && $10~/LINE/) {names = split($10,n,",",seps); ids = split($12, i,",",seps); if (names n[1] == names n[2] && ids i[1] == ids i[2]) {print $0"\tTwP"}}}' vcf_annotation | awk '{print $3}')
     rm TwP.txt &> /dev/null
     for i in $TwP 
     do
