@@ -303,6 +303,8 @@ process repeatmask_VCF {
   output:
   path("genotypes_repmasked_filtered.vcf"), emit: RM_vcf_ch
   path("repeatmasker_dir/"), emit: RM_dir_ch
+  path("vcf_annotation.gz")
+  path("vcf_annotation_1")
 
   script:
   if(params.mammal)
