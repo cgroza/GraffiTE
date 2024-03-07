@@ -6,8 +6,8 @@ FASTA_LIB=$3
 MAM=$4
 
 FASTA_FILE=indels.fa
-cat ${VCF} | grep -v "#" | grep -v "SVTYPE=DEL" | awk '{print(sprintf(">%s\n%s", $3, $5))}' > ${FASTA_FILE}
-cat ${VCF} | grep -v "#" | grep -v "SVTYPE=INS" | awk '{print(sprintf(">%s\n%s", $3, $4))}' >> ${FASTA_FILE}
+bcftools view --types indels --include 'ILEN>0' ${VCF} | grep -v "#" | awk '{print(sprintf(">%s\n%s", $3, $5))}' >> ${FASTA_FILE}
+bcftools view --types indels --include 'ILEN<0' ${VCF} | grep -v "#" | awk '{print(sprintf(">%s\n%s", $3, $4))}' >> ${FASTA_FILE}
 
 mkdir repeatmasker_dir
 REPMASK_DIR=repeatmasker_dir
