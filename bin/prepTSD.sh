@@ -21,7 +21,7 @@ grep "contig=" ${VCF} | sed 's/\#\#contig=<ID=//g;s/,length=/\t/g;s/>//g' > gLen
 grep -v '#' ${VCF} | \
  grep 'n_hits=1;\|n_hits=2;' | \
  grep -v 'mam_filter_2=VNTR_ONLY' | \
- awk '/n_hits=1/ && /INS/ {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=1/ && /DEL/ {print $1"\t"$2"\t"($2+length($4))"\t"$3; next} /n_hits=2/ && /INS/ && /5P_INV/ {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=2/ && /DEL/ && /5P_INV/ {print $1"\t"$2"\t"($2+length($4))"\t"$3}' > oneHit_SV_coordinates.bed
+ awk '/n_hits=1/ && length($4) < length($5) {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=1/ && length($4) > length($5) {print $1"\t"$2"\t"($2+length($4))"\t"$3; next} /n_hits=2/ && length($4) < length($5) && /5P_INV/ {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=2/ && length($4) > length($5) && /5P_INV/ {print $1"\t"$2"\t"($2+length($4))"\t"$3}' > oneHit_SV_coordinates.bed
 
 # extend +/- ${WIN} bp in two entries per SV
 cat <(bedtools slop -i oneHit_SV_coordinates.bed -g gLength.txt -l 30 -r 0 | awk '{print $0"__L"}') \
