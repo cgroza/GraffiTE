@@ -1,3 +1,4 @@
+// main parameters
 params.graffite_vcf   = false
 params.vcf            = false
 params.RM_vcf         = false // mainly for debug. Requires --RM_dir
@@ -19,8 +20,10 @@ params.stSort_t       = 4
 params.tsd_batch_size = 100
 params.asm_divergence = "asm5"
 params.aligner        = "minimap2" // or winnowmap
+params.min_mapq             = 0
+params.min_support          = "2,4"
 
-// ideally, we should have defaults relative to genome size
+// cluster mode parameter
 params.map_longreads_memory = null
 params.map_longreads_threads = 1
 params.map_asm_memory = null
@@ -39,11 +42,9 @@ params.graph_align_memory   = null
 params.graph_align_threads   = 1
 params.vg_call_memory       = null
 params.vg_call_threads      = 1
-params.min_mapq             = 0
-params.min_support          = "2,4"
-
-
-//adding time directive options for some processes
+params.merge_svim_sniffles2_threads    = 1
+params.merge_svim_sniffles2_memory = "10G"
+params.merge_svim_sniffles2_time = "12h"
 params.map_asm_time = "3h"
 params.map_longreads_time = "12h"
 params.graph_align_time    = "12h"
@@ -51,8 +52,6 @@ params.svim_asm_time       = "12h"
 params.sniffles_time       = "12h"
 params.pangenie_time       = "12h"
 params.repeatmasker_time   = "12h"
-
-//adding some memory default
 params.tsd_memory          = "10G"
 params.merge_vcf_memory    = "10G"
 
@@ -247,6 +246,10 @@ process survivor_merge {
 }
 
 process merge_svim_sniffles2 {
+  cpus params.merge_svim_sniffles2_threads
+  memory params.merge_svim_sniffles2_memory
+  time params.merge_svim_sniffles2_time
+
   publishDir "${params.out}/1_SV_search", mode: 'copy'
 
   input:
@@ -541,7 +544,7 @@ workflow {
     if(params.longreads) {
       Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
         [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{map_longreads_in_ch}
-
+      //map_longreads_in_ch.view()
       map_longreads(map_longreads_in_ch)
       sniffles_sample_call(map_longreads.out.map_longreads_ch)
       sniffles_population_call(sniffles_sample_call.out.sniffles_sample_call_out_ch.collect(),
