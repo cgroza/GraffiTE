@@ -116,7 +116,7 @@ then
     bgzip ${ANNOT_FILE}
     tabix -s1 -b2 -e2 ${ANNOT_FILE}.gz
 
-    HDR_FILE=$(mktemp)
+    HDR_FILE=hdr_file
 
     echo -e '##INFO=<ID=n_hits,Number=1,Type=Integer,Description="Number of repeats found in insertion">' >> ${HDR_FILE}
     echo -e '##INFO=<ID=match_lengths,Number=.,Type=Integer,Description="Insertion lengths spanned by each repeat">' >> ${HDR_FILE}
@@ -141,7 +141,7 @@ else
     bgzip ${ANNOT_FILE}
     tabix -s1 -b2 -e2 ${ANNOT_FILE}.gz
 
-    HDR_FILE=$(mktemp)
+    HDR_FILE=hdr_file
 
     echo -e '##INFO=<ID=n_hits,Number=1,Type=Integer,Description="Number of repeats found in insertion">' >> ${HDR_FILE}
     echo -e '##INFO=<ID=match_lengths,Number=.,Type=Integer,Description="Insertion lengths spanned by each repeat">' >> ${HDR_FILE}

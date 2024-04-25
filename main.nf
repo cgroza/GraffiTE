@@ -270,7 +270,7 @@ process merge_svim_sniffles2 {
   # modify last header line to fit content
   HEADERLINE=\$(grep '#CHROM' svim-sniffles2_merge_genotypes.vcf | awk '{print \$1"\t"\$2"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\tFORMAT\tGT"}')
   # add new info fields
-  HEADERMORE=\$(mktemp)
+  HEADERMORE=header_more
   echo -e '##INFO=<ID=sniffles2_SUPP,Number=1,Type=String,Description="Support vector from sniffle2-population calls">' >> \${HEADERMORE}
   echo -e '##INFO=<ID=sniffles2_SVLEN,Number=1,Type=Integer,Description="SV length as called by sniffles2-population">' >> \${HEADERMORE}
   echo -e '##INFO=<ID=sniffles2_SVTYPE,Number=1,Type=String,Description="Type of SV from sniffle2-population calls">' >> \${HEADERMORE}
@@ -280,7 +280,7 @@ process merge_svim_sniffles2 {
   echo -e '##INFO=<ID=svim-asm_SVTYPE,Number=1,Type=String,Description="Type of SV from svim-asm calls">' >> \${HEADERMORE}
   echo -e '##INFO=<ID=svim-asm_ID,Number=1,Type=String,Description="ID from svim-asm calls">' >> \${HEADERMORE}
   # arrange the body part
-  BODY=\$(mktemp)
+  BODY=body_file
   paste -d ";" <(grep -v '#' svim-sniffles2_merge_genotypes.vcf | \
     cut -f 1-8) <(grep -v '#' svim-sniffles2_merge_genotypes.vcf | \
     cut -f 10 | sed 's/:/\t/g' | \
