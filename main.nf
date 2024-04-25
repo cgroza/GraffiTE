@@ -397,7 +397,7 @@ process tsd_report {
   join -13 -21 <(grep -v "#" genotypes_repmasked_filtered.vcf | cut -f 1-5 | sort -k3,3) <(grep 'PASS' TSD_summary.txt | awk '{print \$1"\t"\$(NF-2)","\$(NF-1)}' | sort -k1,1) | \
     awk '{print \$2"\t"\$3"\t"\$1"\t"\$4"\t"\$5"\t"\$6}' | \
     sort -k1,1 -k2,2n > TSD_annotation
-  HDR_FILE=\$(mktemp)
+  HDR_FILE=header_file
   echo -e '##INFO=<ID=TSD,Number=1,Type=String,Description="Target site duplication sequence passing filters">' >> \${HDR_FILE}
   TSD_FILE=TSD_annotation
   bgzip \${TSD_FILE}
