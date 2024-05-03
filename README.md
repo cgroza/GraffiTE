@@ -223,6 +223,7 @@ AND (always required)
 - `--TE_library`: a FASTA file that lists the consensus sequences (models) of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#type/subtype` for example `AluY#SINE/Alu`. The library can include a single repeat model or all the known repeat models of your species of interest.
    - From [DFAM](https://dfam.org/releases/current/families/) (open access): download the latest DFAM release (`Dfam.h5` or `Dfam_curatedonly.h5` files) and use the tool [FamDB](https://github.com/Dfam-consortium/FamDB) to extract the consensus for your model: `famdb.py -i <Dfam.h5> families -f fasta_name -a <taxa> --include-class-in-name > TE_library.fasta`
    - From [Repbase](https://www.girinst.org/server/RepBase/index.php) (paid subscription): use the "RepeatMasker Edition" libraries
+   > If the Repbase (or other library) format at hand is of the type `>TEname<tab/space>Classification<tab/space>Anything`, you can use this `awk` command to easily convert your library in a format compatible with GraffiTE: `awk '/>/ {print $1"#"$2; next} !/>/ {print $0}' library.fasta > library_OK.fasta`
 
 - `--reference`: a reference genome of the species being studied. All assemblies or long-reads  in input are compared to this reference genome.
 
