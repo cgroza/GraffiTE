@@ -261,7 +261,7 @@ AND (always required)
 
 These parameters can be used to bypass different steps of the pipeline.
 
-- `--vcf`: a *sequence resolved* VCF containing both REF and ALT variants sequences. This option will bypass the SV discovery and will proceed to annotate and filter the input VCF for repeats and TSD, as well as genoyping (unless `--genotype false` is set)
+- `--vcf`: a *sequence resolved* VCF containing both REF and ALT variants sequences. This option will bypass the SV discovery and will proceed to annotate and filter the input VCF for repeats and TSD, as well as genoyping (unless `--genotype false` is set). For those who wish to start directly from a graph genome in [GFA format](https://gfa-spec.github.io/GFA-spec/GFA1.html), we currently recommend to convert the graph to VCF using [`vg deconstruct`](https://github.com/vgteam/vg?tab=readme-ov-file#calling-variants-from-paths-in-the-graph).
 - `--RM_vcf`+`--RM_dir`: bypasses SV discovery and filtering (RepeatMasker) and starts at the TSD search process. `--RM_vcf` can be found in the outputs: `2_Repeat_Filtering/genotypes_repmasked_filtered.vcf` and `--RM_dir` in `2_Repeat_Filtering/repeatmasker_dir`
 - `--graffite_vcf`: Use this if you already have a VCF file that was produced by GraffiTE (see output: `3_TSD_Search/pangenome.vcf`), or from a difference source and would like to use the graph genotyping step. The file must be a [fully-phased](https://github.com/eblerjana/pangenie#input-variants) VCF. Note that TE annotation won't be performed on this file (see `--vcf` instead), and only genotyping will be performed.
 
