@@ -317,6 +317,22 @@ These parameters can be used to bypass different steps of the pipeline.
 - `--min_mapq`: Minimum mapping quality to consider when counting read depth on nodes. Default is 0.
 - `--min_support`: Minimum required read depth on `allele,bubble` to consider for genotyping. The first number is the minimum read depth on allele, and the second is the minimum depth on the entire bubble/locus. Default is `2,4`.
 
+#### GraffiTE modes
+
+In the main publication of GraffiTE, we refer to different "modes" relative to the different combination of assembly, long-reads (for discovery) and reads (for genotyping). The following table recapitulate the arguments to use in order to repliate these modes. Please refer the the reads file description above for proper formating.
+
+| Mode       | Arguments                                                                                                       | Description                                                                                         |
+|------------|-----------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| GT-sv      | --assemblies <assemblies.csv> --genotype false                                                                  | pME discovery from assemblies                                                                       |
+| GT-sn      | --longreads <long_reads.csv> --genotype false                                                                   | pME discovery from long reads                                                                       |
+| GT-svsn    | --assemblies <assemblies.csv> --longreads <long_reads.csv> --genotype false                                     | pME discovery from both assemblies and long reads                                                   |
+| GT-sv-PG   | --assemblies <assemblies.csv> --reads <short_reads.csv>                                                         | pME discovery from assemblies and genotyping from short reads with Pangenie                         |
+| GT-sn-PG   | --longreads <long_reads.csv> --reads <short_reads.csv>                                                          | pME discovery from long reads and genotyping from short reads with Pangenie                         |
+| GT-svsn-PG | --assemblies <assemblies.csv> --longreads <longreads.csv> --reads <short_reads.csv>                             | pME discovery from both assemblies and short reads and genotyping from short reads with Pangenie    |
+| GT-sv-GA   | --assemblies <assemblies.csv> --reads <long_reads.csv> --graph_method graphaligner                              | pME discovery from assemblies and genotyping from long reads with GraphAligner                      |
+| GT-sn-GA   | --longreads <long_reads.csv> --reads <long_reads.csv> --graph_method graphaligner                               | pME discovery from long reads and genotyping from long reads with GraphAligner                      |
+| GT-svsn-GA | --assemblies <assemblies.csv> --longreads <long_reads.csv> --reads <long_reads.csv> --graph_method graphaligner | pME discovery from both assemblies and short reads and genotyping from long reads with GraphAligner |
+
 #### `Nextflow` parameters
 
 `Nextflow`-specific parameters can be passed in addition to those presented above. These parameters can be distinguished by the use of a single `-`, such as `-resume`. See `Nextflow` documentation for more details.
