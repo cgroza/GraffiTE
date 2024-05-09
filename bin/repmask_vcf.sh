@@ -62,7 +62,8 @@ annotate_vcf.R --dotout ${REPMASK_ONECODE_OUT} --vcf ${VCF} --annotation ${ANNOT
 
 # calculate the total span of TEs on the SV without overlap
 echo "compute repeat proportion for each SVs..."
-awk 'BEGIN {OFS = "\n"}; /^>/ {print(substr(sequence_id, 2)" "sequence_length); sequence_length = 0; sequence_id = $0}; /^[^>]/ {sequence_length += length($0)}; END {print(sequence_length)}' indels.fa > indels.length
+samtools faidx indels.fa
+awk '{print $1"\t"$2}' indels.fa.fai > indels.length
 awk 'NR > 3 {print $5"\t"$6"\t"$7"\t"$10}' ${REPMASK_ONECODE_OUT} | bedtools merge > merge.bed
 RMQUERIES=$(awk 'NR > 3 {print $5}' ${REPMASK_ONECODE_OUT} | sort | uniq)
 rm -rf span &> /dev/null # clean in case there is a "span" file already
@@ -94,7 +95,7 @@ then
     # FILTER 2: SVA VNTR
     # get coordinates of each putative TE in TE (single TE hits)
     awk '$6 == 1 && $14 > 0.9 {print $1"_"$2"\t"$1"\t"$2"\t"($2+1)"\t"$8"\t"$10}' vcf_annotation | grep 'SVA' | sort -k1,1 > SVA_candidates
-    join -17 -25 <(join -11 -21 SVA_candidates <(awk 'NR > 3 && !/^\#/ {print $1"_"$2"\t"$3}' genotypes.vcf | \
+    join -17 -25 <(join -11 -21 SVA_candidates <(awk 'NR > 3 && !/^#/ {print $1"_"$2"\t"$3}' genotypes.vcf | \
      sort -k1,1) | sort -k7,7) <(sort -k5,5 repeatmasker_dir/indels.fa.onecode.out) | \
      sed 's/ /\t/g' | \
      awk '{if ($15 == "+") {print $16"\t"$18"\t"$19"\t"$1} else {print $16"\t"$20"\t"$19"\t"$1}}' > SVA_candidates.bed
