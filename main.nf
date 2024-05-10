@@ -523,7 +523,7 @@ process merge_VCFs {
 
   script:
   """
-  find . -name "*vcf.gz" > vcf.list
+  find . -name "*vcf.gz" | sort > vcf.list
   bcftools merge -l vcf.list > GraffiTE.merged.genotypes.vcf
   bgzip GraffiTE.merged.genotypes.vcf
   tabix -p vcf GraffiTE.merged.genotypes.vcf.gz
