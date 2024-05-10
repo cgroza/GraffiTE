@@ -9,6 +9,12 @@ FASTA_FILE=indels.fa
 bcftools view --types indels --include 'ILEN>0' ${VCF} | grep -v "#" | awk '{print(sprintf(">%s\n%s", $3, $5))}' >> ${FASTA_FILE}
 bcftools view --types indels --include 'ILEN<0' ${VCF} | grep -v "#" | awk '{print(sprintf(">%s\n%s", $3, $4))}' >> ${FASTA_FILE}
 
+# verify that indels.fa ids are not longer than 50 characters
+if grep ">" indels.fa | awk 'length > 50' | grep -q .; then
+    echo "variant IDs must be no greater than 50 characters"
+    exit 1
+fi
+
 mkdir repeatmasker_dir
 REPMASK_DIR=repeatmasker_dir
 
