@@ -519,11 +519,11 @@ process merge_VCFs {
   path(pangenome_vcf)
 
   output:
-  path("GraffiTE.merged.genotypes.vcf"), emit: typeref_outputs
+  path("GraffiTE.merged.genotypes.vcf.gz"), emit: typeref_outputs
 
   script:
   """
-  ls *vcf.gz > vcf.list
+  find . -name "*vcf.gz" > vcf.list
   bcftools merge -l vcf.list > GraffiTE.merged.genotypes.vcf
   bgzip GraffiTE.merged.genotypes.vcf
   tabix -p vcf GraffiTE.merged.genotypes.vcf.gz
@@ -533,6 +533,8 @@ process merge_VCFs {
   bgzip pangenome.sorted.vcf
   tabix -p vcf pangenome.sorted.vcf.gz
   bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,REF,ALT,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
+  rm -f GraffiTE.merged.genotypes.vcf.gz
+  bgzip GraffiTE.merged.genotypes.vcf
   """
 }
 
