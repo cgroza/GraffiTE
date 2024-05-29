@@ -162,7 +162,7 @@ HPRCvcf_F<-HPRCvcf[Lfilter & HitsFilter & TEclassFilter & SVAVNTF_filter]
 ## Saturation
 Sat<-plot_curves(HPRCvcf_F, rare_freq = 0.05, fixed_freq = 0.95, nperm = 100, type = "polymorphism", mode = "clem")
 ## PCoA
-HPRCmeta<-read.table("~/Documents/GraffiTE/HPRC_metadata.txt", h = T, sep = "\t")
+HPRCmeta<-read.table("HPRC_metadata.txt", h = T, sep = "\t")
 HPRCmeta2<-HPRCmeta[rep(seq_len(nrow(HPRCmeta)), each = 2), ]
 HPRCmeta2$ID<-paste(HPRCmeta2$Sample, rep(c("mat", "pat"), 47), sep = "_")
 HPRCmeta2<-HPRCmeta2[order(HPRCmeta2$Sample),]
@@ -291,3 +291,42 @@ Counts<-ggplot(TElonger, aes(x = SubCode, y = Count))+
 Aplot<-cowplot::plot_grid(Sat, PCoA, rel_widths = c(0.35,0.65))
 Bplot<-cowplot::plot_grid( NULL, Counts, rel_widths = c(0,1))
 cowplot::plot_grid(Aplot, Bplot, nrow = 2)
+
+### Comparison with Minigraph-Cactus calls
+# 1. We created a VCF derived from the GFA of Liao at al (HPRC paper)
+# 2. We used the --vcf input of GraffiTE to annotate this VCF for pMEs.
+# 3. We removed duplicates SV from the VCF: each SNP/INDEL replicate (which occurs often at poly-A tails).
+# grep -v '#' MiniCac_HPRC_pangenome.vcf | cut -f 1,2,8,3 | sed 's/repeat_ids=/\t/g;s/;matching_classes=/\t/g' | awk '{print $1"_"$2"_"$5"\t"$3}'| sort -u -k1,1 | cut -f 2 > MiniCac_HPRC_pangenome__variants_to_keep.txt
+# vcftools --vcf MiniCac_HPRC_pangenome_.vcf --snps MiniCac_HPRC_pangenome__variants_to_keep.txt --recode --recode-INFO-all --out MiniCac_HPRC_pangenome_preR_filter
+# 4. This filtered VCF is the input for these analyses
+
+MiniCacvcf<-read.vcfR("MiniCac_HPRC_pangenome_preR_filter.recode.vcf")
+MiniCacvcffilter<-abs(as.numeric(extract.info(MiniCacvcf, "LEN"))) >= 250
+MiniCacvcfHitsFilter<-as.numeric(extract.info(MiniCacvcf, "n_hits")) == 1 | extract.info(MiniCacvcf, "mam_filter_1") != "None"
+MiniCacvcfSVAVNTF_filter<-extract.info(MiniCacvcf, "mam_filter_2") == "None"
+MiniCacvcfTEclassFilter<-grepl(paste(c("Alu", "L1", "SVA"), collapse = "|"), extract.info(MiniCacvcf, "repeat_ids"))
+MiniCacvcfHPRCvcf_F<-MiniCacvcf[MiniCacvcffilter & MiniCacvcfHitsFilter & MiniCacvcfSVAVNTF_filter & MiniCacvcfTEclassFilter]
+write.vcf(MiniCacvcfHPRCvcf_F, "/Users/clementgoubert/Library/CloudStorage/GoogleDrive-goubert.clement@gmail.com/Other computers/Zephyrantes/GraffiTE/paper_datasets/Applications_Examples/HUMAN_HPRC/MiniCac_HPRC_pangenome_R_filtered.vcf")
+# export the GraffiTE one
+write.vcf(HPRCvcf_F, "/Users/clementgoubert/Library/CloudStorage/GoogleDrive-goubert.clement@gmail.com/Other computers/Zephyrantes/GraffiTE/paper_datasets/Applications_Examples/HUMAN_HPRC/HPRC_pangenome_R_filtered.vcf")
+
+# prep for comparison with SURVIVOR
+# bcftools view HPRC_pangenome_R_filtered.vcf > HPRC_pangenome_R_filtered_.vcf
+# bcftools view MiniCac_HPRC_pangenome_R_filtered.vcf > MiniCac_HPRC_pangenome_R_filtered_.vcf
+# ls HPRC_pangenome_R_filtered_.vcf MiniCac_HPRC_pangenome_R_filtered_.vcf > vcfs.txt
+# ~/SURVIVOR/Debug/SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100 HPRC_filtered_merged.vcf
+# grep -v '#' HPRC_filtered_merged.vcf | grep -c 'SUPP_VEC=10' # This is the count of GraffiTE/svim-asm specific variants
+# 6270
+# grep -v '#' HPRC_filtered_merged.vcf | grep -c 'SUPP_VEC=01' # This is the count of Minigraph/Cactus specific variants
+# 788
+# grep -v '#' HPRC_filtered_merged.vcf | grep -c 'SUPP_VEC=11' # This is the count of shared variants between both methods using the same filters
+# 8451 
+
+library(VennDiagram)
+draw.pairwise.venn(area1 = 6270+8451,
+                   area2 = 788+8451,
+                   cross.area = 8451,category = c("minmap2/svim-asm", "Minigraph/Cactus"),
+                   euler.d = T,
+                   scaled = T,
+                   fill = c("grey99", "red"),fontfamily = rep("sans", 3),cat.fontfamily = rep("sans",2))
+                   
