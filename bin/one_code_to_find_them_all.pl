@@ -6,6 +6,9 @@
 #     Edit: Jul-06-2022 by Clément Goubert for GraffiTE pipeline (https://github.com/cgroza/GraffiTE)
 #           - Remove "LTR/" added when Unknown (or "Unspecified") TEs are in the RM output
 #
+#     Edit: Jun-17-2024 by Clément Goubert for GraffiTE pipeline (https://github.com/cgroza/GraffiTE)
+#           - Add TE classes: TIR, MITE and IS
+#
 #     This program is free software; you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
 #     the Free Software Foundation; either version 3 of the License, or
@@ -300,7 +303,7 @@ sub Wanted_length{
       ### Accounting RC Helitron as DNA transposons
       if($F[10] eq "RC/Helitron"){$F[10]="DNA/RC";}
       ### Filtering everything excepted transposable elements
-      next unless(($F[10] =~ /^Retroposon/) | ($F[10] =~ /^DNA/) | ($F[10] =~/^SINE/) | ($F[10] =~ /^LINE/) | ($F[10] =~ /^LTR/) | (($F[10] =~/^Unknown|^Unspecified/) & ($unknown == 1)));
+      next unless(($F[10] =~ /^Retroposon/) | ($F[10] =~ /^DNA/) | ($F[10] =~ /^TIR/) | ($F[10] =~ /^IS/) | ($F[10] =~ /^MITE/) | ($F[10] =~/^SINE/) | ($F[10] =~ /^LINE/) | ($F[10] =~ /^LTR/) | (($F[10] =~/^Unknown|^Unspecified/) & ($unknown == 1)));
       ### Filtering RM first lines
       next if(($F[0] eq "SW") | ($F[0] eq "score") | /^\s+$/);
       ### computing reference length for the line under study
@@ -437,7 +440,7 @@ sub Wanted{
   $non_TE_count{$F[4]}{$useless_class}++;
   next;
       }
-      next unless(($F[10] =~ /^Retroposon/) | ($F[10] =~ /^DNA/) | ($F[10] =~/^SINE/) | ($F[10] =~ /^LINE/) | ($F[10] =~ /^LTR/) | ($F[10] =~ /^RC/) | (($F[10] =~/^Unknown|^Unspecified/) & ($unknown == 1)));
+      next unless(($F[10] =~ /^Retroposon/) | ($F[10] =~ /^DNA/) | ($F[10] =~ /^TIR/) | ($F[10] =~ /^IS/) | ($F[10] =~ /^MITE/) | ($F[10] =~/^SINE/) | ($F[10] =~ /^LINE/) | ($F[10] =~ /^LTR/) | (($F[10] =~/^Unknown|^Unspecified/) & ($unknown == 1)));      
       ### We do not treat elements not present in the length file.
       next unless(exists($elem_length{$F[9]}));
       ### Some modifications on the line to get useful info such as the real length of the element
