@@ -1,26 +1,50 @@
 ### Analysis of Rech's (DM30) pangenome with GraffiTE
 ## We will use here the full GT-sv-sn-GA and filter for 1 hits 
+
+################################################################################
+# Data prep (bash commands used to prepare the data for R)
+# The starting file is the output if Graffite mode GT-svsn-GA DM30_sv-sn_graphaligner.vcf
+# 1. list variants with a single TE hit using the pre-genotyping VCF:
+# grep -v '#' DM30_sv-sn_pangenome.vcf | grep 'n_hits=1;' | cut -f 3 > DM30_sv-sn_pangenome_1hits_IDs
+# 2. filter for this variants and exclude fixed loci (same genotype as reference genome for all samples)
+# vcftools --vcf  DM30_sv-sn_graphaligner.vcf --snps DM30_sv-sn_pangenome_1hits_IDs --non-ref-ac-any 1 --recode --recode-INFO-all --out DM30_sv-sn_GA_1hits_03142024
+# 3. convert filtered VCF into tsv for R analyses
+# cat GA_tsv_head <(paste <(grep -v '#' DM30_sv-sn_GA_1hits_03142024.recode.vcf | cut -f 1-7) <(grep -v '#' DM30_sv-sn_GA_1hits_03142024.recode.vcf | cut -f 8 | sed 's/;/\t/g;s/[A-Za-z0-9_-]*=//g;s/\tlowdepth//g' | awk '$2~/>/ {if (NF == 29) {print $3"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14"\t"$15"\t"$16"\t"$17"\t"$18"\t"$19"\t"$20"\t"$21"\t"$22"\t"$23"\t"$24"\t"$25"\t"$26"\t"$27"\t"$28"\t"$29"\tNA\t"$1"\t"$2"\t"} else {print $3"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14"\t"$15"\t"$16"\t"$17"\t"$18"\t"$19"\t"$20"\t"$21"\t"$22"\t"$23"\t"$24"\t"$25"\t"$26"\t"$27"\t"$28"\t"$29"\t"$30"\t"$1"\t"$2}; next}  {if (NF == 29) {print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14"\t"$15"\t"$16"\t"$17"\t"$18"\t"$19"\t"$20"\t"$21"\t"$22"\t"$23"\t"$24"\t"$25"\t"$26"\t"$27"\tNA\t"$28"\t"$29} else {print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14"\t"$15"\t"$16"\t"$17"\t"$18"\t"$19"\t"$20"\t"$21"\t"$22"\t"$23"\t"$24"\t"$25"\t"$26"\t"$27"\t"$28"\t"$29"\t"$30}}') <(grep -v '#' DM30_sv-sn_GA_1hits_03142024.recode.vcf | cut -f 10- | sed 's/\.\/\.:/N\/A:/g' | awk '{ for (i=1; i<=NF; i++) printf "%s ", substr($i, 1, 3); print ""; }') <(grep -v '#' DM30_sv-sn_GA_1hits_03142024.recode.vcf | cut -f 10- | sed 's/\.\/\.:/N\/A:/g' | awk '{ for (i=1; i<=NF; i++) printf "%s ", substr($i, 1, 3); print ""; }' | awk '{ count = 0; for (i=1; i<=NF; i++) { if ($i == "0/0" || $i == "N/A") count++}; {print 30-count}}') | awk -v OFS="\t" '$1=$1') | awk '/POS/ {print $0"\thasMissing"; next} /N\/A/ {print $0"\tTRUE"; next} {print $0"\tFALSE"}' > DM30_sv-sn_GA_1hits_03142024.recode.NAomitCounts.tsv
+# 4. header for this file is:
+# CHROM	POS	ID	REF	ALT	QUAL	FILTER	CIEND	CIPOS	CHR2	END	SVLEN	SVMETHOD	SVTYPE	SUPP_VEC	SUPP	STRANDS	sniffles2_SUPP	sniffles2_SVLEN	sniffles2_SVTYPE	sniffles2_ID	svim-asm_SUPP	svim-asm_SVLEN	svim-asm_SVTYPE	svim-asm_ID	n_hits	match_lengths	TEname	matching_classes	fragmts	RM_hit_strands	RM_hit_IDs	total_match_length	total_match_span	TSD	DP	AT	AKA-017	AKA-018	COR-014	COR-018	COR-023	JUT-008	KIE-094	RAL-059	COR-025	GIM-012	GIM-024	JUT-011	LUN-004	LUN-007	MUN-008	MUN-009	MUN-013	MUN-015	MUN-020	RAL-091	RAL-176	RAL-177	RAL-375	RAL-426	RAL-737	RAL-855	SLA-001	STO-022	TEN-015	TOM-008 GraphAligner_genome_counts
+################################################################################
+
+### R analyses start here:
+
+# Load R libraries
 library(ggplot2)
 library(ggrepel)
 library(dplyr)
 library(grDevices)
 
 # load main table converted from the GraffiTE VCF
-GTDM<-read.table("DM30_sv-sn_graphaligner_1hits_08212023_withCounts_withHeader.tsv", 
+#GTDM<-read.table("DM30_sv-sn_graphaligner_1hits_08212023_withCounts_withHeader.tsv", 
+#                 h = T)
+options(scipen=999) # prevent scientific notation of genomic position and other large integers
+GTDM<-read.table("DM30_sv-sn_GA_1hits_03142024.recode.NAomitCounts.tsv", 
                  h = T)
-length(subset(GTDM, (GTDM$n_hits == 1))[,1])
-# # subset to trusted pME (n_hits = 1 and not fixed relative to dm6 after GraphAligner)
-GTDM.f<-subset(GTDM, (GTDM$n_hits == 1 & GTDM$GraphAligner_genome_counts != 0))
-
-# join the TE classification
+# check that the input file is already filtered for 1 hits only
+# length(GTDM[,1])
+# length(subset(GTDM, (GTDM$n_hits == 1))[,1])
+# length(subset(GTDM, (GTDM$n_hits == 1 & GTDM$GraphAligner_genome_counts != 0))[,1])
+# for code legacy and to avoid bug, rename input with .f
+GTDM.f<-GTDM
+# load and join the TE classification
 MCTE<-read.table("Rech_TE_list.txt", h = T)
-colnames(GTDM.f)[31]<-"TEname"
 GTDM.f<-merge(GTDM.f, MCTE, by = "TEname")
 # list the chr we will use
 DMchrs<-c("NC_004354.4", "NT_033779.5","NT_033778.4", "NT_037436.4", "NT_033777.3")
 GTDM.f<-GTDM.f[GTDM.f$CHROM %in% DMchrs,]
+# remove loci with missing genotypes
+GTDM.f<-GTDM.f[GTDM.f$hasMissing == FALSE,]
+
 # annotate euchromatic and heterochromatic pME
-Euch.bed<-read.table("/Users/clementgoubert/Library/CloudStorage/GoogleDrive-goubert.clement@gmail.com/Other\ computers/Zephyrantes/GraffiTE/Comparison_GraffiTE_Rech_DM30_plus_ISO-1/GraffiTE_VCFS/Euchromatic_regions_RECH2022.bed")
+Euch.bed<-read.table("Euchromatic_regions_RECH2022.bed")
 GTDM.f.bed<-data.frame(cbind(GTDM.f$CHROM, GTDM.f$POS, GTDM.f$POS+1,GTDM.f$ID))
 Euch.GTDM.f<-bedtoolsr::bt.intersect(GTDM.f.bed, Euch.bed)[,4]
 GTDM.f$region<-ifelse(GTDM.f$ID %in% Euch.GTDM.f, "euch", "heter")
@@ -36,7 +60,7 @@ Het<-data.frame(chr = c("2L", "2R", "3L", "3R", "X"),
                 X2_s = c(18870000, 24972477, 19026900, 31614278, 21338973),
                 X2_e = c(23513712, 25286936, 28110227, 32079331, 23542271))
 # get dm6 annotation for background densities
-rpmsk<-read.table("/Users/clementgoubert/Library/CloudStorage/GoogleDrive-goubert.clement@gmail.com/Other\ computers/Zephyrantes/GraffiTE/Comparison_GraffiTE_Rech_DM30_plus_ISO-1/dm6_rpmsk_nochr.bed")
+rpmsk<-read.table("dm6_rpmsk_nochr.bed")
 names(rpmsk)<-c("chr", "start", "end", "strand", "name", "Order", "SuperFam")
 rpmsk.TEs<-rpmsk[!rpmsk$Order %in% c("Simple_repeat", "Low_complexity", "Satellite"),]
 rpmsk.reps<-rpmsk[rpmsk$Order %in% c("Simple_repeat", "Low_complexity", "Satellite"),]
@@ -85,7 +109,7 @@ DMpME<-ggplot(GTDM.f[GTDM.f$SuperFamily != "NewFam",])+
         )
 
 cov_all$type<-factor(cov_all$type, levels = c("TEs", "simple_repeats"), labels = c("TEs", "other repeats"))
-label(cov_all$type)
+#label(cov_all$type)
 DM_reps<-ggplot(GTDM.f[GTDM.f$SuperFamily != "NewFam",])+
   geom_rect(dat = Het, aes(xmin = X1_s/1000000, xmax = X1_e/1000000, ymin = 0, ymax = 1), fill = "grey90")+
   geom_rect(dat = Het, aes(xmin = X2_s/1000000, xmax = X2_e/1000000, ymin = 0, ymax = 1), fill = "grey90")+
@@ -155,7 +179,22 @@ bpDM<-ggplot(GTDM.f[GTDM.f$SuperFamily != "NewFam",], aes(x = factor(SuperFamily
                              reverse = T)
          )
 
-######### Saturation curves ##################
+# export list of analysed variants
+write.table(as.data.frame(GTDM.f$ID), "analyzed_variants", quote = F, row.names = F, col.names = F)
+
+### Saturation curves:
+
+################################################################################
+# for this analysis, we are using a tool we created early on that require the
+# variants to be encoded in the SUPP_VEC of the VCF. Since we are working on the
+# genotyped variants (not the detected variants), we needed to recode the SUPP_VEC
+# accordingly
+#
+# # first filter VCF to match the filtered list of variant
+# vcftools --vcf DM30_sv-sn_GA_1hits_03142024.recode.vcf --snps analyzed_variants --recode --recode-INFO-all --out DM30_sv-sn_GA_1hits_03142024__analyzed
+# # second replace the SUPP_VEC using GA genotypes
+# cat <(grep '#' DM30_sv-sn_GA_1hits_03142024__analyzed.recode.vcf) <(paste <(grep -v '#' DM30_sv-sn_GA_1hits_03142024__analyzed.recode.vcf | sed 's/SUPP_VEC=/SUPP_VEC=\t/g' | cut -f 1-8) <(grep -v '#' DM30_sv-sn_GA_1hits_03142024__analyzed.recode.vcf | cut -f 10- | sed 's/\.\/\.:/N\/A:/g' | awk '{ for (i=1; i<=NF; i++) printf "%s ", substr($i, 1, 3); print ""; }' | sed -e 's/0\/0/0/g' -e 's/N\/A/0/g' -e 's/.\/./1/g' -e 's/ //g') <(grep -v '#' DM30_sv-sn_GA_1hits_03142024__analyzed.recode.vcf | sed 's/[0-1]*;SUPP=/\t;SUPP=/g' | cut -f 9-) | sed 's/SUPP_VEC=\t/SUPP_VEC=/g;s/\t;SUPP/;SUPP/g') > DM30_sv-sn_GA_1hits_03142024__analyzed_GA_SUPP.recode.vcf
+################################################################################
 
 library(vcfR)
 library(ggrepel)
@@ -166,9 +205,9 @@ library(reshape2)
 library(ade4)
 library(stringr)
 
-# we need to load these functions first
 theme_set(theme_bw(base_size = 14))
 
+# functions to read VCF's support vector and plot the saturation curves
 discovery_curve <- function(ref_vcf, type = c("polymorphism", "TE"), nperm = 100) {
   vcf_matrix <- lapply(str_split(extract.info(ref_vcf, "SUPP_VEC"), ""), as.numeric)
   na_entries <- is.na(vcf_matrix)
@@ -215,7 +254,6 @@ discovery_curve <- function(ref_vcf, type = c("polymorphism", "TE"), nperm = 100
     pca = pca_matrix
   ))
 }
-
 filter_vcf_freq <- function(ref_vcf, min_freq = 0, max_freq = Inf, nhits = c("any", "single")) {
   vcf_freq <- lapply(str_split(extract.info(ref_vcf, "SUPP_VEC"), ""), as.numeric) %>%
     simplify2array() %>%
@@ -232,7 +270,6 @@ filter_vcf_freq <- function(ref_vcf, min_freq = 0, max_freq = Inf, nhits = c("an
     ref_vcf[vcf_freq >= min_freq & vcf_freq <= max_freq]
   }
 }
-
 plot_curves <- function(vcf, rare_freq, fixed_freq, nperm, type = c("polymorphism", "TE"), mode = c("cristian", "clem")) {
   
   n_genomes <- str_length(extract.info(vcf, "SUPP_VEC")[1])
@@ -303,9 +340,8 @@ plot_curves <- function(vcf, rare_freq, fixed_freq, nperm, type = c("polymorphis
       theme(legend.position = c(60, 1000))
   }
 }
-
-
-vcfDM<-read.vcfR("DM30_sv-sn_graphaligner_1hits_08212023_GA_SUPP.recode.vcf")
+# load the VCF
+vcfDM<-read.vcfR("DM30_sv-sn_GA_1hits_03142024__analyzed_GA_SUPP.recode.vcf")
 t_2_29<-plot_curves(vcfDM, rare_freq = 2/30, fixed_freq = 29/30, nperm = 100, type = "polymorphism", mode = "clem")
 
 
@@ -314,4 +350,38 @@ CP2<-cowplot::plot_grid(t_2_29, bpDM,
                    rel_widths = c(0.3, 0.7),
                    ncol = 2
                    )
+
+# final plot
 cowplot::plot_grid(CP1, CP2, ncol = 1)
+
+### Comparison with short reads:
+
+################################################################################
+# data prep to match long-reads analyses
+#
+# 1. First, I need to filter the pangenie VCF in the same fashion: 1 hits, no fixed
+# ```sh
+# vcftools --vcf  DM30_sv-sn_pangenie.vcf --snps DM30_sv-sn_pangenome_1hits_IDs --non-ref-ac-any 1 --recode --recode-INFO-all --out DM30_sv-sn_PA_1hits_03192024
+# ```
+# After filtering, kept 10950 out of a possible 32909 Site
+# 
+# 2. Identify missing data -- we don't need to parse the info field this time (we just need to positions and the genotypes)
+# ```sh
+# paste <(grep -v '#' DM30_sv-sn_PA_1hits_03192024.recode.vcf | cut -f 1-7)  <(grep -v '#' DM30_sv-sn_PA_1hits_03192024.recode.vcf | cut -f 10- | sed 's/\.\/\.:/N\/A:/g' | awk '{ for (i=1; i<=NF; i++) printf "%s ", substr($i, 1, 3); print ""; }') <(grep -v '#' DM30_sv-sn_PA_1hits_03192024.recode.vcf | cut -f 10- | sed 's/\.\/\.:/N\/A:/g' | awk '{ for (i=1; i<=NF; i++) printf "%s ", substr($i, 1, 3); print ""; }' | awk '{ count = 0; for (i=1; i<=NF; i++) { if ($i == "0/0" || $i == "N/A") count++}; {print 30-count}}') | awk -v OFS="\t" '$1=$1' | awk '/POS/ {print $0"\thasMissing"; next} /N\/A/ {print $0"\tTRUE"; next} {print $0"\tFALSE"}' | awk '{print $1"\t"$2"\t"$3"\t"$(NF-1)"\t"$NF}' > DM30_sv-sn_PG_1hits_03192024.simple.NAomitCounts.tsv
+# ```
+################################################################################
+
+GTDMshort<-read.table("DM30_sv-sn_PG_1hits_03192024.simple.NAomitCounts.tsv")
+names(GTDMshort)<-c("CHROM", "POS", "ID", "PGcount", "hasMissing")
+# filter for main chromosomes
+GTDMshort<-GTDMshort[GTDMshort$CHROM %in% DMchrs,]
+# remove loci with missing genotypes
+GTDMshort<-GTDMshort[GTDMshort$hasMissing == FALSE,]
+
+library(ggVennDiagram)
+vlist<-list(
+  GTlong=GTDM.f$ID,
+  GTshort=GTDMshort$ID)
+ggVennDiagram(vlist) + scale_fill_gradient(low="grey99",high = "red")
+
+length(GTDMshort$ID)

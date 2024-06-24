@@ -24,7 +24,14 @@
 
 ## Changelog
 
-**Last update: 02/13/24**
+**Last update: 06/17/24**
+
+- Added new/alternative compatible classes names: MITE, TIR and IS. e.g.: `>TEnameX#MITE` `>TEnameY#TIR/Mariner` or `>TEnameX#IS`. In previous versions, TE named with these classes were discarded by `OneCodeToFindThemAll`
+   - The compatible classes in the fasta header includes (i.e. `Class` in `>TEname#Class/Superfamily`): `LINE`, `LTR`, `SINE`, `RC/Helitron` (will be treated as `DNA/RC`), `DNA`, `TIR`, `MITE`, `Retroposon`, `IS`, `Unknown`, `Unspecified`
+   - TE for which a classification is absent will be treated as `Unknown` (e.g. `>TEnameZ`)
+   - All `>TEnames` and `Superfamily` will be accepted as long as the `Class` name is among those supported.
+ 
+**Previous update: 02/13/24**
 - Since > beta 0.2.5 we switched versioning to commit id. Please refer to the commit ID of the version of GraffiTE you are using if you need support.
 - :beetle: bug fix: recently, the L1 inversion flag was not working (`--mammal`). It has now been fixed.
 - Winnowmap is now available as an alternative mapper instead of Minimap2. To enable Winnowmap, use the flag `--aligner winnowmap`; default remains minimap2.
@@ -220,10 +227,14 @@ AND/OR
 
 AND (always required)
 
-- `--TE_library`: a FASTA file that lists the consensus sequences (models) of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#type/subtype` for example `AluY#SINE/Alu`. The library can include a single repeat model or all the known repeat models of your species of interest.
-   - From [DFAM](https://dfam.org/releases/current/families/) (open access): download the latest DFAM release (`Dfam.h5` or `Dfam_curatedonly.h5` files) and use the tool [FamDB](https://github.com/Dfam-consortium/FamDB) to extract the consensus for your model: `famdb.py -i <Dfam.h5> families -f fasta_name -a <taxa> --include-class-in-name > TE_library.fasta`
-   - From [Repbase](https://www.girinst.org/server/RepBase/index.php) (paid subscription): use the "RepeatMasker Edition" libraries
-   > If the Repbase (or other library) format at hand is of the type `>TEname<tab/space>Classification<tab/space>Anything`, you can use this `awk` command to easily convert your library in a format compatible with GraffiTE: `awk '/>/ {print $1"#"$2; next} !/>/ {print $0}' library.fasta > library_OK.fasta`
+- `--TE_library`: a FASTA file that lists the consensus sequences (models) of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#class/superfamily` for example `AluY#SINE/Alu`. The library can include a single repeat model or all the known repeat models of your species of interest.
+   - Following this formatting, the compatible classes in the fasta header includes (i.e. `class` in `>TEname#class/superfamily`): `LINE`, `LTR`, `SINE`, `RC/Helitron` (will be treated as `DNA/RC`), `DNA`, `TIR`, `MITE`, `Retroposon`, `IS`, `Unknown`, `Unspecified`
+      - TE for which a classification is absent will be treated as `Unknown` (e.g. `>TEnameZ`)
+      - All `>TEnames` and `Superfamily` will be accepted as long as the `Class` name is among those supported.
+   - To create a compatible library from popular TE databses:
+      - From [DFAM](https://dfam.org/releases/current/families/) (open access): download the latest DFAM release (`Dfam.h5` or `Dfam_curatedonly.h5` files) and use the tool [FamDB](https://github.com/Dfam-consortium/FamDB) to extract the consensus for your model: `famdb.py -i <Dfam.h5> families -f fasta_name -a <taxa> --include-class-in-name > TE_library.fasta`
+      - From [Repbase](https://www.girinst.org/server/RepBase/index.php) (paid subscription): use the "RepeatMasker Edition" libraries
+   `   > If the Repbase (or other library) format at hand is of the type `>TEname<tab/space>Classification<tab/space>Anything`, you can use this `awk` command to easily convert your library in a format compatible with GraffiTE: `awk '/>/ {print $1"#"$2; next} !/>/ {print $0}' library.fasta > library_OK.fasta`
 
 - `--reference`: a reference genome of the species being studied. All assemblies or long-reads  in input are compared to this reference genome.
 

@@ -148,7 +148,7 @@ plot_curves <- function(vcf, rare_freq, fixed_freq, nperm, type = c("polymorphis
 
 #### CLUSTERS ####
 
-ClusAll<-read.table("~/Documents/Csativa/GraffiTE/Cs_GraffiTE_280423_pangenome.variants_clustered_mode0_with_ANNOTATION", h = F)
+ClusAll<-read.table("Cs_GraffiTE_280423_pangenome.variants_clustered_mode0_with_ANNOTATION", h = F)
 #head(ClusAll)
 names(ClusAll)<-c("cluster", "member", "SUPP", "SUPP_VEC", "SVLEN", "n_hits", "n_frags", "hit_length", "hit_names", "hit_class", "hit_strands", "frags", "cum_hits_len", "SV_TE_cov", "TSD")
 Ncount<-tapply(ClusAll$member, ClusAll$cluster, length)
@@ -166,7 +166,7 @@ ClusN3<-ClusAll %>%
     ) %>%
   filter(Count > 2) %>%
   arrange(desc(Count), desc(cumSVLEN))
-write.table(ClusN3, file = "~/Documents/Csativa/GraffiTE/ClusN3.tsv", quote = F, row.names = F)
+write.table(ClusN3, file = "ClusN3.tsv", quote = F, row.names = F)
 
 # All N >= 3
 barplot(height = ClusN3$Count, width = ClusN3$cumSVLEN)
@@ -179,7 +179,43 @@ axis(side = 1, at = seq(0,250, by = 1))
 
 
 #### VCF ####
-vcf_N3<-read.vcfR("/Users/cgoubert/Library/CloudStorage/GoogleDrive-goubert.clement@gmail.com/Other\ computers/Zephyrantes/N3_200_40000bp_clusters_pangenome.vcf.recode.vcf")
+vcf_N3<-read.vcfR("N3_200_40000bp_clusters_pangenome.vcf.recode.vcf")
 
 # Saturation
 plot_curves(vcf_N3, 1/9, 9/9, 100, "polymorphism", "clem")
+
+#### Comparison with GT-svsn ####
+# # gather the vcfs
+# cp ../Cs_GT-sv/3_TSD_search/pangenome.vcf Cs_GT-sv_pangenome.vcf
+# cp ../Cs_GT-sn/3_TSD_search/pangenome.vcf Cs_GT-sn_pangenome.vcf
+# # list and merge with same parameteres as GraffiTE
+# ls *.vcf > vcfs.txt
+# ~/bin/SURVIVOR/Debug/SURVIVOR merge vcfs.txt 0.1 0 0 0 0 100 Cs_GT-svsn_merged.vcf
+# # MMseqs
+# # first gather the variants
+# grep -v '#' Cs_GT-svsn_merged.vcf | awk '/SVTYPE=INS/ {print ">"$3; print $5; next} /SVTYPE=DEL/ {print ">"$3; print $4; next}' > Cs_GT-svsn_variants.fasta
+# salloc --time=2:00:0 --cpus-per-task=20 --account=rrg-bourqueg-ad --mem-per-cpu=5Gb
+# module load mmseqs2
+# mmseqs easy-cluster Cs_GT-svsn_variants.fasta Cs_GT-svsn_variants.MMseqs2 tmp --cov-mode 0 -c 0.8 --min-seq-id 0.8 -s 100 --exact-kmer-matching 1 --threads 20
+# # list the cluster with 3+ sequences
+# cut -f 1 Cs_GT-svsn_variants.MMseqs2_cluster.tsv | sort | uniq -c | awk '$1 > 2' > Cs_GT-svsn_variants.MMseqs2_N3clusters
+# # get the list of loci members of these clusters
+# Cs_GT-svsn]$ join -12 -21 <(sort -k2,2 Cs_GT-svsn_variants.MMseqs2_N3clusters) <(sort -k1,1 Cs_GT-svsn_variants.MMseqs2_cluster.tsv) | awk '{print $3}' >  Cs_GT-svsn_variants.MMseqs2_N3members
+# # next I will filter the VCF line to keep these, and with size 200-40000
+# join -11 -23 -o 1.1,2.8 <(sort -k1,1 Cs_GT-svsn_variants.MMseqs2_N3members) <(grep -v '#' Cs_GT-svsn_merged.vcf | sort -k3,3) | sed 's/;SVLEN=/\t/g;s/;SVTYPE=/\t/g;s/-//g;s/;SUPP_VEC=/\t/g' | awk '{print $1"\t"$3"\t"$4}' | awk '$3 >= 200 && $3 <= 40000' | cut -f 2 | sort | uniq -c
+# # 10 is Sniffles only, 11 both and, 01 svim only
+# 25142 01
+# 19140 10
+# 17442 11
+
+GTsv<-25142+17442
+GTsn<-19140+17442
+both<-17442
+#install.packages("VennDiagram")
+library(VennDiagram)
+VennDiagram::draw.pairwise.venn(GTsv, GTsn,both,
+                                euler.d = T,
+                                category = c("GT-sv\n(assemblies)", "GT-sn\n(long reads)"),
+                                col = c("purple", "green3"),fill = c("purple", "green3"),
+                                fontfamily = "sans",cat.fontfamily = "sans",scaled = T,
+                                )

@@ -2,15 +2,14 @@
 library(sveval)
 library(ggplot2)
 # load the vcfs paths
-
 ## Truth GIAB
 truth.vcf='sveval_VCFS/GIAB.Tier1.Alu.L1.SVA.250bp.vcf'
 
 ## GT
 # pangenomes
-gt.svsn05x='sveval_VCFS/GT.svim-sniffles05x.Alu.L1.SVA.250.vcf'
-gt.svsn10x='sveval_VCFS/GT.svim-sniffles10x.Alu.L1.SVA.250.vcf'
-gt.svsn20x='sveval_VCFS/GT.svim-sniffles20x.Alu.L1.SVA.250.vcf'
+gt.svsn05x='sveval_VCFS/GT.svim-sniffles05x.Alu.L1.SVA.250bp.vcf'
+gt.svsn10x='sveval_VCFS/GT.svim-sniffles10x.Alu.L1.SVA.250bp.vcf'
+gt.svsn20x='sveval_VCFS/GT.svim-sniffles20x.Alu.L1.SVA.250bp.vcf'
 gt.svsn30x='sveval_VCFS/GT.svim-sniffles30x.Alu.L1.SVA.250bp.vcf'
 gt.sn05x="sveval_VCFS/GT.sniffles05x.Alu.L1.SVA.250bp.vcf"
 gt.sn10x="sveval_VCFS/GT.sniffles10x.Alu.L1.SVA.250bp.vcf"
@@ -19,13 +18,13 @@ gt.sn30x='sveval_VCFS/GT.sniffles30x.Alu.L1.SVA.250bp.vcf'
 gt.sv='sveval_VCFS/GT.svim.Alu.L1.SVA.250bp.vcf'
 
 # pangenie @ 30X
-gt.svsn30x.pan30X='sveval_VCFS/HG002_mat-pat.svim_30Xhifi.sniffles_30Xhifi.pangenie.genotypes.Alu.L1.SVA.250bp.vcf'
-gt.sn30x.pan30X='sveval_VCFS/HG002_30Xhifi.sniffles_30Xhifi.pangenie.genotypes.Alu.L1.SVA.250bp.vcf'
-gt.sv.pan30X='sveval_VCFS/HG002_mat-pat.svim.pangenie.genotypes.Alu.L1.SVA.250bp.vcf'
+gt.svsn30x.pan30X='sveval_VCFS/GT.svim-sniffles30x.Alu.L1.SVA.250bp.PG.genotypes.recode.vcf'
+gt.sn30x.pan30X='sveval_VCFS/GT.sniffles30x.Alu.L1.SVA.250bp.PG.genotypes.recode.vcf'
+gt.sv.pan30X='sveval_VCFS/GT.svim.Alu.L1.SVA.250bp.PG.genotypes.recode.vcf'
 # graphaligner @30X
-gt.svsn30x.gra30X='sveval_VCFS/HG002_mat-pat.svim_30Xhifi.sniffles_30Xhifi.graphaligner.genotypes.Alu.L1.SVA.250bp.vcf'
-gt.sn30x.gra30X='sveval_VCFS/HG002_30Xhifi.sniffles_30Xhifi.graphaligner.genotypes.Alu.L1.SVA.250bp.vcf'
-gt.sv.gra30X='sveval_VCFS/HG002_mat-pat.svim.graphaligner.genotypes.Alu.L1.SVA.250bp.vcf'
+gt.svsn30x.gra30X='sveval_VCFS/GT.svim-sniffles30x.Alu.L1.SVA.250bp.GA.genotypes.recode.vcf'
+gt.sn30x.gra30X='sveval_VCFS/GT.sniffles30x.Alu.L1.SVA.250bp.GA.genotypes.recode.vcf'
+gt.sv.gra30X='sveval_VCFS/GT.svim.Alu.L1.SVA.250bp.GA.genotypes.recode.vcf'
 
 ## TLDR
 tl.05X="sveval_VCFS/TLDR.05X_mean_.vcf"
@@ -48,28 +47,26 @@ mg.30X="sveval_VCFS/MG.Alu.L1.SVA.30X.vcf"
 
 # GT svim_mat.pat + snif_05X 
 eval.svsn05x = svevalOl(gt.svsn05x, truth.vcf, bed.regions = 'HG002_SVs_Tier1_v0.6.bed')
-# GT svim_mat.pat + snif_30X 
+eval.svsn05x$eval
+# GT svim_mat.pat + snif_10X 
 eval.svsn10x = svevalOl(gt.svsn10x, truth.vcf, bed.regions = 'HG002_SVs_Tier1_v0.6.bed')
-# GT svim_mat.pat + snif_30X 
+# GT svim_mat.pat + snif_20X 
 eval.svsn20x = svevalOl(gt.svsn20x, truth.vcf, bed.regions = 'HG002_SVs_Tier1_v0.6.bed')
 # GT svim_mat.pat + snif_30X 
 eval.svsn30x = svevalOl(gt.svsn30x, truth.vcf, bed.regions = 'HG002_SVs_Tier1_v0.6.bed')
-#eval.svsn30x$eval # data.frame with results using all variants
+
 # GT svim_mat.pat ONLY (from 2 alt asms)
 eval.sv = svevalOl(gt.sv, truth.vcf, bed.regions = 'HG002_SVs_Tier1_v0.6.bed')
-#eval.sv$eval
+eval.sv$eval
+
 # GT snif_05X ONLY (only from long reads)
 eval.sn05 = svevalOl(gt.sn05x, truth.vcf, bed.regions = 'HG002_SVs_Tier1_v0.6.bed')
-#eval.sn05$eval
 # GT snif_10X ONLY (only from long reads)
 eval.sn10 = svevalOl(gt.sn10x, truth.vcf, bed.regions = 'HG002_SVs_Tier1_v0.6.bed')
-#eval.sn10$eval
 # GT snif_20X ONLY (only from long reads)
 eval.sn20 = svevalOl(gt.sn20x, truth.vcf, bed.regions = 'HG002_SVs_Tier1_v0.6.bed')
-#eval.sn20$eval
 # GT snif_30X ONLY (only from long reads)
 eval.sn30 = svevalOl(gt.sn30x, truth.vcf, bed.regions = 'HG002_SVs_Tier1_v0.6.bed')
-#eval.sn30$eval
 
 ## TLDR
 eval.tl.05=svevalOl(tl.05X, truth.vcf, bed.regions = 'HG002_SVs_Tier1_v0.6.bed')
@@ -263,4 +260,10 @@ GENOplot<-ggplot(pMEevals.geno, aes(x = precision, y = recall))+
   facet_wrap(~type)+
   theme_classic()
 
-cowplot::plot_grid(SVplot, GENOplot, ncol = 1)
+giab<-cowplot::plot_grid(SVplot, GENOplot, ncol = 1)
+
+### Full plot, requires generating graphs in GRaffiTE_simulation_0224.R
+
+cowplot::plot_grid(sims, giab, ncol = 1)
+sims
+giab
