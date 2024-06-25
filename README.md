@@ -267,6 +267,7 @@ AND (always required)
 - `--mammal`: Apply mammal-specific annotation filters (see [Mammal filter section](#mammalian-filters---mammal) for more details). 
    - (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. 
    - (ii) will search for VNTR polymorphism between orthologous SVA elements.
+- `--break_scaffolds`: true or false. Break input assemblies at runs of Ns. Use this if the assemblies passed with `--assemblies` are scaffolded to avoid `[E::parse_cigar] CIGAR length too long` error.
 
 #### Pipeline Shortcuts
 
