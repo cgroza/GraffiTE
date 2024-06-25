@@ -8,6 +8,7 @@ params.graph_method   = "pangenie" // or giraffe or graphaligner
 params.reads          = "reads.csv"
 params.longreads      = false // if you want to use sniffles on long read alignments
 params.assemblies     = false // if you want to use svim-asm on genome alignments
+params.break_scaffolds     = false // if input assemblies are scaffolds and need to be broken at runs of N
 params.reference      = "reference.fa"
 params.TE_library     = "TE_library.fa"
 params.out            = "out"
@@ -110,6 +111,22 @@ switch(params.graph_method) {
     break
 }
 
+process break_scaffold {
+  cpus 1
+
+  input:
+  tuple val(asm_name), path(asm)
+
+  output:
+  tuple val(asm_name), path("broken/${asm_base_name}.fa.gz")
+
+  script:
+  asm_base_name = asm.getName()
+  """
+  mkdir broken
+  breakgaps.py ${asm} | gzip > broken/${asm_base_name}.fa.gz
+  """
+}
 
 process map_asm {
   cpus map_asm_threads
@@ -263,7 +280,6 @@ process merge_svim_sniffles2 {
   """
   ls sniffles2_variants.vcf svim-asm_variants.vcf > svim-sniffles2.vcfs.txt
   SURVIVOR merge svim-sniffles2.vcfs.txt 0.1 0 1 0 0 100 svim-sniffles2_merge_genotypes.vcf
-
 
   # header part to keep
   HEADERTOP=\$(grep '#' svim-sniffles2_merge_genotypes.vcf | grep -v 'CHROM')
@@ -554,8 +570,11 @@ workflow {
     }
     if(params.assemblies) {
       Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
-        [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch).set{map_asm_in_ch}
-      map_asm(map_asm_in_ch)
+        [row.sample, file(row.path, checkIfExists:true)]}.set{map_asm_in_ch}
+      if(params.break_scaffolds) {
+        map_asm_in_ch = break_scaffold(map_asm_in_ch)
+      }
+      map_asm(map_asm_in_ch.combine(ref_asm_ch))
       svim_asm(map_asm.out.map_asm_ch)
       survivor_merge(svim_asm.out.svim_out_ch.map{sample -> sample[1]}.collect())
     }
@@ -572,7 +591,7 @@ workflow {
       Channel.fromPath(params.RM_vcf).set{RM_vcf_ch}
       Channel.fromPath(params.RM_dir).set{RM_dir_ch}
     } else {
-      Channel.fromPath(params.TE_library).set{TE_library_ch}
+      Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
       if(params.longreads && !params.assemblies){
         sniffles_population_call.out.sn_variants_ch.set { raw_vcf_ch }
