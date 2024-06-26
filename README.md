@@ -18,23 +18,32 @@
 
 ----
 
-⚠️ **This is a beta version, with no guarantees! Bug/issues as well as comments and suggestions are welcomed in the [Issue](https://github.com/cgroza/GraffiTE/issues) section of this Github.**
+⚠️ **Bug/issues as well as comments and suggestions are welcomed in the [Issue](https://github.com/cgroza/GraffiTE/issues) section of this Github.**
 
 ----
 
 ## Changelog
 
-**Last update: 06/17/24**
+**Last update: 06/24/24**
+
+- New option `--break_scaffolds` (see [additional parameters](#additional-parameters)) that automatically split contigs at runs of N > 4. With some scaffolded genomes, minimap2 can indeed return an error related to some CIGAR string being too long, typically `[E::parse_cigar] CIGAR length too long at position ...`. Breaking scaffolds at N stretches typicaly solve this problem, caused by limitations of the `htslib`/SAM specification. 
+
+**Previous update: 06/17/24**
 
 - Added new/alternative compatible classes names: MITE, TIR and IS. e.g.: `>TEnameX#MITE` `>TEnameY#TIR/Mariner` or `>TEnameX#IS`. In previous versions, TE named with these classes were discarded by `OneCodeToFindThemAll`
    - The compatible classes in the fasta header includes (i.e. `Class` in `>TEname#Class/Superfamily`): `LINE`, `LTR`, `SINE`, `RC/Helitron` (will be treated as `DNA/RC`), `DNA`, `TIR`, `MITE`, `Retroposon`, `IS`, `Unknown`, `Unspecified`
    - TE for which a classification is absent will be treated as `Unknown` (e.g. `>TEnameZ`)
    - All `>TEnames` and `Superfamily` will be accepted as long as the `Class` name is among those supported.
  
-**Previous update: 02/13/24**
+<details><summary>02/13/24 update:</summary>
+<p>
+
 - Since > beta 0.2.5 we switched versioning to commit id. Please refer to the commit ID of the version of GraffiTE you are using if you need support.
 - :beetle: bug fix: recently, the L1 inversion flag was not working (`--mammal`). It has now been fixed.
 - Winnowmap is now available as an alternative mapper instead of Minimap2. To enable Winnowmap, use the flag `--aligner winnowmap`; default remains minimap2.
+
+</p>
+</details>
 
 <details><summary>beta 0.2.5 (09-11-23):</summary>
 <p>
@@ -212,6 +221,7 @@ This will show a complete run of the GraffiTE pipeline, with the output stored i
    /path/to/assembly/sampleB.fa,sampleB_name
    /path/to/assembly/sampleZ.fa,sampleZ_name
    ```
+> With some scaffolded genomes, minimap2 can return an error related to some CIGAR string being too long, typically `[E::parse_cigar] CIGAR length too long at position ...` and would crash. We now provide the option `--break_scaffolds` (`false` by default) that automatically split contigs at runs of N > 4.
 
 AND/OR
 
