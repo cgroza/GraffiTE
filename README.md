@@ -582,7 +582,7 @@ In order to account for the particularities of several TE families, we have intr
 
 ## L1 5' inversion
 
-SV detected by GraffiTE and corresponding to non-canonical TPRT (Twin Priming Reverse Transcription), such as Twin Priming (see [here](https://genome.cshlp.org/content/11/12/2059.long) and [here](https://mobilednajournal.biomedcentral.com/articles/10.1186/1759-8753-1-7)) may be skipped by the TSD script because it artificially creates 2 hits instead of one for a single TE insert. 
+SV detected by GraffiTE and corresponding to non-canonical TPRT (Target Primed Reverse Transcription), such as Twin Priming (see [here](https://genome.cshlp.org/content/11/12/2059.long) and [here](https://mobilednajournal.biomedcentral.com/articles/10.1186/1759-8753-1-7)) may be skipped by the TSD script because it artificially creates 2 hits instead of one for a single TE insert. 
 
 ![](https://i.imgur.com/YfukCpL.png)
 
