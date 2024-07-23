@@ -208,6 +208,26 @@ nextflow run https://github.com/cgroza/GraffiTE --reference hs37d5.chr22.fa --as
 ```
 This will show a complete run of the GraffiTE pipeline, with the output stored in `out`.
 
+## Software Update
+
+To make sure that you are running the latest version of GraffiTE, you can update the pipeline using the following command:
+
+```sh
+nextflow pull -r main https://github.com/cgroza/GraffiTE
+```
+
+In case nextflow returns the following error: 
+```
+Checking https://github.com/cgroza/GraffiTE ...
+cgroza/GraffiTE contains uncommitted changes -- cannot pull from repository
+```
+You'll need to first delete the cached, older verison like so:
+
+```sh
+rm -rf ~/.nextflow/assests/cgroza/GraffiTE/
+nextflow pull -r main https://github.com/cgroza/GraffiTE
+```
+
 ## Parameters
 
 #### Input files
