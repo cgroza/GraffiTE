@@ -155,9 +155,15 @@ apptainer remote use SylabsCloud
    ```
    - 3. Override the default image path in the file `nextflow.config` from `library://cgroza/collection/graffite:latest` to `<your-path>/graffite_latest.sif`. Alternatively, the `Nextflow` command `-with-singularity <your-path>/graffite_latest.sif` can be used when running `GraffiTE` (it will override the presets in `nextflow.config`).
 
+- We now provide a Docker image too. Apptainer can obtain it with:
+```
+apptainer pull graffite_latest.sif docker://cgroza/graffite
+```
+Of course, you can also reconfigure nextflow to use the Docker image without Apptainer if your system supports Docker .
+
 ## Important note
 
-We are aware of a common issue araising when the pipeline call a temporary directory (/tmp). The most common symptom is that though the program may complete without error, it skips over "tsd_search" and "tsd_report". The program wont produce a vcf file (`3_TSD_search/pangenome.vcf`) and the vcf in `2_Repeat_Filter` has no variants. While we will try to fix this in a next update, an easy fix is to ammend the `nextflow.config` file as follow. 
+We are aware of a common issue araising when the pipeline call a temporary directory (/tmp). The most common symptom is that though the program may complete without error, it skips over "tsd_search" and "tsd_report". The program will not produce a vcf file (`3_TSD_search/pangenome.vcf`) and the vcf in `2_Repeat_Filter` has no variants. While we will try to fix this in a next update, an easy fix is to ammend the `nextflow.config` file as follow. 
 
 1. Locate the file:
    - Either in `~/.nextflow/assets/cgroza/GraffiTE/nextflow.config`
