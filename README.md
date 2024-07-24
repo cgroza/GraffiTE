@@ -159,7 +159,7 @@ apptainer remote use SylabsCloud
 ```
 apptainer pull graffite_latest.sif docker://cgroza/graffite
 ```
-Of course, you can also reconfigure nextflow to use the Docker image without Apptainer if your system supports Docker .
+Of course, you can also reconfigure nextflow to use the Docker image without Apptainer if your system supports Docker.
 
 ## Important note
 
