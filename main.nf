@@ -633,7 +633,7 @@ workflow {
       pangenie.out.indexed_vcfs.set{indexed_vcfs}
     }
 
-    else if(params.graph_method != "pangenie") {
+    else if(params.graph_method == "pangenie" || params.graph_method == "graphaligner") {
       make_graph(vcf_ch, ref_asm_ch)
       reads_ch.combine(make_graph.out.graph_index_ch).set{reads_align_ch}
       graph_align_reads(reads_align_ch)
