@@ -556,7 +556,7 @@ process merge_VCFs {
 
 workflow {
   // initiate channels that will provide the reference genome to processes
-  Channel.fromPath(params.reference).set{ref_asm_ch}
+  Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
 
   if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     if(params.longreads) {
@@ -588,8 +588,8 @@ workflow {
   if(!params.graffite_vcf) {
     // except if --RM_vcf is given, in which case skip RepeatMasker here and set the input channel
     if(params.RM_vcf){
-      Channel.fromPath(params.RM_vcf).set{RM_vcf_ch}
-      Channel.fromPath(params.RM_dir).set{RM_dir_ch}
+      Channel.fromPath(params.RM_vcf, checkIfExists:true).set{RM_vcf_ch}
+      Channel.fromPath(params.RM_dir, checkIfExists:true).set{RM_dir_ch}
     } else {
       Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
@@ -640,6 +640,8 @@ workflow {
       graph_align_reads.out.aligned_ch.combine(make_graph.out.graph_index_ch).set{graph_pack_ch}
       vg_call(graph_pack_ch)
       vg_call.out.indexed_vcfs.set{indexed_vcfs}
+    } else {
+      error "Unsupported --graph_method. --graph_method must be pangenie, giraffe or graphaligner."
     }
 
     merge_VCFs(indexed_vcfs.collect(), vcf_ch)
