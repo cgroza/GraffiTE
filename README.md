@@ -131,7 +131,7 @@
 `GraffiTE` is a `Nextflow` pipeline, with all the dependencies wrapped in an `Apptainer` image. It is thus compatible with any Linux system including HPCs.
 
 - install [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html)
-- install [Apptainer](https://apptainer.org/admin-docs/master/installation.html)
+- install [Apptainer](https://apptainer.org/docs/admin/main/installation.html)
 
 ### GraffiTE install
 
