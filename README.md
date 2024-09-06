@@ -133,6 +133,8 @@
 - install [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html)
 - install [Apptainer](https://apptainer.org/docs/admin/main/installation.html)
 
+> Note that we have received report that Apptainer installation with Conda can cause issues. We recommend to install Apptainer directly.
+
 ### GraffiTE install
 
 - If an internet connection is accessible from the compute nodes, the general command shown in the next section will download and cache the `GraffiTE` pipeline and Apptainer image for local use. Later runs will skip the slow download step. It is however required to add the repository to the apptainer list, by typing:
@@ -692,12 +694,14 @@ The requirements are numbers or strings accepted by `nextflow`. For example, 40 
 - Human chromosome 1: 10 cpu, 80Gb RAM. SV discovery \~30mn to 1h per genome, but can be improved by fine tuning the process-specific parameters.
 - *Drosophila melanogaster* full genomes: 4 cpu, 40Gb RAM. SV discovery \~15mn per genome.
 
+## Large, complex and highly repetitive genomes
+
+The default parameters, in particular for request of RAM and execution time, may be inssuficient for large, complex and repeat rich genomes such as Maize and other models. Nextflow's error message may be hard to interpret and sometimes misleading with regards to the actual cause of the error. We advise users that suspect their model to be challenging for GraffiTE to initially use as much ressource are necessary. So far, a higher bound of 120h and 400Gb per process (these being requested resources, not actual usage -- for actual usage, see above) have been reported to allow successful run with Maize models, the most ressource intensive step being long-read alignments.
+
 ## Known Issues / Notes / FAQ
 
 - The "stitching" method to identify unique TE insertion from fragmented hits has some degree of limitation. This can be flagrant for full-length LTR insertion, which can show `n_hits` > 1, and thus wont be recognized as a "single" element insertion, nor run through the TSD module. For now, names between LTR and I(nternal) sequences much match in the header name (e.g. TIRANT_LTR and TIRANT_I) to be automatically recognized as a single hit. We will make use of the RepeatMasker hit ID in order to improve this stitching procedure. In the meantime, we recommend to check/rename your LTR of interest in the `--TE_library` file. 
 
 - As mentioned above, in order to improve runtime, the TSD module is only run for SVs with a single TE hit. We will improve this feature in order to be able to run the module on all SVs.
-
-- The TSD module will currently spawn one process per TSD, which can create a lot of folders and files. Make sure to delete the `work/` folder regularly to stay below quotas!
 
 - There are currently several bottlenecks in the pipeline: `samtools sort` can be tricky to parallelize properly (piped from `minimap2` alignments, which are often fast) and the performance will depends on the genomes size, complexity and the parameter used. `RepeatMasker` can be slow with a large number of SVs and a large library, hang-on! If you find satisfactory combinations of parameters for your model, please share them in the issues section! Thanks!
