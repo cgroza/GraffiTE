@@ -687,18 +687,36 @@ params.pangenie_threads
 
 The requirements are numbers or strings accepted by `nextflow`. For example, 40 for number of CPUs and '100G' for memory.
 
-## Resource usage example:
+## Resource usage examples:
 
-(this section will be updated based on our ongoing tests)
-
-- Human chromosome 1: 10 cpu, 80Gb RAM. SV discovery \~30mn to 1h per genome, but can be improved by fine tuning the process-specific parameters.
-- *Drosophila melanogaster* full genomes: 4 cpu, 40Gb RAM. SV discovery \~15mn per genome.
+| Model   species | Ref genome size   / TE content (%) | Input sample (if   applicable) | process           | # of processes   measured | CPUs (available) | RAM (peak) | Process run time    |
+|-----------------|------------------------------------|--------------------------------|-------------------|---------------------------|------------------|------------|---------------------|
+| human           | 3   Gbp / 50%                      | haploid   assemblies           | minimap2          | 2                         | 40               | 46-47Gb    | 38-49   mn          |
+|                 |                                    | 5X   HiFi long reads           | minimap2          | 1                         | 40               | 65Gb       | 20   mn             |
+|                 |                                    | 10X   HiFi long reads          | minimap2          | 1                         | 40               | 78Gb       | 39   mn             |
+|                 |                                    | 20X   HiFi long reads          | minimap2          | 1                         | 40               | 99Gb       | 1h   14 mn          |
+|                 |                                    | 30X   HiFi long reads          | minimap2          | 1                         | 40               | 109Gb      | 1h   48 mn          |
+|                 |                                    | VCF                            | RepeatMasker      | 1                         | 40               | 2Gb        | 37   mn             |
+|                 |                                    | VCF                            | make_graph   (vg) | 2                         | 1                | 4-8Gb      | 6   mn              |
+|                 |                                    | 30X   HiFi long reads          | GraphAligner      | 2                         | 40               | 124-125Gb  | 4h   1 mn           |
+|                 |                                    | 30X   Illumina                 | Pangenie          | 2                         | 40               | 85-87Gb    | 46   mn             |
+| *C. sativa*       | 740   Mbp / 70%                    | haploid   assemblies           | minimap2          | 9                         | 40               | 56-118Gb   | 12   mn-1h 31 mn    |
+|                 |                                    | Long   reads (pb, hifi or ONT) | minimap2          | 5                         | 40               | 58-93Gb    | 3h   18 mn-9h 24 mn |
+|                 |                                    | VCF                            | RepeatMasker      | 1                         | 40               | 5Gb        | 7h   24 mn          |
+| *Z. mays*         | 2.4   Gbp / 85%                    | assembly                       | minimap2          | 1                         | 40               | 143G       | 74.4   mn           |
+|                 |                                    | 70X   PacBio longreads         | minimap2          | 1                         | 40               | 57G        | 13h   42 mn         |
+|                 |                                    | VCF                            | RepeatMasker      | 1                         | 40               | 31G        | 203   mn            |
+|                 |                                    | VCF                            | make_graph   (vg) | 1                         | 40               | 11G        | 4   mn              |
+|                 |                                    | 70X   PacBio longreads         | GraphAligner      | 1                         | 40               | 66   G     | 11h   25 mn         |
+|                 |                                    | Algined   GAM                  | vg   call         | 1                         | 40               | 12   G     | 8   mn              |
 
 ## Large, complex and highly repetitive genomes
 
 The default parameters, in particular for request of RAM and execution time, may be inssuficient for large, complex and repeat rich genomes such as Maize and other models. Nextflow's error message may be hard to interpret and sometimes misleading with regards to the actual cause of the error. We advise users that suspect their model to be challenging for GraffiTE to initially use as much ressource are necessary. So far, a higher bound of 120h and 400Gb per process (these being requested resources, not actual usage -- for actual usage, see above) have been reported to allow successful run with Maize models, the most ressource intensive step being long-read alignments.
 
 ## Known Issues / Notes / FAQ
+
+**Please use and abuse the [Issue section](https://github.com/cgroza/GraffiTE/issues) of this Github page**. With the userbase growing, it becomes more likely that someone else has already encountered a similar issue. If not, other users will benefits from your experience! We will try to respond swiftly to any help request, and the Issue page is the only place we actively monitor for user support. Thank you!
 
 - The "stitching" method to identify unique TE insertion from fragmented hits has some degree of limitation. This can be flagrant for full-length LTR insertion, which can show `n_hits` > 1, and thus wont be recognized as a "single" element insertion, nor run through the TSD module. For now, names between LTR and I(nternal) sequences much match in the header name (e.g. TIRANT_LTR and TIRANT_I) to be automatically recognized as a single hit. We will make use of the RepeatMasker hit ID in order to improve this stitching procedure. In the meantime, we recommend to check/rename your LTR of interest in the `--TE_library` file. 
 
