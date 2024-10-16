@@ -1,8 +1,8 @@
 ![](https://i.imgur.com/jvprOAS.png)
 
-[![status: support](https://img.shields.io/badge/support:-yes-green)]() [![status: preprint](https://img.shields.io/badge/preprint:-BioRxiv:doi.org/10.1101/2023.09.11.557209-red)](https://doi.org/10.1101/2023.09.11.557209)
+[![status: support](https://img.shields.io/badge/support:-yes-green)]() [![status: preprint](https://img.shields.io/badge/Manuscript:-Nature_Communications-red)](https://www.nature.com/articles/s41467-024-53294-2)
 
-🗞️ GraffiTE preprint now on [BioRxiv](https://doi.org/10.1101/2023.09.11.557209)!
+🗞️ The GraffiTE paper is now out in [Nature Communication](https://www.nature.com/articles/s41467-024-53294-2)!
 
 ## Description
 
