@@ -2,7 +2,7 @@
 
 [![status: support](https://img.shields.io/badge/support:-yes-green)]() [![status: preprint](https://img.shields.io/badge/Manuscript:-Nature_Communications-red)](https://www.nature.com/articles/s41467-024-53294-2)
 
-🗞️ The GraffiTE paper is now out in [Nature Communication](https://www.nature.com/articles/s41467-024-53294-2)!
+🗞️ The GraffiTE paper is [now out](https://www.nature.com/articles/s41467-024-53294-2)!
 
 ## Description
 
