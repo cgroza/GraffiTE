@@ -70,7 +70,7 @@ annotate_vcf.R --dotout ${REPMASK_ONECODE_OUT} --vcf ${VCF} --annotation ${ANNOT
 echo "compute repeat proportion for each SVs..."
 samtools faidx indels.fa
 awk '{print $1"\t"$2}' indels.fa.fai > indels.length
-awk 'NR > 3 {print $5"\t"$6"\t"$7"\t"$10}' ${REPMASK_ONECODE_OUT} | bedtools merge > merge.bed
+awk 'NR > 3 {print $5"\t"$6-1"\t"$7"\t"$10}' ${REPMASK_ONECODE_OUT} | bedtools merge > merge.bed # add -1 to start to meet .bed format
 RMQUERIES=$(awk 'NR > 3 {print $5}' ${REPMASK_ONECODE_OUT} | sort | uniq)
 rm -rf span &> /dev/null # clean in case there is a "span" file already
 rm -rf ${ANNOT_FILE}.gz &> /dev/null # clean in case there was a ${ANNOT_FILE}.gz file already

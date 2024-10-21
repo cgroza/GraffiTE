@@ -26,17 +26,25 @@
 
 ## Changelog
 
-**Last update: 06/24/24**
+**Last update: 10/21/24**
+
+- :beetle: bug fix: transform RepeatMasker coordinates from 1-based to 0-based in order to meet the bed format standard and measure accurate hit length. This fixes [issue #43](https://github.com/cgroza/GraffiTE/issues/43)
+
+**Previous update: 06/24/24**
 
 - New option `--break_scaffolds` (see [additional parameters](#additional-parameters)) that automatically split contigs at runs of N > 4. With some scaffolded genomes, minimap2 can indeed return an error related to some CIGAR string being too long, typically `[E::parse_cigar] CIGAR length too long at position ...`. Breaking scaffolds at N stretches typicaly solve this problem, caused by limitations of the `htslib`/SAM specification. 
 
-**Previous update: 06/17/24**
+<details><summary>06/17/24 update:</summary>
+<p>
 
 - Added new/alternative compatible classes names: MITE, TIR and IS. e.g.: `>TEnameX#MITE` `>TEnameY#TIR/Mariner` or `>TEnameX#IS`. In previous versions, TE named with these classes were discarded by `OneCodeToFindThemAll`
    - The compatible classes in the fasta header includes (i.e. `Class` in `>TEname#Class/Superfamily`): `LINE`, `LTR`, `SINE`, `RC/Helitron` (will be treated as `DNA/RC`), `DNA`, `TIR`, `MITE`, `Retroposon`, `IS`, `Unknown`, `Unspecified`
    - TE for which a classification is absent will be treated as `Unknown` (e.g. `>TEnameZ`)
    - All `>TEnames` and `Superfamily` will be accepted as long as the `Class` name is among those supported.
- 
+
+</p>
+</details>
+
 <details><summary>02/13/24 update:</summary>
 <p>
 
