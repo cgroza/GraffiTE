@@ -71,13 +71,17 @@ echo "compute repeat proportion for each SVs..."
 samtools faidx indels.fa
 awk '{print $1"\t"$2}' indels.fa.fai > indels.length
 awk 'NR > 3 {print $5"\t"$6-1"\t"$7"\t"$10}' ${REPMASK_ONECODE_OUT} | bedtools merge > merge.bed # add -1 to start to meet .bed format
-RMQUERIES=$(awk 'NR > 3 {print $5}' ${REPMASK_ONECODE_OUT} | sort | uniq)
 rm -rf span &> /dev/null # clean in case there is a "span" file already
 rm -rf ${ANNOT_FILE}.gz &> /dev/null # clean in case there was a ${ANNOT_FILE}.gz file already
-for i in ${RMQUERIES}
-do
-paste -d "\t" <(echo -e "${i}") <(grep -w "${i}" merge.bed | awk '{print ($3-$2)}' | paste -sd+ | bc) <(grep -w "${i}" indels.length) | awk '{print $1"\t"$2"\t"$4"\t"($2/$4)}' >> span
-done
+# join allele length with TE span
+# input 1: sum of TE length group by SV ID
+# input 2: SV length
+# output:  id, sum of TE length, SV length, TE span; sorted by SV ID
+join -11 -21 \
+<(awk '{sum[$1] += $3-$2} END {for (i in sum) print i"\t"sum[i]}' merge.bed | sort -k1,1) \
+<(sort -k1,1 indels.length) | \
+awk '{print $1"\t"$2"\t"$3"\t"($2/$3)}' > span
+
 # merge with ${ANNOT_FILE}_1
 join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t/g' | \
  awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$15}' | \
@@ -89,22 +93,33 @@ if [[ ${MAM} == "MAM" ]]
 then
     echo "Mammalian filters ON. Filtering..."
     # FILTER 1: L1 Twin Priming and similar
-    TwP=$(awk '{if ($6 == 2 && $11 == "C,+" && $10~/LINE/) {names = split($10,n,",",seps); ids = split($12, i,",",seps); if (names n[1] == names n[2] && ids i[1] == ids i[2]) {print $0"\tTwP"}}}' vcf_annotation | awk '{print $3}')
     rm TwP.txt &> /dev/null
-    for i in $TwP 
-    do
-    grep -w $(grep -w "${i}" <(grep -v "#" genotypes.vcf | awk '{print $1"_"$2"\t"$3}') | cut -f 2) repeatmasker_dir/indels.fa.onecode.out | \
-    awk 'getline second {line=split(second, a, "\t", sep); print $12"\t"$13"\t"$14"\t"a[12]"\t"a[13]"\t"a[14]}' | \
-    awk -v coord=${i} '{if ($2<$5) {print coord"\t5P_INV:plus"} else {print coord"\t5P_INV:minus"}}' >> TwP.txt
-    done
+    # awk 1: find SVs IDs only matched by TwP, sort by SV ID
+    # join: join SV ID with its matched TEs from the OneCode output (sort by SV ID and reverse sort by strand to keep the order of "C,+")
+    # awk 2: write SV ID and coordiante of C L1 (odd line) and + L1 (even line) to one line
+    # awk 3: compare coordinate and annotate 5P_INV
+    awk '{
+    if ($6 == 2 && $11 == "C,+" && $10 ~ /LINE/) {
+        names = split($10, n, ",", seps);
+        ids = split($12, i, ",", seps);
+        
+        if (n[1] == n[2] && i[1] == i[2]) {
+            print $3;
+        }
+    }
+    }' vcf_annotation | sort | \
+    join -11 -21 - <(awk '{print $5"\t"$9"\t"$12"\t"$13"\t"$14}' repeatmasker_dir/indels.fa.onecode.out | sort -k1,1 -k2,2r) | \
+    awk 'NR % 2 == 1 {odd_line = $0; getline; print odd_line"\t"$3"\t"$4"\t"$5}' | \
+    awk '{if ($4<$7) {print $1"\t5P_INV:plus"} else {print $1"\t5P_INV:minus"} }' > TwP.txt
 
     # FILTER 2: SVA VNTR
     # get coordinates of each putative TE in TE (single TE hits)
-    awk '$6 == 1 && $14 > 0.9 {print $1"_"$2"\t"$1"\t"$2"\t"($2+1)"\t"$8"\t"$10}' vcf_annotation | grep 'SVA' | sort -k1,1 > SVA_candidates
-    join -17 -25 <(join -11 -21 SVA_candidates <(awk 'NR > 3 && !/^#/ {print $1"_"$2"\t"$3}' genotypes.vcf | \
-     sort -k1,1) | sort -k7,7) <(sort -k5,5 repeatmasker_dir/indels.fa.onecode.out) | \
+    # it now extracts SV ID from vcf_annotation rather than join with with VCF, these 2 should be identical according to annotate_vcf.R
+    # compared to the original script, SVA_candidates has an additional column (7th) for SV ID
+    awk '$6 == 1 && $14 > 0.9 && $10 ~ /SVA/ {print $1"_"$2"\t"$1"\t"($2-1)"\t"$2"\t"$8"\t"$10"\t"$3}' vcf_annotation | sort -k7,7 > SVA_candidates
+    join -17 -25 SVA_candidates <(sort -k5,5 repeatmasker_dir/indels.fa.onecode.out) | \
      sed 's/ /\t/g' | \
-     awk '{if ($15 == "+") {print $16"\t"$18"\t"$19"\t"$1} else {print $16"\t"$20"\t"$19"\t"$1}}' > SVA_candidates.bed
+     awk '{if ($15 == "+") {print $16"\t"($18-1)"\t"$19"\t"$1} else {print $16"\t"($20-1)"\t"$19"\t"$1}}' > SVA_candidates.bed
     # create bed with SVAs' VNTR position according to TRF on DFAM3.6 models (2022)
     rm SVA_VNTR.bed &> /dev/null
     echo -e "SVA_A\t436\t855\t+" >> SVA_VNTR.bed
