@@ -26,13 +26,22 @@
 
 ## Changelog
 
-**Last update: 10/21/24**
+**Last update: 10/22/24 | commit: [47ad044](https://github.com/cgroza/GraffiTE/commit/47ad04469e475e9dcbfd4ffc17faa4ba42c5d94d)**
 
+Thank you @[Han-Cao](https://github.com/Han-Cao) for submitting a pull request:
+- Improve speedup for large VCF annotation
+- :beetle: bug fix: change 1-based to 0-based coordinates system for SVA-VNTR module
+
+**Previous update: 10/21/24**
 - :beetle: bug fix: transform RepeatMasker coordinates from 1-based to 0-based in order to meet the bed format standard and measure accurate hit length. This fixes [issue #43](https://github.com/cgroza/GraffiTE/issues/43)
 
-**Previous update: 06/24/24**
+<details><summary>06/24/24 update:</summary>
+<p>
 
 - New option `--break_scaffolds` (see [additional parameters](#additional-parameters)) that automatically split contigs at runs of N > 4. With some scaffolded genomes, minimap2 can indeed return an error related to some CIGAR string being too long, typically `[E::parse_cigar] CIGAR length too long at position ...`. Breaking scaffolds at N stretches typicaly solve this problem, caused by limitations of the `htslib`/SAM specification. 
+
+</p>
+</details>
 
 <details><summary>06/17/24 update:</summary>
 <p>
