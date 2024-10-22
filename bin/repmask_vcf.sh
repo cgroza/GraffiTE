@@ -119,7 +119,7 @@ then
     awk '$6 == 1 && $14 > 0.9 && $10 ~ /SVA/ {print $1"_"$2"\t"$1"\t"($2-1)"\t"$2"\t"$8"\t"$10"\t"$3}' vcf_annotation | sort -k7,7 > SVA_candidates
     join -17 -25 SVA_candidates <(sort -k5,5 repeatmasker_dir/indels.fa.onecode.out) | \
      sed 's/ /\t/g' | \
-     awk '{if ($15 == "+") {print $16"\t"$18"\t"$19"\t"$1} else {print $16"\t"$20"\t"$19"\t"$1}}' > SVA_candidates.bed
+     awk '{if ($15 == "+") {print $16"\t"($18-1)"\t"$19"\t"$1} else {print $16"\t"($20-1)"\t"$19"\t"$1}}' > SVA_candidates.bed
     # create bed with SVAs' VNTR position according to TRF on DFAM3.6 models (2022)
     rm SVA_VNTR.bed &> /dev/null
     echo -e "SVA_A\t436\t855\t+" >> SVA_VNTR.bed
