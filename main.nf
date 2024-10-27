@@ -166,9 +166,14 @@ process map_longreads {
   tuple val(sample_name), path("${sample_name}.bam"), path(ref), emit: map_longreads_ch
 
   script:
+  read_preset = "map-${type}"
+  if(type == "lr:hq") {
+    read_preset = "${type}"
+  }
+
   if(params.aligner == "minimap2") {
     """
-    minimap2 -t ${map_longreads_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
+    minimap2 -t ${map_longreads_threads} -ax ${read_preset} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
       """
   }
   else if(params.aligner == "winnowmap") {
@@ -176,7 +181,7 @@ process map_longreads {
     meryl count k=15 output merylDB ${ref}
     meryl print greater-than distinct=0.9998 merylDB > repetitive_k15.txt
 
-    winnowmap -W repetitive_k15.txt -t ${map_longreads_threads} -ax map-${type} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
+    winnowmap -W repetitive_k15.txt -t ${map_longreads_threads} -ax ${read_preset} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
     """
   }
 
