@@ -1,8 +1,10 @@
 ![](https://i.imgur.com/jvprOAS.png)
 
-[![status: support](https://img.shields.io/badge/support:-yes-green)]() [![status: preprint](https://img.shields.io/badge/preprint:-BioRxiv:doi.org/10.1101/2023.09.11.557209-red)](https://doi.org/10.1101/2023.09.11.557209)
+[![status: support](https://img.shields.io/badge/support:-yes-green)](https://github.com/cgroza/GraffiTE/issues) [![status: paper](https://img.shields.io/badge/DOI:-10.1038\/s41467--024--53294--2-red)](https://www.nature.com/articles/s41467-024-53294-2) [![nextflow](https://img.shields.io/badge/powered_by:-Nextflow-9EE0CE?logo=data:image/png;base64,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)](https://www.nextflow.io/)
 
-🗞️ GraffiTE preprint now on [BioRxiv](https://doi.org/10.1101/2023.09.11.557209)!
+[![docker](https://img.shields.io/badge/use_with:-docker-blue?logo=docker)](https://www.docker.com/) [![apptainer](https://img.shields.io/badge/use_with:-apptainer-blue?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAxlBMVEX///8AAAAAlteWlpZttBP8kRQEBAT7+/vHx8fQ0NC5ubnZ7/mLw0Pg8vrBwcEKCgocHByoqKjm5ubv9+Y9r+Ha2tqgoKDs7OxpaWk9PT0lJSX8lR3y8vK84/SEzOtfveW02YbO5q+TyFF7uymS0u4Tntqm0W+j2fH5/PXZ68H1+u/s9eGezmNWueTq9vzB35rT6bi42oz+7dh9fX391KP9rlP8t2ZVVVX8oTf9qEaJiYkzMzNKSkr+8OBlZWUVFRX9xIL+3rqkQXPwAAABvklEQVQ4jY2SaV+CQBDGRxZESEVIVA5TS43u8j7Lvv+X6tlZQMheNC/4MTP/febYJTqb2b8ZNGg4HD3SH2b2BxNN066oruv67SXTaGtsCtD1u1H5+HiilQFdn14XgIHKtu9fiZKHqSLqSX6e85ObqyzwOGKZ+lPqj/l0o1gzYZXntD9Z/+W13HTyJokPLiD7b//Kw4ZylqdUYNK4yJN5C+Kd/+5fxpd5oof6B0/qF2J+DWYVArMZecKtxZnfqcDmeXqxjFZkCSFykbkE1jkQGcaGmgDMNOA5EqjmNbaGEZEtRCcL7CpsvcxfGoZRAvYKaJWAQgkbyUOAz+4MRNykpzbTQs6SlNNVwEY26QFostusQoBISqiiR1RYkimyGp8YwCZyAQQMrAAsSHbJi5AztqDtfQGUmkesIcKj8QG4kOjhpMi2FSBwgsBJ9uZyFx5aDLlUjD/Hom8pMOP9dYSw+Rr2bs33LTvgC/mGwEpNUxMippB35MCqFTXp1timCzJtm3sv2ZwWm1l+bbEJWccNqmzhDiJhN8mfPcx3+JpjvBgLez1gUreQJnMN0UJEwA3jQl7ugGdP/YP09136j/0AwhAf7mCZX6kAAAAASUVORK5CYII=)]([https://www.docker.com/](https://apptainer.org/docs/admin/main/installation.html))
+
+🗞️ The GraffiTE paper is [now out](https://www.nature.com/articles/s41467-024-53294-2)!
 
 ## Description
 
@@ -24,17 +26,34 @@
 
 ## Changelog
 
-**Last update: 06/24/24**
+**Last update: 10/22/24 | commit: [47ad044](https://github.com/cgroza/GraffiTE/commit/47ad04469e475e9dcbfd4ffc17faa4ba42c5d94d)**
+
+Thank you @[Han-Cao](https://github.com/Han-Cao) for submitting a pull request:
+- Improve speedup for large VCF annotation
+- :beetle: bug fix: change 1-based to 0-based coordinates system for SVA-VNTR module
+
+**Previous update: 10/21/24**
+- :beetle: bug fix: transform RepeatMasker coordinates from 1-based to 0-based in order to meet the bed format standard and measure accurate hit length. This fixes [issue #43](https://github.com/cgroza/GraffiTE/issues/43)
+
+<details><summary>06/24/24 update:</summary>
+<p>
 
 - New option `--break_scaffolds` (see [additional parameters](#additional-parameters)) that automatically split contigs at runs of N > 4. With some scaffolded genomes, minimap2 can indeed return an error related to some CIGAR string being too long, typically `[E::parse_cigar] CIGAR length too long at position ...`. Breaking scaffolds at N stretches typicaly solve this problem, caused by limitations of the `htslib`/SAM specification. 
 
-**Previous update: 06/17/24**
+</p>
+</details>
+
+<details><summary>06/17/24 update:</summary>
+<p>
 
 - Added new/alternative compatible classes names: MITE, TIR and IS. e.g.: `>TEnameX#MITE` `>TEnameY#TIR/Mariner` or `>TEnameX#IS`. In previous versions, TE named with these classes were discarded by `OneCodeToFindThemAll`
    - The compatible classes in the fasta header includes (i.e. `Class` in `>TEname#Class/Superfamily`): `LINE`, `LTR`, `SINE`, `RC/Helitron` (will be treated as `DNA/RC`), `DNA`, `TIR`, `MITE`, `Retroposon`, `IS`, `Unknown`, `Unspecified`
    - TE for which a classification is absent will be treated as `Unknown` (e.g. `>TEnameZ`)
    - All `>TEnames` and `Superfamily` will be accepted as long as the `Class` name is among those supported.
- 
+
+</p>
+</details>
+
 <details><summary>02/13/24 update:</summary>
 <p>
 
@@ -131,7 +150,9 @@
 `GraffiTE` is a `Nextflow` pipeline, with all the dependencies wrapped in an `Apptainer` image. It is thus compatible with any Linux system including HPCs.
 
 - install [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html)
-- install [Apptainer](https://apptainer.org/admin-docs/master/installation.html)
+- install [Apptainer](https://apptainer.org/docs/admin/main/installation.html)
+
+> Note that we have received report that Apptainer installation with Conda can cause issues. We recommend to install Apptainer directly.
 
 ### GraffiTE install
 
@@ -685,19 +706,43 @@ params.pangenie_threads
 
 The requirements are numbers or strings accepted by `nextflow`. For example, 40 for number of CPUs and '100G' for memory.
 
-## Resource usage example:
+## Resource usage examples:
 
-(this section will be updated based on our ongoing tests)
+| Model   species | Ref genome size   / TE content (%) | Input sample (if   applicable) | process           | # of processes   measured | CPUs (available) | RAM (peak) | Process run time    |
+|-----------------|------------------------------------|--------------------------------|-------------------|---------------------------|------------------|------------|---------------------|
+| human           | 3   Gbp / 50%                      | haploid   assemblies           | minimap2          | 2                         | 40               | 46-47Gb    | 38-49   mn          |
+|                 |                                    | 5X   HiFi long reads           | minimap2          | 1                         | 40               | 65Gb       | 20   mn             |
+|                 |                                    | 10X   HiFi long reads          | minimap2          | 1                         | 40               | 78Gb       | 39   mn             |
+|                 |                                    | 20X   HiFi long reads          | minimap2          | 1                         | 40               | 99Gb       | 1h   14 mn          |
+|                 |                                    | 30X   HiFi long reads          | minimap2          | 1                         | 40               | 109Gb      | 1h   48 mn          |
+|                 |                                    | VCF                            | RepeatMasker      | 1                         | 40               | 2Gb        | 37   mn             |
+|                 |                                    | VCF                            | make_graph   (vg) | 2                         | 1                | 4-8Gb      | 6   mn              |
+|                 |                                    | 30X   HiFi long reads          | GraphAligner      | 2                         | 40               | 124-125Gb  | 4h   1 mn           |
+|                 |                                    | 30X   Illumina                 | Pangenie          | 2                         | 40               | 85-87Gb    | 46   mn             |
+| *C. sativa*       | 740   Mbp / 70%                    | haploid   assemblies           | minimap2          | 9                         | 40               | 56-118Gb   | 12   mn-1h 31 mn    |
+|                 |                                    | Long   reads (pb, hifi or ONT) | minimap2          | 5                         | 40               | 58-93Gb    | 3h   18 mn-9h 24 mn |
+|                 |                                    | VCF                            | RepeatMasker      | 1                         | 40               | 5Gb        | 7h   24 mn          |
+| *Z. mays*         | 2.4   Gbp / 85%                    | assembly                       | minimap2          | 1                         | 40               | 143G       | 74.4   mn           |
+|                 |                                    | 70X   PacBio longreads         | minimap2          | 1                         | 40               | 57G        | 13h   42 mn         |
+|                 |                                    | VCF                            | RepeatMasker      | 1                         | 40               | 31G        | 203   mn            |
+|                 |                                    | VCF                            | make_graph   (vg) | 1                         | 40               | 11G        | 4   mn              |
+|                 |                                    | 70X   PacBio longreads         | GraphAligner      | 1                         | 40               | 66   G     | 11h   25 mn         |
+|                 |                                    | Algined   GAM                  | vg   call         | 1                         | 40               | 12   G     | 8   mn              |
 
-- Human chromosome 1: 10 cpu, 80Gb RAM. SV discovery \~30mn to 1h per genome, but can be improved by fine tuning the process-specific parameters.
-- *Drosophila melanogaster* full genomes: 4 cpu, 40Gb RAM. SV discovery \~15mn per genome.
+## Large, complex and highly repetitive genomes
+
+The default parameters, in particular for request of RAM and execution time, may be inssuficient for large, complex and repeat rich genomes such as Maize and other models. Nextflow's error message may be hard to interpret and sometimes misleading with regards to the actual cause of the error. We advise users that suspect their model to be challenging for GraffiTE to initially use as much ressource are necessary. So far, a higher bound of 120h and 400Gb per process (these being requested resources, not actual usage -- for actual usage, see above) have been reported to allow successful run with Maize models, the most ressource intensive step being long-read alignments.
 
 ## Known Issues / Notes / FAQ
+
+**Please use and abuse the [Issue section](https://github.com/cgroza/GraffiTE/issues) of this Github page**. With the userbase growing, it becomes more likely that someone else has already encountered a similar issue. If not, other users will benefits from your experience! We will try to respond swiftly to any help request, and the Issue page is the only place we actively monitor for user support. Thank you!
 
 - The "stitching" method to identify unique TE insertion from fragmented hits has some degree of limitation. This can be flagrant for full-length LTR insertion, which can show `n_hits` > 1, and thus wont be recognized as a "single" element insertion, nor run through the TSD module. For now, names between LTR and I(nternal) sequences much match in the header name (e.g. TIRANT_LTR and TIRANT_I) to be automatically recognized as a single hit. We will make use of the RepeatMasker hit ID in order to improve this stitching procedure. In the meantime, we recommend to check/rename your LTR of interest in the `--TE_library` file. 
 
 - As mentioned above, in order to improve runtime, the TSD module is only run for SVs with a single TE hit. We will improve this feature in order to be able to run the module on all SVs.
 
-- The TSD module will currently spawn one process per TSD, which can create a lot of folders and files. Make sure to delete the `work/` folder regularly to stay below quotas!
-
 - There are currently several bottlenecks in the pipeline: `samtools sort` can be tricky to parallelize properly (piped from `minimap2` alignments, which are often fast) and the performance will depends on the genomes size, complexity and the parameter used. `RepeatMasker` can be slow with a large number of SVs and a large library, hang-on! If you find satisfactory combinations of parameters for your model, please share them in the issues section! Thanks!
+
+## Cite
+
+Groza, C., Chen, X., Wheeler, T.J. et al. A unified framework to analyze transposable element insertion polymorphisms using graph genomes. Nat Commun 15, 8915 (2024). https://doi.org/10.1038/s41467-024-53294-2

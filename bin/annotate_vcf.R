@@ -21,7 +21,7 @@ read_rm_custom <- function(file) {
     qry_end <- qry_start <- NULL
     nrow_before_filtering <- nrow(rm_file)
     suppressWarnings(rm_file <- dplyr::mutate(rm_file,
-      qry_start = as.integer(qry_start),
+      qry_start = as.integer(qry_start)-1, # add -1 to be 0-based and calculate length
       qry_end = as.integer(qry_end), fragmts = as.integer(fragmts)
     ))
     rm_file <- dplyr::filter(rm_file, !is.na(qry_start), !is.na(qry_end))
