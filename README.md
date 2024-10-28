@@ -272,13 +272,14 @@ nextflow pull -r main https://github.com/cgroza/GraffiTE
 
 AND/OR
 
-- `--longreads`: a CSV file that lists the longreads FASTQ, sample names, and type of longreads (hifi/pb/ont) from which polymorphisms are to be discovered. One FASTQ per sample and sample names must be unique. **The header is required**.
+- `--longreads`: a CSV file that lists the longreads FASTQ, sample names, and type of longreads (hifi/pb/ont/lr:hq) from which polymorphisms are to be discovered. One FASTQ per sample and sample names must be unique. **The header is required**.
 
    Example `longreads.csv`:
    ```
    path,sample,type
    /path/to/reads/sampleA.fq.gz,sampleA_name,pb
    /path/to/reads/sampleB.fq.gz,sampleB_name,hifi
+   /path/to/reads/sampleC.fq.gz,sampleC_name,lr:hq
    /path/to/reads/sampleZ.fq.gz,sampleZ_name,ont
    ```
 
