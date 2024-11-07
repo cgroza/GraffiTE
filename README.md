@@ -26,14 +26,24 @@
 
 ## Changelog
 
-**Last update: 10/22/24 | commit: [47ad044](https://github.com/cgroza/GraffiTE/commit/47ad04469e475e9dcbfd4ffc17faa4ba42c5d94d)**
+**Last update: 11/07/24** | commit: [76537f9](https://github.com/cgroza/GraffiTE/commit/76537f9b5da4024ba03f760f58b024a5f485bf7a)
+
+- Added a new `--tsd_time` option to specify the time request for the TSD modules when using `cluster` profile. Default remains `1h`. No need to update the image, simply pull this Github repository.
+ 
+**Previous update: 10/22/24** | commit: [47ad044](https://github.com/cgroza/GraffiTE/commit/47ad04469e475e9dcbfd4ffc17faa4ba42c5d94d)
 
 Thank you @[Han-Cao](https://github.com/Han-Cao) for submitting a pull request:
 - Improve speedup for large VCF annotation
 - :beetle: bug fix: change 1-based to 0-based coordinates system for SVA-VNTR module
+No need to update the image, simply pull this Github repository.
 
-**Previous update: 10/21/24**
+<details><summary>10/21/24 update:</summary>
+<p>
+   
 - :beetle: bug fix: transform RepeatMasker coordinates from 1-based to 0-based in order to meet the bed format standard and measure accurate hit length. This fixes [issue #43](https://github.com/cgroza/GraffiTE/issues/43)
+
+</p>
+</details>
 
 <details><summary>06/24/24 update:</summary>
 <p>
