@@ -55,6 +55,7 @@ params.pangenie_time       = "12h"
 params.repeatmasker_time   = "12h"
 params.tsd_memory          = "10G"
 params.merge_vcf_memory    = "10G"
+params.tsd_time          = "1h"
 
 // SAY HELLO
 
@@ -355,6 +356,7 @@ process repeatmask_VCF {
 
 process tsd_prep {
   memory params.tsd_memory
+  time params.tsd_time
 
   input:
   path("genotypes_repmasked_filtered.vcf")
@@ -377,6 +379,7 @@ process tsd_prep {
 
 process tsd_search {
   memory params.tsd_memory
+  time params.tsd_time
 
   input:
   file indels
@@ -399,6 +402,7 @@ process tsd_search {
 
 process tsd_report {
   memory params.tsd_memory
+  time params.tsd_time
   publishDir "${params.out}/3_TSD_search", mode: 'copy'
 
   input:
