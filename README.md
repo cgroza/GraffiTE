@@ -394,8 +394,10 @@ These parameters can be used to bypass different steps of the pipeline.
 - `--vg_call_threads`: threads for calling genotypes with `vg call` on graph alignments. Default is 1.
 - `--vg_call_memory`: RAM limit for calling genotypes with `vg call` on graph alignments. Default is unset.
 
-- `--min_mapq`: Minimum mapping quality to consider when counting read depth on nodes. Default is 0.
-- `--min_support`: Minimum required read depth on `allele,bubble` to consider for genotyping. The first number is the minimum read depth on allele, and the second is the minimum depth on the entire bubble/locus. Default is `2,4`.
+- `--min_mapq`: minimum mapping quality to consider when counting read depth on nodes. Default is 0.
+- `--min_support`: minimum required read depth on `allele,bubble` to consider for genotyping. The first number is the minimum read depth on allele, and the second is the minimum depth on the entire bubble/locus. Default is `2,4`.
+- `--merge_vcf_memory`: amount of memory allocated for merging VCFs after genotyping on pangenome. Default is 10G.
+- `--merge_vcf_time`: amount of time allocated for merging VCFs after genotyping on pangenome. Default is 1h.
 
 #### GraffiTE modes
 

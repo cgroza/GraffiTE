@@ -55,6 +55,7 @@ params.pangenie_time       = "12h"
 params.repeatmasker_time   = "12h"
 params.tsd_memory          = "10G"
 params.merge_vcf_memory    = "10G"
+params.merge_vcf_time    = "1h"
 params.tsd_time          = "1h"
 
 // SAY HELLO
@@ -537,6 +538,7 @@ process vg_call {
 
 process merge_VCFs {
   memory params.merge_vcf_memory
+  memory params.merge_vcf_time
   publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
 
   input:
