@@ -538,7 +538,7 @@ process vg_call {
 
 process merge_VCFs {
   memory params.merge_vcf_memory
-  memory params.merge_vcf_time
+  time params.merge_vcf_time
   publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
 
   input:
