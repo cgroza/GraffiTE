@@ -348,7 +348,7 @@ AND (always required)
 These parameters can be used to bypass different steps of the pipeline.
 - `--bams` : a CSV file describing a set of reads that are already aligned. This file is formatted as:
 ```
-   path,sample,type
+   path,sample
    /path/to/reads/sampleA.bam,sampleA_name
    /path/to/reads/sampleB.bam,sampleB_name
    /path/to/reads/sampleZ.bam,sampleZ_name
