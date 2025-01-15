@@ -542,7 +542,7 @@ workflow {
       survivor_merge(svim_asm.out.svim_out_ch.map{sample -> sample[1]}.collect())
     }
 
-    if(params.assemblies && params.longreads) {
+    if(params.assemblies && (params.longreads || params.bams)) {
       merge_svim_sniffles2(survivor_merge.out.sv_variants_ch, sniffles_population_call.out.sn_variants_ch)
     }
   }
@@ -556,11 +556,11 @@ workflow {
     } else {
       Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
-      if(params.longreads && !params.assemblies){
+      if((params.longreads || params.bams) && !params.assemblies){
         sniffles_population_call.out.sn_variants_ch.set { raw_vcf_ch }
-      } else if (params.assemblies && !params.longreads){
+      } else if (params.assemblies && !(params.longreads || params.bams)){
         survivor_merge.out.sv_variants_ch.set { raw_vcf_ch }
-      } else if (params.assemblies && params.longreads){
+      } else if (params.assemblies && (params.longreads || params.bams)){
         merge_svim_sniffles2.out.sv_sn_variants_ch.set { raw_vcf_ch }
       } else if(params.vcf){
         Channel.fromPath(params.vcf, checkIfExists : true).set{raw_vcf_ch}
