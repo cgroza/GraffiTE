@@ -570,15 +570,25 @@ workflow {
   Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
 
   if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
-    if(params.longreads) {
-      Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
-        [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{map_longreads_in_ch}
-      //map_longreads_in_ch.view()
-      map_longreads(map_longreads_in_ch)
-      sniffles_sample_call(map_longreads.out.map_longreads_ch)
-      sniffles_population_call(sniffles_sample_call.out.sniffles_sample_call_out_ch.collect(),
-                               ref_asm_ch)
+    if(params.longreads || params.bams) {
+      sniffles_in_ch = channel.of()
+
+      if(params.longreads) {
+        Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
+          [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{map_longreads_in_ch}
+        map_longreads(map_longreads_in_ch)
+        sniffles_in_ch = sniffles_in_ch.concat(map_longreads.out.map_longreads_ch)
+      }
+
+      if(params.bams) {
+        sniffles_in_ch = sniffles_in_ch.concat(Channel.fromPath(params.bams).splitCsv(header:true).map{row ->
+          [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch))
+      }
+
+      sniffles_sample_call(sniffles_in_ch)
+      sniffles_population_call(sniffles_sample_call.out.sniffles_sample_call_out_ch.collect(), ref_asm_ch)
     }
+
     if(params.assemblies) {
       Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
         [row.sample, file(row.path, checkIfExists:true)]}.set{map_asm_in_ch}
