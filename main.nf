@@ -1,63 +1,3 @@
-// main parameters
-params.graffite_vcf   = false
-params.vcf            = false
-params.RM_vcf         = false // mainly for debug. Requires --RM_dir
-params.RM_dir         = false // mainly for debug. Requires --RM_vcf
-params.genotype       = true
-params.graph_method   = "pangenie" // or giraffe or graphaligner
-params.reads          = "reads.csv"
-params.longreads      = false // if you want to use sniffles on long read alignments
-params.assemblies     = false // if you want to use svim-asm on genome alignments
-params.break_scaffolds     = false // if input assemblies are scaffolds and need to be broken at runs of N
-params.reference      = "reference.fa"
-params.TE_library     = "TE_library.fa"
-params.out            = "out"
-params.tsd_win        = 30 // add default value for TSD window search
-params.cores          = false // set to an integer
-params.mammal         = false
-params.mini_K         = "500M"
-params.stSort_m       = "4G"
-params.stSort_t       = 4
-params.tsd_batch_size = 100
-params.asm_divergence = "asm5"
-params.aligner        = "minimap2" // or winnowmap
-params.min_mapq             = 0
-params.min_support          = "2,4"
-
-// cluster mode parameter
-params.map_longreads_memory = null
-params.map_longreads_threads = 1
-params.map_asm_memory = null
-params.map_asm_threads = 1
-params.svim_asm_memory      = null
-params.svim_asm_threads     = 1
-params.sniffles_memory      = null
-params.sniffles_threads     = 1
-params.repeatmasker_memory  = null
-params.repeatmasker_threads = 1
-params.pangenie_memory      = null
-params.pangenie_threads     = 1
-params.make_graph_memory    = null
-params.make_graph_threads   = 1
-params.graph_align_memory   = null
-params.graph_align_threads   = 1
-params.vg_call_memory       = null
-params.vg_call_threads      = 1
-params.merge_svim_sniffles2_threads    = 1
-params.merge_svim_sniffles2_memory = "10G"
-params.merge_svim_sniffles2_time = "12h"
-params.map_asm_time = "3h"
-params.map_longreads_time = "12h"
-params.graph_align_time    = "12h"
-params.svim_asm_time       = "12h"
-params.sniffles_time       = "12h"
-params.pangenie_time       = "12h"
-params.repeatmasker_time   = "12h"
-params.tsd_memory          = "10G"
-params.merge_vcf_memory    = "10G"
-params.merge_vcf_time    = "1h"
-params.tsd_time          = "1h"
-
 // SAY HELLO
 
 log.info """
@@ -83,24 +23,26 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 """
 
 // if user uses global preset for number of cores
-if(params.cores) {
-map_longreads_threads = params.cores
-map_asm_threads      = params.cores
-repeatmasker_threads = params.cores
-svim_asm_threads     = params.cores
-pangenie_threads     = params.cores
-graph_align_threads  = params.cores
-vg_call_threads      = params.cores
-sniffles_threads     = params.cores
-} else {
-map_longreads_threads = params.map_longreads_threads
-map_asm_threads       = params.map_asm_threads
-repeatmasker_threads  = params.repeatmasker_threads
-svim_asm_threads      = params.svim_asm_threads
-pangenie_threads      = params.pangenie_threads
-graph_align_threads   = params.graph_align_threads
-vg_call_threads       = params.vg_call_threads
-sniffles_threads      = params.sniffles_threads
+
+if (params.cores) {
+  map_longreads_threads = params.cores
+  map_asm_threads      = params.cores
+  repeatmasker_threads = params.cores
+  svim_asm_threads     = params.cores
+  pangenie_threads     = params.cores
+  graph_align_threads  = params.cores
+  vg_call_threads      = params.cores
+  sniffles_threads     = params.cores
+}
+else {
+  map_longreads_threads = params.map_longreads_threads
+  map_asm_threads       = params.map_asm_threads
+  repeatmasker_threads  = params.repeatmasker_threads
+  svim_asm_threads      = params.svim_asm_threads
+  pangenie_threads      = params.pangenie_threads
+  graph_align_threads   = params.graph_align_threads
+  vg_call_threads       = params.vg_call_threads
+  sniffles_threads      = params.sniffles_threads
 }
 
 String graph =  ""
