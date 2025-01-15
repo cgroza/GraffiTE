@@ -146,7 +146,7 @@ process sniffles_sample_call {
 
   script:
   """
-  samtools index ${sample_name}.bam
+  samtools index ${longreads_bam}
   sniffles --minsvlen 100 --threads ${sniffles_threads} --reference ${ref} --input ${longreads_bam} --snf ${sample_name}.snf --vcf ${sample_name}.vcf
   """
 }
