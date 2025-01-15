@@ -267,9 +267,15 @@ nextflow pull -r main https://github.com/cgroza/GraffiTE
 
 ## Parameters
 
+All the following parameters are listed in `nextflow.config`.
+To change these parameters, you may specify them on the command line.
+To avoid long commands, you may edit `nextflow.config` directly or pass your own copy to nextflow using `-c your_config`.
+
 #### Input files
 
-- `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered. One assembly per sample and sample names must be unique. **The header is required**. 
+- `--assemblies`: a CSV file that lists the genome assemblies and sample names from which polymorphisms are to be discovered.
+One assembly per sample and sample names must be unique.
+**The header is required**.
 
    Example `assemblies.csv`:
    ```
@@ -340,6 +346,13 @@ AND (always required)
 #### Pipeline Shortcuts
 
 These parameters can be used to bypass different steps of the pipeline.
+- `--bams` : a CSV file describing a set of reads that are already aligned. This file is formatted as:
+```
+   path,sample,type
+   /path/to/reads/sampleA.bam,sampleA_name
+   /path/to/reads/sampleB.bam,sampleB_name
+   /path/to/reads/sampleZ.bam,sampleZ_name
+```
 
 - `--vcf`: a *sequence resolved* VCF containing both REF and ALT variants sequences. This option will bypass the SV discovery and will proceed to annotate and filter the input VCF for repeats and TSD, as well as genoyping (unless `--genotype false` is set). The VCF must be biallelic (can be done with `bcftools norm -m-`) and each variant must have a unique variant ID that is also a valid FASTA contig name (no `>` character in variant ID). For those who wish to start directly from a graph genome in [GFA format](https://gfa-spec.github.io/GFA-spec/GFA1.html), we currently recommend to convert the graph to VCF using [`vg deconstruct`](https://github.com/vgteam/vg?tab=readme-ov-file#calling-variants-from-paths-in-the-graph), then modify the VCF as described above.
 - `--RM_vcf`+`--RM_dir`: bypasses SV discovery and filtering (RepeatMasker) and starts at the TSD search process. `--RM_vcf` can be found in the outputs: `2_Repeat_Filtering/genotypes_repmasked_filtered.vcf` and `--RM_dir` in `2_Repeat_Filtering/repeatmasker_dir`
