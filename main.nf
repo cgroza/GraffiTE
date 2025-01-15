@@ -513,21 +513,22 @@ workflow {
 
   if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
     if(params.longreads || params.bams) {
-      sniffles_in_ch = channel.of()
+      sniffles_reads_in_ch = channel.of()
+      sniffles_bams_in_ch = channel.of()
 
       if(params.longreads) {
         Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
           [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{map_longreads_in_ch}
         map_longreads(map_longreads_in_ch)
-        sniffles_in_ch = sniffles_in_ch.concat(map_longreads.out.map_longreads_ch)
+        sniffles_reads_in_ch = map_longreads.out.map_longreads_ch
       }
 
       if(params.bams) {
-        sniffles_in_ch = sniffles_in_ch.concat(Channel.fromPath(params.bams).splitCsv(header:true).map{row ->
-          [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch))
+        sniffles_bams_in_ch = Channel.fromPath(params.bams).splitCsv(header:true).map{row ->
+          [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch)
       }
 
-      sniffles_sample_call(sniffles_in_ch)
+      sniffles_sample_call(sniffles_reads_in_ch.concat(sniffles_bams_in_ch))
       sniffles_population_call(sniffles_sample_call.out.sniffles_sample_call_out_ch.collect(), ref_asm_ch)
     }
 
