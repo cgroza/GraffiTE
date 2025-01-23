@@ -271,7 +271,8 @@ process split_repmask {
 
   script:
   """
-  bgzip ${vcf}
+  bcftools sort -Oz ${vcf}.gz ${vcf}
+  tabix ${vcf}.gz
   bcftools index -s ${vcf}.gz | cut -f 1 | while read C; do bcftools view -O v -o split.\${C}.vcf ${vcf}.gz "\${C}" ; done
   """
 }
