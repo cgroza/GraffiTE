@@ -257,6 +257,28 @@ process merge_svim_sniffles2 {
 
 }
 
+process split_repmask {
+  cpus repeatmasker_threads
+  cpus repeatmasker_memory
+  time '1h'
+
+  input:
+  path("genotypes.vcf")
+
+  output:
+  path("split.*.vcf")
+
+
+  script:
+  """
+  bcftools index -s genotypes.vcf | cut -f 1 | while read C; do bcftools view -O v -o split.\${C}.vcf genotypes.vcf "${C}" ; done
+  """
+}
+
+process concat_repmask {
+
+}
+
 process repeatmask_VCF {
   cpus repeatmasker_threads
   memory params.repeatmasker_memory
