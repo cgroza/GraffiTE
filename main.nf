@@ -276,7 +276,13 @@ process split_repmask {
 }
 
 process concat_repmask {
+  input:
 
+  output:
+
+  script:
+  """
+  """
 }
 
 process repeatmask_VCF {
