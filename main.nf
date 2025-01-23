@@ -271,7 +271,7 @@ process split_repmask {
 
   script:
   """
-  bcftools index -s genotypes.vcf | cut -f 1 | while read C; do bcftools view -O v -o split.\${C}.vcf genotypes.vcf "${C}" ; done
+  bcftools index -s genotypes.vcf | cut -f 1 | while read C; do bcftools view -O v -o split.\${C}.vcf genotypes.vcf "\${C}" ; done
   """
 }
 
