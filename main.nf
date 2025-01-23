@@ -257,7 +257,7 @@ process merge_svim_sniffles2 {
 
 }
 
-process split_repmask {
+process split_repeatmask {
   cpus repeatmasker_threads
   memory params.repeatmasker_memory
   time '1h'
@@ -273,17 +273,20 @@ process split_repmask {
   """
   bcftools sort -Oz -o ${vcf}.gz ${vcf}
   tabix ${vcf}.gz
-  bcftools index -s ${vcf}.gz | cut -f 1 | while read C; do bcftools view -O v -o split.\${C}.vcf ${vcf}.gz "\${C}" ; done
+  bcftools index -s ${vcf}.gz | cut -f 1 | while read C; do bcftools view -O v -o \${C}.vcf ${vcf}.gz "\${C}" ; done
   """
 }
 
-process concat_repmask {
+process concat_repeatmask {
   input:
+  path(vcfs)
 
   output:
+  path("genotypes.vcf")
 
   script:
   """
+  bcftools concat -Ov -o genotypes.vcf ${vcfs}
   """
 }
 
@@ -594,12 +597,12 @@ workflow {
       } else {
         error "No --longreads, --assemblies, --vcf or --RM_vcf parameters passed to GraffiTE."
       }
-      repeatmask_VCF(split_repmask(raw_vcf_ch).combine(TE_library_ch).combine(ref_asm_ch))
+      repeatmask_VCF(split_repeatmask(raw_vcf_ch).combine(TE_library_ch).combine(ref_asm_ch))
       repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
       repeatmask_VCF.out.RM_dir_ch.set{RM_dir_ch}
     }
     tsd_prep(RM_vcf_ch, RM_dir_ch, ref_asm_ch)
-    tsd_search(tsd_prep.out.tsd_search_input.splitText( by: params.tsd_batch_size),
+    tsd_search(tsd_prep.out.tsd_search_input.splitText(by: params.tsd_batch_size),
                RM_vcf_ch.toList(),
                tsd_prep.out.tsd_search_SV.toList(),
                tsd_prep.out.tsd_search_flanking.toList(),
@@ -609,6 +612,7 @@ workflow {
                tsd_search.out.tsd_full_out_ch.collect(),
                RM_vcf_ch)
     tsd_report.out.vcf_ch.set{vcf_ch}
+    concat_repeatmask(vcf_ch)
   } else {
     // if a vcf is provided as parameter, skip discovery and go directly to genotyping
     Channel.fromPath(params.graffite_vcf).set{vcf_ch}
