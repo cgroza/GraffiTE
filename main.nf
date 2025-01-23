@@ -286,15 +286,11 @@ process repeatmask_VCF {
   publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
 
   input:
-  path("genotypes.vcf")
-  path(TE_library)
-  path(ref_fasta)
+  tuple path("genotypes.vcf"), path(TE_library), path(ref_fasta)
 
   output:
   path("genotypes_repmasked_filtered.vcf"), emit: RM_vcf_ch
   path("repeatmasker_dir/"), emit: RM_dir_ch
-  //path("vcf_annotation.gz")
-  //path("vcf_annotation_1")
 
   script:
   if(params.mammal)
@@ -590,7 +586,7 @@ workflow {
       } else {
         error "No --longreads, --assemblies, --vcf or --RM_vcf parameters passed to GraffiTE."
       }
-      repeatmask_VCF(raw_vcf_ch, TE_library_ch, ref_asm_ch)
+      repeatmask_VCF(split_repmask(raw_vcf_ch).combine(TE_library_ch).combine(ref_asm_ch))
       repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
       repeatmask_VCF.out.RM_dir_ch.set{RM_dir_ch}
     }
