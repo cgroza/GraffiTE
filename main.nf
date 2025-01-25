@@ -266,7 +266,7 @@ process split_repeatmask {
   path(vcf)
 
   output:
-  path("split.*.vcf")
+  path("*.vcf")
 
 
   script:
