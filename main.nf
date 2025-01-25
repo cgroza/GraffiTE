@@ -285,7 +285,7 @@ process concat_repeatmask {
   path("TSD_summary_*.txt")
 
   output:
-  path("genotypes.vcf")
+  path("pangenome.vcf")
   path("TSD_summary.txt")
   path("TSD_full_log.txt")
   path("pangenome.vcf"), emit: vcf_ch
