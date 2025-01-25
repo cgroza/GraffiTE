@@ -278,15 +278,23 @@ process split_repeatmask {
 }
 
 process concat_repeatmask {
+  publishDir "${params.out}/3_TSD_search", mode: 'copy'
   input:
   path(vcfs)
+  path(tsd_full_group)
+  path(tsd_sum_group)
 
   output:
   path("genotypes.vcf")
+  path("TSD_summary.txt")
+  path("TSD_full_log.txt")
+  path("pangenome.vcf"), emit: vcf_ch
 
   script:
   """
-  bcftools concat -Ov -o genotypes.vcf ${vcfs}
+  cat ${tsd_sum_group} > TSD_summary.txt
+  cat ${tsd_full_group} > TSD_full_log.txt
+  bcftools concat -Ov -o pangenome.vcf ${vcfs}
   """
 }
 
@@ -375,7 +383,6 @@ process tsd_search {
 process tsd_report {
   memory params.tsd_memory
   time params.tsd_time
-  publishDir "${params.out}/3_TSD_search", mode: 'copy'
 
   input:
   path(x)
@@ -611,8 +618,9 @@ workflow {
     tsd_report(tsd_search.out.tsd_out_ch.collect(),
                tsd_search.out.tsd_full_out_ch.collect(),
                RM_vcf_ch)
-    tsd_report.out.vcf_ch.set{vcf_ch}
-    concat_repeatmask(vcf_ch)
+    concat_repeatmask(tsd_report.vcf_ch.collect(),
+                      tsd_report.tsd_full_group_ch.collect(),
+                      tsd_report.tsd_sum_group_ch.collect()).set{vcf_ch}
   } else {
     // if a vcf is provided as parameter, skip discovery and go directly to genotyping
     Channel.fromPath(params.graffite_vcf).set{vcf_ch}
