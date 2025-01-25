@@ -280,7 +280,7 @@ process split_repeatmask {
 process concat_repeatmask {
   publishDir "${params.out}/3_TSD_search", mode: 'copy'
   input:
-  path("tsd_pangenome*.vcf")
+  path("tsd_pangenome_*.vcf")
   path("TSD_full_log_*.txt")
   path("TSD_summary_*.txt")
 
