@@ -604,7 +604,7 @@ workflow {
       } else {
         error "No --longreads, --assemblies, --vcf or --RM_vcf parameters passed to GraffiTE."
       }
-      repeatmask_VCF(split_repeatmask(raw_vcf_ch).combine(TE_library_ch).combine(ref_asm_ch))
+      repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch))
       repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
       repeatmask_VCF.out.RM_dir_ch.set{RM_dir_ch}
     }
