@@ -618,9 +618,9 @@ workflow {
     tsd_report(tsd_search.out.tsd_out_ch.collect(),
                tsd_search.out.tsd_full_out_ch.collect(),
                RM_vcf_ch)
-    concat_repeatmask(tsd_report.vcf_ch.collect(),
-                      tsd_report.tsd_full_group_ch.collect(),
-                      tsd_report.tsd_sum_group_ch.collect()).set{vcf_ch}
+    concat_repeatmask(tsd_report.out.vcf_ch.collect(),
+                      tsd_report.out.tsd_full_group_ch.collect(),
+                      tsd_report.out.tsd_sum_group_ch.collect()).set{vcf_ch}
   } else {
     // if a vcf is provided as parameter, skip discovery and go directly to genotyping
     Channel.fromPath(params.graffite_vcf).set{vcf_ch}
