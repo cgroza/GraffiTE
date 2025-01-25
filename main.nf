@@ -339,9 +339,7 @@ process tsd_prep {
   time params.tsd_time
 
   input:
-  path("genotypes_repmasked_filtered.vcf")
-  path("repeatmasker_dir/*")
-  path(ref_fasta)
+  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta)
 
   output:
   path("indels.txt"), emit: tsd_search_input
@@ -608,7 +606,7 @@ workflow {
       repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
       repeatmask_VCF.out.RM_dir_ch.set{RM_dir_ch}
     }
-    tsd_prep(RM_vcf_ch, RM_dir_ch, ref_asm_ch)
+    tsd_prep(RM_vcf_ch.merge(RM_dir_ch).combine(ref_asm_ch))
     tsd_search(tsd_prep.out.tsd_search_input.splitText(by: params.tsd_batch_size),
                RM_vcf_ch.toList(),
                tsd_prep.out.tsd_search_SV.toList(),
