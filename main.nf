@@ -280,9 +280,9 @@ process split_repeatmask {
 process concat_repeatmask {
   publishDir "${params.out}/3_TSD_search", mode: 'copy'
   input:
-  path(vcfs)
-  path(tsd_full_group)
-  path(tsd_sum_group)
+  path("tsd_pangenome*.vcf")
+  path("TSD_full_log_*.txt")
+  path("TSD_summary_*.txt")
 
   output:
   path("genotypes.vcf")
@@ -292,9 +292,9 @@ process concat_repeatmask {
 
   script:
   """
-  cat ${tsd_sum_group} > TSD_summary.txt
-  cat ${tsd_full_group} > TSD_full_log.txt
-  bcftools concat -Ov -o pangenome.vcf ${vcfs}
+  cat TSD_summary_*.txt > TSD_summary.txt
+  cat TSD_full_log_*.txt > TSD_full_log.txt
+  bcftools concat -Ov -o pangenome.vcf tsd_pangenome_*.vcf
   """
 }
 
