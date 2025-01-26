@@ -342,10 +342,11 @@ process tsd_prep {
   tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta)
 
   output:
-  path("indels.txt"), emit: tsd_search_input
+  // path("indels.txt"), emit: tsd_search_input
 
-  path("SV_sequences_L_R_trimmed_WIN.fa"), emit: tsd_search_SV
-  path("flanking_sequences.fasta"), emit: tsd_search_flanking
+  // path("SV_sequences_L_R_trimmed_WIN.fa"), emit: tsd_search_SV
+  // path("flanking_sequences.fasta"), emit: tsd_search_flanking
+  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta), path("indels.txt"), path("SV_sequences_L_R_trimmed_WIN.fa"), path("flanking_sequences.fasta")
 
   script:
   """
@@ -360,12 +361,12 @@ process tsd_search {
   time params.tsd_time
 
   input:
-  file indels
   path("genotypes_repmasked_filtered.vcf")
-  path("SV_sequences_L_R_trimmed_WIN.fa")
-  path("flanking_sequences.fasta")
   path("repeatmasker_dir/*")
   path(ref_fasta)
+  file indels
+  path("SV_sequences_L_R_trimmed_WIN.fa")
+  path("flanking_sequences.fasta")
 
   output:
   path('*TSD_summary.txt'), emit: tsd_out_ch
@@ -606,13 +607,7 @@ workflow {
       repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
       repeatmask_VCF.out.RM_dir_ch.set{RM_dir_ch}
     }
-    tsd_prep(RM_vcf_ch.merge(RM_dir_ch).combine(ref_asm_ch))
-    tsd_search(tsd_prep.out.tsd_search_input.splitText(by: params.tsd_batch_size),
-               RM_vcf_ch.toList(),
-               tsd_prep.out.tsd_search_SV.toList(),
-               tsd_prep.out.tsd_search_flanking.toList(),
-               RM_dir_ch.toList(),
-               ref_asm_ch.toList())
+    tsd_search(tsd_prep(RM_vcf_ch.merge(RM_dir_ch).combine(ref_asm_ch)))
     tsd_report(tsd_search.out.tsd_out_ch.collect(),
                tsd_search.out.tsd_full_out_ch.collect(),
                RM_vcf_ch)
