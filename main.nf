@@ -539,7 +539,7 @@ workflow {
   // initiate channels that will provide the reference genome to processes
   Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
 
-  if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
+  if(!params.graffite_vcf && !params.vcf && !params.RM_dir) {
     if(params.longreads || params.bams) {
       sniffles_reads_in_ch = channel.of()
       sniffles_bams_in_ch = channel.of()
@@ -578,10 +578,17 @@ workflow {
 
   // if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
   if(!params.graffite_vcf) {
-    // except if --RM_vcf is given, in which case skip RepeatMasker here and set the input channel
-    if(params.RM_vcf){
-      Channel.fromPath(params.RM_vcf, checkIfExists:true).set{RM_vcf_ch}
-      Channel.fromPath(params.RM_dir, checkIfExists:true).set{RM_dir_ch}
+    // except if --RM_dir is given, in which case skip RepeatMasker here and set the input channel
+    if(params.RM_dir){
+      channel.fromFilePairs(["${params.RM_dir}/*/*.vcf",
+                             "${params.RM_dir}/*/repeatmasker_dir"],
+                            type: "any",
+                            checkIfExists: true).
+      multiMap{v ->
+        vcf: v[0]
+        dir: v[1]}.set{RM_cached}
+      RM_cached.vcf.set{RM_vcf_ch}
+      RM_cached.dir.set{RM_dir_ch}
     } else {
       Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
@@ -594,7 +601,7 @@ workflow {
       } else if(params.vcf){
         Channel.fromPath(params.vcf, checkIfExists : true).set{raw_vcf_ch}
       } else {
-        error "No --longreads, --assemblies, --vcf or --RM_vcf parameters passed to GraffiTE."
+        error "No --longreads, --assemblies, --vcf or --RM_dir parameters passed to GraffiTE."
       }
       repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch))
       repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
