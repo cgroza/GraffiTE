@@ -580,13 +580,12 @@ workflow {
   if(!params.graffite_vcf) {
     // except if --RM_dir is given, in which case skip RepeatMasker here and set the input channel
     if(params.RM_dir){
-      channel.fromFilePairs(["${params.RM_dir}/*/*.vcf",
-                             "${params.RM_dir}/*/repeatmasker_dir"],
-                            type: "any",
-                            checkIfExists: true).
+      channel.fromPath("${params.RM_dir}/*", type: "dir").
+      map{p -> [file("${p}/genotypes_repmasked_filtered.vcf"), file("${p}/repeatmasker_dir")]}.
       multiMap{v ->
         vcf: v[0]
         dir: v[1]}.set{RM_cached}
+
       RM_cached.vcf.set{RM_vcf_ch}
       RM_cached.dir.set{RM_dir_ch}
     } else {
