@@ -600,7 +600,9 @@ workflow {
       repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
       repeatmask_VCF.out.RM_dir_ch.set{RM_dir_ch}
     }
-    tsd_report(tsd_search(tsd_prep(RM_vcf_ch.merge(RM_dir_ch).combine(ref_asm_ch)).splitText(elem: 3, by: params.tsd_batch_size)).groupTuple(by: 3))
+    tsd_report(tsd_search(tsd_prep(RM_vcf_ch.merge(RM_dir_ch).combine(ref_asm_ch)).splitText(elem: 3, by: params.tsd_batch_size)).groupTuple(by: 3)).map{
+      v -> tuple(v[0], v[1], v[2][0], v[3])
+    }
     concat_repeatmask(tsd_report.out.vcf_ch.collect(),
                       tsd_report.out.tsd_full_group_ch.collect(),
                       tsd_report.out.tsd_sum_group_ch.collect())
