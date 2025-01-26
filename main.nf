@@ -361,12 +361,7 @@ process tsd_search {
   time params.tsd_time
 
   input:
-  path("genotypes_repmasked_filtered.vcf")
-  path("repeatmasker_dir/*")
-  path(ref_fasta)
-  file indels
-  path("SV_sequences_L_R_trimmed_WIN.fa")
-  path("flanking_sequences.fasta")
+  path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta), file(indels), path("SV_sequences_L_R_trimmed_WIN.fa"), path("flanking_sequences.fasta")
 
   output:
   path('*TSD_summary.txt'), emit: tsd_out_ch
