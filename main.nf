@@ -602,7 +602,7 @@ workflow {
       repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
       repeatmask_VCF.out.RM_dir_ch.set{RM_dir_ch}
     }
-    tsd_search(tsd_prep(RM_vcf_ch.merge(RM_dir_ch).combine(ref_asm_ch)))
+    tsd_search(tsd_prep(RM_vcf_ch.merge(RM_dir_ch).combine(ref_asm_ch)).splitText(elem: 3, by: params.tsd_batch_size))
     tsd_report(tsd_search.out.tsd_out_ch.collect(),
                tsd_search.out.tsd_full_out_ch.collect(),
                RM_vcf_ch)
