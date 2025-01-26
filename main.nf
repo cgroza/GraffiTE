@@ -302,7 +302,7 @@ process repeatmask_VCF {
   cpus repeatmasker_threads
   memory params.repeatmasker_memory
   time params.repeatmasker_time
-  publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
+  publishDir "${params.out}/2_Repeat_Filtering/${task.index}", mode: 'copy'
 
   input:
   tuple path("genotypes.vcf"), path(TE_library), path(ref_fasta)
