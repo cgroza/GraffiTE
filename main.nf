@@ -398,6 +398,7 @@ process make_graph {
   cpus params.make_graph_threads
   memory params.make_graph_memory
   time params.make_graph_time
+  publishDir "${params.out}/GraffiTE_graph/", mode: 'copy'
   input:
   path(vcf)
   path(fasta)
