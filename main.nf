@@ -257,22 +257,59 @@ process merge_svim_sniffles2 {
 
 }
 
+process split_repeatmask {
+  cpus repeatmasker_threads
+  memory params.repeatmasker_memory
+  time '1h'
+
+  input:
+  path(vcf)
+
+  output:
+  path("*.vcf")
+
+
+  script:
+  """
+  bcftools sort -Oz -o ${vcf}.gz ${vcf}
+  tabix ${vcf}.gz
+  bcftools index -s ${vcf}.gz | cut -f 1 | while read C; do bcftools view -O v -o \${C}.vcf ${vcf}.gz "\${C}" ; done
+  """
+}
+
+process concat_repeatmask {
+  publishDir "${params.out}/3_TSD_search", mode: 'copy'
+  input:
+  path("tsd_pangenome_*.vcf")
+  path("TSD_full_log_*.txt")
+  path("TSD_summary_*.txt")
+
+  output:
+  path("pangenome.vcf")
+  path("TSD_summary.txt")
+  path("TSD_full_log.txt")
+  path("pangenome.vcf"), emit: vcf_ch
+
+  script:
+  """
+  cat TSD_summary_*.txt > TSD_summary.txt
+  cat TSD_full_log_*.txt > TSD_full_log.txt
+  bcftools concat -Ov -o pangenome.vcf tsd_pangenome_*.vcf
+  """
+}
+
 process repeatmask_VCF {
   cpus repeatmasker_threads
   memory params.repeatmasker_memory
   time params.repeatmasker_time
-  publishDir "${params.out}/2_Repeat_Filtering", mode: 'copy'
+  publishDir "${params.out}/2_Repeat_Filtering/${task.index}", mode: 'copy'
 
   input:
-  path("genotypes.vcf")
-  path(TE_library)
-  path(ref_fasta)
+  tuple path("genotypes.vcf"), path(TE_library), path(ref_fasta)
 
   output:
   path("genotypes_repmasked_filtered.vcf"), emit: RM_vcf_ch
   path("repeatmasker_dir/"), emit: RM_dir_ch
-  //path("vcf_annotation.gz")
-  //path("vcf_annotation_1")
 
   script:
   if(params.mammal)
@@ -302,15 +339,14 @@ process tsd_prep {
   time params.tsd_time
 
   input:
-  path("genotypes_repmasked_filtered.vcf")
-  path("repeatmasker_dir/*")
-  path(ref_fasta)
+  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta)
 
   output:
-  path("indels.txt"), emit: tsd_search_input
+  // path("indels.txt"), emit: tsd_search_input
 
-  path("SV_sequences_L_R_trimmed_WIN.fa"), emit: tsd_search_SV
-  path("flanking_sequences.fasta"), emit: tsd_search_flanking
+  // path("SV_sequences_L_R_trimmed_WIN.fa"), emit: tsd_search_SV
+  // path("flanking_sequences.fasta"), emit: tsd_search_flanking
+  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/repeatmasker_dir"), path(ref_fasta), path("indels.txt"), path("SV_sequences_L_R_trimmed_WIN.fa"), path("flanking_sequences.fasta")
 
   script:
   """
@@ -325,19 +361,14 @@ process tsd_search {
   time params.tsd_time
 
   input:
-  file indels
-  path("genotypes_repmasked_filtered.vcf")
-  path("SV_sequences_L_R_trimmed_WIN.fa")
-  path("flanking_sequences.fasta")
-  path("repeatmasker_dir/*")
-  path(ref_fasta)
+  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta), file(indels), path("SV_sequences_L_R_trimmed_WIN.fa"), path("flanking_sequences.fasta")
 
   output:
-  path('*TSD_summary.txt'), emit: tsd_out_ch
-  path('*TSD_full_log.txt'), emit: tsd_full_out_ch
+  tuple path('*TSD_summary.txt'), path('*TSD_full_log.txt'), path("genotypes_repmasked_filtered.vcf"), env("CHROM")
 
   script:
   """
+  CHROM=\$(bcftools view -H genotypes_repmasked_filtered.vcf | cut -f1 | uniq)
   cp repeatmasker_dir/repeatmasker_dir/* .
   TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta ${indels}
   """
@@ -346,12 +377,9 @@ process tsd_search {
 process tsd_report {
   memory params.tsd_memory
   time params.tsd_time
-  publishDir "${params.out}/3_TSD_search", mode: 'copy'
 
   input:
-  path(x)
-  path(y)
-  path("genotypes_repmasked_filtered.vcf")
+  tuple path(x), path(y), path("genotypes_repmasked_filtered.vcf"), val(chrom)
 
   output:
   path("TSD_summary.txt"), emit: tsd_sum_group_ch
@@ -512,7 +540,7 @@ workflow {
   // initiate channels that will provide the reference genome to processes
   Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
 
-  if(!params.graffite_vcf && !params.vcf && !params.RM_vcf) {
+  if(!params.graffite_vcf && !params.vcf && !params.RM_dir) {
     if(params.longreads || params.bams) {
       sniffles_reads_in_ch = channel.of()
       sniffles_bams_in_ch = channel.of()
@@ -551,10 +579,16 @@ workflow {
 
   // if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
   if(!params.graffite_vcf) {
-    // except if --RM_vcf is given, in which case skip RepeatMasker here and set the input channel
-    if(params.RM_vcf){
-      Channel.fromPath(params.RM_vcf, checkIfExists:true).set{RM_vcf_ch}
-      Channel.fromPath(params.RM_dir, checkIfExists:true).set{RM_dir_ch}
+    // except if --RM_dir is given, in which case skip RepeatMasker here and set the input channel
+    if(params.RM_dir){
+      channel.fromPath("${params.RM_dir}/*", type: "dir").
+      map{p -> [file("${p}/genotypes_repmasked_filtered.vcf"), file("${p}/repeatmasker_dir")]}.
+      multiMap{v ->
+        vcf: v[0]
+        dir: v[1]}.set{RM_cached}
+
+      RM_cached.vcf.set{RM_vcf_ch}
+      RM_cached.dir.set{RM_dir_ch}
     } else {
       Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
@@ -567,23 +601,21 @@ workflow {
       } else if(params.vcf){
         Channel.fromPath(params.vcf, checkIfExists : true).set{raw_vcf_ch}
       } else {
-        error "No --longreads, --assemblies, --vcf or --RM_vcf parameters passed to GraffiTE."
+        error "No --longreads, --assemblies, --vcf or --RM_dir parameters passed to GraffiTE."
       }
-      repeatmask_VCF(raw_vcf_ch, TE_library_ch, ref_asm_ch)
+      repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch))
       repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
       repeatmask_VCF.out.RM_dir_ch.set{RM_dir_ch}
     }
-    tsd_prep(RM_vcf_ch, RM_dir_ch, ref_asm_ch)
-    tsd_search(tsd_prep.out.tsd_search_input.splitText( by: params.tsd_batch_size),
-               RM_vcf_ch.toList(),
-               tsd_prep.out.tsd_search_SV.toList(),
-               tsd_prep.out.tsd_search_flanking.toList(),
-               RM_dir_ch.toList(),
-               ref_asm_ch.toList())
-    tsd_report(tsd_search.out.tsd_out_ch.collect(),
-               tsd_search.out.tsd_full_out_ch.collect(),
-               RM_vcf_ch)
-    tsd_report.out.vcf_ch.set{vcf_ch}
+    tsd_report(tsd_search(tsd_prep(RM_vcf_ch.merge(RM_dir_ch).combine(ref_asm_ch)).
+                          splitText(elem: 3, by: params.tsd_batch_size)).
+               groupTuple(by: 3).
+               map{v -> tuple(v[0], v[1], v[2][0], v[3])}
+    )
+    concat_repeatmask(tsd_report.out.vcf_ch.collect(),
+                      tsd_report.out.tsd_full_group_ch.collect(),
+                      tsd_report.out.tsd_sum_group_ch.collect())
+    concat_repeatmask.out.vcf_ch.set{vcf_ch}
   } else {
     // if a vcf is provided as parameter, skip discovery and go directly to genotyping
     Channel.fromPath(params.graffite_vcf).set{vcf_ch}
