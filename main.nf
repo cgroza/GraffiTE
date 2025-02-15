@@ -381,7 +381,7 @@ process pangenie {
   publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
   input:
-  tuple val(sample_name), path(sample_reads), path(vcf), path(ref)
+  tuple val(sample_name), path(sample_reads), val(preset), path(vcf), path(ref)
 
   output:
   path("${sample_name}_genotyping.vcf.gz*"), emit: indexed_vcfs
@@ -437,7 +437,7 @@ process graph_align_reads {
   errorStrategy 'finish'
 
   input:
-  tuple val(sample_name), path(sample_reads), path("index")
+  tuple val(sample_name), path(sample_reads), val(preset), path("index")
 
   output:
   tuple val(sample_name), path("${sample_name}.gam"), path("${sample_name}.pack"), emit: aligned_ch
@@ -450,7 +450,7 @@ process graph_align_reads {
   switch(params.graph_method) {
     case "giraffe":
       """
-      vg giraffe -t ${graph_align_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
+      vg giraffe --parameter-preset ${preset} -t ${graph_align_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
       """ + pack
       break
     case "graphaligner":
@@ -590,7 +590,15 @@ workflow {
   }
 
   if(params.genotype) {
-    Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
+    Channel.fromPath(params.reads).splitCsv(header:true).map{row ->
+      parameter_preset = null;
+      switch(row.type) {
+        case "pb" : parameter_preset = "hifi"
+        case "hifi" : parameter_preset = "hifi"
+        case "ont" : parameter_preset = "r10"
+        case default: parameter_preset = "default"
+      }
+      [row.sample, file(row.path, checkIfExists:true), parameter_preset]}.set{reads_ch}
 
     if(params.graph_method == "pangenie") {
       reads_ch.combine(vcf_ch).combine(ref_asm_ch).set{input_ch}
