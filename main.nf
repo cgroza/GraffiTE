@@ -590,15 +590,24 @@ workflow {
   }
 
   if(params.genotype) {
-    Channel.fromPath(params.reads).splitCsv(header:true).map{row ->
-      parameter_preset = null;
+    Channel.fromPath(params.reads).splitCsv(header:true).map{ row ->
+      def parameter_preset = null
       switch(row.type) {
-        case "pb" : parameter_preset = "hifi"
-        case "hifi" : parameter_preset = "hifi"
-        case "ont" : parameter_preset = "r10"
-        case default: parameter_preset = "default"
+        case "pb":
+          parameter_preset = "hifi"
+          break
+        case "hifi":
+          parameter_preset = "hifi"
+          break
+        case "ont":
+          parameter_preset = "r10"
+          break
+        default:
+          parameter_preset = "default"
+          break
       }
-      [row.sample, file(row.path, checkIfExists:true), parameter_preset]}.set{reads_ch}
+      [row.sample, file(row.path, checkIfExists:true), parameter_preset]
+    }.set{reads_ch}
 
     if(params.graph_method == "pangenie") {
       reads_ch.combine(vcf_ch).combine(ref_asm_ch).set{input_ch}
