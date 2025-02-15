@@ -447,10 +447,15 @@ process graph_align_reads {
   vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
   """
 
+  interleaved = "-i"
+  if(preset != "default") {
+    interleaved = ""
+  }
+
   switch(params.graph_method) {
     case "giraffe":
       """
-      vg giraffe --parameter-preset ${preset} -t ${graph_align_threads} --index-basename index/index -i -f ${sample_reads} > ${sample_name}.gam
+      vg giraffe --parameter-preset ${preset} -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
       """ + pack
       break
     case "graphaligner":
