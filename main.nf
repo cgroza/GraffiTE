@@ -450,7 +450,7 @@ process graph_align_reads {
   switch(params.graph_method) {
     case "giraffe":
       """
-      vg giraffe --parameter-preset ${preset} -t ${graph_align_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
+      vg giraffe --parameter-preset ${preset} -t ${graph_align_threads} --index-basename index/index -i -f ${sample_reads} > ${sample_name}.gam
       """ + pack
       break
     case "graphaligner":
