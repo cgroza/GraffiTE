@@ -1,2 +1,2 @@
-path,sample
-reads.fq,Sample
+path,sample,type
+reads.fq,Sample,ont/pb/hifi/short
