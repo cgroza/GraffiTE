@@ -469,6 +469,7 @@ process graph_align_reads {
 process vg_call {
   cpus vg_call_threads
   memory params.vg_call_memory
+  time params.vg_call_time
 
   input:
   tuple val(sample_name), path(gam), path(pack), path("index")
