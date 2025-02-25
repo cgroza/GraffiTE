@@ -33,6 +33,8 @@ if (params.cores) {
   graph_align_threads  = params.cores
   vg_call_threads      = params.cores
   sniffles_threads     = params.cores
+  make_graph_threads   = params.cores
+  merge_svim_sniffles2_threads = params.cores
 }
 else {
   map_longreads_threads = params.map_longreads_threads
@@ -43,6 +45,8 @@ else {
   graph_align_threads   = params.graph_align_threads
   vg_call_threads       = params.vg_call_threads
   sniffles_threads      = params.sniffles_threads
+  make_graph_threads    = params.make_graph_threads
+  merge_svim_sniffles2_threads = params.merge_svim_sniffles2_threads
 }
 
 String graph =  ""
@@ -212,7 +216,7 @@ process survivor_merge {
 }
 
 process merge_svim_sniffles2 {
-  cpus params.merge_svim_sniffles2_threads
+  cpus merge_svim_sniffles2_threads
   memory params.merge_svim_sniffles2_memory
   time params.merge_svim_sniffles2_time
 
@@ -395,7 +399,7 @@ process pangenie {
 }
 
 process make_graph {
-  cpus params.make_graph_threads
+  cpus make_graph_threads
   memory params.make_graph_memory
   time params.make_graph_time
   publishDir "${params.out}/GraffiTE_graph/", mode: 'copy'
@@ -408,8 +412,6 @@ process make_graph {
 
   script:
   prep = """
-  bcftools sort -Oz -o sorted.vcf.gz ${vcf}
-  tabix sorted.vcf.gz
   mkdir index
   """
   finish = """
@@ -418,7 +420,7 @@ process make_graph {
   switch(params.graph_method) {
     case "giraffe":
       prep + """
-      vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v sorted.vcf.gz -r ${fasta}
+      vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v ${vcf} -r ${fasta}
       """ + finish
       break
     case "graphaligner":
