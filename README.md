@@ -315,20 +315,14 @@ AND (always required)
 - `--graph_method`: can be `pangenie`, `giraffe` or `graphaligner`, select which graph method will be used to genotyped TEs. Default is `pangenie` and it is optimized for short-reads. `giraffe` can handle both short and long reads, and `graphaligner` is optimized for long reads. 
 >Note that both `giraffe` and `graphaligner` will spawn a process called `graphAlignReads`, while `pangenie` will spawn a process called `pangenie`.
 
-- `--reads`: a CSV file that lists the read sets (FASTQ/FASTQ.GZ) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. **The header is required**. Only one FASTQ/FASTQ.GZ per sample, and sample names must be unique. **Paired-end reads must be concatenated into a single file (`Pangenie`)**. In case `--longreads` is used as input, the same table can be used for `--longreads` and `--reads` (but not the opposite: `type` column is needed in `--longreads`, optional for `--reads`).
+- `--reads`: a CSV file that lists the read sets (FASTQ/FASTQ.GZ), read type (pb, hifi, ont, short) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. **The header is required**. Only one FASTQ/FASTQ.GZ per sample, and sample names must be unique. **Paired-end reads must be concatenated into a single file (`Pangenie`)**. In case `--longreads` is used as input, the same table can be used for `--longreads` and `--reads` (but not the opposite: `type` column is needed in `--longreads`, optional for `--reads`).
 
    Example `reads.csv`:
-   ```
-   path,sample
-   /path/to/reads/sample1.fastq,sample1_name
-   /path/to/reads/sample2.fastq,sample2_name
-   /path/to/reads/sampleN.fastq,sampleN_name
-   ```
-   or
    ```
    path,sample,type
    /path/to/reads/sampleA.fq.gz,sampleA_name,pb
    /path/to/reads/sampleB.fq.gz,sampleB_name,hifi
+   /path/to/reads/sampleC.fq.gz,sampleB_name,short
    /path/to/reads/sampleZ.fq.gz,sampleZ_name,ont
    ```
 

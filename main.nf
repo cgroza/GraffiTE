@@ -33,6 +33,8 @@ if (params.cores) {
   graph_align_threads  = params.cores
   vg_call_threads      = params.cores
   sniffles_threads     = params.cores
+  make_graph_threads   = params.cores
+  merge_svim_sniffles2_threads = params.cores
 }
 else {
   map_longreads_threads = params.map_longreads_threads
@@ -43,6 +45,8 @@ else {
   graph_align_threads   = params.graph_align_threads
   vg_call_threads       = params.vg_call_threads
   sniffles_threads      = params.sniffles_threads
+  make_graph_threads    = params.make_graph_threads
+  merge_svim_sniffles2_threads = params.merge_svim_sniffles2_threads
 }
 
 String graph =  ""
@@ -212,7 +216,7 @@ process survivor_merge {
 }
 
 process merge_svim_sniffles2 {
-  cpus params.merge_svim_sniffles2_threads
+  cpus merge_svim_sniffles2_threads
   memory params.merge_svim_sniffles2_memory
   time params.merge_svim_sniffles2_time
 
@@ -409,7 +413,7 @@ process pangenie {
   publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
   input:
-  tuple val(sample_name), path(sample_reads), path(vcf), path(ref)
+  tuple val(sample_name), path(sample_reads), val(preset), path(vcf), path(ref)
 
   output:
   path("${sample_name}_genotyping.vcf.gz*"), emit: indexed_vcfs
@@ -423,7 +427,7 @@ process pangenie {
 }
 
 process make_graph {
-  cpus params.make_graph_threads
+  cpus make_graph_threads
   memory params.make_graph_memory
   time params.make_graph_time
   publishDir "${params.out}/GraffiTE_graph/", mode: 'copy'
@@ -436,8 +440,6 @@ process make_graph {
 
   script:
   prep = """
-  bcftools sort -Oz -o sorted.vcf.gz ${vcf}
-  tabix sorted.vcf.gz
   mkdir index
   """
   finish = """
@@ -446,7 +448,7 @@ process make_graph {
   switch(params.graph_method) {
     case "giraffe":
       prep + """
-      vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v sorted.vcf.gz -r ${fasta}
+      vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v ${vcf} -r ${fasta}
       """ + finish
       break
     case "graphaligner":
@@ -465,7 +467,7 @@ process graph_align_reads {
   errorStrategy 'finish'
 
   input:
-  tuple val(sample_name), path(sample_reads), path("index")
+  tuple val(sample_name), path(sample_reads), val(preset), path("index")
 
   output:
   tuple val(sample_name), path("${sample_name}.gam"), path("${sample_name}.pack"), emit: aligned_ch
@@ -475,10 +477,15 @@ process graph_align_reads {
   vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
   """
 
+  interleaved = "-i"
+  if(preset != "default") {
+    interleaved = ""
+  }
+
   switch(params.graph_method) {
     case "giraffe":
       """
-      vg giraffe -t ${graph_align_threads} -Z index/index.giraffe.gbz -m index/index.min -d index/index.dist -i -f ${sample_reads} > ${sample_name}.gam
+      vg giraffe --parameter-preset ${preset} -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
       """ + pack
       break
     case "graphaligner":
@@ -492,6 +499,7 @@ process graph_align_reads {
 process vg_call {
   cpus vg_call_threads
   memory params.vg_call_memory
+  time params.vg_call_time
 
   input:
   tuple val(sample_name), path(gam), path(pack), path("index")
@@ -622,7 +630,24 @@ workflow {
   }
 
   if(params.genotype) {
-    Channel.fromPath(params.reads).splitCsv(header:true).map{row -> [row.sample, file(row.path, checkIfExists:true)]}.set{reads_ch}
+    Channel.fromPath(params.reads).splitCsv(header:true).map{ row ->
+      def parameter_preset = null
+      switch(row.type) {
+        case "pb":
+          parameter_preset = "hifi"
+          break
+        case "hifi":
+          parameter_preset = "hifi"
+          break
+        case "ont":
+          parameter_preset = "r10"
+          break
+        default:
+          parameter_preset = "default"
+          break
+      }
+      [row.sample, file(row.path, checkIfExists:true), parameter_preset]
+    }.set{reads_ch}
 
     if(params.graph_method == "pangenie") {
       reads_ch.combine(vcf_ch).combine(ref_asm_ch).set{input_ch}
