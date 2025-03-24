@@ -275,7 +275,7 @@ process split_repeatmask {
 
   script:
   """
-  bcftools sort -Oz -o ${vcf}.gz ${vcf}
+  bcftools sort -m ${params.repeatmasker_memory} -Oz -o ${vcf}.gz ${vcf}
   tabix ${vcf}.gz
   bcftools index -s ${vcf}.gz | cut -f 1 | while read C; do bcftools view -O v -o \${C}.vcf ${vcf}.gz "\${C}" ; done
   """
