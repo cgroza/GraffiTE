@@ -6,8 +6,8 @@ FASTA_LIB=$3
 MAM=$4
 
 FASTA_FILE=indels.fa
-bcftools view --types indels --include 'ILEN>0' ${VCF} | grep -v "#" | awk '{print(sprintf(">%s\n%s", $3, $5))}' >> ${FASTA_FILE}
-bcftools view --types indels --include 'ILEN<0' ${VCF} | grep -v "#" | awk '{print(sprintf(">%s\n%s", $3, $4))}' >> ${FASTA_FILE}
+bcftools view -H --types indels --include 'ILEN>0' ${VCF} | awk '{print(sprintf(">%s\n%s", $3, $5))}' >> ${FASTA_FILE}
+bcftools view -H --types indels --include 'ILEN<0' ${VCF} | awk '{print(sprintf(">%s\n%s", $3, $4))}' >> ${FASTA_FILE}
 
 # verify that indels.fa ids are not longer than 50 characters
 if grep ">" indels.fa | awk 'length > 50' | grep -q .; then
