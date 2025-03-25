@@ -102,7 +102,7 @@ then
     if ($6 == 2 && $11 == "C,+" && $10 ~ /LINE/) {
         names = split($10, n, ",", seps);
         ids = split($12, i, ",", seps);
-        
+
         if (n[1] == n[2] && i[1] == i[2]) {
             print $3;
         }
@@ -153,7 +153,7 @@ then
     echo -e '##INFO=<ID=mam_filter_2,Number=1,Type=String,Description=">90% of the SV is a SVA VNTR; SVA_family:consensus_hit_coordinates">' >> ${HDR_FILE}
     echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
-    cat <(grep '#' ${VCF}) <(grep -v '#' ${VCF} | sort -k1,1 -k2,2n) > genotypes.sorted.vcf
+    cat <(bcftools view -h ${VCF}) <(bcftools view -H  ${VCF} | sort -k1,1 -k2,2n) > genotypes.sorted.vcf
     bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
     -c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span,INFO/mam_filter_1,INFO/mam_filter_2 genotypes.sorted.vcf | \
     bcftools view -Oz -o ${OUT_VCF}
@@ -176,7 +176,7 @@ else
     echo -e '##INFO=<ID=total_match_span,Number=1,Type=Float,Description="Insertion span spanned by repeats">' >> ${HDR_FILE}
     echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
-    cat <(grep '#' ${VCF}) <(grep -v '#' ${VCF} | sort -k1,1 -k2,2n) > genotypes.sorted.vcf
+    cat <(bcftools view -h ${VCF}) <(bcftools view -H ${VCF} | sort -k1,1 -k2,2n) > genotypes.sorted.vcf
     bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
     -c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span genotypes.sorted.vcf | \
     bcftools view -Oz -o ${OUT_VCF}
