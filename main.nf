@@ -264,7 +264,7 @@ process merge_svim_sniffles2 {
 process split_repeatmask {
   cpus repeatmasker_threads
   memory params.repeatmasker_memory
-  time '1h'
+  time params.repeatmasker_time
 
   input:
   path(vcf)
