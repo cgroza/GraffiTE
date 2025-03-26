@@ -26,7 +26,7 @@ grep -v '#' ${VCF} | \
 # extend +/- ${WIN} bp in two entries per SV
 cat <(bedtools slop -i oneHit_SV_coordinates.bed -g gLength.txt -l 30 -r 0 | awk '{print $0"__L"}') \
 <(bedtools slop -i oneHit_SV_coordinates.bed -g gLength.txt -l 0 -r 30 | awk '{print $0"__R"}') | \
-sort -k1,1 -k2,2n -k3,3n | awk '/__L/ {print $1":"$2"-"($2+30); next} /__R/ {print $1":"($3-30)"-"$3"}' > oneHit_SV_coordinates_win.regions
+sort -k1,1 -k2,2n -k3,3n | awk '/__L/ {print $1":"$2"-"($2+30); next} /__R/ {print $1":"($3-30)"-"$3}' > oneHit_SV_coordinates_win.regions
 # extract fasta from flanking
 samtools faidx -r oneHit_SV_coordinates_win.regions -o flanking_sequences.fasta ${REF}
 
