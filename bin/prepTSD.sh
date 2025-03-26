@@ -18,7 +18,7 @@ echo "extracting flanking..."
 grep "contig=" ${VCF} | sed 's/\#\#contig=<ID=//g;s/,length=/\t/g;s/>//g' > gLength.txt
 
 # create a bed with vcf entries
-grep -v '#' ${VCF} | \
+bcftools view -H ${VCF} | \
  grep 'n_hits=1;\|n_hits=2;' | \
  grep -v 'mam_filter_2=VNTR_ONLY' | \
  awk '/n_hits=1/ && length($4) < length($5) {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=1/ && length($4) > length($5) {print $1"\t"$2"\t"($2+length($4))"\t"$3; next} /n_hits=2/ && length($4) < length($5) && /5P_INV/ {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=2/ && length($4) > length($5) && /5P_INV/ {print $1"\t"$2"\t"($2+length($4))"\t"$3}' > oneHit_SV_coordinates.bed
