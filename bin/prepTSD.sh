@@ -17,7 +17,7 @@ echo "extracting flanking..."
 # get contig length for bedtools
 grep "contig=" ${VCF} | sed 's/\#\#contig=<ID=//g;s/,length=/\t/g;s/>//g' > gLength.txt
 
-# create a bed with vcf entries 
+# create a bed with vcf entries
 grep -v '#' ${VCF} | \
  grep 'n_hits=1;\|n_hits=2;' | \
  grep -v 'mam_filter_2=VNTR_ONLY' | \
@@ -26,9 +26,9 @@ grep -v '#' ${VCF} | \
 # extend +/- ${WIN} bp in two entries per SV
 cat <(bedtools slop -i oneHit_SV_coordinates.bed -g gLength.txt -l 30 -r 0 | awk '{print $0"__L"}') \
 <(bedtools slop -i oneHit_SV_coordinates.bed -g gLength.txt -l 0 -r 30 | awk '{print $0"__R"}') | \
-sort -k1,1 -k2,2n -k3,3n | awk '/__L/ {print $1"\t"$2"\t"($2+30)"\t"$4; next} /__R/ {print $1"\t"($3-30)"\t"$3"\t"$4}' > oneHit_SV_coordinates_win.bed
+sort -k1,1 -k2,2n -k3,3n | awk '/__L/ {print $1":"$2"-"($2+30); next} /__R/ {print $1":"($3-30)"-"$3"}' > oneHit_SV_coordinates_win.regions
 # extract fasta from flanking
-bedtools getfasta -fi ${REF} -bed oneHit_SV_coordinates_win.bed -name > flanking_sequences.fasta
+samtools faidx -r oneHit_SV_coordinates_win.regions -o flanking_sequences.fasta ${REF}
 
 ##################################################
 # Step 2: extract 5' and 3' of each masked TE SV #
