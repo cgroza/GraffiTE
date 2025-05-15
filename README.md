@@ -305,6 +305,7 @@ AND (always required)
    - Following this formatting, the compatible classes in the fasta header includes (i.e. `class` in `>TEname#class/superfamily`): `LINE`, `LTR`, `SINE`, `RC/Helitron` (will be treated as `DNA/RC`), `DNA`, `TIR`, `MITE`, `Retroposon`, `IS`, `Unknown`, `Unspecified`
       - TE for which a classification is absent will be treated as `Unknown` (e.g. `>TEnameZ`)
       - All `>TEnames` and `Superfamily` will be accepted as long as the `Class` name is among those supported.
+   - **[Pre-formatted libraries](https://www.repeatmasker.org/~cgoubert/GraffiTE_libraries/) are available for select model species** (request for more species and updates can be submitted via the "issues" section of this repository)
    - To create a compatible library from popular TE databses:
       - From [DFAM](https://dfam.org/releases/current/families/) (open access): download the latest DFAM release (`Dfam.h5` or `Dfam_curatedonly.h5` files) and use the tool [FamDB](https://github.com/Dfam-consortium/FamDB) to extract the consensus for your model: `famdb.py -i <Dfam.h5> families -f fasta_name -a <taxa> --include-class-in-name > TE_library.fasta`
       - From [Repbase](https://www.girinst.org/server/RepBase/index.php) (paid subscription): use the "RepeatMasker Edition" libraries
