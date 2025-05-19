@@ -6,9 +6,13 @@
 
 🗞️ The GraffiTE paper is [now out](https://www.nature.com/articles/s41467-024-53294-2)!
 
-## Description
+## What does `GraffiTE` do?
 
-`GraffiTE` is a pipeline that finds polymorphic transposable elements in genome assemblies or long read datasets and genotypes the discovered polymorphisms in read sets using a pangenomic approach. `GraffiTE` is developed by **Cristian Groza** and **Clément Goubert** in [Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the [Genome Centre of McGill University](https://www.mcgillgenomecentre.ca/) (Montréal, Canada). `GraffiTE` is based on the concept developped in [Groza et al., 2022](https://link.springer.com/protocol/10.1007/978-1-0716-2883-6_5).
+- **Insertion Polymorphims:** `GraffiTE` finds polymorphic transposable elements insertions in genome assemblies and/or long read datasets (presence/absence). It can further genotype the discovered polymorphisms (i.e. infer whether an insertion is homozygous or heterozygous) in read sets using a TE-graph-genome. `GraffiTE` handles both "reference" (i.e. TE present in the reference genome, but absent in alternative samples) and "non-reference" (de-novo) insertions.
+
+- **VCF annotation:** `GraffiTE` can also be used to annotate TE presents in structual variants (SVs) reported in `VCF` format.
+
+**Pipeline overview:**
 
 1. First, each genome assembly or long read dataset is aligned to the reference genome with [`minimap2`](https://github.com/lh3/minimap2), alternatively, [`winnowmap`](https://www.nature.com/articles/s41592-022-01457-8) is available. For each sample considered, structural variants (SVs) are called with [`svim-asm`](https://github.com/eldariont/svim-asm) if using assemblies or [`sniffles2`](https://github.com/fritzsedlazeck/Sniffles) if using long reads and only insertions and deletions relative to the reference genome are kept.
 ![](https://i.imgur.com/V5NHK3G.png)
@@ -18,6 +22,7 @@
 3. Each candidate repeat polymorphism is induced in a graph-genome where TEs and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie), [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871) or  [`GraphAligner`](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02157-2).
 ![](https://i.imgur.com/UyT62yp.png)
 
+>`GraffiTE` was initially developed by **Cristian Groza** and **Clément Goubert** at [Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the [Genome Centre of McGill University](https://www.mcgillgenomecentre.ca/) (Montréal, Canada). `GraffiTE` is based on the concept developped in [Groza et al., 2022](https://link.springer.com/protocol/10.1007/978-1-0716-2883-6_5).
 ----
 
 ⚠️ **Bug/issues as well as comments and suggestions are welcomed in the [Issue](https://github.com/cgroza/GraffiTE/issues) section of this Github.**
