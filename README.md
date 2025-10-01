@@ -31,16 +31,25 @@
 
 ## Changelog
 
-**Last update: 11/07/24** | commit: [76537f9](https://github.com/cgroza/GraffiTE/commit/76537f9b5da4024ba03f760f58b024a5f485bf7a)
+
+**Last update: 01/0125** | commit [1cbebbf](https://github.com/cgroza/GraffiTE/commit/1cbebbfc0f4ccc5436670d9aa8d2023a90f2eeef)
+- :beetle: bug fix: remove `--nolow` from RepeatMasker call: this could have caused spurious hits on low complexity regions of some TE consensus, mistaking obvious tandem repeats for real TEs. It is very important to NOT USE `--nolow` with RepeatMasker (unless needed for debugging and special cases).
+
+**Previous update: 11/07/24** | commit: [76537f9](https://github.com/cgroza/GraffiTE/commit/76537f9b5da4024ba03f760f58b024a5f485bf7a)
 
 - Added a new `--tsd_time` option to specify the time request for the TSD modules when using `cluster` profile. Default remains `1h`. No need to update the image, simply pull this Github repository.
- 
-**Previous update: 10/22/24** | commit: [47ad044](https://github.com/cgroza/GraffiTE/commit/47ad04469e475e9dcbfd4ffc17faa4ba42c5d94d)
+
+<details><summary>10/22/24 update:</summary>
+<p>
+commit: [47ad044](https://github.com/cgroza/GraffiTE/commit/47ad04469e475e9dcbfd4ffc17faa4ba42c5d94d)
 
 Thank you @[Han-Cao](https://github.com/Han-Cao) for submitting a pull request:
 - Improve speedup for large VCF annotation
 - :beetle: bug fix: change 1-based to 0-based coordinates system for SVA-VNTR module
 No need to update the image, simply pull this Github repository.
+
+</p>
+</details>
 
 <details><summary>10/21/24 update:</summary>
 <p>
