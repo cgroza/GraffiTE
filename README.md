@@ -781,3 +781,7 @@ The default parameters, in particular for request of RAM and execution time, may
 ## Cite
 
 Groza, C., Chen, X., Wheeler, T.J. et al. A unified framework to analyze transposable element insertion polymorphisms using graph genomes. Nat Commun 15, 8915 (2024). https://doi.org/10.1038/s41467-024-53294-2
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=cgroza/GraffiTE&type=date&legend=top-left)](https://www.star-history.com/#cgroza/GraffiTE&type=date&legend=top-left)
