@@ -470,11 +470,12 @@ process graph_align_reads {
   tuple val(sample_name), path(sample_reads), val(preset), path("index")
 
   output:
-  tuple val(sample_name), path("${sample_name}.gam"), path("${sample_name}.pack"), emit: aligned_ch
+  tuple val(sample_name), path("${sample_name}.gaf.gz"), path("${sample_name}.pack"), emit: aligned_ch
 
   script:
   pack =  """
-  vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
+  vg pack -x index/${graph} -g ${sample_name}.gaf -o ${sample_name}.pack -Q ${params.min_mapq}
+  gzip ${sample_name}.gaf
   """
 
   interleaved = "-i"
@@ -485,12 +486,12 @@ process graph_align_reads {
   switch(params.graph_method) {
     case "giraffe":
       """
-      vg giraffe --parameter-preset ${preset} -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
+      vg giraffe --parameter-preset ${preset} -o gaf -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gaf
       """ + pack
       break
     case "graphaligner":
       """
-      GraphAligner -t ${graph_align_threads} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.gam
+      GraphAligner -t ${graph_align_threads} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.gaf
       """ + pack
       break
   }
@@ -502,7 +503,7 @@ process vg_call {
   time params.vg_call_time
 
   input:
-  tuple val(sample_name), path(gam), path(pack), path("index")
+  tuple val(sample_name), path(gaf), path(pack), path("index")
 
   output:
   path("${sample_name}.vcf.gz*"), emit: indexed_vcfs
