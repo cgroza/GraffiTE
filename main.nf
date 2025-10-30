@@ -448,13 +448,15 @@ process make_graph {
   switch(params.graph_method) {
     case "giraffe":
       prep + """
-      vg autoindex --tmp-dir \$PWD  -p index/index -w giraffe -v ${vcf} -r ${fasta}
+      vg autoindex --tmp-dir \$PWD  -p index/index -w sr-giraffe -w lr-giraffe -v ${vcf} -r ${fasta}
+      vg convert index/index.gbz > index/index.gfa
       """ + finish
       break
     case "graphaligner":
       prep + """
       export TMPDIR=$PWD
       vg construct -a  -r ${fasta} -v ${vcf} -m 1024 > index/index.vg
+      vg convert -f index/index.vg > index/index.gfa
       """ + finish
       break
   }
