@@ -346,10 +346,6 @@ process tsd_prep {
   tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta)
 
   output:
-  // path("indels.txt"), emit: tsd_search_input
-
-  // path("SV_sequences_L_R_trimmed_WIN.fa"), emit: tsd_search_SV
-  // path("flanking_sequences.fasta"), emit: tsd_search_flanking
   tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/repeatmasker_dir"), path(ref_fasta), path("indels.txt"), path("SV_sequences_L_R_trimmed_WIN.fa"), path("flanking_sequences.fasta")
 
   script:
@@ -493,7 +489,9 @@ process graph_align_reads {
       break
     case "graphaligner":
       """
-      GraphAligner -t ${graph_align_threads} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.gaf
+      GraphAligner -t ${graph_align_threads} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.raw.gaf
+      cut -f1-12,17 ${sample_name}.raw.gaf > ${sample_name}.gaf
+      rm ${sample_name}.raw.gaf
       """ + pack
       break
   }
