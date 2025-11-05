@@ -74,17 +74,6 @@ rep_mask <- read_rm_custom(opt$dotout) %>%
     RM_id = paste0(ID, collapse = ","),
     n_hits = n()
   )
-  # merge non-overlapping TE annotation in the same query
-  # mutate(total_match_length = stop - start) %>%
-  # group_by(qry_id) %>%
-  #   summarise(
-  #     n_hits = sum(n_hits),
-  #     total_match_length = sum(total_match_length),
-  #     match_lengths = paste0(match_lengths, collapse = ","),
-  #     fragmts = paste0(fragmts, collapse = ","),
-  #     repeat_ids = paste0(repeat_ids, collapse = ","),
-  #     matching_classes = paste0(matching_classes, collapse = ",")
-  #   )
 
 vcf <- read.vcfR(opt$vcf)
 vcf_df <- tibble(
@@ -100,15 +89,13 @@ annot <- left_join(vcf_df, rep_mask, by = "qry_id") %>%
   replace_na(list(matching_classes = "None",
                   repeat_ids = "None",
                   n_hits = 0,
-                  #total_match_length = 0,
                   fragmts = "0",
                   match_lengths = "0",
                   strands = "None",
                   RM_id = "None")) %>%
-  #mutate(total_match_span = total_match_length / qry_length) %>%
     select(-c(qry_length)) %>%
     arrange(CHROM, POS, qry_id) %>%
-    select(CHROM, POS, qry_id, REF, ALT, n_hits, fragmts, match_lengths, repeat_ids, matching_classes, strands, RM_id) #, total_match_length, total_match_span)
+    select(CHROM, POS, qry_id, REF, ALT, n_hits, fragmts, match_lengths, repeat_ids, matching_classes, strands, RM_id)
 
 write_tsv(annot, file = opt$annotation, col_names = F)
 print(colnames(annot))
