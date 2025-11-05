@@ -669,14 +669,13 @@ workflow {
       if(params.epigenomes) {
         Channel.fromPath(params.reads).splitCsv(header:true).map{ row -> [row.sample, file(row.bam, checkIfExists: true)] }.set{epigenome_ch}
 
-        index_graph(make_graph.out.graph_index_ch.map(p -> p / 'index.gfa')).set{indexed_ch}
+        index_graph(make_graph.out.graph_index_ch.map(p -> p / 'index.gfa')).set{indexed_graph_ch}
         bamtags_to_methylation(epigneome_ch.combine(graph_align_reads.out.aligned_ch.map(it -> [it[0], it[1]]),
-                                                    by: 0).combine(indexed_ch)).set{methylation_ch}
-        methylation_to_csv(methylation_ch.combine(indexed_ch)).set{methylation_csv_ch}
+                                                    by: 0).combine(indexed_graph_ch)).set{methylation_ch}
+        methylation_to_csv(methylation_ch.combine(indexed_graph_ch)).set{methylation_csv_ch}
         merge_csv(csv_ch.groupTuple(by: 0)).set{methylation_merged_ch}
 
-        // bamtags_to_methylation(epigenome_ch)
-        // indexed_vcfs.combine(epigenome_ch, by: 0)
+        annotate_vcf(indexed_vcfs.combine(epigenome_ch, by: 0))
       }
     } else {
       error "Unsupported --graph_method. --graph_method must be pangenie, giraffe or graphaligner."
