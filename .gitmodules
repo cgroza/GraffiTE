@@ -1,0 +1,3 @@
+[submodule "panmethyl"]
+	path = panmethyl
+	url = https://github.com/cgroza/panmethyl.git

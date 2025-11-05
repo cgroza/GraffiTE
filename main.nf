@@ -49,6 +49,8 @@ else {
   merge_svim_sniffles2_threads = params.merge_svim_sniffles2_threads
 }
 
+include { index_graph; bamtags_to_methylation; methylation_to_csv; merge_csv; annotate_vcf } from './panmethyl/module/'
+
 String graph =  ""
 switch(params.graph_method) {
   case "giraffe":
@@ -445,7 +447,7 @@ process make_graph {
     case "giraffe":
       prep + """
       vg autoindex --tmp-dir \$PWD  -p index/index -w sr-giraffe -w lr-giraffe -v ${vcf} -r ${fasta}
-      vg convert index/index.gbz > index/index.gfa
+      vg convert ${graph} > index/index.gfa
       """ + finish
       break
     case "graphaligner":
@@ -506,7 +508,7 @@ process vg_call {
   tuple val(sample_name), path(gaf), path(pack), path("index")
 
   output:
-  path("${sample_name}.vcf.gz*"), emit: indexed_vcfs
+  tuple val(sample_name), path("${sample_name}.vcf.gz*"), emit: indexed_vcfs
 
   script:
   """
@@ -591,7 +593,7 @@ workflow {
     // except if --RM_dir is given, in which case skip RepeatMasker here and set the input channel
     if(params.RM_dir){
       channel.fromPath("${params.RM_dir}/*", type: "dir").
-      map{p -> [file("${p}/genotypes_repmasked_filtered.vcf"), file("${p}/repeatmasker_dir")]}.
+      map{p -> [file("${p}/genotypes_repmasked_filtered.vcf", checkIfExists: true), file("${p}/repeatmasker_dir", checkIfExists: true)]}.
       multiMap{v ->
         vcf: v[0]
         dir: v[1]}.set{RM_cached}
@@ -663,10 +665,23 @@ workflow {
       graph_align_reads.out.aligned_ch.combine(make_graph.out.graph_index_ch).set{graph_pack_ch}
       vg_call(graph_pack_ch)
       vg_call.out.indexed_vcfs.set{indexed_vcfs}
+
+      if(params.epigenomes) {
+        Channel.fromPath(params.reads).splitCsv(header:true).map{ row -> [row.sample, file(row.bam, checkIfExists: true)] }.set{epigenome_ch}
+
+        index_graph(make_graph.out.graph_index_ch.map(p -> p / 'index.gfa')).set{indexed_ch}
+        bamtags_to_methylation(epigneome_ch.combine(graph_align_reads.out.aligned_ch.map(it -> [it[0], it[1]]),
+                                                    by: 0).combine(indexed_ch)).set{methylation_ch}
+        methylation_to_csv(methylation_ch.combine(indexed_ch)).set{methylation_csv_ch}
+        merge_csv(csv_ch.groupTuple(by: 0)).set{methylation_merged_ch}
+
+        // bamtags_to_methylation(epigenome_ch)
+        // indexed_vcfs.combine(epigenome_ch, by: 0)
+      }
     } else {
       error "Unsupported --graph_method. --graph_method must be pangenie, giraffe or graphaligner."
     }
 
-    merge_VCFs(indexed_vcfs.collect(), vcf_ch)
+    merge_VCFs(indexed_vcfs.map{v -> v[1]}.collect(), vcf_ch)
   }
 }
