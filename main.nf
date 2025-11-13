@@ -87,7 +87,7 @@ process map_asm {
   tuple val(asm_name), path(asm), path(ref)
 
   output:
-  tuple val(asm_name), path("asm.sorted.bam"), path(ref), emit: map_asm_ch
+  tuple val(asm_name), path("asm.sorted.bam"), path(ref)
 
   script:
   if(params.aligner == "minimap2") {
@@ -113,7 +113,7 @@ process map_longreads {
   tuple val(sample_name), path(longreads), val(type), path(ref)
 
   output:
-  tuple val(sample_name), path("${sample_name}.bam"), path(ref), emit: map_longreads_ch
+  tuple val(sample_name), path("${sample_name}.bam"), path(ref)
 
   script:
   read_preset = "map-${type}"
@@ -147,8 +147,7 @@ process sniffles_sample_call {
   tuple val(sample_name), path(longreads_bam), path(ref)
 
   output:
-  path("${sample_name}.snf"), emit: sniffles_sample_call_out_ch
-  path("${sample_name}.vcf")
+  tuple path("${sample_name}.snf"), path("${sample_name}.vcf")
 
   script:
   """
@@ -167,8 +166,7 @@ process sniffles_population_call {
   path(ref)
 
   output:
-  path("*variants.vcf"), emit: sn_variants_ch
-  path("snfs.tsv")
+  tuple path("*variants.vcf"), path("snfs.tsv")
 
   """
   ls *.snf > snfs.tsv
@@ -187,7 +185,7 @@ process svim_asm {
   tuple val(asm_name), path(asm_bam), path(ref)
 
   output:
-  tuple val(asm_name), path("${asm_name}.vcf"), emit: svim_out_ch
+  tuple val(asm_name), path("${asm_name}.vcf")
 
   script:
   """
@@ -207,8 +205,7 @@ process survivor_merge {
   path(vcfs)
 
   output:
-  path("svim-asm_variants.vcf"), emit: sv_variants_ch
-  path("vcfs.txt")
+  tuple path("svim-asm_variants.vcf"), path("vcfs.txt")
 
   script:
   """
@@ -229,7 +226,7 @@ process merge_svim_sniffles2 {
   path(sniffles_vcf)
 
   output:
-  path("svim-sniffles_merged_variants.vcf"), emit: sv_sn_variants_ch
+  path("svim-sniffles_merged_variants.vcf")
 
   script:
   """
@@ -414,7 +411,7 @@ process pangenie {
   tuple val(sample_name), path(sample_reads), val(preset), path(vcf), path(ref)
 
   output:
-  path("${sample_name}_genotyping.vcf.gz*"), emit: indexed_vcfs
+  path("${sample_name}_genotyping.vcf.gz*")
 
   script:
   """
@@ -434,7 +431,7 @@ process make_graph {
   path(fasta)
 
   output:
-  path("index"), emit: graph_index_ch
+  path("index")
 
   script:
   prep = """
@@ -470,7 +467,7 @@ process graph_align_reads {
   tuple val(sample_name), path(sample_reads), val(preset), path("index")
 
   output:
-  tuple val(sample_name), path("${sample_name}.gaf.gz"), path("${sample_name}.pack"), emit: aligned_ch
+  tuple val(sample_name), path("${sample_name}.gaf.gz"), path("${sample_name}.pack")
 
   script:
   pack =  """
@@ -508,7 +505,7 @@ process vg_call {
   tuple val(sample_name), path(gaf), path(pack), path("index")
 
   output:
-  tuple val(sample_name), path("${sample_name}.vcf.gz*"), emit: indexed_vcfs
+  tuple val(sample_name), path("${sample_name}.vcf.gz*")
 
   script:
   """
@@ -552,6 +549,10 @@ workflow {
   Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
 
   if(!params.graffite_vcf && !params.vcf && !params.RM_dir) {
+    sv_variants_ch = channel.empty()
+    sn_variants_ch = channel.empty()
+    sv_sn_variants_ch = channel.empty()
+
     if(params.longreads || params.bams) {
       sniffles_reads_in_ch = channel.of()
       sniffles_bams_in_ch = channel.of()
@@ -559,8 +560,7 @@ workflow {
       if(params.longreads) {
         Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
           [row.sample, file(row.path, checkIfExists:true), row.type]}.combine(ref_asm_ch).set{map_longreads_in_ch}
-        map_longreads(map_longreads_in_ch)
-        sniffles_reads_in_ch = map_longreads.out.map_longreads_ch
+        map_longreads(map_longreads_in_ch).set{sniffles_reads_in_ch}
       }
 
       if(params.bams) {
@@ -568,8 +568,11 @@ workflow {
           [row.sample, file(row.path, checkIfExists:true)]}.combine(ref_asm_ch)
       }
 
-      sniffles_sample_call(sniffles_reads_in_ch.concat(sniffles_bams_in_ch))
-      sniffles_population_call(sniffles_sample_call.out.sniffles_sample_call_out_ch.collect(), ref_asm_ch)
+
+      sniffles_population_call(
+        sniffles_sample_call(
+          sniffles_reads_in_ch.concat(sniffles_bams_in_ch)).map{it -> it[0]}.collect(),
+        ref_asm_ch).map{it -> it[0]}.set{sn_variants_ch}
     }
 
     if(params.assemblies) {
@@ -578,13 +581,16 @@ workflow {
       if(params.break_scaffolds) {
         map_asm_in_ch = break_scaffold(map_asm_in_ch)
       }
-      map_asm(map_asm_in_ch.combine(ref_asm_ch))
-      svim_asm(map_asm.out.map_asm_ch)
-      survivor_merge(svim_asm.out.svim_out_ch.map{sample -> sample[1]}.collect())
+
+
+      survivor_merge(
+        svim_asm(map_asm(map_asm_in_ch.combine(ref_asm_ch)))
+          .map{sample -> sample[1]}.collect()
+      ).map{it -> it[0]}.set{sv_variants_ch}
     }
 
     if(params.assemblies && (params.longreads || params.bams)) {
-      merge_svim_sniffles2(survivor_merge.out.sv_variants_ch, sniffles_population_call.out.sn_variants_ch)
+      merge_svim_sniffles2(sv_variants_ch, sn_variants_ch).set{sv_sn_variants_ch}
     }
   }
 
@@ -604,11 +610,11 @@ workflow {
       Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
       if((params.longreads || params.bams) && !params.assemblies){
-        sniffles_population_call.out.sn_variants_ch.set { raw_vcf_ch }
+        sn_variants_ch.set{raw_vcf_ch}
       } else if (params.assemblies && !(params.longreads || params.bams)){
-        survivor_merge.out.sv_variants_ch.set { raw_vcf_ch }
+        sv_variants_ch.set{raw_vcf_ch}
       } else if (params.assemblies && (params.longreads || params.bams)){
-        merge_svim_sniffles2.out.sv_sn_variants_ch.set { raw_vcf_ch }
+        sv_sn_variants_ch.set{raw_vcf_ch}
       } else if(params.vcf){
         Channel.fromPath(params.vcf, checkIfExists : true).set{raw_vcf_ch}
       } else {
@@ -654,23 +660,21 @@ workflow {
 
     if(params.graph_method == "pangenie") {
       reads_ch.combine(vcf_ch).combine(ref_asm_ch).set{input_ch}
-      pangenie(input_ch)
-      pangenie.out.indexed_vcfs.set{indexed_vcfs}
+      pangenie(input_ch).set{indexed_vcfs}
     }
 
     else if(params.graph_method == "giraffe" || params.graph_method == "graphaligner") {
-      make_graph(vcf_ch, ref_asm_ch)
-      reads_ch.combine(make_graph.out.graph_index_ch).set{reads_align_ch}
-      graph_align_reads(reads_align_ch)
-      graph_align_reads.out.aligned_ch.combine(make_graph.out.graph_index_ch).set{graph_pack_ch}
-      vg_call(graph_pack_ch)
-      vg_call.out.indexed_vcfs.set{indexed_vcfs}
+      make_graph(vcf_ch, ref_asm_ch).set{graph_index_ch}
+      reads_ch.combine(graph_index_ch).set{reads_align_ch}
+      graph_align_reads(reads_align_ch).set{aligned_ch}
+      aligned_ch.combine(graph_index_ch).set{graph_pack_ch}
+      vg_call(graph_pack_ch).set{indexed_vcfs}
 
       if(params.epigenomes) {
         Channel.fromPath(params.reads).splitCsv(header:true).map{ row -> [row.sample, file(row.bam, checkIfExists: true)] }.set{epigenome_ch}
 
-        index_graph(make_graph.out.graph_index_ch.map(p -> p / 'index.gfa')).set{indexed_graph_ch}
-        bamtags_to_methylation(epigneome_ch.combine(graph_align_reads.out.aligned_ch.map(it -> [it[0], it[1]]),
+        index_graph(graph_index_ch.map(p -> p / 'index.gfa')).set{indexed_graph_ch}
+        bamtags_to_methylation(epigneome_ch.combine(aligned_ch.map(it -> [it[0], it[1]]),
                                                     by: 0).combine(indexed_graph_ch)).set{methylation_ch}
         methylation_to_csv(methylation_ch.combine(indexed_graph_ch)).set{methylation_csv_ch}
         merge_csv(csv_ch.groupTuple(by: 0)).set{methylation_merged_ch}
