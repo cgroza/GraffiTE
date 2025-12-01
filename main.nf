@@ -683,7 +683,7 @@ workflow {
         ).set{methylation_ch}
 
         methylation_to_csv(methylation_ch.combine(indexed_graph_ch)).set{methylation_csv_ch}
-        merge_csv(csv_ch.groupTuple(by: 0)).set{methylation_merged_ch}
+        merge_csv(methylation_csv_ch.groupTuple(by: 0)).set{methylation_merged_ch}
 
         annotate_vcf(indexed_vcfs.combine(epigenome_ch, by: 0))
       }
