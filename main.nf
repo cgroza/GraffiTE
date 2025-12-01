@@ -671,7 +671,7 @@ workflow {
       vg_call(graph_pack_ch).set{indexed_vcfs}
 
       if(params.epigenomes) {
-        Channel.fromPath(params.reads).splitCsv(header:true)
+        Channel.fromPath(params.epigenomes).splitCsv(header:true)
           .map{ row -> [row.sample, file(row.bam, checkIfExists: true)] }
           .set{epigenome_ch}
 
