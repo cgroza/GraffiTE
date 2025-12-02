@@ -471,7 +471,7 @@ process graph_align_reads {
 
   script:
   pack =  """
-  vg pack -x index/${graph} -g ${sample_name}.gaf -o ${sample_name}.pack -Q ${params.min_mapq}
+  vg pack -x index/${graph} -a ${sample_name}.gaf -o ${sample_name}.pack -Q ${params.min_mapq}
   gzip ${sample_name}.gaf
   """
 
