@@ -1,20 +1,12 @@
 Bootstrap: library
 From: ubuntu:20.04
 
-#%files
-#    repmask_vcf.sh /usr/local/bin
-#    fix_vcf.py /usr/local/bin
-#    annotate_vcf.R /usr/local/bin
-#    one_code_to_find_them_all.pl /usr/local/bin
-#    build_dictionary.pl /usr/local/bin
-#    findTSD.sh /usr/local/bin
-#    TSD_Match.sh /usr/local/bin
 %post
     apt-get -y update
     apt-get install --assume-yes software-properties-common
     add-apt-repository universe
     apt-get update
-    apt-get install --assume-yes python3-pip git build-essential zlib1g-dev libcereal-dev libjellyfish-2.0-dev pkg-config cmake r-base-core gawk autoconf
+    apt-get install --assume-yes python3-pip git build-essential zlib1g-dev libcereal-dev libjellyfish-2.0-dev pkg-config cmake r-base-core gawk autoconf pigz rustc cargo
 
     apt-get -y install \
     libssl-dev \
@@ -40,8 +32,6 @@ From: ubuntu:20.04
     cp TETools/LICENSE.ucsc /opt/ucsc_tools/LICENSE
 
     cd /opt/src
-
-    #sha256sum -c sha256sums.txt
 
     # Extract RMBlast
     cd /opt \
@@ -246,7 +236,7 @@ From: ubuntu:20.04
     cd ${HOME}
 
     pip3 install numpy==1.21
-    pip3 install pysam pyparsing svim-asm pandas vcfpy sniffles
+    pip3 install pysam pyparsing svim-asm pandas vcfpy sniffles cigar
     # pip3 install --upgrade numpy
 
     R --slave -e 'install.packages(c("XML", "dplyr", "stringr", "tidyr", "readr", "vcfR", "optparse"), repos="https://cloud.r-project.org/")'
@@ -289,6 +279,14 @@ From: ubuntu:20.04
     ${HOME}/miniconda/bin/conda install -y -c bioconda graphaligner
     cp ${HOME}/miniconda/bin/GraphAligner /usr/local/bin/
     rm -rf ~/miniconda
+
+
+    git clone https://github.com/cgroza/panmethyl
+    cd panmethyl/tagtobed
+    cargo build --release 
+    cp target/release/tagtobed /usr/local/bin
+    cd ${HOME}
+    rm -rf panmethyl
 
 %environment
     export LC_ALL=C
