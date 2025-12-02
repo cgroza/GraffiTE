@@ -92,14 +92,14 @@ process map_asm {
   script:
   if(params.aligner == "minimap2") {
     """
-    minimap2 -a -x ${params.asm_divergence} --cs -r2k -t ${map_asm_threads} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
+    minimap2 -a -x ${params.asm_divergence} --cs -r2k -t ${task.cpus} -K ${params.mini_K} ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
       """
   }
   else if(params.aligner == "winnowmap") {
     """
     meryl count k=19 output merylDB ${ref}
     meryl print greater-than distinct=0.9998 merylDB > repetitive_k19.txt
-    winnowmap -a  -x ${params.asm_divergence} --cs -r2k -t ${map_asm_threads} -K ${params.mini_K} -W repetitive_k19.txt ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
+    winnowmap -a  -x ${params.asm_divergence} --cs -r2k -t ${task.cpus} -K ${params.mini_K} -W repetitive_k19.txt ${ref} ${asm} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o asm.sorted.bam -
     """
   }
 }
@@ -123,7 +123,7 @@ process map_longreads {
 
   if(params.aligner == "minimap2") {
     """
-    minimap2 -t ${map_longreads_threads} -ax ${read_preset} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
+    minimap2 -t ${task.cpus} -ax ${read_preset} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
       """
   }
   else if(params.aligner == "winnowmap") {
@@ -131,7 +131,7 @@ process map_longreads {
     meryl count k=15 output merylDB ${ref}
     meryl print greater-than distinct=0.9998 merylDB > repetitive_k15.txt
 
-    winnowmap -W repetitive_k15.txt -t ${map_longreads_threads} -ax ${read_preset} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
+    winnowmap -W repetitive_k15.txt -t ${task.cpus} -ax ${read_preset} ${ref} ${longreads} | samtools sort -m${params.stSort_m} -@${params.stSort_t} -o ${sample_name}.bam  -
     """
   }
 
@@ -152,7 +152,7 @@ process sniffles_sample_call {
   script:
   """
   samtools index ${longreads_bam}
-  sniffles --minsvlen 100 --threads ${sniffles_threads} --reference ${ref} --input ${longreads_bam} --snf ${sample_name}.snf --vcf ${sample_name}.vcf
+  sniffles --minsvlen 100 --threads ${task.cpus} --reference ${ref} --input ${longreads_bam} --snf ${sample_name}.snf --vcf ${sample_name}.vcf
   """
 }
 
@@ -170,7 +170,7 @@ process sniffles_population_call {
 
   """
   ls *.snf > snfs.tsv
-  sniffles --minsvlen 100  --threads ${sniffles_threads} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
+  sniffles --minsvlen 100  --threads ${task.cpus} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
   bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 != "<INS>" && \$5 != "<DEL>"' > sniffles2_variants.vcf
   """
 }
@@ -274,7 +274,7 @@ process split_repeatmask {
 
   script:
   """
-  bcftools sort -m ${params.repeatmasker_memory} -Oz -o ${vcf}.gz ${vcf}
+  bcftools sort -m ${task.memory} -Oz -o ${vcf}.gz ${vcf}
   tabix ${vcf}.gz
   bcftools index -s ${vcf}.gz | cut -f 1 | while read C; do bcftools view -O v -o \${C}.vcf ${vcf}.gz "\${C}" ; done
   """
@@ -415,7 +415,7 @@ process pangenie {
 
   script:
   """
-  PanGenie -t ${pangenie_threads} -j ${pangenie_threads} -s ${sample_name} -i <(zcat -f ${sample_reads}) -r ${ref} -v ${vcf} -o ${sample_name}
+  PanGenie -t ${task.cpus} -j ${task.cpus} -s ${sample_name} -i <(zcat -f ${sample_reads}) -r ${ref} -v ${vcf} -o ${sample_name}
   bgzip ${sample_name}_genotyping.vcf
   tabix -p vcf ${sample_name}_genotyping.vcf.gz
   """
@@ -457,6 +457,23 @@ process make_graph {
   }
 }
 
+process bam_to_fastq
+{
+  cpus graph_align_threads
+  memory params.graph_align_memory
+  time params.graph_align_time
+
+  input:
+  tuple val(sample_name), path(sample_reads), val(preset)
+  output:
+  tuple val(sample_name), path("${sample_reads.baseName}.fq.gz"), val(preset)
+
+  script:
+  """
+  samtools sort -n -@ ${task.cpus} ${sample_reads} | samtools fastq -@ ${task.cpus} | pigz > ${sample_reads.baseName}.fq.gz
+  """
+}
+
 process graph_align_reads {
   cpus graph_align_threads
   memory params.graph_align_memory
@@ -488,7 +505,7 @@ process graph_align_reads {
       break
     case "graphaligner":
       """
-      GraphAligner -t ${graph_align_threads} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.raw.gaf
+      GraphAligner -t ${task.cpus} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.raw.gaf
       cut -f1-12,17 ${sample_name}.raw.gaf > ${sample_name}.gaf
       rm ${sample_name}.raw.gaf
       """ + pack
@@ -656,7 +673,12 @@ workflow {
           break
       }
       [row.sample, file(row.path, checkIfExists:true), parameter_preset]
-    }.set{reads_ch}
+    }.branch{ it ->
+        bam: it[1].extension == "bam"
+        fastq: it[1].extension != "bam"
+    }.set{reads_input_ch}
+
+    reads_input_ch.fastq.mix(bam_to_fastq(reads_input_ch.bam)).set{reads_ch};
 
     if(params.graph_method == "pangenie") {
       reads_ch.combine(vcf_ch).combine(ref_asm_ch).set{input_ch}
@@ -676,14 +698,12 @@ workflow {
           .set{epigenome_ch}
 
         index_graph(graph_index_ch.map(p -> p / 'index.gfa'),
-                    channel.value(params.motif))
-          .set{indexed_graph_ch}
+                    channel.value(params.motif)).set{indexed_graph_ch}
 
         bamtags_to_methylation(
           epigenome_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0)
             .combine(indexed_graph_ch),
-          channel.value(params.tag)
-        ).set{methylation_ch}
+          channel.value(params.tag)).set{methylation_ch}
 
         methylation_to_csv(methylation_ch.combine(indexed_graph_ch)).set{methylation_csv_ch}
         merge_csv(methylation_csv_ch.groupTuple(by: 0)).set{methylation_merged_ch}
