@@ -675,11 +675,14 @@ workflow {
           .map{ row -> [row.sample, file(row.bam, checkIfExists: true)] }
           .set{epigenome_ch}
 
-        index_graph(graph_index_ch.map(p -> p / 'index.gfa')).set{indexed_graph_ch}
+        index_graph(graph_index_ch.map(p -> p / 'index.gfa'),
+                    channel.value(params.motif))
+          .set{indexed_graph_ch}
 
         bamtags_to_methylation(
           epigenome_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0)
-            .combine(indexed_graph_ch)
+            .combine(indexed_graph_ch),
+          channel.value(params.tag)
         ).set{methylation_ch}
 
         methylation_to_csv(methylation_ch.combine(indexed_graph_ch)).set{methylation_csv_ch}
