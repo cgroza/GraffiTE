@@ -678,7 +678,7 @@ workflow {
         index_graph(graph_index_ch.map(p -> p / 'index.gfa')).set{indexed_graph_ch}
 
         bamtags_to_methylation(
-          epigenome_ch.combine(aligned_ch.map(it -> [it[0], it[1]]), by: 0)
+          epigenome_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0)
             .combine(indexed_graph_ch)
         ).set{methylation_ch}
 
