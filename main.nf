@@ -693,9 +693,7 @@ workflow {
       vg_call(graph_pack_ch).set{indexed_vcfs}
 
       if(params.epigenomes) {
-        Channel.fromPath(params.epigenomes).splitCsv(header:true)
-          .map{ row -> [row.sample, file(row.bam, checkIfExists: true)] }
-          .set{epigenome_ch}
+        reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}
 
         index_graph(graph_index_ch.map(p -> p / 'index.gfa'),
                     channel.value(params.motif)).set{indexed_graph_ch}
