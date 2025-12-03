@@ -606,7 +606,7 @@ workflow {
       truvari_merge(
         svim_asm(map_asm(map_asm_in_ch.combine(ref_asm_ch)))
           .map{sample -> sample[1]}.collect()
-      )..set{sv_variants_ch}
+      ).set{sv_variants_ch}
     }
 
     if(params.assemblies && (params.longreads || params.bams)) {
