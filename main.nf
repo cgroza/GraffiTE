@@ -196,7 +196,7 @@ process svim_asm {
   """
 }
 
-process survivor_merge {
+process truvari_merge {
   cpus svim_asm_threads
   memory params.svim_asm_memory
   publishDir "${params.out}/1_SV_search", mode: 'copy'
@@ -205,12 +205,13 @@ process survivor_merge {
   path(vcfs)
 
   output:
-  tuple path("svim-asm_variants.vcf"), path("vcfs.txt")
+  tuple path("svim-asm_variants.vcf")
 
   script:
   """
-  ls *.vcf > vcfs.txt
-  SURVIVOR merge vcfs.txt 0.1 0 1 0 0 100 svim-asm_variants.vcf
+  bcftools merge -m none *.vcf.gz | bgzip > merged.vcf.gz
+  tabix merged.vcf.gz
+  truvari collapse --choose common -i merged.vcf.gz -o svim-asm_variants.vcf
   """
 }
 
@@ -230,8 +231,11 @@ process merge_svim_sniffles2 {
 
   script:
   """
-  ls sniffles2_variants.vcf svim-asm_variants.vcf > svim-sniffles2.vcfs.txt
-  SURVIVOR merge svim-sniffles2.vcfs.txt 0.1 0 1 0 0 100 svim-sniffles2_merge_genotypes.vcf
+  bgzip sniffles2_variants.vcf
+  bgzip svim-asm_variants.vcf
+  bcftools merge -m none sniffles2_variants.vcf.gz svim-asm_variants.vcf.gz  | bgzip > merged.vcf.gz
+  tabix merged.vcf.gz
+  truvari collapse --choose common -i merged.vcf.gz -o svim-sniffles2_merge_genotypes.vcf
 
   # header part to keep
   HEADERTOP=\$(grep '#' svim-sniffles2_merge_genotypes.vcf | grep -v 'CHROM')
@@ -243,7 +247,6 @@ process merge_svim_sniffles2 {
   echo -e '##INFO=<ID=sniffles2_SVLEN,Number=1,Type=Integer,Description="SV length as called by sniffles2-population">' >> \${HEADERMORE}
   echo -e '##INFO=<ID=sniffles2_SVTYPE,Number=1,Type=String,Description="Type of SV from sniffle2-population calls">' >> \${HEADERMORE}
   echo -e '##INFO=<ID=sniffles2_ID,Number=1,Type=String,Description="ID from sniffle2-population calls">' >> \${HEADERMORE}
-  echo -e '##INFO=<ID=svim-asm_SUPP,Number=1,Type=String,Description="Support vector from svim-asm calls">' >> \${HEADERMORE}
   echo -e '##INFO=<ID=svim-asm_SVLEN,Number=1,Type=Integer,Description="SV length as called by svim-asm">' >> \${HEADERMORE}
   echo -e '##INFO=<ID=svim-asm_SVTYPE,Number=1,Type=String,Description="Type of SV from svim-asm calls">' >> \${HEADERMORE}
   echo -e '##INFO=<ID=svim-asm_ID,Number=1,Type=String,Description="ID from svim-asm calls">' >> \${HEADERMORE}
@@ -600,10 +603,10 @@ workflow {
       }
 
 
-      survivor_merge(
+      truvari_merge(
         svim_asm(map_asm(map_asm_in_ch.combine(ref_asm_ch)))
           .map{sample -> sample[1]}.collect()
-      ).map{it -> it[0]}.set{sv_variants_ch}
+      )..set{sv_variants_ch}
     }
 
     if(params.assemblies && (params.longreads || params.bams)) {
