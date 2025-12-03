@@ -571,9 +571,8 @@ workflow {
   Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
 
   if(!params.graffite_vcf && !params.vcf && !params.RM_dir) {
-    sv_variants_ch = channel.empty()
+    svim_variants_ch = channel.empty()
     sn_variants_ch = channel.empty()
-    sv_sn_variants_ch = channel.empty()
 
     if(params.longreads || params.bams) {
       sniffles_reads_in_ch = channel.of()
@@ -594,7 +593,7 @@ workflow {
       sniffles_population_call(
         sniffles_sample_call(
           sniffles_reads_in_ch.concat(sniffles_bams_in_ch)).map{it -> it[0]}.collect(),
-        ref_asm_ch).map{it -> it[0]}.set{sn_variants_ch}
+        ref_asm_ch).flatten().set{sn_variants_ch}
     }
 
     if(params.assemblies) {
@@ -604,12 +603,10 @@ workflow {
         map_asm_in_ch = break_scaffold(map_asm_in_ch)
       }
 
-
-      truvari_merge(
-        svim_asm(map_asm(map_asm_in_ch.combine(ref_asm_ch)))
-          .map{sample -> sample[1]}.mix(sn_variants_ch.flatten()).collect()
-      ).set{sv_variants_ch}
+      svim_asm(map_asm(map_asm_in_ch.combine(ref_asm_ch))).map{sample -> sample[1]}.set{svim_variants_ch}
     }
+
+    truvari_merge(svim_variants_ch.mix(sn_variants_ch).collect()).set{sv_variants_ch}
   }
 
   // if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
@@ -627,12 +624,8 @@ workflow {
     } else {
       Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
-      if((params.longreads || params.bams) && !params.assemblies){
-        sn_variants_ch.set{raw_vcf_ch}
-      } else if (params.assemblies && !(params.longreads || params.bams)){
+      if(params.longreads || params.bams || params.assemblies){
         sv_variants_ch.set{raw_vcf_ch}
-      } else if (params.assemblies && (params.longreads || params.bams)){
-        sv_sn_variants_ch.set{raw_vcf_ch}
       } else if(params.vcf){
         Channel.fromPath(params.vcf, checkIfExists : true).set{raw_vcf_ch}
       } else {
