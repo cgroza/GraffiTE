@@ -34,7 +34,6 @@ if (params.cores) {
   vg_call_threads      = params.cores
   sniffles_threads     = params.cores
   make_graph_threads   = params.cores
-  merge_svim_sniffles2_threads = params.cores
 }
 else {
   map_longreads_threads = params.map_longreads_threads
@@ -46,7 +45,6 @@ else {
   vg_call_threads       = params.vg_call_threads
   sniffles_threads      = params.sniffles_threads
   make_graph_threads    = params.make_graph_threads
-  merge_svim_sniffles2_threads = params.merge_svim_sniffles2_threads
 }
 
 include { index_graph; bamtags_to_methylation; methylation_to_csv; merge_csv; annotate_vcf } from './panmethyl/module/'
