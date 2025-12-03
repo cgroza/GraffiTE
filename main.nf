@@ -470,7 +470,7 @@ process bam_to_fastq
 
   script:
   """
-  samtools sort -n -@ ${task.cpus} ${sample_reads} | samtools fastq -@ ${task.cpus} | pigz > ${sample_reads.baseName}.fq.gz
+  samtools sort -n -@ ${task.cpus} ${sample_reads} | samtools fastq -@ ${task.cpus} - | pigz > ${sample_reads.baseName}.fq.gz
   """
 }
 
