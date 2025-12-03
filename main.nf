@@ -211,7 +211,7 @@ process truvari_merge {
   """
   bcftools merge -m none *.vcf.gz | bgzip > merged.vcf.gz
   tabix merged.vcf.gz
-  truvari collapse --choose common -i merged.vcf.gz -o svim-asm_variants.vcf
+  truvari collapse -k common -i merged.vcf.gz -o svim-asm_variants.vcf
   """
 }
 
