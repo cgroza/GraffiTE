@@ -207,7 +207,7 @@ process truvari_merge {
   path(vcfs)
 
   output:
-  tuple path("svim-asm_variants.vcf")
+  path("svim-asm_variants.vcf")
 
   script:
   """
