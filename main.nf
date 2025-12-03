@@ -166,12 +166,14 @@ process sniffles_population_call {
   path(ref)
 
   output:
-  tuple path("*variants.vcf"), path("snfs.tsv")
+  path("vcfs/*.vcf")
 
   """
   ls *.snf > snfs.tsv
   sniffles --minsvlen 100  --threads ${task.cpus} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
-  bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 != "<INS>" && \$5 != "<DEL>"' > sniffles2_variants.vcf
+  bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 != "<INS>" && \$5 != "<DEL>"' | bgzip > sniffles2_variants.vcf.gz
+  mkdir vcfs/
+  bcftools +split sniffles2_variants.vcf.gz -Ov -o vcfs
   """
 }
 
@@ -605,12 +607,8 @@ workflow {
 
       truvari_merge(
         svim_asm(map_asm(map_asm_in_ch.combine(ref_asm_ch)))
-          .map{sample -> sample[1]}.collect()
+          .map{sample -> sample[1]}.mix(sn_variants_ch.flatten()).collect()
       ).set{sv_variants_ch}
-    }
-
-    if(params.assemblies && (params.longreads || params.bams)) {
-      merge_svim_sniffles2(sv_variants_ch, sn_variants_ch).set{sv_sn_variants_ch}
     }
   }
 
