@@ -218,7 +218,8 @@ process truvari_merge {
 
   bcftools merge -m none *.vcf.gz | bgzip > merged.vcf.gz
   tabix merged.vcf.gz
-  truvari collapse -k common -i merged.vcf.gz -o svim-asm_variants.vcf
+  truvari collapse -k common -i merged.vcf.gz -o truvari_merged.vcf
+  shorten_ids.py --vcf_in truvari_merged.vcf --vcf_out svim-asm_variants.vcf
   """
 }
 
