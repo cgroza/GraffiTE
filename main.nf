@@ -139,7 +139,6 @@ process sniffles_sample_call {
   cpus sniffles_threads
   memory params.sniffles_memory
   time params.sniffles_time
-  publishDir "${params.out}/1_SV_search/sniffles2_individual_VCFs", mode: 'copy'
 
   input:
   tuple val(sample_name), path(longreads_bam), path(ref)
@@ -164,15 +163,15 @@ process sniffles_population_call {
   path(ref)
 
   output:
-  path("vcfs/*.vcf.gz")
+  path("sniffles2_individual_VCFs/*.vcf.gz")
 
   """
   ls *.snf > snfs.tsv
   sniffles --minsvlen 100  --threads ${task.cpus} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
   bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 != "<INS>" && \$5 != "<DEL>"' | \
     bcftools sort -Oz -o sniffles2_variants.vcf.gz
-  mkdir vcfs/
-  bcftools +split sniffles2_variants.vcf.gz -Oz -o vcfs
+  mkdir sniffles2_individual_VCFs
+  bcftools +split sniffles2_variants.vcf.gz -Oz -o  sniffles2_individual_VCFs
 
   """
 }
@@ -223,53 +222,6 @@ process truvari_merge {
   """
 }
 
-process merge_svim_sniffles2 {
-  cpus merge_svim_sniffles2_threads
-  memory params.merge_svim_sniffles2_memory
-  time params.merge_svim_sniffles2_time
-
-  publishDir "${params.out}/1_SV_search", mode: 'copy'
-
-  input:
-  path(svim_vcf)
-  path(sniffles_vcf)
-
-  output:
-  path("svim-sniffles_merged_variants.vcf")
-
-  script:
-  """
-  bgzip sniffles2_variants.vcf
-  bgzip svim-asm_variants.vcf
-  bcftools merge -m none sniffles2_variants.vcf.gz svim-asm_variants.vcf.gz  | bgzip > merged.vcf.gz
-  tabix merged.vcf.gz
-  truvari collapse --choose common -i merged.vcf.gz -o svim-sniffles2_merge_genotypes.vcf
-
-  # header part to keep
-  HEADERTOP=\$(grep '#' svim-sniffles2_merge_genotypes.vcf | grep -v 'CHROM')
-  # modify last header line to fit content
-  HEADERLINE=\$(grep '#CHROM' svim-sniffles2_merge_genotypes.vcf | awk '{print \$1"\t"\$2"\t"\$3"\t"\$4"\t"\$5"\t"\$6"\t"\$7"\t"\$8"\tFORMAT\tGT"}')
-  # add new info fields
-  HEADERMORE=header_more
-  echo -e '##INFO=<ID=sniffles2_SUPP,Number=1,Type=String,Description="Support vector from sniffle2-population calls">' >> \${HEADERMORE}
-  echo -e '##INFO=<ID=sniffles2_SVLEN,Number=1,Type=Integer,Description="SV length as called by sniffles2-population">' >> \${HEADERMORE}
-  echo -e '##INFO=<ID=sniffles2_SVTYPE,Number=1,Type=String,Description="Type of SV from sniffle2-population calls">' >> \${HEADERMORE}
-  echo -e '##INFO=<ID=sniffles2_ID,Number=1,Type=String,Description="ID from sniffle2-population calls">' >> \${HEADERMORE}
-  echo -e '##INFO=<ID=svim-asm_SVLEN,Number=1,Type=Integer,Description="SV length as called by svim-asm">' >> \${HEADERMORE}
-  echo -e '##INFO=<ID=svim-asm_SVTYPE,Number=1,Type=String,Description="Type of SV from svim-asm calls">' >> \${HEADERMORE}
-  echo -e '##INFO=<ID=svim-asm_ID,Number=1,Type=String,Description="ID from svim-asm calls">' >> \${HEADERMORE}
-  # arrange the body part
-  BODY=body_file
-  paste -d ";" <(grep -v '#' svim-sniffles2_merge_genotypes.vcf | \
-    cut -f 1-8) <(grep -v '#' svim-sniffles2_merge_genotypes.vcf | \
-    cut -f 10 | sed 's/:/\t/g' | \
-    awk '{print "sniffles2_SUPP="\$2";sniffles2_SVLEN="\$3";sniffles2_SVTYPE="\$7";sniffles2_ID="\$8}') <(grep -v '#' svim-sniffles2_merge_genotypes.vcf | \
-    cut -f 11 | sed 's/:/\t/g' | awk '{print "svim-asm_SUPP="\$2";svim-asm_SVLEN="\$3";svim-asm_SVTYPE="\$7";svim-asm_ID="\$8"\t\\.\t\\."}') >> \${BODY}
-  # concatenate and save "variants" file
-  cat <(echo "\${HEADERTOP}") \${HEADERMORE} <(echo "\${HEADERLINE}") \${BODY} > svim-sniffles_merged_variants.vcf
-  """
-
-}
 
 process split_repeatmask {
   cpus repeatmasker_threads
