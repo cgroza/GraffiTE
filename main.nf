@@ -666,7 +666,7 @@ workflow {
           channel.value(params.tag)).set{methylation_ch}
 
         methylation_to_csv(methylation_ch.combine(indexed_graph_ch)).set{methylation_csv_ch}
-        annotate_vcf(indexed_vcfs.map{v -> [v[0], v[1][0]]}.combine(methylation_csv_ch, by: 0))
+        annotate_vcf(indexed_vcfs.map{v -> [v[0], v[1][0]]}.combine(methylation_csv_ch, by: 0)).set{indexed_vcfs}
       }
     } else {
       error "Unsupported --graph_method. --graph_method must be pangenie, giraffe or graphaligner."
