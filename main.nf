@@ -616,7 +616,7 @@ workflow {
   }
 
   if(params.genotype) {
-    Channel.fromPath(params.reads).splitCsv(header:true).map{ row ->
+    Channel.fromPath(params.genotype_with).splitCsv(header:true).map{ row ->
       def parameter_preset = null
       switch(row.type) {
         case "pb":
