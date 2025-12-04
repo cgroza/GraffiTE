@@ -286,6 +286,7 @@ process repeatmask_VCF {
   }
   """
   repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library} ${mammal}
+  bcftools view -Ov -o genotypes_repmasked.vcf -i 'INFO/total_match_span > 0.80' genotypes_repmasked.vcf.gz
   """
 }
 
