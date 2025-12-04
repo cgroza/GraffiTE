@@ -251,16 +251,17 @@ process concat_repeatmask {
   path("TSD_summary_*.txt")
 
   output:
-  path("pangenome.vcf")
+  path("pangenome.vcf"), emit: vcf_ch
   path("TSD_summary.txt")
   path("TSD_full_log.txt")
-  path("pangenome.vcf"), emit: vcf_ch
 
   script:
   """
   cat TSD_summary_*.txt > TSD_summary.txt
   cat TSD_full_log_*.txt > TSD_full_log.txt
-  bcftools concat -Ov -o pangenome.vcf tsd_pangenome_*.vcf
+  bcftools concat tsd_pangenome_*.vcf | \
+    bcftools view -Ov -o pangenome_temp.vcf -i 'INFO/total_match_span > 0.80'
+  fix_vcf.py --ref ${ref_fasta} --vcf_in pangenome_temp.vcf --vcf_out pangenome.vcf
   """
 }
 
@@ -278,25 +279,12 @@ process repeatmask_VCF {
   path("repeatmasker_dir/"), emit: RM_dir_ch
 
   script:
-  if(params.mammal)
-    """
-  repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library} MAM
-  bcftools view -G genotypes_repmasked.vcf.gz | \
-    awk -v FS='\t' -v OFS='\t' \
-    '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
-    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | \
-    bcftools view -i 'INFO/total_match_span > 0.80' -o genotypes_repmasked_temp.vcf
-  fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
+  def mammal = ""
+  if(params.mammal) {
+    mammal = "MAM"
+  }
   """
-  else
-    """
-  repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library}
-  bcftools view -G genotypes_repmasked.vcf.gz | \
-    awk -v FS='\t' -v OFS='\t' \
-    '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
-    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | \
-    bcftools view -i 'INFO/total_match_span > 0.80' -o genotypes_repmasked_temp.vcf
-  fix_vcf.py --ref ${ref_fasta} --vcf_in genotypes_repmasked_temp.vcf --vcf_out genotypes_repmasked_filtered.vcf
+  repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library} ${mammal}
   """
 }
 
@@ -314,7 +302,6 @@ process tsd_prep {
   """
   cp repeatmasker_dir/repeatmasker_dir/* .
   prepTSD.sh ${ref_fasta} ${params.tsd_win}
-  #wc -l indels.txt > indel_len
   """
 }
 
@@ -364,6 +351,27 @@ process tsd_report {
   """
 }
 
+process pangenie_index {
+  cpus pangenie_threads
+  memory params.pangenie_memory
+  time params.pangenie_time
+
+  input:
+  tuple path(vcf), path(ref)
+
+  output:
+  path("pangenie_index*")
+
+  script:
+  """
+  bcftools view -G ${vcf} | \
+    awk -v FS='\t' -v OFS='\t' \
+    '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
+    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' > graph.vcf
+  PanGenie-index -v graph.vcf -r ${ref} -t ${task.cpus} -o pangenie_index
+  """
+}
+
 process pangenie {
   cpus pangenie_threads
   memory params.pangenie_memory
@@ -371,14 +379,14 @@ process pangenie {
   publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
   input:
-  tuple val(sample_name), path(sample_reads), val(preset), path(vcf), path(ref)
+  tuple val(sample_name), path(sample_reads), val(preset), path(index)
 
   output:
   path("${sample_name}_genotyping.vcf.gz*")
 
   script:
   """
-  PanGenie -t ${task.cpus} -j ${task.cpus} -s ${sample_name} -i <(zcat -f ${sample_reads}) -r ${ref} -v ${vcf} -o ${sample_name}
+  PanGenie -t ${task.cpus} -j ${task.cpus} -s ${sample_name} -i <(zcat -f ${sample_reads}) -f pangenie_index -o ${sample_name}
   bgzip ${sample_name}_genotyping.vcf
   tabix -p vcf ${sample_name}_genotyping.vcf.gz
   """
@@ -633,7 +641,7 @@ workflow {
     reads_input_ch.fastq.mix(bam_to_fastq(reads_input_ch.bam)).set{reads_ch};
 
     if(params.graph_method == "pangenie") {
-      reads_ch.combine(vcf_ch).combine(ref_asm_ch).set{input_ch}
+      reads_ch.combine(pangenie_index(vcf_ch.combine(ref_asm_ch))).set{input_ch}
       pangenie(input_ch).set{indexed_vcfs}
     }
 
