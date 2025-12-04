@@ -164,14 +164,16 @@ process sniffles_population_call {
   path(ref)
 
   output:
-  path("vcfs/*.vcf")
+  path("vcfs/*.vcf.gz")
 
   """
   ls *.snf > snfs.tsv
   sniffles --minsvlen 100  --threads ${task.cpus} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
-  bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 != "<INS>" && \$5 != "<DEL>"' | bgzip > sniffles2_variants.vcf.gz
+  bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 != "<INS>" && \$5 != "<DEL>"' | \
+    bcftools sort -Oz -o sniffles2_variants.vcf.gz
   mkdir vcfs/
-  bcftools +split sniffles2_variants.vcf.gz -Ov -o vcfs
+  bcftools +split sniffles2_variants.vcf.gz -Oz -o vcfs
+
   """
 }
 
@@ -185,14 +187,14 @@ process svim_asm {
   tuple val(asm_name), path(asm_bam), path(ref)
 
   output:
-  tuple val(asm_name), path("${asm_name}.vcf")
+  tuple val(asm_name), path("${asm_name}.vcf.gz")
 
   script:
   """
   mkdir asm
   samtools index ${asm_bam}
   svim-asm haploid --min_sv_size 100 --types INS,DEL --sample ${asm_name} asm/ ${asm_bam} ${ref}
-  sed 's/svim_asm\\./${asm_name}\\.svim_asm\\./g' asm/variants.vcf > ${asm_name}.vcf
+  sed 's/svim_asm\\./${asm_name}\\.svim_asm\\./g' asm/variants.vcf | bcftools sort -Oz -o ${asm_name}.vcf.gz
   """
 }
 
