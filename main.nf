@@ -649,6 +649,7 @@ workflow {
       pangenie(input_ch).set{indexed_vcfs}
     }
 
+    indexed_vcfs = channel.empty()
     else if(params.graph_method == "giraffe" || params.graph_method == "graphaligner") {
       make_graph(vcf_ch, ref_asm_ch).set{graph_index_ch}
       reads_ch.combine(graph_index_ch).set{reads_align_ch}
