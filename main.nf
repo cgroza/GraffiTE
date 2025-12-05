@@ -669,7 +669,7 @@ workflow {
           channel.value(params.tag)).set{methylation_ch}
 
         methylation_to_csv(methylation_ch.combine(indexed_graph_ch)).set{methylation_csv_ch}
-        annotate_vcf(indexed_vg_call_vcfs.map{v -> [v[0], v[1][0]]}.combine(methylation_csv_ch, by: 0)).set{indexed_vcfs}
+        annotate_vcf(indexed_vg_call_vcfs.map{v -> [v[0], v[1][0]]}.combine(methylation_csv_ch, by: 0)).map{it -> [it[0], it[1]]}.set{indexed_vcfs}
       } else {
         indexed_vg_call_vcfs.set{indexed_vcfs}
       }
