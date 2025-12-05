@@ -654,7 +654,7 @@ workflow {
       reads_ch.combine(graph_index_ch).set{reads_align_ch}
       graph_align_reads(reads_align_ch).set{aligned_ch}
       aligned_ch.combine(graph_index_ch).set{graph_pack_ch}
-      vg_call(graph_pack_ch).set{indexed_vcfs}
+      vg_call(graph_pack_ch).set{indexed_vg_call_vcfs}
 
       if(params.epigenomes) {
         reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}
@@ -668,7 +668,9 @@ workflow {
           channel.value(params.tag)).set{methylation_ch}
 
         methylation_to_csv(methylation_ch.combine(indexed_graph_ch)).set{methylation_csv_ch}
-        annotate_vcf(indexed_vcfs.map{v -> [v[0], v[1][0]]}.combine(methylation_csv_ch, by: 0))
+        annotate_vcf(indexed_vg_call_vcfs.map{v -> [v[0], v[1][0]]}.combine(methylation_csv_ch, by: 0)).set{indexed_vcfs}
+      } else {
+        indexed_vg_call_vcfs.set{indexed_vcfs}
       }
     } else {
       error "Unsupported --graph_method. --graph_method must be pangenie, giraffe or graphaligner."
