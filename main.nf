@@ -250,6 +250,7 @@ process concat_repeatmask {
   path("tsd_pangenome_*.vcf")
   path("TSD_full_log_*.txt")
   path("TSD_summary_*.txt")
+  path(ref_fasta)
 
   output:
   path("pangenome.vcf"), emit: vcf_ch
@@ -610,7 +611,8 @@ workflow {
     )
     concat_repeatmask(tsd_report.out.vcf_ch.collect(),
                       tsd_report.out.tsd_full_group_ch.collect(),
-                      tsd_report.out.tsd_sum_group_ch.collect())
+                      tsd_report.out.tsd_sum_group_ch.collect(),
+                      ref_asm_ch)
     concat_repeatmask.out.vcf_ch.set{vcf_ch}
   } else {
     // if a vcf is provided as parameter, skip discovery and go directly to genotyping
