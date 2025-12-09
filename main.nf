@@ -391,7 +391,7 @@ process pangenie {
   script:
   """
   PanGenie -t ${task.cpus} -j ${task.cpus} -s ${sample_name} -i <(zcat -f ${sample_reads}) -f pangenie_index -o ${sample_name}
-  bcftools norm -f ${ref} -m+ -Oz -o ${sample_name}.vcf.gz ${sample_name}_genotyping.vcf
+  bcftools norm -f ${ref} -m- -Oz -o ${sample_name}.vcf.gz ${sample_name}_genotyping.vcf
   tabix -p vcf ${sample_name}.vcf.gz
   """
 }
