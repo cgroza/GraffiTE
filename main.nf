@@ -643,13 +643,11 @@ workflow {
 
     reads_input_ch.fastq.mix(bam_to_fastq(reads_input_ch.bam)).set{reads_ch};
 
+    indexed_vcfs = channel.empty()
     if(params.graph_method == "pangenie") {
       reads_ch.combine(pangenie_index(vcf_ch.combine(ref_asm_ch))).set{input_ch}
       pangenie(input_ch).set{indexed_vcfs}
-    }
-
-    indexed_vcfs = channel.empty()
-    else if(params.graph_method == "giraffe" || params.graph_method == "graphaligner") {
+    } else if(params.graph_method == "giraffe" || params.graph_method == "graphaligner") {
       make_graph(vcf_ch, ref_asm_ch).set{graph_index_ch}
       reads_ch.combine(graph_index_ch).set{reads_align_ch}
       graph_align_reads(reads_align_ch).set{aligned_ch}
