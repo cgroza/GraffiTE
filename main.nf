@@ -383,6 +383,7 @@ process pangenie {
 
   input:
   tuple val(sample_name), path(sample_reads), val(preset), path(index)
+  path(ref)
 
   output:
   path("${sample_name}_genotyping.vcf.gz*")
@@ -390,7 +391,7 @@ process pangenie {
   script:
   """
   PanGenie -t ${task.cpus} -j ${task.cpus} -s ${sample_name} -i <(zcat -f ${sample_reads}) -f pangenie_index -o ${sample_name}
-  bcftools norm -m+ -Oz -o ${sample_name}.vcf.gz ${sample_name}_genotyping.vcf
+  bcftools norm -f ${ref} -m+ -Oz -o ${sample_name}.vcf.gz ${sample_name}_genotyping.vcf
   tabix -p vcf ${sample_name}.vcf.gz
   """
 }
@@ -647,7 +648,7 @@ workflow {
     indexed_vcfs = channel.empty()
     if(params.graph_method == "pangenie") {
       reads_ch.combine(pangenie_index(vcf_ch.combine(ref_asm_ch))).set{input_ch}
-      pangenie(input_ch).set{indexed_vcfs}
+      pangenie(input_ch, ref_asm_ch).set{indexed_vcfs}
     } else if(params.graph_method == "giraffe" || params.graph_method == "graphaligner") {
       make_graph(vcf_ch, ref_asm_ch).set{graph_index_ch}
       reads_ch.combine(graph_index_ch).set{reads_align_ch}
