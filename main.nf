@@ -235,7 +235,6 @@ process split_repeatmask {
   output:
   path("*.vcf")
 
-
   script:
   """
   bcftools sort -Oz -o ${vcf}.gz ${vcf}
@@ -663,7 +662,7 @@ workflow {
         index_graph(graph_index_ch.map(p -> p / 'index.gfa'),
                     channel.value(params.motif)).set{indexed_graph_ch}
 
-        bamtags_to_methylation(
+        bamtags_to_bed(
           epigenome_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0)
             .combine(indexed_graph_ch),
           channel.value(params.tag),
