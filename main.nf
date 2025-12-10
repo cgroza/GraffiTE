@@ -349,7 +349,7 @@ process tsd_report {
   TSD_FILE=TSD_annotation
   bgzip \${TSD_FILE}
   tabix -s1 -b2 -e2 \${TSD_FILE}.gz
-  bcftools annotate -a -l first \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,~ID,REF,ALT,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenome.vcf
+  bcftools annotate -l first -a  \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,~ID,REF,ALT,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenome.vcf
   """
 }
 
@@ -530,7 +530,7 @@ process merge_VCFs {
   cat P_header P_sorted_body > pangenome.sorted.vcf
   bgzip pangenome.sorted.vcf
   tabix -p vcf pangenome.sorted.vcf.gz
-  bcftools annotate  -l first -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,REF,ALT,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
+  bcftools annotate -l first -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,REF,ALT,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
   rm -f GraffiTE.merged.genotypes.vcf.gz
   bgzip GraffiTE.merged.genotypes.vcf
   """
