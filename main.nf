@@ -362,7 +362,7 @@ process pangenie_index {
   tuple path(vcf), path(ref)
 
   output:
-  path("pangenie_index*")
+  path("pangenie_index")
 
   script:
   """
@@ -371,7 +371,8 @@ process pangenie_index {
     '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
     awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' > graph.vcf
   merge_vcfs.py merge -r ${ref} -v graph.vcf -ploidy 2 > graph_merged.vcf
-  PanGenie-index -v graph_merged.vcf -r ${ref} -t ${task.cpus} -o pangenie_index
+  mkdir pangenie_index
+  PanGenie-index -v graph_merged.vcf -r ${ref} -t ${task.cpus} -o pangenie_index/pangenie_index
   """
 }
 
@@ -390,7 +391,7 @@ process pangenie {
 
   script:
   """
-  PanGenie -t ${task.cpus} -j ${task.cpus} -s ${sample_name} -i <(zcat -f ${sample_reads}) -f pangenie_index -o ${sample_name}
+  PanGenie -t ${task.cpus} -j ${task.cpus} -s ${sample_name} -i <(zcat -f ${sample_reads}) -f ${index}/pangenie_index -o ${sample_name}
   bcftools norm -f ${ref} -m- -Oz -o ${sample_name}.vcf.gz ${sample_name}_genotyping.vcf
   tabix -p vcf ${sample_name}.vcf.gz
   """
