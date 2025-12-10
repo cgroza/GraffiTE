@@ -387,7 +387,7 @@ process pangenie {
   path(ref)
 
   output:
-  path("${sample_name}_genotyping.vcf.gz*")
+  tuple val(sample_name), path("${sample_name}_genotyping.vcf.gz*")
 
   script:
   """
