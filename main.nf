@@ -476,6 +476,7 @@ process graph_align_reads {
       """
       vg giraffe --parameter-preset ${preset} -o gaf -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gaf
       vg pack -x index/${graph} -a ${sample_name}.gaf -o ${sample_name}.pack -Q ${params.min_mapq}
+      gzip ${sample_name}.gaf
       """
       break
     case "graphaligner":
@@ -483,6 +484,7 @@ process graph_align_reads {
       GraphAligner -t ${task.cpus} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.raw.gaf
       vg pack -x index/${graph} -a ${sample_name}.raw.gaf -o ${sample_name}.pack -Q ${params.min_mapq}
       cut -f1-12,17 ${sample_name}.raw.gaf > ${sample_name}.gaf
+      gzip ${sample_name}.gaf
       rm ${sample_name}.raw.gaf
       """
       break
