@@ -215,7 +215,7 @@ process truvari_merge {
     tabix \${f}
   done
 
-  bcftools merge -m none *.vcf.gz | bgzip > merged.vcf.gz
+  bcftools merge -Oz -m none -o merged.vcf.gz *.vcf.gz
   tabix merged.vcf.gz
   truvari collapse --chain -P 0.5 -p 0.5 -S -1 -k common -i merged.vcf.gz -o truvari_merged.vcf
   bcftools +setGT truvari_merged.vcf -- -t . -n 0 > truvari_merged_filled.vcf
