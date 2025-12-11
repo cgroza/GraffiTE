@@ -168,11 +168,10 @@ process sniffles_population_call {
   """
   ls *.snf > snfs.tsv
   sniffles --minsvlen 100  --threads ${task.cpus} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
-  bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 != "<INS>" && \$5 != "<DEL>"' | \
+  bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 !~ "<INS>" && \$5 !~ "<DEL>"' | \
     bcftools sort -Oz -o sniffles2_variants.vcf.gz
   mkdir sniffles2_individual_VCFs
   bcftools +split sniffles2_variants.vcf.gz -Oz -o  sniffles2_individual_VCFs
-
   """
 }
 
