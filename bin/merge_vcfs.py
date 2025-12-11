@@ -357,9 +357,7 @@ class HaplotypeTable:
 		fields = line.split()
 		# parse allele IDs either from ID column or ID field in info column (ids need to
 		# be separated by a comma
-		ids = fields[2].split(',')
-		
-		ids = fields[2].split(',')
+		ids = fields[2].split(';')
 		if id_in_info:
 			info = { i.split('=')[0] : i.split('=')[1] for i in fields[7].split(';') if "=" in i}
 			assert 'ID' in info
@@ -385,8 +383,8 @@ class HaplotypeTable:
 				raise Exception('Genotype information missing from VCF file.')
 			gt_index = format_field.index('GT')
 			genotype = genotype_from_string(genotype_string.split(':')[gt_index])
-			if not genotype.is_phased():
-				raise Exception('Line: ' + line + ' contains an unphased genotype.')
+			# if not genotype.is_phased():
+			# 	raise Exception('Line: ' + line + ' contains an unphased genotype.')
 			for allele in genotype.get_alleles():
 				self.insert_allele_index(column_index, allele)
 				column_index += 1
