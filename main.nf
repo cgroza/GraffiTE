@@ -204,22 +204,23 @@ process truvari_merge {
 
   input:
   path(vcfs)
+  path(ref)
 
   output:
-  path("svim-asm_variants.vcf")
+  path("SVs.vcf")
 
   script:
   """
   for f in ${vcfs}
   do
-    tabix \${f}
+  tabix \${f}
   done
 
   bcftools merge -Oz -m none -o merged.vcf.gz *.vcf.gz
   tabix merged.vcf.gz
   truvari collapse --chain -P 0.5 -p 0.5 -S -1 -k common -i merged.vcf.gz -o truvari_merged.vcf
-  bcftools +setGT truvari_merged.vcf -- -t . -n 0 > truvari_merged_filled.vcf
-  shorten_ids.py --vcf_in  truvari_merged_filled.vcf --vcf_out svim-asm_variants.vcf
+  bcftools +setGT truvari_merged.vcf -- -t . -n 0 | bcftools norm -f ${ref} > truvari_merged_filled.vcf
+  shorten_ids.py --vcf_in  truvari_merged_filled.vcf --vcf_out SVs.vcf
   """
 }
 
@@ -369,10 +370,9 @@ process pangenie_index {
   bcftools view -G ${vcf} | \
     awk -v FS='\t' -v OFS='\t' \
     '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
-    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | bgzip > graph.vcf.gz
-  tabix graph.vcf.gz
-  bcftools norm -m+ -Ov -o graph_merged.vcf graph.vcf.gz
-  #merge_vcfs.py merge -r ${ref} -v graph.vcf -ploidy 2 > graph_merged.vcf
+    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | \
+    bcftools norm -m+ -Ov -o graph_merged.vcf
+  merge_vcfs.py merge -r ${ref} -v graph.vcf -ploidy 2 > graph_merged.vcf
   mkdir pangenie_index
   PanGenie-index -v graph_merged.vcf -r ${ref} -t ${task.cpus} -o pangenie_index/pangenie_index
   """
@@ -500,15 +500,15 @@ process vg_call {
 
   input:
   tuple val(sample_name), path(gaf), path(pack), path("index")
+  path(ref)
 
   output:
   tuple val(sample_name), path("${sample_name}.vcf.gz*")
 
   script:
   """
-  vg call -a -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | bgzip > ${sample_name}_multi.vcf
-  tabix ${sample_name}_multi.vcf.gz
-  bcftools norm -m- -Oz -o ${sample_name}.vcf.gz ${sample_name}_multi.vcf.gz
+  vg call -a -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | \
+    bcftools norm -f ${ref} -m- -Oz -o ${sample_name}.vcf.gz > ${sample_name}.vcf
   tabix ${sample_name}.vcf.gz
   """
 }
@@ -582,7 +582,7 @@ workflow {
       svim_asm(map_asm(map_asm_in_ch.combine(ref_asm_ch))).map{sample -> sample[1]}.set{svim_variants_ch}
     }
 
-    truvari_merge(svim_variants_ch.mix(sn_variants_ch).collect()).set{sv_variants_ch}
+    truvari_merge(svim_variants_ch.mix(sn_variants_ch).collect(), ref_asm_ch).set{sv_variants_ch}
   }
 
   // if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
@@ -660,7 +660,7 @@ workflow {
       reads_ch.combine(graph_index_ch).set{reads_align_ch}
       graph_align_reads(reads_align_ch).set{aligned_ch}
       aligned_ch.combine(graph_index_ch).set{graph_pack_ch}
-      vg_call(graph_pack_ch).set{indexed_vg_call_vcfs}
+      vg_call(graph_pack_ch, ref_asm_ch).set{indexed_vg_call_vcfs}
 
       if(params.epigenomes) {
         reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}
