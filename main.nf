@@ -481,11 +481,10 @@ process graph_align_reads {
       break
     case "graphaligner":
       """
-      GraphAligner -t ${task.cpus} -x vg -g index/index.gfa -f ${sample_reads} -a ${sample_name}.raw.gaf
-      vg pack -x index/index.gfa -a ${sample_name}.raw.gaf -o ${sample_name}.pack -Q ${params.min_mapq}
-      cut -f1-12,17 ${sample_name}.raw.gaf > ${sample_name}.gaf
-      gzip ${sample_name}.gaf
-      rm ${sample_name}.raw.gaf
+      GraphAligner -t ${task.cpus} -x vg -g index/index.gfa -f ${sample_reads} -a ${sample_name}.gam
+      vg pack -x index/index.gfa -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
+      vg convert -G ${sample_name}.gam index/index.gfa | cut -f1-12,14 | gzip > ${sample_name}.gaf.gz
+      rm ${sample_name}.gam
       """
       break
   }
@@ -506,6 +505,7 @@ process vg_call {
   script:
   """
   vg call -a -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | \
+    bcftools sort |
     bcftools norm -f ${ref} -m- -Oz -o ${sample_name}.vcf.gz > ${sample_name}.vcf
   tabix ${sample_name}.vcf.gz
   """
