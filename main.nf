@@ -372,7 +372,7 @@ process pangenie_index {
     awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | bgzip > graph.vcf.gz
   tabix graph.vcf.gz
   bcftools norm -m+ -Ov -o graph_merged.vcf graph.vcf.gz
-  // merge_vcfs.py merge -r ${ref} -v graph.vcf -ploidy 2 > graph_merged.vcf
+  #merge_vcfs.py merge -r ${ref} -v graph.vcf -ploidy 2 > graph_merged.vcf
   mkdir pangenie_index
   PanGenie-index -v graph_merged.vcf -r ${ref} -t ${task.cpus} -o pangenie_index/pangenie_index
   """
