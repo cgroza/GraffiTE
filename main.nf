@@ -416,22 +416,21 @@ process make_graph {
   prep = """
   mkdir index
   """
-  finish = """
-  vg snarls index/${graph} > index/index.pb
-  """
   switch(params.graph_method) {
     case "giraffe":
       prep + """
       vg autoindex --tmp-dir \$PWD  -p index/index -w sr-giraffe -w lr-giraffe -v ${vcf} -r ${fasta}
-      vg convert ${graph} > index/index.gfa
-      """ + finish
+      vg convert --vg-algorithm -f ${graph} > index/index.gfa
+      vg snarls index/${graph} > index/index.pb
+      """
       break
     case "graphaligner":
       prep + """
       export TMPDIR=$PWD
       vg construct -a  -r ${fasta} -v ${vcf} -m 1024 > index/index.vg
-      vg convert -f index/index.vg > index/index.gfa
-      """ + finish
+      vg convert --vg-algorithm -f index/index.vg > index/index.gfa
+      vg snarls index/index.gfa > index/index.pb
+      """
       break
   }
 }
@@ -482,8 +481,8 @@ process graph_align_reads {
       break
     case "graphaligner":
       """
-      GraphAligner -t ${task.cpus} -x vg -g index/index.vg -f ${sample_reads} -a ${sample_name}.raw.gaf
-      vg pack -x index/${graph} -a ${sample_name}.raw.gaf -o ${sample_name}.pack -Q ${params.min_mapq}
+      GraphAligner -t ${task.cpus} -x vg -g index/index.gfa -f ${sample_reads} -a ${sample_name}.raw.gaf
+      vg pack -x index/index.gfa -a ${sample_name}.raw.gaf -o ${sample_name}.pack -Q ${params.min_mapq}
       cut -f1-12,17 ${sample_name}.raw.gaf > ${sample_name}.gaf
       gzip ${sample_name}.gaf
       rm ${sample_name}.raw.gaf
