@@ -506,8 +506,9 @@ process vg_call {
 
   script:
   """
-  vg call -a -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} > ${sample_name}.vcf
-  bgzip ${sample_name}.vcf
+  vg call -a -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | bgzip > ${sample_name}_multi.vcf
+  tabix ${sample_name}_multi.vcf.gz
+  bcftools norm -m- -Oz -o ${sample_name}.vcf.gz ${sample_name}_multi.vcf.gz
   tabix ${sample_name}.vcf.gz
   """
 }
