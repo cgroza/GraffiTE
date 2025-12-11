@@ -369,8 +369,10 @@ process pangenie_index {
   bcftools view -G ${vcf} | \
     awk -v FS='\t' -v OFS='\t' \
     '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
-    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' > graph.vcf
-  merge_vcfs.py merge -r ${ref} -v graph.vcf -ploidy 2 > graph_merged.vcf
+    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | bgzip > graph.vcf.gz
+  tabix graph.vcf.gz
+  bcftools norm -m+ -Ov -o graph_merged.vcf graph.vcf.gz
+  // merge_vcfs.py merge -r ${ref} -v graph.vcf -ploidy 2 > graph_merged.vcf
   mkdir pangenie_index
   PanGenie-index -v graph_merged.vcf -r ${ref} -t ${task.cpus} -o pangenie_index/pangenie_index
   """
