@@ -474,16 +474,18 @@ process graph_align_reads {
   switch(params.graph_method) {
     case "giraffe":
       """
-      vg giraffe --parameter-preset ${preset} -o gaf -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gaf
-      vg pack -x index/${graph} -a ${sample_name}.gaf -o ${sample_name}.pack -Q ${params.min_mapq}
+      vg giraffe --parameter-preset ${preset} -o gam -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
+      vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
+      vg convert -G ${sample_name}.gam index/${graph} | subset_gaf.py | gzip > ${sample_name}.gaf.gz
       gzip ${sample_name}.gaf
+      rm ${sample_name}.gam
       """
       break
     case "graphaligner":
       """
       GraphAligner -t ${task.cpus} -x vg -g index/index.gfa -f ${sample_reads} -a ${sample_name}.gam
       vg pack -x index/index.gfa -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
-      vg convert -G ${sample_name}.gam index/index.gfa | cut -f1-12,14 | gzip > ${sample_name}.gaf.gz
+      vg convert -G ${sample_name}.gam index/index.gfa | subset_gaf.py | gzip > ${sample_name}.gaf.gz
       rm ${sample_name}.gam
       """
       break
