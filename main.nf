@@ -477,7 +477,6 @@ process graph_align_reads {
       vg giraffe --parameter-preset ${preset} -o gam -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
       vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
       vg convert -G ${sample_name}.gam index/${graph} | subset_gaf.py | gzip > ${sample_name}.gaf.gz
-      gzip ${sample_name}.gaf
       rm ${sample_name}.gam
       """
       break
