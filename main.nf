@@ -420,7 +420,7 @@ process make_graph {
     case "giraffe":
       prep + """
       vg autoindex --tmp-dir \$PWD  -p index/index -w sr-giraffe -w lr-giraffe -v ${vcf} -r ${fasta}
-      vg convert --vg-algorithm -f ${graph} > index/index.gfa
+      vg convert --vg-algorithm -f index/${graph} > index/index.gfa
       vg snarls index/${graph} > index/index.pb
       """
       break
