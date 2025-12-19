@@ -261,7 +261,7 @@ process concat_repeatmask {
   cat TSD_summary_*.txt > TSD_summary.txt
   cat TSD_full_log_*.txt > TSD_full_log.txt
   bcftools concat tsd_pangenome_*.vcf | \
-    bcftools sort | \
+    awk '\$1 ~ /^#/ {print \$0;next} {print \$0 | "LC_ALL=C sort -k1,1 -k2,2n"}' | \
     bcftools view -Ov -o pangenome_temp.vcf -i 'INFO/total_match_span > 0.80'
   fix_vcf.py --ref ${ref_fasta} --vcf_in pangenome_temp.vcf --vcf_out pangenome.vcf
   """
