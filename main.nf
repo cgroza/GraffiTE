@@ -277,8 +277,7 @@ process repeatmask_VCF {
   tuple path("genotypes.vcf"), path(TE_library), path(ref_fasta)
 
   output:
-  path("genotypes_repmasked_filtered.vcf"), emit: RM_vcf_ch
-  path("repeatmasker_dir/"), emit: RM_dir_ch
+  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/")
 
   script:
   def mammal = ""
@@ -588,15 +587,11 @@ workflow {
   // if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
   if(!params.graffite_vcf) {
     // except if --RM_dir is given, in which case skip RepeatMasker here and set the input channel
+    RM_ch = channel.empty()
     if(params.RM_dir){
       channel.fromPath("${params.RM_dir}/*", type: "dir").
       map{p -> [file("${p}/genotypes_repmasked_filtered.vcf", checkIfExists: true), file("${p}/repeatmasker_dir", checkIfExists: true)]}.
-      multiMap{v ->
-        vcf: v[0]
-        dir: v[1]}.set{RM_cached}
-
-      RM_cached.vcf.set{RM_vcf_ch}
-      RM_cached.dir.set{RM_dir_ch}
+      map{v -> [v[0], v[1]]}.set{RM_ch}
     } else {
       Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
@@ -607,11 +602,11 @@ workflow {
       } else {
         error "No --longreads, --assemblies, --vcf or --RM_dir parameters passed to GraffiTE."
       }
-      repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch))
-      repeatmask_VCF.out.RM_vcf_ch.set{RM_vcf_ch}
-      repeatmask_VCF.out.RM_dir_ch.set{RM_dir_ch}
+      repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch)).RM_ch
     }
-    tsd_report(tsd_search(tsd_prep(RM_vcf_ch.merge(RM_dir_ch).combine(ref_asm_ch)).
+    tsd_report(tsd_search(tsd_prep(RM_ch.combine(ref_asm_ch)).
+                          collect(flat: false, sort: true).
+                          flatten().
                           splitText(elem: 3, by: params.tsd_batch_size)).
                groupTuple(by: 3).
                map{v -> tuple(v[0], v[1], v[2][0], v[3])}
