@@ -497,8 +497,7 @@ process vg_call {
   time params.vg_call_time
 
   input:
-  tuple val(sample_name), path(gaf), path(pack), path("index")
-  path(ref)
+  tuple val(sample_name), path(gaf), path(pack), path("index"), path(ref)
 
   output:
   tuple val(sample_name), path("${sample_name}.vcf.gz*")
@@ -655,7 +654,7 @@ workflow {
       reads_ch.combine(graph_index_ch).set{reads_align_ch}
       graph_align_reads(reads_align_ch).set{aligned_ch}
       aligned_ch.combine(graph_index_ch).set{graph_pack_ch}
-      vg_call(graph_pack_ch, ref_asm_ch).set{indexed_vg_call_vcfs}
+      vg_call(graph_pack_ch.combine(ref_asm_ch)).set{indexed_vg_call_vcfs}
 
       if(params.epigenomes) {
         reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}
