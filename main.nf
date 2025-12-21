@@ -47,7 +47,7 @@ else {
   make_graph_threads    = params.make_graph_threads
 }
 
-include { index_graph; bamtags_to_bed; epigenome_to_csv; annotate_VCF } from './panmethyl/module/'
+include { index_graph; bamtags_to_bed; epigenome_to_CSV; annotate_VCF } from './panmethyl/module/'
 
 String graph =  ""
 switch(params.graph_method) {
