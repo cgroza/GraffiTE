@@ -232,7 +232,7 @@ process tsd_prep {
 
 process tsd_search {
   input:
-  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta), file(indels),
+  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta), path(indels),
     path("SV_sequences_L_R_trimmed_WIN.fa"), path("flanking_sequences.fasta")
 
   output:
