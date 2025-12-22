@@ -22,8 +22,6 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 """
 
-// if user uses global preset for number of cores
-
 include { index_graph; bamtags_to_bed; epigenome_to_CSV; annotate_VCF } from './panmethyl/module/'
 
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
