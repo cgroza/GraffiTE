@@ -24,29 +24,6 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 // if user uses global preset for number of cores
 
-if (params.cores) {
-  map_longreads_threads = params.cores
-  map_asm_threads      = params.cores
-  repeatmasker_threads = params.cores
-  svim_asm_threads     = params.cores
-  pangenie_threads     = params.cores
-  graph_align_threads  = params.cores
-  vg_call_threads      = params.cores
-  sniffles_threads     = params.cores
-  make_graph_threads   = params.cores
-}
-else {
-  map_longreads_threads = params.map_longreads_threads
-  map_asm_threads       = params.map_asm_threads
-  repeatmasker_threads  = params.repeatmasker_threads
-  svim_asm_threads      = params.svim_asm_threads
-  pangenie_threads      = params.pangenie_threads
-  graph_align_threads   = params.graph_align_threads
-  vg_call_threads       = params.vg_call_threads
-  sniffles_threads      = params.sniffles_threads
-  make_graph_threads    = params.make_graph_threads
-}
-
 include { index_graph; bamtags_to_bed; epigenome_to_CSV; annotate_VCF } from './panmethyl/module/'
 
 String graph =  ""
@@ -60,8 +37,6 @@ switch(params.graph_method) {
 }
 
 process break_scaffold {
-  cpus 1
-
   input:
   tuple val(asm_name), path(asm)
 
@@ -77,10 +52,6 @@ process break_scaffold {
 }
 
 process map_asm {
-  cpus map_asm_threads
-  memory params.map_asm_memory
-  time params.map_asm_time
-
   input:
   tuple val(asm_name), path(asm), path(ref)
 
@@ -103,10 +74,6 @@ process map_asm {
 }
 
 process map_longreads {
-  cpus map_longreads_threads
-  memory params.map_longreads_memory
-  time params.map_longreads_time
-
   input:
   tuple val(sample_name), path(longreads), val(type), path(ref)
 
@@ -136,10 +103,6 @@ process map_longreads {
 }
 
 process sniffles_sample_call {
-  cpus sniffles_threads
-  memory params.sniffles_memory
-  time params.sniffles_time
-
   input:
   tuple val(sample_name), path(longreads_bam), path(ref)
 
@@ -154,8 +117,6 @@ process sniffles_sample_call {
 }
 
 process sniffles_population_call {
-  cpus sniffles_threads
-  memory params.sniffles_memory
   publishDir "${params.out}/1_SV_search", mode: 'copy'
 
   input:
@@ -176,9 +137,6 @@ process sniffles_population_call {
 }
 
 process svim_asm {
-  cpus svim_asm_threads
-  memory params.svim_asm_memory
-  time params.svim_asm_time
   publishDir "${params.out}/1_SV_search/svim-asm_individual_VCFs/", mode: 'copy'
 
   input:
@@ -197,8 +155,6 @@ process svim_asm {
 }
 
 process truvari_merge {
-  cpus svim_asm_threads
-  memory params.svim_asm_memory
   publishDir "${params.out}/1_SV_search", mode: 'copy'
 
   input:
@@ -225,10 +181,6 @@ process truvari_merge {
 
 
 process split_repeatmask {
-  cpus repeatmasker_threads
-  memory params.repeatmasker_memory
-  time params.repeatmasker_time
-
   input:
   path(vcf)
 
@@ -268,9 +220,6 @@ process concat_repeatmask {
 }
 
 process repeatmask_VCF {
-  cpus repeatmasker_threads
-  memory params.repeatmasker_memory
-  time params.repeatmasker_time
   publishDir "${params.out}/2_Repeat_Filtering/${task.index}", mode: 'copy'
 
   input:
@@ -291,9 +240,6 @@ process repeatmask_VCF {
 }
 
 process tsd_prep {
-  memory params.tsd_memory
-  time params.tsd_time
-
   input:
   tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta)
 
@@ -308,9 +254,6 @@ process tsd_prep {
 }
 
 process tsd_search {
-  memory params.tsd_memory
-  time params.tsd_time
-
   input:
   tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta), file(indels), path("SV_sequences_L_R_trimmed_WIN.fa"), path("flanking_sequences.fasta")
 
@@ -326,9 +269,6 @@ process tsd_search {
 }
 
 process tsd_report {
-  memory params.tsd_memory
-  time params.tsd_time
-
   input:
   tuple path(x), path(y), path("genotypes_repmasked_filtered.vcf"), val(chrom)
 
@@ -354,10 +294,6 @@ process tsd_report {
 }
 
 process pangenie_index {
-  cpus pangenie_threads
-  memory params.pangenie_memory
-  time params.pangenie_time
-
   input:
   tuple path(vcf), path(ref)
 
@@ -378,9 +314,6 @@ process pangenie_index {
 }
 
 process pangenie {
-  cpus pangenie_threads
-  memory params.pangenie_memory
-  time params.pangenie_time
   publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
   input:
@@ -401,9 +334,6 @@ process pangenie {
 }
 
 process make_graph {
-  cpus make_graph_threads
-  memory params.make_graph_memory
-  time params.make_graph_time
   publishDir "${params.out}/GraffiTE_graph/", mode: 'copy'
   input:
   path(vcf)
@@ -435,12 +365,7 @@ process make_graph {
   }
 }
 
-process bam_to_fastq
-{
-  cpus graph_align_threads
-  memory params.graph_align_memory
-  time params.graph_align_time
-
+process bam_to_fastq {
   input:
   tuple val(sample_name), path(sample_reads), val(preset)
   output:
@@ -453,11 +378,6 @@ process bam_to_fastq
 }
 
 process graph_align_reads {
-  cpus graph_align_threads
-  memory params.graph_align_memory
-  time params.graph_align_time
-  errorStrategy 'finish'
-
   input:
   tuple val(sample_name), path(sample_reads), val(preset), path("index")
 
@@ -492,10 +412,6 @@ process graph_align_reads {
 }
 
 process vg_call {
-  cpus vg_call_threads
-  memory params.vg_call_memory
-  time params.vg_call_time
-
   input:
   tuple val(sample_name), path(gaf), path(pack), path("index"), path(ref)
 
@@ -512,8 +428,6 @@ process vg_call {
 }
 
 process merge_VCFs {
-  memory params.merge_vcf_memory
-  time params.merge_vcf_time
   publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
 
   input:
