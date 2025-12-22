@@ -580,10 +580,10 @@ workflow {
           epigenome_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0)
             .combine(indexed_graph_ch),
           channel.value(params.tag),
-          channel.value(params.missing_modifications)).set{methylation_ch}
+          channel.value(params.missing_modifications)).set{mods_ch}
 
-        epigenome_to_CSV(methylation_ch.combine(indexed_graph_ch)).set{methylation_csv_ch}
-        annotate_VCF(indexed_vg_call_vcfs.map{v -> [v[0], v[1][0]]}.combine(methylation_csv_ch, by: 0)).map{it -> [it[0], it[1]]}.set{indexed_vcfs}
+        epigenome_to_CSV(mods_ch.combine(indexed_graph_ch)).set{mods_csv_ch}
+        annotate_VCF(indexed_vg_call_vcfs.map{v -> [v[0], v[1][0]]}.combine(mods_csv_ch, by: 0)).map{it -> [it[0], it[1]]}.set{indexed_vcfs}
       } else {
         indexed_vg_call_vcfs.set{indexed_vcfs}
       }
