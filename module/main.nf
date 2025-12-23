@@ -420,7 +420,7 @@ process merge_VCFs {
   script:
   """
   find . -name "*vcf.gz" | sort > vcf.list
-  bcftools merge -l vcf.list > GraffiTE.merged.genotypes.vcf
+  bcftools merge -m none -l vcf.list > GraffiTE.merged.genotypes.vcf
   bgzip GraffiTE.merged.genotypes.vcf
   tabix -p vcf GraffiTE.merged.genotypes.vcf.gz
   grep '#' ${pangenome_vcf} > P_header
