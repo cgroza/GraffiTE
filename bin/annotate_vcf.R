@@ -10,7 +10,7 @@ library(vcfR)
 read_rm_custom <- function(file) {
     rm_file <- readr::read_lines(file = file, skip = 3)
     rm_file <- lapply(rm_file, function(x) {
-        str.res <- unlist(stringr::str_split(x, "\\s+"))#[-1]
+        str.res <- unlist(stringr::str_split(x, "\\t"))#[-1]
         str.res <- str.res[1:16]
         return(str.res)
     })
