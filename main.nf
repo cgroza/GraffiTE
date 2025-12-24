@@ -38,8 +38,8 @@ workflow {
     sn_variants_ch = channel.empty()
 
     if(params.longreads || params.bams) {
-      sniffles_reads_in_ch = channel.of()
-      sniffles_bams_in_ch = channel.of()
+      sniffles_reads_in_ch = channel.empty()
+      sniffles_bams_in_ch = channel.empty()
 
       if(params.longreads) {
         Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
