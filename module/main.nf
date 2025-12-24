@@ -1,13 +1,3 @@
-String graph =  ""
-switch(params.graph_method) {
-  case "giraffe":
-    graph = "index.giraffe.gbz"
-    break
-  case "graphaligner":
-    graph = "index.vg"
-    break
-}
-
 process break_scaffold {
   input:
   tuple val(asm_name), path(asm)
@@ -330,8 +320,8 @@ process make_graph {
     case "giraffe":
       prep + """
       vg autoindex --tmp-dir \$PWD  -p index/index -w sr-giraffe -w lr-giraffe -v ${vcf} -r ${fasta}
-      vg convert --vg-algorithm -f index/${graph} > index/index.gfa
-      vg snarls index/${graph} > index/index.pb
+      vg convert --vg-algorithm -f index/index.giraffe.gbz > index/index.gfa
+      vg snarls index/index.giraffe.gbz > index/index.pb
       """
       break
     case "graphaligner":
@@ -375,8 +365,8 @@ process graph_align_reads {
     case "giraffe":
       """
       vg giraffe --parameter-preset ${preset} -o gam -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
-      vg pack -x index/${graph} -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
-      vg convert -G ${sample_name}.gam index/${graph} | subset_gaf.py | gzip > ${sample_name}.gaf.gz
+      vg pack -x index/index.giraffe.gbz -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
+      vg convert -G ${sample_name}.gam index/index.giraffe.gbz | subset_gaf.py | gzip > ${sample_name}.gaf.gz
       rm ${sample_name}.gam
       """
       break
@@ -399,9 +389,10 @@ process vg_call {
   tuple val(sample_name), path("${sample_name}.vcf.gz*")
 
   script:
-  def gbz = params.graph_method == "giraffe" ? '-z' : ''
+  def flags = params.graph_method == "giraffe" ? '-z' : ''
+  def graph = params.graph_method == "giraffe" ? 'index.giraffe.gbz' : 'index.gfa'
   """
-  vg call ${gbz} -a -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | \
+  vg call ${flags} -a -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | \
     bcftools norm -f ${ref} -m-  | \
     bcftools sort -Oz -o ${sample_name}.vcf.gz
   tabix ${sample_name}.vcf.gz
