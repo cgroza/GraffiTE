@@ -270,7 +270,7 @@ From: ubuntu:20.04
     apt-get autoremove --assume-yes
     apt-get clean --assume-yes
 
-    wget -O  /usr/local/bin/vg https://github.com/vgteam/vg/releases/download/v1.54.0/vg
+    wget -O  /usr/local/bin/vg https://github.com/vgteam/vg/releases/download/v1.70.0/vg
     chmod +x /usr/local/bin/vg
 
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
