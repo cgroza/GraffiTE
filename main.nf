@@ -137,11 +137,13 @@ workflow {
       reads_ch.combine(pangenie_index(vcf_ch.combine(ref_asm_ch))).set{input_ch}
       pangenie(input_ch, ref_asm_ch).set{indexed_vcfs}
     } else if(params.graph_method == "giraffe" || params.graph_method == "graphaligner") {
-      make_graph(vcf_ch, ref_asm_ch).set{graph_index_ch}
+      graph_method = channel.value(params.graph_method)
+
+      make_graph(vcf_ch, ref_asm_ch, graph_method).set{graph_index_ch}
       reads_ch.combine(graph_index_ch).set{reads_align_ch}
-      graph_align_reads(reads_align_ch).set{aligned_ch}
+      graph_align_reads(reads_align_ch, graph_method).set{aligned_ch}
       aligned_ch.combine(graph_index_ch).set{graph_pack_ch}
-      vg_call(graph_pack_ch.combine(ref_asm_ch)).set{indexed_vg_call_vcfs}
+      vg_call(graph_pack_ch.combine(ref_asm_ch), graph_method).set{indexed_vg_call_vcfs}
 
       if(params.epigenomes) {
         reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}

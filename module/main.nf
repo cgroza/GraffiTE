@@ -308,6 +308,7 @@ process make_graph {
   input:
   path(vcf)
   path(fasta)
+  val(graph_method)
 
   output:
   path("index")
@@ -316,7 +317,7 @@ process make_graph {
   prep = """
   mkdir index
   """
-  switch(params.graph_method) {
+  switch(graph_method) {
     case "giraffe":
       prep + """
       vg autoindex --tmp-dir \$PWD  -p index/index -w sr-giraffe -w lr-giraffe -v ${vcf} -r ${fasta}
@@ -350,6 +351,7 @@ process bam_to_fastq {
 process graph_align_reads {
   input:
   tuple val(sample_name), path(sample_reads), val(preset), path("index")
+  val(graph_method)
 
   output:
   tuple val(sample_name), path("${sample_name}.gaf.gz"), path("${sample_name}.pack")
@@ -361,7 +363,7 @@ process graph_align_reads {
     interleaved = ""
   }
 
-  switch(params.graph_method) {
+  switch(graph_method) {
     case "giraffe":
       """
       vg giraffe --parameter-preset ${preset} -o gam -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
@@ -384,13 +386,14 @@ process graph_align_reads {
 process vg_call {
   input:
   tuple val(sample_name), path(gaf), path(pack), path("index"), path(ref)
+  val(graph_method)
 
   output:
   tuple val(sample_name), path("${sample_name}.vcf.gz*")
 
   script:
-  def flags = params.graph_method == "giraffe" ? '-z' : ''
-  def graph = params.graph_method == "giraffe" ? 'index.giraffe.gbz' : 'index.gfa'
+  def flags = graph_method == "giraffe" ? '-z' : ''
+  def graph = graph_method == "giraffe" ? 'index.giraffe.gbz' : 'index.gfa'
   """
   vg call ${flags} -a -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | \
     bcftools norm -f ${ref} -m-  | \
