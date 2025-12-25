@@ -143,7 +143,7 @@ workflow {
       reads_ch.combine(graph_index_ch).set{reads_align_ch}
       graph_align_reads(reads_align_ch, graph_method).set{aligned_ch}
       aligned_ch.combine(graph_index_ch).set{graph_pack_ch}
-      vg_call(graph_pack_ch.combine(vcf_ch), graph_method).set{indexed_vg_call_vcfs}
+      vg_call(graph_pack_ch, graph_method).set{indexed_vg_call_vcfs}
 
       if(params.epigenomes) {
         reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}

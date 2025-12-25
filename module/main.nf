@@ -385,14 +385,14 @@ process graph_align_reads {
 
 process vg_call {
   input:
-  tuple val(sample_name), path(gaf), path(pack), path("index"), path(vcf)
+  tuple val(sample_name), path(gaf), path(pack), path("index")
   val(graph_method)
 
   output:
   tuple val(sample_name), path("${sample_name}.vcf.gz*")
 
   script:
-  def flags = graph_method == "giraffe" ? "-z -a" : "-v ${vcf}"
+  def flags = graph_method == "giraffe" ? "-z -a" : ""
   def graph = graph_method == "giraffe" ? 'index.giraffe.gbz' : 'index.gfa'
   """
   vg call --threads ${task.cpus} ${flags} -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | \
