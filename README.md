@@ -330,7 +330,7 @@ AND (always required)
 - `--graph_method`: can be `pangenie`, `giraffe` or `graphaligner`, select which graph method will be used to genotyped TEs. Default is `pangenie` and it is optimized for short-reads. `giraffe` can handle both short and long reads, and `graphaligner` is optimized for long reads. 
 >Note that both `giraffe` and `graphaligner` will spawn a process called `graphAlignReads`, while `pangenie` will spawn a process called `pangenie`.
 
-- `--genotype-with`: a CSV file that lists the read sets (FASTQ/FASTQ.GZ/BAM), read type (pb, hifi, ont, short) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. **The header is required**. Only one FASTQ/FASTQ.GZ/BAM per sample, and sample names must be unique. **Paired-end reads must be concatenated into a single file (`Pangenie`)**. In case `--longreads` is used as input, the same table can be used for `--longreads` and `--genotype-with` (but not the opposite: `type` column is needed in `--longreads`, optional for `--genotype-with`). Can contain BAMs with epigenetic data that will be used when enabling `--epigenome`.
+- `--genotype-with`: a CSV file that lists the read sets (FASTQ/FASTQ.GZ/BAM), read type (pb, hifi, ont, short) and sample names from which polymorphisms are to be genotyped. These samples may be different than the genome assemblies. **The header is required**. Only one FASTQ/FASTQ.GZ/BAM per sample, and sample names must be unique. **Paired-end reads must be concatenated into a single file (`Pangenie`)**. In case `--longreads` is used as input, the same table can be used for `--longreads` and `--genotype-with` (but not the opposite: `type` column is needed in `--longreads`, optional for `--genotype-with`). Can contain BAMs with epigenetic data that will be used when enabling `--epigenomes`.
 
    Example `reads.csv`:
    ```
@@ -351,7 +351,7 @@ AND (always required)
    - (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. 
    - (ii) will search for VNTR polymorphism between orthologous SVA elements.
 - `--break_scaffolds`: true or false. Break input assemblies at runs of Ns. Use this if the assemblies passed with `--assemblies` are scaffolded to avoid `[E::parse_cigar] CIGAR length too long` error.
-- `--epigenome`: true or false. Attempt to map epigenetic modifications onto the annotated VCF. Data passed with `--genotype-with` is expected to be BAM files with `MM` and `ML` tags describing base modifications.
+- `--epigenomes`: true or false. Attempt to map epigenetic modifications onto the annotated VCF. Data passed with `--genotype-with` is expected to be BAM files with `MM` and `ML` tags describing base modifications. Files that are not BAMs are ignored.
 - `--motif`: nucleotide motif to be targeted for base modifications. Supported options are CG, C, A, T, G.
 - `--code`: base modification code found in the BAM file MM tag.
 - `--missing_modifications`: how to treat missing data (skipped nucleotides) in the MM/ML data of each read. Pass -1 to ignore nucleotides with missing data. Pass 0 to count those nucleotides as unmodified.
