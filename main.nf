@@ -94,6 +94,7 @@ workflow {
     }
     tsd_report(tsd_search(tsd_prep(RM_ch.combine(ref_asm_ch)).
                           splitText(elem: 3, by: params.tsd_batch_size, file: true)).
+               map{it -> [it[0], it[1], it[2], it[3].getText()]}.
                groupTuple(by: 3).
                map{v -> tuple(v[0], v[1], v[2][0], v[3])}
     )

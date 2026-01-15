@@ -226,11 +226,11 @@ process tsd_search {
     path("SV_sequences_L_R_trimmed_WIN.fa"), path("flanking_sequences.fasta")
 
   output:
-  tuple path('*TSD_summary.txt'), path('*TSD_full_log.txt'), path("genotypes_repmasked_filtered.vcf"), env("CHROM")
+  tuple path('*TSD_summary.txt'), path('*TSD_full_log.txt'), path("genotypes_repmasked_filtered.vcf"), path("chrom.txt")
 
   script:
   """
-  CHROM=\$(bcftools view -H genotypes_repmasked_filtered.vcf | cut -f1 | uniq)
+  bcftools view -H genotypes_repmasked_filtered.vcf | cut -f1 | uniq > chrom.txt
   cp repeatmasker_dir/repeatmasker_dir/* .
   TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta ${indels}
   """
