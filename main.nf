@@ -368,11 +368,11 @@ process tsd_search {
   tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/*"), path(ref_fasta), file(indels), path("SV_sequences_L_R_trimmed_WIN.fa"), path("flanking_sequences.fasta")
 
   output:
-  tuple path('*TSD_summary.txt'), path('*TSD_full_log.txt'), path("genotypes_repmasked_filtered.vcf"), env("CHROM")
+  tuple path('*TSD_summary.txt'), path('*TSD_full_log.txt'), path("genotypes_repmasked_filtered.vcf"), path("chrom.txt")
 
   script:
   """
-  CHROM=\$(bcftools view -H genotypes_repmasked_filtered.vcf | cut -f1 | uniq)
+  bcftools view -H genotypes_repmasked_filtered.vcf | cut -f1 | uniq > chrom.txt
   cp repeatmasker_dir/repeatmasker_dir/* .
   TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta ${indels}
   """
@@ -617,6 +617,7 @@ workflow {
     }
     tsd_report(tsd_search(tsd_prep(RM_vcf_ch.merge(RM_dir_ch).combine(ref_asm_ch)).
                           splitText(elem: 3, by: params.tsd_batch_size)).
+               map{it -> [it[0], it[1], it[2], it[3]].getText()}.
                groupTuple(by: 3).
                map{v -> tuple(v[0], v[1], v[2][0], v[3])}
     )
