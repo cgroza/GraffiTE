@@ -71,7 +71,7 @@ if (any(is.null(opt$dotout), is.null(opt$vcf), is.null(opt$annotation))) {
 
 # first parse per hit ID (replace OneCodeToFindThemAll)
 read_rm_custom(input_file) %>% group_by(ID) %>%
-  reframe(
+  summarize(
     qry_id = unique(qry_id),
     hit_qry_start = min(as.integer(qry_start)),
     hit_qry_end = min(as.integer(qry_end)),
@@ -166,7 +166,7 @@ annot <- left_join(vcf_df, rep_mask, by = "qry_id") %>%
                   match_lengths = "0",
                   strands = "None",
                   RM_id = "None",
-                  L1_5PINV = "None")) %>%
+                  ` = "None")) %>%
     select(-c(qry_length)) %>%
     arrange(CHROM, POS, qry_id) %>%
     select(CHROM, POS, qry_id, REF, ALT, n_hits, fragmts, match_lengths, repeat_ids, matching_classes, strands, RM_id, L15PINV)
