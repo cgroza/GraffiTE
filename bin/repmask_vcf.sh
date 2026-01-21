@@ -86,7 +86,7 @@ awk '{print $1"\t"$2"\t"$3"\t"($2/$3)}' > span
 join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t/g' # this is to see how it looks
 join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t/g' | \
  awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$15}' | \
- awk '{if (NF == 11) {print $0"\t0\t0"} else {print $0}}' | \
+ awk '{if (NF == 12) {print $0"\t0\t0"} else {print $0}}' | \
  sort -k1,1 -k2,2n > ${ANNOT_FILE}
 
 # if --mammal if set, search for L1 5' inversion (Twin Priming and similar) and if SVA hits are within VNTR only (non retrotransposition polymorphism)
