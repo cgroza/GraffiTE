@@ -169,8 +169,7 @@ annot <- left_join(vcf_df, rep_mask, by = "qry_id") %>%
                   L1_5PINV = "None")) %>%
     select(-c(qry_length)) %>%
     arrange(CHROM, POS, qry_id) %>%
-    select(CHROM, POS, qry_id, REF, ALT, n_hits, fragmts, 
-      , repeat_ids, matching_classes, strands, RM_id, L1_5PINV)
+    select(CHROM, POS, qry_id, REF, ALT, n_hits, fragmts, match_lengths, repeat_ids, matching_classes, strands, RM_id, L1_5PINV)
 
 write_tsv(annot, file = opt$annotation, col_names = F)
 print(colnames(annot))
