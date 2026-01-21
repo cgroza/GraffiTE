@@ -160,6 +160,7 @@ then
 
 else
     echo "Mammalian filters OFF, writing vcf..."
+    head ${ANNOT_FILE}
     bgzip ${ANNOT_FILE}
     tabix -s1 -b2 -e2 ${ANNOT_FILE}.gz
 
