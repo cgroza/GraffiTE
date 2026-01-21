@@ -85,7 +85,7 @@ awk '{print $1"\t"$2"\t"$3"\t"($2/$3)}' > span
 # merge with ${ANNOT_FILE}_1
 join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t/g' | \
  awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$15}' | \
- awk '{if (NF == 10) {print $0"\t0\t0"} else {print $0}}' | \
+ awk '{if (NF == 11) {print $0"\t0\t0"} else {print $0}}' | \
  sort -k1,1 -k2,2n > ${ANNOT_FILE}
 
 # if --mammal if set, search for L1 5' inversion (Twin Priming and similar) and if SVA hits are within VNTR only (non retrotransposition polymorphism)
@@ -180,6 +180,6 @@ else
 
     cat <(bcftools view -h ${VCF}) <(bcftools view -H ${VCF} | sort -k1,1 -k2,2n) > genotypes.sorted.vcf
     bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
-    -c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/total_match_length,INFO/total_match_span,INFO/L1_5PINV genotypes.sorted.vcf | \
+    -c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/L1_5PINV,INFO/total_match_length,INFO/total_match_span genotypes.sorted.vcf | \
     bcftools view -Oz -o ${OUT_VCF}
 fi
