@@ -70,7 +70,7 @@ if (any(is.null(opt$dotout), is.null(opt$vcf), is.null(opt$annotation))) {
 ### V1.1 new code below 
 
 # first parse per hit ID (replace OneCodeToFindThemAll)
-read_rm_custom(input_file) %>% group_by(ID) %>%
+read_rm_custom(opt$dotout) %>% group_by(ID) %>%
   summarize(
     qry_id = unique(qry_id),
     hit_qry_start = min(as.integer(qry_start)),
