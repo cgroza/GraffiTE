@@ -142,7 +142,7 @@ dotout_parsed_per_ID %>%
     matching_classes = paste0(hit_matching_class, collapse = ","),
     strands = paste0(hit_strand, collapse = ","),
     RM_id = paste0(ID, collapse = ","),
-    L1_5PINV = paste0(ID[is_L15PINV == "yes"], collapse = ","),
+    L1_5PINV = ifelse(unique(is_L15PINV) == "no", "None", paste0(ID[is_L15PINV == "yes"], collapse = ",")),
     n_hits = n()
   ) -> rep_mask 
 
@@ -169,7 +169,8 @@ annot <- left_join(vcf_df, rep_mask, by = "qry_id") %>%
                   L1_5PINV = "None")) %>%
     select(-c(qry_length)) %>%
     arrange(CHROM, POS, qry_id) %>%
-    select(CHROM, POS, qry_id, REF, ALT, n_hits, fragmts, match_lengths, repeat_ids, matching_classes, strands, RM_id, L1_5PINV)
+    select(CHROM, POS, qry_id, REF, ALT, n_hits, fragmts, 
+      , repeat_ids, matching_classes, strands, RM_id, L1_5PINV)
 
 write_tsv(annot, file = opt$annotation, col_names = F)
 print(colnames(annot))
