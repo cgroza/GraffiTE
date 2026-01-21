@@ -166,7 +166,7 @@ annot <- left_join(vcf_df, rep_mask, by = "qry_id") %>%
                   match_lengths = "0",
                   strands = "None",
                   RM_id = "None",
-                  ` = "None")) %>%
+                  L15PINV = "None")) %>%
     select(-c(qry_length)) %>%
     arrange(CHROM, POS, qry_id) %>%
     select(CHROM, POS, qry_id, REF, ALT, n_hits, fragmts, match_lengths, repeat_ids, matching_classes, strands, RM_id, L15PINV)
