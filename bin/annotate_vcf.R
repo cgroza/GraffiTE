@@ -95,7 +95,7 @@ dotout_parsed_per_ID$final_hit_strand <- ifelse(
   dotout_parsed_per_ID$hit_matching_class == "LINE/L1" & dotout_parsed_per_ID$hit_strand == "C+",
   sapply(dotout_parsed_per_ID$frg_targ_start, function(x) {
     parts <- as.numeric(unlist(str_split(x, ",")))
-    ifelse(parts[1] < parts[2], "+", "-") # assess orientation of the L1 5' inversion   
+    ifelse(parts[1] < parts[2], "+", "C") # assess orientation of the L1 5' inversion   
   }),
   dotout_parsed_per_ID$hit_strand         # otherwise report hit orientation
 )                                                                 
@@ -140,7 +140,7 @@ dotout_parsed_per_ID %>%
     fragmts = paste0(fragments, collapse = ","),
     repeat_ids = paste0(final_hit_name, collapse = ","),
     matching_classes = paste0(hit_matching_class, collapse = ","),
-    strands = paste0(hit_strand, collapse = ","),
+    strands = paste0(final_hit_strand, collapse = ","), 
     RM_id = paste0(ID, collapse = ","),
     L1_5PINV = ifelse(unique(is_L15PINV) == "no", "None", paste0(ID[is_L15PINV == "yes"], collapse = ",")),
     n_hits = n()
