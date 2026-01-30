@@ -27,8 +27,8 @@ include { index_graph; bamtags_to_bed; epigenome_to_CSV; annotate_VCF } from './
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
          svim_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
          tsd_search; tsd_report; pangenie_index; pangenie; make_graph; bam_to_fastq;
-         graph_align_reads; vg_call; merge_VCFs; epiannotate_bed; merge_epiannotation;
-         bed_to_graph} from './module'
+         graph_align_reads; vg_call; merge_VCFs; annotate_BED; merge_BED;
+         BED_to_graph} from './module'
 
 workflow {
   // initiate channels that will provide the reference genome to processes
@@ -163,8 +163,8 @@ workflow {
         annotate_VCF(indexed_vg_call_vcfs.map{v -> [v[0], v[1][0]]}.combine(mods_csv_ch, by: 0)).map{it -> [it[0], it[1]]}.set{indexed_vcfs}
 
         if(params.bed) {
-          bed_to_graph(graph_index_ch.map{it -> it / "index.gfa"}.combine(Channel.fromPath(params.bed))).set{bed_ch}
-          epiannotate_bed(mods_csv_ch.combine(bed_ch))
+          BED_to_graph(graph_index_ch.map{it -> it / "index.gfa"}.combine(Channel.fromPath(params.bed))).set{bed_ch}
+          annotate_BED(mods_csv_ch.combine(bed_ch))
         }
 
       } else {
