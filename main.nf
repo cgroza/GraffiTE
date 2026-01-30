@@ -164,7 +164,8 @@ workflow {
 
         if(params.bed) {
           BED_to_graph(graph_index_ch.map{it -> it / "index.gfa"}.combine(Channel.fromPath(params.bed))).set{bed_ch}
-          annotate_BED(mods_csv_ch.combine(bed_ch))
+          merge_BED(annotate_BED(mods_csv_ch.combine(bed_ch)).collect())
+
         }
 
       } else {
