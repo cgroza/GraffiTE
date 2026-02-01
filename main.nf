@@ -22,13 +22,12 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 """
 
-include { index_graph; bamtags_to_BED; epigenome_to_CSV; annotate_VCF } from './panmethyl/module/'
+include { index_graph; bamtags_to_BED; epigenome_to_CSV; annotate_VCF; annotate_BED; merge_BED; BED_to_graph } from './panmethyl/module/'
 
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
          svim_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
          tsd_search; tsd_report; pangenie_index; pangenie; make_graph; bam_to_fastq;
-         graph_align_reads; vg_call; merge_VCFs; annotate_BED; merge_BED;
-         BED_to_graph} from './module'
+         graph_align_reads; vg_call; merge_VCFs } from './module'
 
 workflow {
   // initiate channels that will provide the reference genome to processes
