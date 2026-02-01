@@ -22,7 +22,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 """
 
-include { index_graph; bamtags_to_bed; epigenome_to_CSV; annotate_VCF } from './panmethyl/module/'
+include { index_graph; bamtags_to_BED; epigenome_to_CSV; annotate_VCF } from './panmethyl/module/'
 
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
          svim_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
@@ -153,7 +153,7 @@ workflow {
         index_graph(graph_index_ch.map(p -> p / 'index.gfa'),
                     channel.value(params.motif)).set{indexed_graph_ch}
 
-        bamtags_to_bed(
+        bamtags_to_BED(
           epigenome_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0)
             .combine(indexed_graph_ch),
           channel.value(params.code),
