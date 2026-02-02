@@ -107,14 +107,14 @@ echo ""
 # 	#makeblastdb -in L.short.fasta -out L.short.fasta -dbtype="nucl" &> /dev/null
 
 # now we directly make a db out of the left fragment no matter what
-makeblastdb -in L.short.fasta -out L.short.fasta -dbtype="nucl"
+makeblastdb -in L.fasta -out L.fasta -dbtype="nucl"
 
 # 	makeblastdb -in L.short.fasta -out L.short.fasta -dbtype="nucl"
 # 	#blast, keep outputs with less than 1 or DIV MM+GAP, sort the edge-most hit on top
 # 	blastn -word_size 4 -query R.short.fasta -db L.short.fasta -outfmt 6 -strand plus | awk -v div={$DIV} '$5+$6 <= 1 || ($5+$6)/$4 <= div/100' | sort -k7,7n -k10,10nr -k4,4nr > blastout 2>&1
 
 # now we blast no matter what and I will just save the table for now
-blastn -word_size 4 -query R.short.fasta -db L.short.fasta -outfmt 6 -strand plus > blastout 2>&1
+blastn -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus > blastout 2>&1
 	
 # 	if ! [[ -s blastout ]]
 # 	then
@@ -125,11 +125,13 @@ blastn -word_size 4 -query R.short.fasta -db L.short.fasta -outfmt 6 -strand plu
 # 		echo "$test"
 # 		echo ""
 # 	else
-# 		#print the candidate hits
-# 		echo ""
-# 		echo "candidate hits from blastn:"
-# 		cat blastout
-# 		echo ""
+
+#print the candidate hits
+echo ""
+echo "candidate hits from blastn:"
+cat blastout
+echo ""
+
 # 		#take best hit and export variables to match previous water format
 # 		eval $(head -n 1 blastout | awk '{print "length="$4; print "MM="$5; print "gaps="$6; print "Lstart="$9; print "Lend="$10; print "Rstart="$7; print "Rend="$8 }')
 # 		# print 5' and 3' with underlined hits
