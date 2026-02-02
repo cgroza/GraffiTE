@@ -37,7 +37,7 @@ bcftools view -H ${VCF} |  awk '{ if(length($4) < length($5)) {print $1"\t"$2"\t
 cat <(bedtools slop -i SV_coordinates.bed -g gLength.txt -l ${WIN} -r 0 | awk '{print $0"__L"}') \
 <(bedtools slop -i SV_coordinates.bed -g gLength.txt -l 0 -r ${WIN} | awk '{print $0"__R"}') > SV_coordinates_win.bed
 # extract fasta from flanking
-bedtools getfasta -bed SV_coordinates_win.bed -f ${REF} -name > flanking_sequences.fasta
+bedtools getfasta -bed SV_coordinates_win.bed -fi ${REF} -name > flanking_sequences.fasta
 
 ##################################################
 # Step 2: extract 5' and 3' of each masked TE SV #
