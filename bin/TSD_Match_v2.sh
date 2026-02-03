@@ -114,7 +114,7 @@ makeblastdb -in L.fasta -out L.fasta -dbtype="nucl"
 # 	blastn -word_size 4 -query R.short.fasta -db L.short.fasta -outfmt 6 -strand plus | awk -v div={$DIV} '$5+$6 <= 1 || ($5+$6)/$4 <= div/100' | sort -k7,7n -k10,10nr -k4,4nr > blastout 2>&1
 
 # now we blast no matter what and I will just save the table for now
-blastn -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus > blastout 2>&1
+blastn -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk '$3 > 95 {print $0"\t"(30-$6)"\t"(30-$5)}' > blastout 2>&1
 	
 # 	if ! [[ -s blastout ]]
 # 	then

@@ -25,7 +25,7 @@ grep "contig=" ${VCF} | sed 's/\#\#contig=<ID=//g;s/,length=/\t/g;s/>//g' > gLen
 #  awk '/n_hits=1/ && length($4) < length($5) {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=1/ && length($4) > length($5) {print $1"\t"$2"\t"($2+length($4))"\t"$3; next} /n_hits=2/ && length($4) < length($5) && /5P_INV/ {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=2/ && length($4) > length($5) && /5P_INV/ {print $1"\t"$2"\t"($2+length($4))"\t"$3}' > oneHit_SV_coordinates.bed
 
 # now we simply extract all SV
-bcftools view -H ${VCF} | awk -v win=${WIN} '{ if(length($4) < length($5)) {print $1"\t"($2-1-win)"\t"$2"\t"$3"__L"; print $1"\t"$2"\t"($2+1+win)"\t"$3"__R"} if (length($4) > length($5)) {print $1"\t"($2-1-win)"\t"$2"\t"$3"__L"; print $1"\t"($2+length($4))"\t"($2+1+length($4)+win)"\t"$3"__R"}}' > SV_coordinates_win.bed
+bcftools view -H ${VCF} | awk -v win=${WIN} '{ if(length($4) < length($5)) {print $1"\t"($2-win)"\t"$2"\t"$3"__L"; print $1"\t"$2"\t"($2+win)"\t"$3"__R"} if (length($4) > length($5)) {print $1"\t"($2-1-win)"\t"$2"\t"$3"__L"; print $1"\t"($2+length($4))"\t"($2+length($4)+win)"\t"$3"__R"}}' > SV_coordinates_win.bed
 
 
 # extend +/- ${WIN} bp in two entries per SV
