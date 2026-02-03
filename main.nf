@@ -151,7 +151,7 @@ workflow {
 
       if (params.vcfs) {
         Channel.fromPath(params.vcfs).splitCsv(header : true).map{
-          row -> [row.sample, file(row.path, checkIfExists: true)]}.set(indexed_vg_call_vcfs)
+          row -> [row.sample, file(row.path, checkIfExists: true)]}.set{indexed_vg_call_vcfs}
       } else {
         reads_ch.combine(graph_index_ch).set{reads_align_ch}
         graph_align_reads(reads_align_ch, graph_method).set{aligned_ch}
@@ -163,7 +163,7 @@ workflow {
         mods_csv_ch = channel.empty()
         if (params.lifted) {
           Channel.fromPath(params.lifted).splitCsv(header : true)
-            .map{row -> [row[0], file(row[1], checkIfExists : true)]}.set{mods_csv_ch}
+            .map{row -> [row.sample, file(row.path, checkIfExists : true)]}.set{mods_csv_ch}
         }
         else {
           reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}
