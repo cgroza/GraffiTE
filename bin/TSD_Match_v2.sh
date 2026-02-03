@@ -114,7 +114,7 @@ makeblastdb -in L.fasta -out L.fasta -dbtype="nucl"
 # 	blastn -word_size 4 -query R.short.fasta -db L.short.fasta -outfmt 6 -strand plus | awk -v div={$DIV} '$5+$6 <= 1 || ($5+$6)/$4 <= div/100' | sort -k7,7n -k10,10nr -k4,4nr > blastout 2>&1
 
 # now we blast no matter what and I will just save the table for now
-blastn -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk 'function abs(x) { return x < 0 ? -x : x } $3 > 95 {print $0"\t"(30-$6)"\t"(30-$5)"\t"abs(30-$6)"\t"abs(30-$5)}' > blastout 2>&1
+python3 exact_match.py -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk 'function abs(x) { return x < 0 ? -x : x } {print $0"\t"(30-($7+$8)/2)"\t"(30-($9+$10)/2)"\t"abs(30-($7+$8)/2)"\t"abs(30-($9+$10)/2)}' > blastout 2>&1
 	
 # 	if ! [[ -s blastout ]]
 # 	then
