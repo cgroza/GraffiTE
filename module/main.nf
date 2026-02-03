@@ -211,7 +211,7 @@ process tsd_prep {
 
   output:
   tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/repeatmasker_dir"), path(ref_fasta),
-    path("indels.txt"), path("SV_sequences_L_R_trimmed_WIN.fa"), path("flanking_sequences.fasta"), path("SV_coordinates.bed")
+    path("indels.txt"), path("SV_sequences_L_R_trimmed_WIN.fa"), path("flanking_sequences.fasta"), path("SV_coordinates_win.bed")
 
   script:
   """
