@@ -25,7 +25,7 @@ grep "contig=" ${VCF} | sed 's/\#\#contig=<ID=//g;s/,length=/\t/g;s/>//g' > gLen
 #  awk '/n_hits=1/ && length($4) < length($5) {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=1/ && length($4) > length($5) {print $1"\t"$2"\t"($2+length($4))"\t"$3; next} /n_hits=2/ && length($4) < length($5) && /5P_INV/ {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=2/ && length($4) > length($5) && /5P_INV/ {print $1"\t"$2"\t"($2+length($4))"\t"$3}' > oneHit_SV_coordinates.bed
 
 # now we simply extract all SV
-bcftools view -H ${VCF} |  awk '{ if(length($4) < length($5)) {print $1"\t"$2"\t"($2)+1"\t"$3} if (length($4) > length($5)) {print $1"\t"$2"\t"($2+length($4))"\t"$3}}' > SV_coordinates.bed
+bcftools view -H ${VCF} |  awk  -v win=${WIN} '{ if(length($4) < length($5)) {print $1"\t"($2-1-win)"\t"$2"\t"$3"_L; print $1"\t"$2"\t"($2+1+win)"\t"$3"_R"} if (length($4) > length($5)) {print $1"\t"($2-1-win)"\t"$2"\t"$3"_L; print $1"\t"($2+length($4))"\t"($2+1+length($4)+win)"\t"$3"_R"}' > SV_coordinates_win.bed
 
 
 # extend +/- ${WIN} bp in two entries per SV
@@ -34,8 +34,10 @@ bcftools view -H ${VCF} |  awk '{ if(length($4) < length($5)) {print $1"\t"$2"\t
 # sort -k1,1 -k2,2n -k3,3n | awk -v win=${WIN} '/__L/ {print $1":"$2"-"($2+win); next} /__R/ {print $1":"($3-win)"-"$3}' > SV_coordinates_win.regions
 # # extract fasta from flanking
 # samtools faidx -r SV_coordinates_win.regions -o flanking_sequences.fasta ${REF}
-cat <(bedtools slop -i SV_coordinates.bed -g gLength.txt -l ${WIN} -r 0 | awk '{print $0"__L"}') \
-<(bedtools slop -i SV_coordinates.bed -g gLength.txt -l 0 -r ${WIN} | awk '{print $0"__R"}') > SV_coordinates_win.bed
+# cat <(bedtools slop -i SV_coordinates.bed -g gLength.txt -l ${WIN} -r 0 | awk '{print $0"__L"}') \
+# <(bedtools slop -i SV_coordinates.bed -g gLength.txt -l 0 -r ${WIN} | awk '{print $0"__R"}') > SV_coordinates_win.bed
+
+
 # extract fasta from flanking
 bedtools getfasta -bed SV_coordinates_win.bed -fi ${REF} -name > flanking_sequences.fasta
 
