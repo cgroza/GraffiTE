@@ -115,7 +115,8 @@ makeblastdb -in L.fasta -out L.fasta -dbtype="nucl"
 
 # now we blast no matter what and I will just save the table for now
 exact_match.py -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk 'function abs(x) { return x < 0 ? -x : x } function min(x,y) { return x < y ? x : y } { a = (abs(30-$7) + abs(30-$8)) / 2; b = (abs(30-$9) + abs(30-$10)) / 2; score = min(a, b); print $0"\t"abs(30-$7)"\t"abs(30-$8)"\t"abs(30-$9)"\t"abs(30-$10)"\t"score }' > blastout 2>&1
-	
+sort -k17,17n -k4,4nr blastout | head -n 1 > best_hit
+
 # 	if ! [[ -s blastout ]]
 # 	then
 # 		output=$(echo -e "$i" "$TE" "$strand" "$DIV" "NA\tNA\tNA\tNA\tNA\tNA\tNA\tno_hit\tno_hit\tFAIL" | sed 's/\n//g;s/ /\t/g')
@@ -128,8 +129,10 @@ exact_match.py -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | 
 
 #print the candidate hits
 echo ""
-echo "candidate hits from blastn:"
+echo "candidate hits:"
 cat blastout
+echo ""
+echo "best hit:"
 echo ""
 
 # 		#take best hit and export variables to match previous water format
