@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """
 exact_match.py - Find all exact substring matches between two sequences.
 Drop-in replacement for blastn with similar interface and outfmt 6 output.
