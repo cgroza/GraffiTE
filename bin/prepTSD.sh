@@ -25,7 +25,7 @@ grep "contig=" ${VCF} | sed 's/\#\#contig=<ID=//g;s/,length=/\t/g;s/>//g' > gLen
 #  awk '/n_hits=1/ && length($4) < length($5) {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=1/ && length($4) > length($5) {print $1"\t"$2"\t"($2+length($4))"\t"$3; next} /n_hits=2/ && length($4) < length($5) && /5P_INV/ {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=2/ && length($4) > length($5) && /5P_INV/ {print $1"\t"$2"\t"($2+length($4))"\t"$3}' > oneHit_SV_coordinates.bed
 
 # now we simply extract all SV
-bcftools view -H ${VCF} | awk -v win=${WIN} '{ if(length($4) < length($5)) {print $1"\t"($2-win)"\t"$2"\t"$3"__L"; print $1"\t"$2"\t"($2+win)"\t"$3"__R"} if (length($4) > length($5)) {print $1"\t"($2-1-win)"\t"$2"\t"$3"__L"; print $1"\t"($2+length($4))"\t"($2+length($4)+win)"\t"$3"__R"}}' > SV_coordinates_win.bed
+bcftools view -H ${VCF} | awk -v win=${WIN} '{ if(length($4) < length($5)) {print $1"\t"($2-win)"\t"$2"\t"$3"__L"; print $1"\t"$2"\t"($2+win)"\t"$3"__R"} if (length($4) > length($5)) {print $1"\t"($2-win)"\t"$2"\t"$3"__L"; print $1"\t"($2+length($4))"\t"($2+length($4)+win)"\t"$3"__R"}}' > SV_coordinates_win.bed
 
 
 # extend +/- ${WIN} bp in two entries per SV
@@ -56,6 +56,6 @@ bcftools view -H --types indels --include 'ILEN<0' ${VCF} | awk '{print(sprintf(
 
 # linearize fasta, then trim and split in two seq (L and R)
 awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {printf("\n");}' indels.fa | \
-awk -v len=${WIN} -F '\t' '{x=len;L=length($2);printf("%s\n%s\n%s\n%s\n",$1"__L",(L<=x?$2:substr($2,2,x+1)),$1"__R",(L<=x?$2:substr($2,1+L-x,x)));}' > SV_sequences_L_R_trimmed_WIN.fa
+awk -v len=${WIN} -F '\t' '{x=len;L=length($2);printf("%s\n%s\n%s\n%s\n",$1"__L",(L<=x?$2:substr($2,2,x)),$1"__R",(L<=x?$2:substr($2,1+L-x,x)));}' > SV_sequences_L_R_trimmed_WIN.fa
 # export the list of SV to search TSD for next process parallelization
 grep '>' SV_sequences_L_R_trimmed_WIN.fa | sed 's/>//g;s/__/\t/g' | cut -f 1 | sort | uniq > indels.txt
