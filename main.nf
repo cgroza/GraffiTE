@@ -137,28 +137,49 @@ workflow {
     if(params.graph_method == "pangenie") {
       reads_ch.combine(pangenie_index(vcf_ch.combine(ref_asm_ch))).set{input_ch}
       pangenie(input_ch, ref_asm_ch).set{indexed_vcfs}
-    } else if(params.graph_method == "giraffe" || params.graph_method == "graphaligner") {
+    } else if(params.graph_method == "giraffe" || params.graph_method == "graphaligner" || params.graph_method == "precomputed") {
       graph_method = channel.value(params.graph_method)
 
-      make_graph(vcf_ch, ref_asm_ch, graph_method).set{graph_index_ch}
-      reads_ch.combine(graph_index_ch).set{reads_align_ch}
-      graph_align_reads(reads_align_ch, graph_method).set{aligned_ch}
-      aligned_ch.combine(graph_index_ch).set{graph_pack_ch}
-      vg_call(graph_pack_ch, graph_method).set{indexed_vg_call_vcfs}
+      graph_index_ch = channel.empty()
+      if (params.graph) {
+        Channel.fromPath(params.graph).set{graph_index_ch}
+      } else {
+        make_graph(vcf_ch, ref_asm_ch, graph_method).set{graph_index_ch}
+      }
+
+      indexed_vg_call_vcfs = channel.empty()
+
+      if (params.vcfs) {
+        Channel.fromPath(params.vcfs).splitCsv(header : true).map{
+          row -> [row.sample, file(row.path, checkIfExists: true)]}.set(indexed_vg_call_vcfs)
+      } else {
+        reads_ch.combine(graph_index_ch).set{reads_align_ch}
+        graph_align_reads(reads_align_ch, graph_method).set{aligned_ch}
+        aligned_ch.combine(graph_index_ch).set{graph_pack_ch}
+        vg_call(graph_pack_ch, graph_method).set{indexed_vg_call_vcfs}
+      }
 
       if(params.epigenomes) {
-        reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}
+        mods_csv_ch = channel.empty()
+        if (params.lifted) {
+          Channel.fromPath(params.lifted).splitCsv(header : true)
+            .map{row -> [row[0], file(row[1], checkIfExists : true)]}.set{mods_csv_ch}
+        }
+        else {
+          reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}
 
-        index_graph(graph_index_ch.map(p -> p / 'index.gfa'),
-                    channel.value(params.motif)).set{indexed_graph_ch}
+          index_graph(graph_index_ch.map(p -> p / 'index.gfa'),
+                      channel.value(params.motif)).set{indexed_graph_ch}
 
-        bamtags_to_BED(
-          epigenome_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0)
-            .combine(indexed_graph_ch),
-          channel.value(params.code),
-          channel.value(params.missing_modifications)).set{mods_ch}
+          bamtags_to_BED(
+            epigenome_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0)
+              .combine(indexed_graph_ch),
+            channel.value(params.code),
+            channel.value(params.missing_modifications)).set{mods_ch}
 
-        epigenome_to_CSV(mods_ch.combine(indexed_graph_ch)).set{mods_csv_ch}
+          epigenome_to_CSV(mods_ch.combine(indexed_graph_ch)).set{mods_csv_ch}
+        }
+
         annotate_VCF(indexed_vg_call_vcfs.map{v -> [v[0], v[1][0]]}.combine(mods_csv_ch, by: 0)).map{it -> [it[0], it[1]]}.set{indexed_vcfs}
 
         if(params.bed) {
