@@ -114,7 +114,7 @@ makeblastdb -in L.fasta -out L.fasta -dbtype="nucl"
 # 	blastn -word_size 4 -query R.short.fasta -db L.short.fasta -outfmt 6 -strand plus | awk -v div={$DIV} '$5+$6 <= 1 || ($5+$6)/$4 <= div/100' | sort -k7,7n -k10,10nr -k4,4nr > blastout 2>&1
 
 # now we blast no matter what and I will just save the table for now
-exact_match.py -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk 'function abs(x) { return x < 0 ? -x : x } function min(x,y) { return x < y ? x : y } { a = (abs(30-$7) + abs(30-$8)) / 2; b = (abs(30-$9) + abs(30-$10)) / 2; score = min(a, b); print $0"\t"abs(30-$7)"\t"abs(30-$8)"\t"abs(30-$9)"\t"abs(30-$10)"\t"score }' > blastout 2>&1
+exact_match.py -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk 'function abs(x) { return x < 0 ? -x : x } function min(x,y) { return x < y ? x : y } { a = (abs(30-$7) + abs(30-$9)) / 2; b = (abs(30-$8) + abs(30-$10)) / 2; score = min(a, b); print $0"\t"(30-$7)"\t"(30-$9)"\t"(30-$8)"\t"(30-$10)"\t"score }' > blastout 2>&1
 sort -k17,17n -k4,4nr blastout | head -n 1 > best_hit
 
 # 	if ! [[ -s blastout ]]
@@ -136,8 +136,8 @@ echo "best hit:"
 cat best_hit
 echo ""
 
-Lstart=$(awk '{print $9}' best_hit)
-Rstart=$(awk '{print $7}' best_hit)
+Lstart=$(awk '{print $7}' best_hit)
+Rstart=$(awk '{print $9}' best_hit)
 Lend=$(awk '{print $8}' best_hit)
 Rend=$(awk '{print $10}' best_hit)
 
