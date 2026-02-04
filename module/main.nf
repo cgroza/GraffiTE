@@ -140,7 +140,7 @@ process truvari_merge {
   num_files=\$(ls -1q ${vcfs} | wc -l)
 
   if [[ "\$num_files" -eq "1" ]]; then
-    gunzip ${vcfs}
+    gunzip --force ${vcfs}
     shorten_ids.py --vcf_in *.vcf --vcf_out SVs.vcf
   else
     bcftools merge -Oz -m none -o merged.vcf.gz *.vcf.gz
