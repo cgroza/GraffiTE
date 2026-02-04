@@ -137,11 +137,18 @@ process truvari_merge {
   tabix \${f}
   done
 
-  bcftools merge -Oz -m none -o merged.vcf.gz *.vcf.gz
-  tabix merged.vcf.gz
-  truvari collapse --chain -P 0.5 -p 0.5 -S -1 -k common -i merged.vcf.gz -o truvari_merged.vcf
-  bcftools +setGT truvari_merged.vcf -- -t . -n 0 | bcftools norm -f ${ref} > truvari_merged_filled.vcf
-  shorten_ids.py --vcf_in  truvari_merged_filled.vcf --vcf_out SVs.vcf
+  num_files=\$(ls -1q ${vcfs} | wc -l)
+
+  if [[ "\$num_files" -eq "1" ]]; then
+    gunzip ${vcfs}
+    shorten_ids.py --vcf_in *.vcf --vcf_out SVs.vcf
+  else
+    bcftools merge -Oz -m none -o merged.vcf.gz *.vcf.gz
+    tabix merged.vcf.gz
+    truvari collapse --chain -P 0.5 -p 0.5 -S -1 -k common -i merged.vcf.gz -o truvari_merged.vcf
+    bcftools +setGT truvari_merged.vcf -- -t . -n 0 | bcftools norm -f ${ref} > truvari_merged_filled.vcf
+    shorten_ids.py --vcf_in  truvari_merged_filled.vcf --vcf_out SVs.vcf
+  fi
   """
 }
 
