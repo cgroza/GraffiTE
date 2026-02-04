@@ -128,13 +128,13 @@ sort -k17,17n -k4,4nr blastout | head -n 1 > best_hit
 # 	else
 
 #print the candidate hits
-header=$(echo -e "R_query\tL_target\tidty\tmatch_len\tMM\tgaps\tR_start\tR_end\tL_start\tL_end\tbitScore\tR_start_offset\tL_start_offset\tR_end_offset\tL_end_offset\tTSD_score")
+echo -e "R_query\tL_target\tidty\tmatch_len\tMM\tgaps\tR_start\tR_end\tL_start\tL_end\tbitScore\tR_start_offset\tL_start_offset\tR_end_offset\tL_end_offset\tTSD_score" > header
 echo ""
 echo "candidate hits:"
-cat <(echo ${header}) blastout
+cat header blastout
 echo ""
 echo "best hit:"
-cat <(${header}) best_hit
+cat header best_hit
 echo ""
 
 Lstart=$(awk '{print $9}' best_hit)
