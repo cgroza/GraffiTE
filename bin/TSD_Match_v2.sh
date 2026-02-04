@@ -136,10 +136,10 @@ echo "best hit:"
 cat best_hit
 echo ""
 
-Lstart=$(awk '{print $7}' best_hit)
-Rstart=$(awk '{print $9}' best_hit)
-Lend=$(awk '{print $8}' best_hit)
-Rend=$(awk '{print $10}' best_hit)
+Lstart=$(awk '{print $9}' best_hit)
+Rstart=$(awk '{print $7}' best_hit)
+Lend=$(awk '{print $10}' best_hit)
+Rend=$(awk '{print $8}' best_hit)
 
 
 echo "candidate TSDs:"
