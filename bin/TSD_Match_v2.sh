@@ -133,7 +133,7 @@ echo "candidate hits:"
 cat blastout
 echo ""
 echo "best hit:"
-echo best_hit
+cat best_hit
 echo ""
 
 Lstart=$(awk '{print $9}' best_hit)
@@ -143,7 +143,7 @@ Rend=$(awk '{print $10}' best_hit)
 
 
 echo "candidate TSDs:"
-paste -d "" <(echo -e $(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, 1,((Lstart-1))) "\\e[4m"substr(seq, ((Lstart)),((Lend-Lstart+1)))"\\e[0m" substr(seq, ((Lend+1)))}' L.fasta)) <(echo -e "[---SV/TE(s)---]") <(echo -e $(awk -v Rstart=$((${Rstart})) -v Rend=$((${Rend})) 'getline seq {printf substr(seq, 1,((Rstart-1))) "\\e[4m"substr(seq, ((Rstart)),((Rend-Rstart+1)))"\\e[0m" substr(seq, ((Rend+1)))}' R.fasta))
+paste -d "" <(echo -e $(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, 1,((Lstart-1))) "\\e[4m"substr(seq, ((Lstart)),((Lend-Lstart+1)))"\\e[0m" substr(seq, ((Lend+1)))}' L.fasta)) <(echo -e "---SV/TE(s)---") <(echo -e $(awk -v Rstart=$((${Rstart})) -v Rend=$((${Rend})) 'getline seq {printf substr(seq, 1,((Rstart-1))) "\\e[4m"substr(seq, ((Rstart)),((Rend-Rstart+1)))"\\e[0m" substr(seq, ((Rend+1)))}' R.fasta))
 #paste -d "" <(echo -e $(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, 1,((Lstart-1))) "\\e[4m"substr(seq, ((Lstart)),((Lend-Lstart+1)))"\\e[0m" substr(seq, ((Lend+1)))}' L.fasta)) <(if [[ ${strand} == "C" ]]; then echo -e "[ <<< ${TE} ${strand} <<< ]"; else echo "[ >>> ${TE} ${strand} >>> ]";fi) <(echo -e $(awk -v Rstart=$((${Rstart}+${offsetR})) -v Rend=$((${Rend}+${offsetR})) 'getline seq {printf substr(seq, 1,((Rstart-1))) "\\e[4m"substr(seq, ((Rstart)),((Rend-Rstart+1)))"\\e[0m" substr(seq, ((Rend+1)))}' R.fasta))
 
 # 		#take best hit and export variables to match previous water format
