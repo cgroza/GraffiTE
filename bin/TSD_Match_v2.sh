@@ -39,7 +39,7 @@ if ! [[ -s blastout ]]
 
 then # no match detected
 
-	output=$(echo -e "NA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tno_hit\tno_hit\tFAIL" | sed 's/\n//g;s/ /\t/g')
+	output=$(echo -e "${i}\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tno_hit\tno_hit\tFAIL" | sed 's/\n//g;s/ /\t/g')
 	# test="FAIL"
 	# # debug
 	# echo ""
@@ -90,11 +90,11 @@ else # match found
 	paste -d "" <(echo -e $(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, 1,((Lstart-1))) "\\e[4m"substr(seq, ((Lstart)),((Lend-Lstart+1)))"\\e[0m" substr(seq, ((Lend+1)))}' L.fasta)) <(echo -e "---SV/TE(s)---") <(echo -e $(awk -v Rstart=$((${Rstart})) -v Rend=$((${Rend})) 'getline seq {printf substr(seq, 1,((Rstart-1))) "\\e[4m"substr(seq, ((Rstart)),((Rend-Rstart+1)))"\\e[0m" substr(seq, ((Rend+1)))}' R.fasta))
 
 	# grab the sequences
-	L_TSD=$(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, Lstart, Lstart+Lend-1)}' L.fasta)
-	R_TSD=$(awk -v Rstart=${Rstart} -v Rend=${Rend} 'getline seq {printf substr(seq, Rstart, Rstart+Rend-1)}' R.fasta)
+	L_TSD=$(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, Lstart, Lend-Lstart-1)}' L.fasta)
+	R_TSD=$(awk -v Rstart=${Rstart} -v Rend=${Rend} 'getline seq {printf substr(seq, Rstart, Rend-Rstart-1)}' R.fasta)
 
 	# add sequences to summary report and assign PASS/FAIL
-	output=$(awk -v ltsd=${L_TSD} -v rtsd=${R_TSD} '{ if($NF <= 5) { print $0"\t"ltsd"\t"rtsd"\tPASS" } else { print $0"\t"ltsd"\t"rtsd"\tFAIL" } }' best_hit)
+	output=$(awk -v sv=${i} -v ltsd=${L_TSD} -v rtsd=${R_TSD} '{ if($NF <= 5) { print sv"\t"$0"\t"ltsd"\t"rtsd"\tPASS" } else { print $0"\t"ltsd"\t"rtsd"\tFAIL" } }' best_hit)
 fi
 
 echo "$output" | tee -a $name.TSD_summary.txt
