@@ -160,6 +160,9 @@ workflow {
       }
 
       if(params.epigenomes) {
+        index_graph(graph_index_ch.map(p -> p / 'index.gfa'),
+                    channel.value(params.motif)).set{indexed_graph_ch}
+
         mods_csv_ch = channel.empty()
         if (params.lifted) {
           Channel.fromPath(params.lifted).splitCsv(header : true)
@@ -168,8 +171,6 @@ workflow {
         else {
           reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}
 
-          index_graph(graph_index_ch.map(p -> p / 'index.gfa'),
-                      channel.value(params.motif)).set{indexed_graph_ch}
 
           bamtags_to_BED(
             epigenome_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0)
@@ -183,7 +184,7 @@ workflow {
         annotate_VCF(indexed_vg_call_vcfs.map{v -> [v[0], v[1][0]]}.combine(mods_csv_ch, by: 0)).map{it -> [it[0], it[1]]}.set{indexed_vcfs}
 
         if(params.bed) {
-          BED_to_graph(graph_index_ch.map{it -> it / "index.gfa"}.combine(Channel.fromPath(params.bed))).set{bed_ch}
+          BED_to_graph(graph_index_ch.map{it -> it / "index.gfa"}.combine(Channel.fromPath(params.bed)).combine(indexed_graph_ch.map{it[1]})).set{bed_ch}
           merge_BED(annotate_BED(mods_csv_ch.combine(bed_ch)).map{it[1]}.collect())
 
         }
