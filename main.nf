@@ -184,8 +184,8 @@ workflow {
         annotate_VCF(indexed_vg_call_vcfs.map{v -> [v[0], v[1][0]]}.combine(mods_csv_ch, by: 0)).map{it -> [it[0], it[1]]}.set{indexed_vcfs}
 
         if(params.bed) {
-          BED_to_graph(graph_index_ch.map{it -> it / "index.gfa"}.combine(Channel.fromPath(params.bed)).combine(indexed_graph_ch.map{it[1]})).set{bed_ch}
-          merge_BED(annotate_BED(mods_csv_ch.combine(bed_ch)).map{it[1]}.collect())
+          BED_to_graph(graph_index_ch.map{it -> it / "index.gfa"}.combine(Channel.fromPath(params.bed))).set{bed_ch}
+          merge_BED(annotate_BED(mods_csv_ch.combine(bed_ch).combine(indexed_graph_ch.map{it[1]})).map{it[1]}.collect())
 
         }
 
