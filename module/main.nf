@@ -373,7 +373,7 @@ process graph_align_reads {
   switch(graph_method) {
     case "giraffe":
       """
-      vg giraffe --parameter-preset ${preset} -o gam -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
+      vg giraffe --parameter-preset ${preset} -o gam -t ${task.cpus} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
       vg pack -x index/index.giraffe.gbz -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
       vg convert -G ${sample_name}.gam index/index.giraffe.gbz | subset_gaf.py | gzip > ${sample_name}.gaf.gz
       rm ${sample_name}.gam
