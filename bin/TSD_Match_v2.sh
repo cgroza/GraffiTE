@@ -95,10 +95,10 @@ else # match found
 
 	# grab the sequences
 	L_TSD=$(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, Lstart, Lend-Lstart+1)}' L.fasta)
-	R_TSD=$(awk -v Rstart=${Rstart} -v Rend=${Rend} 'getline seq {printf substr(seq, Rstart, Rend-Rstart+1qq)}' R.fasta)
+	R_TSD=$(awk -v Rstart=${Rstart} -v Rend=${Rend} 'getline seq {printf substr(seq, Rstart, Rend-Rstart+1)}' R.fasta)
 
 	# add sequences to summary report and assign PASS/FAIL - We have an opportunity here to offer user parameters
-	output=$(awk -v tsdmin=${TSD_MIN -v tsdmax=${TSD_MAX} -v sv=${i} -v ltsd=${L_TSD} -v rtsd=${R_TSD} '{ if($NF <= 5 &&  $5 >= tsdmin && $5 <= tsdmax) { print sv"\t"$0"\t"ltsd"\t"rtsd"\tPASS" } else { print $0"\t"ltsd"\t"rtsd"\tFAIL" } }' best_hit)
+	output=$(awk -v tsdmin=${TSD_MIN} -v tsdmax=${TSD_MAX} -v sv=${i} -v ltsd=${L_TSD} -v rtsd=${R_TSD} '{ if($NF <= 5 &&  $5 >= tsdmin && $5 <= tsdmax) { print sv"\t"$0"\t"ltsd"\t"rtsd"\tPASS" } else { print $0"\t"ltsd"\t"rtsd"\tFAIL" } }' best_hit)
 fi
 
 echo ""
