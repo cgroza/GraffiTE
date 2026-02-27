@@ -31,8 +31,12 @@ cat <(echo ">R|3P_end") <(paste -d "" <(grep -A 1 "${i}__L" ${FLANK} | tail -n 1
 cat <(awk 'getline seq {print $0"\n"seq"\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n1   5    10   15   20   25   30   35   40   45   50   55   60"}' L.fasta) <(awk 'getline seq {print $0"\n"seq"\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n1   5    10   15   20   25   30   35   40   45   50   55   60"}' R.fasta)
 echo ""
 
-# now we "blast" no matter what and I will just save the table for now
-exact_match.py -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk 'function abs(x) { return x < 0 ? -x : x } function min(x,y) { return x < y ? x : y } { a = (abs(30-$7) + abs(30-$9)) / 2; b = (abs(30-$8) + abs(30-$10)) / 2; score = min(a, b); print $0"\t"(30-$7)"\t"(30-$9)"\t"(30-$8)"\t"(30-$10)"\t"score }' > blastout 2>&1
+# now we "blast" no matter what and I will just save the table for now and apply TSD length filters to avoid longer matches in repetitive regions
+# TSD_MIN: default = 4 ; min = 4 max = 30
+# TSD_MAX: default = 20; min = 4 max = 30
+TSD_MIN=4
+TSD_MAX=20
+exact_match.py -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk -v tsdmin=${TSD_MIN} -v tsdmax=${TSD_MAX} 'function abs(x) { return x < 0 ? -x : x } function min(x,y) { return x < y ? x : y } { a = (abs(30-$7) + abs(30-$9)) / 2; b = (abs(30-$8) + abs(30-$10)) / 2; score = min(a, b);if($4 >= tsdmin && $4 <= tsdmax){print $0"\t"(30-$7)"\t"(30-$9)"\t"(30-$8)"\t"(30-$10)"\t"score} }' > blastout 2>&1
 
 
 if ! [[ -s blastout ]]
@@ -48,8 +52,8 @@ then # no match detected
 
 else # match found
 
-	# get best hit using lowest (best) TSD score (= how close to the edges the TSD are: [TSD----]TSD or TSD[-----TSD])
-	# example of good scoring: TSD are snug with the breakpoint, one on the genome, one on the SV:
+	# get best hit using lowest (best) TSD score (= how close to the edges of the SV/flank the TSD are -- it should be ideally: [TSD----]TSD or TSD[-----TSD])
+	# example of good scoring: TSD are snug with the breakpoints, one on the genome, one on the SV:
 	# best hit: R|3P_end	L|5P_end	100.000	23	0	0	31	53	31	53	1.00e-20	46.		-1	-1	-23	-23	1 <---- score is 1 (should be 0, need to fix 31 not 30 as reference point)
 	# 
 	# >L|5P_end                     ***********************       
@@ -90,16 +94,17 @@ else # match found
 	paste -d "" <(echo -e $(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, 1,((Lstart-1))) "\\e[4m"substr(seq, ((Lstart)),((Lend-Lstart+1)))"\\e[0m" substr(seq, ((Lend+1)))}' L.fasta)) <(echo -e "---SV/TE(s)---") <(echo -e $(awk -v Rstart=$((${Rstart})) -v Rend=$((${Rend})) 'getline seq {printf substr(seq, 1,((Rstart-1))) "\\e[4m"substr(seq, ((Rstart)),((Rend-Rstart+1)))"\\e[0m" substr(seq, ((Rend+1)))}' R.fasta))
 
 	# grab the sequences
-	L_TSD=$(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, Lstart, Lend-Lstart-1)}' L.fasta)
-	R_TSD=$(awk -v Rstart=${Rstart} -v Rend=${Rend} 'getline seq {printf substr(seq, Rstart, Rend-Rstart-1)}' R.fasta)
+	L_TSD=$(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, Lstart, Lend-Lstart+1)}' L.fasta)
+	R_TSD=$(awk -v Rstart=${Rstart} -v Rend=${Rend} 'getline seq {printf substr(seq, Rstart, Rend-Rstart+1qq)}' R.fasta)
 
-	# add sequences to summary report and assign PASS/FAIL
-	output=$(awk -v sv=${i} -v ltsd=${L_TSD} -v rtsd=${R_TSD} '{ if($NF <= 5) { print sv"\t"$0"\t"ltsd"\t"rtsd"\tPASS" } else { print $0"\t"ltsd"\t"rtsd"\tFAIL" } }' best_hit)
+	# add sequences to summary report and assign PASS/FAIL - We have an opportunity here to offer user parameters
+	output=$(awk -v tsdmin=${TSD_MIN -v tsdmax=${TSD_MAX} -v sv=${i} -v ltsd=${L_TSD} -v rtsd=${R_TSD} '{ if($NF <= 5 &&  $5 >= tsdmin && $5 <= tsdmax) { print sv"\t"$0"\t"ltsd"\t"rtsd"\tPASS" } else { print $0"\t"ltsd"\t"rtsd"\tFAIL" } }' best_hit)
 fi
 
+echo ""
 echo "$output" | tee -a $name.TSD_summary.txt
 
-done <<< "$indels" 
+done <<< "$indels"
 }
 
 # exec and print output according to verbose option

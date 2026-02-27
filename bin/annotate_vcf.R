@@ -69,8 +69,10 @@ if (any(is.null(opt$dotout), is.null(opt$vcf), is.null(opt$annotation))) {
 
 ### V1.1 new code below 
 
-# first parse per hit ID (replace OneCodeToFindThemAll)
-read_rm_custom(opt$dotout) %>% group_by(ID) %>%
+# first parse per hit ID (replace OneCodeToFindThemAll). 
+read_rm_custom(opt$dotout) %>% 
+filter(!matching_class %in% c("Simple_repeat", "Low_complexity")) %>% # We remove Simple_repeat, Low_complexity as they will not count toward TE content and artificially increase the number of hits for nonLTR (polyA or T)
+group_by(ID) %>%
   summarize(
     qry_id = unique(qry_id),
     hit_qry_start = min(as.integer(qry_start)),
