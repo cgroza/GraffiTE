@@ -74,7 +74,7 @@ else # match found
 	# get best hit
 	sort -k17,17n -k4,4nr blastout | head -n 1 > best_hit
 	# print the candidate hits and best hit
-	echo -e "R_query\tL_target\tidty\tmatch_len\tMM\tgaps\tR_start\tR_end\tL_start\tL_end\tbitScore\tR_start_offset\tL_start_offset\tR_end_offset\tL_end_offset\tTSD_score" > header
+	echo -e "R_query\tL_target\tidty\tmatch_len\tMM\tgaps\tR_start\tR_end\tL_start\tL_end\te-value\tR_start_offset\tL_start_offset\tR_end_offset\tL_end_offset\tTSD_score" > header
 	echo ""
 	echo "candidate hits:"
 	cat header blastout
@@ -98,7 +98,7 @@ else # match found
 	R_TSD=$(awk -v Rstart=${Rstart} -v Rend=${Rend} 'getline seq {printf substr(seq, Rstart, Rend-Rstart+1)}' R.fasta)
 
 	# add sequences to summary report and assign PASS/FAIL - We have an opportunity here to offer user parameters
-	output=$(awk -v tsdmin=${TSD_MIN} -v tsdmax=${TSD_MAX} -v sv=${i} -v ltsd=${L_TSD} -v rtsd=${R_TSD} '{ if($NF <= 5 &&  $5 >= tsdmin && $5 <= tsdmax) { print sv"\t"$0"\t"ltsd"\t"rtsd"\tPASS" } else { print $0"\t"ltsd"\t"rtsd"\tFAIL" } }' best_hit)
+	output=$(awk -v sv=${i} -v ltsd=${L_TSD} -v rtsd=${R_TSD} '{ if($NF <= 5) { print sv"\t"$0"\t"ltsd"\t"rtsd"\tPASS" } else { print sv"t\"$0"\t"ltsd"\t"rtsd"\tFAIL" } }' best_hit)
 fi
 
 echo ""
