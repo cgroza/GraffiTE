@@ -175,8 +175,7 @@ workflow {
           bamtags_to_BED(
             epigenome_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0)
               .combine(indexed_graph_ch),
-            channel.value(params.code),
-            channel.value(params.missing_modifications)).set{mods_ch}
+            channel.value(params.code)).set{mods_ch}
 
           epigenome_to_CSV(mods_ch.combine(indexed_graph_ch)).set{mods_csv_ch}
         }
