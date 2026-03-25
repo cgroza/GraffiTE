@@ -92,11 +92,19 @@ workflow {
       }
       repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch)).set{RM_ch}
     }
-    tsd_report(tsd_search(tsd_prep(RM_ch.combine(ref_asm_ch)).
-                          splitText(elem: 3, by: params.tsd_batch_size, file: true)).
-               map{it -> [it[0], it[1], it[2], it[3].getText()]}.
-               groupTuple(by: 3).
-               map{v -> tuple(v[0], v[1], v[2][0], v[3])}
+    ch_tsd_prep_in = RM_ch.combine(ref_asm_ch)
+    tsd_prep(ch_tsd_prep_in)
+    ch_tsd_prep_batches = tsd_prep.out.splitText(
+        elem: 3,
+        by: params.tsd_batch_size,
+        file: true
+    )
+    tsd_search(ch_tsd_prep_batches)
+    tsd_report(
+      tsd_search.out
+        .map{ it -> [it[0], it[1], it[2], it[3].getText()] }
+        .groupTuple(by: 3)
+        .map{ v -> tuple(v[0], v[1], v[2][0], v[3]) }
     )
     concat_repeatmask(tsd_report.out.vcf_ch.collect(),
                       tsd_report.out.tsd_full_group_ch.collect(),
