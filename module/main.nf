@@ -200,6 +200,7 @@ process repeatmask_VCF {
     mammal = "MAM"
   }
   """
+  export SINGULARITY_CACHEDIR="\$PWD/singularity-cache"
   repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library} ${mammal}
   bcftools view -Ov -o genotypes_repmasked_filtered.vcf -i 'INFO/total_match_span > 0.80' genotypes_repmasked.vcf.gz
   """
