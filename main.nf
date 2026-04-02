@@ -22,7 +22,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 """
 
-include { index_graph; bamtags_to_BED; epigenome_to_CSV; annotate_VCF; annotate_BED; merge_BED; BED_to_graph } from './panmethyl/module/'
+include { index_graph; bamtags_to_BED; lift_epigenome; annotate_VCF; annotate_BED; merge_BED; BED_to_graph } from './panmethyl/module/'
 
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
          svim_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
@@ -171,13 +171,11 @@ workflow {
         else {
           reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}
 
+          bamtags_to_BED(epigenome_ch, channel.value(params.code)).set{mods_ch}
 
-          bamtags_to_BED(
-            epigenome_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0)
-              .combine(indexed_graph_ch),
-            channel.value(params.code)).set{mods_ch}
+          lift_epigenome(mods_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0).combine(indexed_graph_ch)).set{lifted_mods_ch}
 
-          epigenome_to_CSV(mods_ch.combine(indexed_graph_ch)).set{mods_csv_ch}
+          merge_CSV(lifted_mods_ch.groupTuple(by: 0).combine(indexed_graph_ch)).set{mods_csv_ch}
         }
 
         annotate_VCF(indexed_vg_call_vcfs.map{v -> [v[0], v[1][0]]}.combine(mods_csv_ch, by: 0)).map{it -> [it[0], it[1]]}.set{indexed_vcfs}
