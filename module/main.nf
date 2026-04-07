@@ -375,7 +375,7 @@ process graph_align_reads {
       """
       vg giraffe --parameter-preset ${preset} -o gam -t ${task.cpus} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
       vg pack -x index/index.giraffe.gbz -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
-      vg convert -G ${sample_name}.gam index/index.giraffe.gbz | subset_gaf.py | gzip > ${sample_name}.gaf.gz
+      vg convert -G ${sample_name}.gam index/index.giraffe.gbz | subset_gaf.py | sort -k1b,1 | gzip > ${sample_name}.gaf.gz
       rm ${sample_name}.gam
       """
       break
@@ -383,7 +383,7 @@ process graph_align_reads {
       """
       GraphAligner -t ${task.cpus} -x vg -g index/index.gfa -f ${sample_reads} -a ${sample_name}.gam
       vg pack -x index/index.gfa -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
-      vg convert -G ${sample_name}.gam index/index.gfa | subset_gaf.py | gzip > ${sample_name}.gaf.gz
+      vg convert -G ${sample_name}.gam index/index.gfa | subset_gaf.py | sort -k1b,1 | gzip > ${sample_name}.gaf.gz
       rm ${sample_name}.gam
       """
       break
