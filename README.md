@@ -354,7 +354,6 @@ AND (always required)
 - `--epigenomes`: true or false. Attempt to map epigenetic modifications onto the annotated VCF. Data passed with `--genotype-with` is expected to be BAM files with `MM` and `ML` tags describing base modifications. Files that are not BAMs are ignored.
 - `--motif`: nucleotide motif to be targeted for base modifications. Supported options are CG, C, A, T, G.
 - `--code`: base modification code found in the BAM file MM tag.
-- `--missing_modifications`: how to treat missing data (skipped nucleotides) in the MM/ML data of each read. Pass -1 to ignore nucleotides with missing data. Pass 0 to count those nucleotides as unmodified.
 
 #### Pipeline Shortcuts
 

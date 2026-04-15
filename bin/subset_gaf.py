@@ -10,6 +10,7 @@ for line in sys.stdin:
             cs = f
             break
 
+    # temporary work around (vg convert GAM to GAF sets MAPQ=0)
     basic_fields ='\t'.join(fields[:12])
     if cs is not None:
         print(basic_fields + "\t" + cs)

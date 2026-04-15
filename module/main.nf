@@ -137,11 +137,18 @@ process truvari_merge {
   tabix \${f}
   done
 
-  bcftools merge -Oz -m none -o merged.vcf.gz *.vcf.gz
-  tabix merged.vcf.gz
-  truvari collapse --chain -P 0.5 -p 0.5 -S -1 -k common -i merged.vcf.gz -o truvari_merged.vcf
-  bcftools +setGT truvari_merged.vcf -- -t . -n 0 | bcftools norm -f ${ref} > truvari_merged_filled.vcf
-  shorten_ids.py --vcf_in  truvari_merged_filled.vcf --vcf_out SVs.vcf
+  num_files=\$(ls -1q ${vcfs} | wc -l)
+
+  if [[ "\$num_files" -eq "1" ]]; then
+    gunzip --force ${vcfs}
+    shorten_ids.py --vcf_in *.vcf --vcf_out SVs.vcf
+  else
+    bcftools merge -Oz -m none -o merged.vcf.gz *.vcf.gz
+    tabix merged.vcf.gz
+    truvari collapse --chain -P 0.5 -p 0.5 -S -1 -k common -i merged.vcf.gz -o truvari_merged.vcf
+    bcftools +setGT truvari_merged.vcf -- -t . -n 0 | bcftools norm -f ${ref} > truvari_merged_filled.vcf
+    shorten_ids.py --vcf_in  truvari_merged_filled.vcf --vcf_out SVs.vcf
+  fi
   """
 }
 
@@ -366,9 +373,9 @@ process graph_align_reads {
   switch(graph_method) {
     case "giraffe":
       """
-      vg giraffe --parameter-preset ${preset} -o gam -t ${graph_align_threads} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
+      vg giraffe --parameter-preset ${preset} -o gam -t ${task.cpus} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
       vg pack -x index/index.giraffe.gbz -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
-      vg convert -G ${sample_name}.gam index/index.giraffe.gbz | subset_gaf.py | gzip > ${sample_name}.gaf.gz
+      vg convert -G ${sample_name}.gam index/index.giraffe.gbz | subset_gaf.py | sort -k1b,1 | gzip > ${sample_name}.gaf.gz
       rm ${sample_name}.gam
       """
       break
@@ -376,7 +383,7 @@ process graph_align_reads {
       """
       GraphAligner -t ${task.cpus} -x vg -g index/index.gfa -f ${sample_reads} -a ${sample_name}.gam
       vg pack -x index/index.gfa -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
-      vg convert -G ${sample_name}.gam index/index.gfa | subset_gaf.py | gzip > ${sample_name}.gaf.gz
+      vg convert -G ${sample_name}.gam index/index.gfa | subset_gaf.py | sort -k1b,1 | gzip > ${sample_name}.gaf.gz
       rm ${sample_name}.gam
       """
       break
