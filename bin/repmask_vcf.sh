@@ -70,7 +70,7 @@ annotate_vcf.R --dotout ${REPMASK_OUT} --vcf ${VCF} --annotation ${ANNOT_FILE}_1
 echo "compute repeat proportion for each SVs..."
 samtools faidx indels.fa
 awk '{print $1"\t"$2}' indels.fa.fai > indels.length
-grep -v 'Simple_repeat\|Low_complexity' ${REPMASK_OUT} | awk 'NR > 3 {print $5"\t"$6-1"\t"$7"\t"$10}' | bedtools merge > merge.bed # add -1 to start to meet .bed format
+grep -v 'Simple_repeat\|Low_complexity' ${REPMASK_OUT} | awk 'NR > 3 {print $5"\t"$6-1"\t"$7"\t"$10}' | sort -k1,1 -k2,2n -k3,3n | bedtools merge > merge.bed # add -1 to start to meet .bed format
 rm -rf span &> /dev/null # clean in case there is a "span" file already
 rm -rf ${ANNOT_FILE}.gz &> /dev/null # clean in case there was a ${ANNOT_FILE}.gz file already
 # join allele length with TE span
