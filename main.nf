@@ -40,6 +40,7 @@ workflow {
     if(params.longreads || params.bams) {
       sniffles_reads_in_ch = channel.empty()
       sniffles_bams_in_ch = channel.empty()
+      vcfs_variants_ch = channel.empty()
 
       if(params.longreads) {
         Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
@@ -69,7 +70,12 @@ workflow {
       svim_asm(map_asm(map_asm_in_ch.combine(ref_asm_ch))).map{sample -> sample[1]}.set{svim_variants_ch}
     }
 
-    truvari_merge(svim_variants_ch.mix(sn_variants_ch).collect(), ref_asm_ch).set{sv_variants_ch}
+    if(params.vcfs) {
+      Channel.fromPath(params.vcfs).splitCsv(header:true).map{row ->
+        [row.sample, file(row.path, checkIfExists:true)]}.set{vcfs_variants_ch}
+    }
+
+    truvari_merge(svim_variants_ch.mix(sn_variants_ch).mix(vcfs_variants_ch).collect(), ref_asm_ch).set{sv_variants_ch}
   }
 
   // if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
