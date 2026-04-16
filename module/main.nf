@@ -199,7 +199,7 @@ process repeatmask_VCF {
   tuple path("genotypes.vcf"), path(TE_library), path(ref_fasta)
 
   output:
-  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/"), path("vcf_annotation.gz")
+  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/")
 
   script:
   def mammal = ""
