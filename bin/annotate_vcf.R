@@ -76,7 +76,7 @@ group_by(ID) %>%
   summarize(
     qry_id = unique(qry_id),
     hit_qry_start = min(as.integer(qry_start)),
-    hit_qry_end = min(as.integer(qry_end)),
+    hit_qry_end = max(as.integer(qry_end)),
     hit_strand = paste0(unique(strand), collapse =  ""),
     frg_targ_start = paste0(unique(target_start), collapse =  ","),
     frg_targ_end = paste0(unique(target_end), collapse =  ","),
