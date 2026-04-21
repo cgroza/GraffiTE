@@ -72,7 +72,7 @@ workflow {
 
     if(params.svs) {
       Channel.fromPath(params.svs).splitCsv(header:true).map{row ->
-        [row.sample, file(row.path, checkIfExists:true)]}.set{vcfs_variants_ch}
+        [row.sample, file(row.path, checkIfExists:true)]}.map{sample -> sample[1]}.set{vcfs_variants_ch}
     }
 
     truvari_merge(svim_variants_ch.mix(sn_variants_ch).mix(vcfs_variants_ch).collect(), ref_asm_ch).set{sv_variants_ch}
