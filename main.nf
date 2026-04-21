@@ -70,8 +70,8 @@ workflow {
       svim_asm(map_asm(map_asm_in_ch.combine(ref_asm_ch))).map{sample -> sample[1]}.set{svim_variants_ch}
     }
 
-    if(params.vcfs) {
-      Channel.fromPath(params.vcfs).splitCsv(header:true).map{row ->
+    if(params.svs) {
+      Channel.fromPath(params.svs).splitCsv(header:true).map{row ->
         [row.sample, file(row.path, checkIfExists:true)]}.set{vcfs_variants_ch}
     }
 
