@@ -89,7 +89,7 @@ workflow {
     } else {
       Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
-      if(params.longreads || params.bams || params.assemblies){
+      if(params.longreads || params.bams || params.assemblies || params.svs){
         sv_variants_ch.set{raw_vcf_ch}
       } else if(params.vcf){
         Channel.fromPath(params.vcf, checkIfExists : true).set{raw_vcf_ch}
