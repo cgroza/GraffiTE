@@ -27,7 +27,7 @@ if [ "${repmask_cores}" -lt "1" ]; then
 fi
 
 # run RepeatMasker
-RepeatMasker -lib ${FASTA_LIB} -s -dir ${REPMASK_DIR} -pa $(repmask_cores) ${FASTA_FILE}
+RepeatMasker -lib ${FASTA_LIB} -s -dir ${REPMASK_DIR} -pa ${repmask_cores} ${FASTA_FILE}
 
 REPMASK_OUT=${REPMASK_DIR}/$(basename ${FASTA_FILE}).out
 
