@@ -33,8 +33,12 @@ REPMASK_OUT=${REPMASK_DIR}/$(basename ${FASTA_FILE}).out
 
 # run ULTRA to detect tandem repeat the RM may have annotated as TE
 
-ultra --bed -t $(nproc) -o ultra_out ${FASTA_FILE}
-awk '{print $1"\t"$3-$2}' ultra_out.bed > ultra_out.span
+mkdir ultra_temp
+ULTRA_DIR=ultra_temp
+ULTRA_OUT=ultra_out.bed
+ultra --bed -t $(nproc) -o ${ULTRA_DIR}/ultra_out ${FASTA_FILE}
+echo "=== post-ultra ls ==="; ls -la
+awk '{print $1"\t"$3-$2}' ${ULTRA_DIR}/${ULTRA_OUT} > ultra.span
 
 ANNOT_FILE=vcf_annotation
 

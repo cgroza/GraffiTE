@@ -200,6 +200,7 @@ process repeatmask_VCF {
 
   output:
   tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/")
+  path('ultra.span')
 
   script:
   def mammal = ""
