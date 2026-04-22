@@ -266,7 +266,10 @@ process tsd_report {
   TSD_FILE=TSD_annotation
   bgzip \${TSD_FILE}
   tabix -s1 -b2 -e2 \${TSD_FILE}.gz
-  bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,~ID,REF,ALT,INFO/TSD genotypes_repmasked_filtered.vcf | bcftools view > pangenome.vcf
+  bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,~ID,REF,ALT,INFO/TSD genotypes_repmasked_filtered.vcf | \
+    bcftools filter \
+    -e 'INFO/matching_classes ~ "Satellite" || INFO/matching_classes ~ "Simple_repeat" || INFO/matching_classes ~ "Unknown" || INFO/matching_classes ~ "rRNA" || INFO/matching_classes ~ "snRNA" || INFO/matching_classes ~ "srpRNA" || INFO/matching_classes ~ "scRNA" || INFO/matching_classes ~ "tRNA"' | \
+    bcftools view > pangenome.vcf
   """
 }
 
