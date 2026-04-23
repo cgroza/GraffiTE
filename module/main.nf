@@ -188,7 +188,8 @@ process concat_repeatmask {
   bcftools concat tsd_pangenome_*.vcf | \
     awk '\$1 ~ /^#/ {print \$0;next} {print \$0 | "LC_ALL=C sort -k1,1 -k2,2n"}' | \
     bcftools view -Ov -o pangenome_temp.vcf -i 'INFO/total_match_span > 0.80'
-  fix_vcf.py --ref ${ref_fasta} --vcf_in pangenome_temp.vcf --vcf_out pangenome.vcf
+  fix_vcf.py --ref ${ref_fasta} --vcf_in pangenome_temp.vcf --vcf_out pangenome_nopa.vcf
+  add_polyA.py pangenome_nopa.vcf -o pangenome.vcf
   """
 }
 
