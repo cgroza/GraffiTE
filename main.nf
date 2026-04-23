@@ -12,7 +12,7 @@ log.info """
 ░ ░   ░   ░░   ░   ░   ▒    ░ ░    ░ ░    ▒ ░  ░         ░
 ░    ░           ░  ░               ░              ░  ░
 
-V . ${workflow.commitId}
+V . ${workflow.revision}
 
 Find and Genotype Transposable Elements Insertion Polymorphisms
 in Genome Assemblies using a Pangenomic Approach
