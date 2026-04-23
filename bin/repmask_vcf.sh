@@ -77,8 +77,15 @@ join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t
   awk '{if (NF == 13) {print $0"\t0\t0"} else {print $0}}' > vcf_annotation.tmp
 # left-join ULTRA non-redundant span onto the annotation (key = SV ID, col 3)
 # unmatched SVs (no tandem repeat found by ULTRA) get ULTRA_TR=0
-join -13 -21 -a1 <(sort -k3,3 vcf_annotation.tmp) <(sort -k1,1 ultra_out.span) | sed 's/ /\t/g' | \
- awk 'BEGIN{OFS="\t"} {ultra=(NF>=16)?$16:0; print $2,$3,$1,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,ultra}' | \
+# combine ULTRA non-redundant bp with variant sequence length to get span ratio
+# (capped at 1 in case ULTRA annotates 1bp more than the ALT/REF sequence length)
+join -11 -21 <(sort -k1,1 ultra_out.span) <(sort -k1,1 indels.length) | \
+ awk 'BEGIN{OFS="\t"} {r=$2/$3; if(r>1)r=1; print $1, $2, r}' | \
+ sort -k1,1 > ultra_out.stats
+# left-join ULTRA stats onto the annotation (key = SV ID, col 3)
+# unmatched SVs (no tandem repeat found by ULTRA) get ULTRA_TR=0, ULTRA_TR_span=0
+join -13 -21 -a1 <(sort -k3,3 vcf_annotation.tmp) ultra_out.stats | sed 's/ /\t/g' | \
+ awk 'BEGIN{OFS="\t"} {u_bp=(NF>=17)?$16:0; u_sp=(NF>=17)?$17:0; print $2,$3,$1,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,u_bp,u_sp}' | \
   sort -k1,1 -k2,2n > vcf_annotation #${ANNOT_FILE}
 # copy for dev
 cp vcf_annotation vcf_annotation.bak.txt
@@ -108,9 +115,10 @@ echo -e '##INFO=<ID=total_match_length,Number=1,Type=Integer,Description="Insert
 echo -e '##INFO=<ID=total_match_span,Number=1,Type=Float,Description="Insertion span spanned by repeats">' >> ${HDR_FILE}
 echo -e '##INFO=<ID=L1_5PINV,Number=.,Type=String,Description="RM hit ID in this SV flagged as LINE1 with 5-prime inversion">' >> ${HDR_FILE}
 echo -e '##INFO=<ID=ULTRA_TR,Number=1,Type=Integer,Description="Non-redundant bases of tandem repeats annotated by ULTRA within the insertion (bedtools-merged)">' >> ${HDR_FILE}
+echo -e '##INFO=<ID=ULTRA_TR_span,Number=1,Type=Float,Description="Fraction of the variant sequence spanned by ULTRA tandem repeats (ULTRA_TR / variant length, capped at 1)">' >> ${HDR_FILE}
 echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
 cat <(bcftools view -h ${VCF}) <(bcftools view -H ${VCF} | sort -k1,1 -k2,2n) > genotypes.sorted.vcf
 bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
--c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/L1_5PINV,INFO/total_match_length,INFO/total_match_span,INFO/ULTRA_TR genotypes.sorted.vcf | \
+-c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/L1_5PINV,INFO/total_match_length,INFO/total_match_span,INFO/ULTRA_TR,INFO/ULTRA_TR_span genotypes.sorted.vcf | \
 bcftools view -Oz -o ${OUT_VCF}
