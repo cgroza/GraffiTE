@@ -43,7 +43,12 @@ if [ ! -f ${ULTRA_DIR}/ultra_out.bed ] && [ -f ${ULTRA_DIR}/ultra_out ]; then
     mv ${ULTRA_DIR}/ultra_out ${ULTRA_DIR}/ultra_out.bed
 fi
 cp ${ULTRA_DIR}/ultra_out.bed ./ultra_out.bed
-awk '{print $1"\t"$3-$2}' ultra_out.bed > ultra_out.span
+# Non-redundant ULTRA-annotated bases per SV (each SV is a "chr" in the bed).
+# bedtools merge collapses overlapping intervals within each SV; we then sum
+# the merged interval widths to get one row per SV: <SV_id>\t<non_redundant_bp>
+sort -k1,1 -k2,2n ultra_out.bed | bedtools merge -i - | \
+  awk 'BEGIN{OFS="\t"} {sum[$1]+=$3-$2} END{for (i in sum) print i, sum[i]}' | \
+  sort -k1,1 > ultra_out.span
 
 ANNOT_FILE=vcf_annotation
 
@@ -69,8 +74,12 @@ awk '{print $1"\t"$2"\t"$3"\t"($2/$3)}' > span
 join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t/g' # this is to see how it looks
 join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t/g' | \
  awk '{print $2"\t"$3"\t"$1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8"\t"$9"\t"$10"\t"$11"\t"$12"\t"$13"\t"$14"\t"$16}' | \
-  awk '{if (NF == 13) {print $0"\t0\t0"} else {print $0}}' | \
-   sort -k1,1 -k2,2n > vcf_annotation #${ANNOT_FILE}
+  awk '{if (NF == 13) {print $0"\t0\t0"} else {print $0}}' > vcf_annotation.tmp
+# left-join ULTRA non-redundant span onto the annotation (key = SV ID, col 3)
+# unmatched SVs (no tandem repeat found by ULTRA) get ULTRA_TR=0
+join -13 -21 -a1 <(sort -k3,3 vcf_annotation.tmp) <(sort -k1,1 ultra_out.span) | sed 's/ /\t/g' | \
+ awk 'BEGIN{OFS="\t"} {ultra=(NF>=16)?$16:0; print $2,$3,$1,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,ultra}' | \
+  sort -k1,1 -k2,2n > vcf_annotation #${ANNOT_FILE}
 # copy for dev
 cp vcf_annotation vcf_annotation.bak.txt
 
@@ -98,9 +107,10 @@ echo -e '##INFO=<ID=RM_hit_IDs,Number=.,Type=String,Description="RepeatMasker hi
 echo -e '##INFO=<ID=total_match_length,Number=1,Type=Integer,Description="Insertion length spanned by repeats">' >> ${HDR_FILE}
 echo -e '##INFO=<ID=total_match_span,Number=1,Type=Float,Description="Insertion span spanned by repeats">' >> ${HDR_FILE}
 echo -e '##INFO=<ID=L1_5PINV,Number=.,Type=String,Description="RM hit ID in this SV flagged as LINE1 with 5-prime inversion">' >> ${HDR_FILE}
+echo -e '##INFO=<ID=ULTRA_TR,Number=1,Type=Integer,Description="Non-redundant bases of tandem repeats annotated by ULTRA within the insertion (bedtools-merged)">' >> ${HDR_FILE}
 echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
 cat <(bcftools view -h ${VCF}) <(bcftools view -H ${VCF} | sort -k1,1 -k2,2n) > genotypes.sorted.vcf
 bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
--c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/L1_5PINV,INFO/total_match_length,INFO/total_match_span genotypes.sorted.vcf | \
+-c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/L1_5PINV,INFO/total_match_length,INFO/total_match_span,INFO/ULTRA_TR genotypes.sorted.vcf | \
 bcftools view -Oz -o ${OUT_VCF}
