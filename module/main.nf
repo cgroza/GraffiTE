@@ -188,7 +188,15 @@ process concat_repeatmask {
   bcftools concat tsd_pangenome_*.vcf | \
     awk '\$1 ~ /^#/ {print \$0;next} {print \$0 | "LC_ALL=C sort -k1,1 -k2,2n"}' | \
     bcftools view -Ov -o pangenome_temp.vcf -i 'INFO/total_repeat_span > ${params.repeat_span_cutoff}'
-  fix_vcf.py --ref ${ref_fasta} --vcf_in pangenome_temp.vcf --vcf_out pangenome_nopa.vcf
+  # htslib can't index gzip-compressed fasta; re-compress with bgzip if needed
+  REF="${ref_fasta}"
+  if [[ "\$REF" == *.gz ]]; then
+      if ! (file -L "\$REF" | grep -q "BGZF"); then
+          zcat "\$REF" | bgzip -c > ref.fa.gz
+          REF=ref.fa.gz
+      fi
+  fi
+  fix_vcf.py --ref "\$REF" --vcf_in pangenome_temp.vcf --vcf_out pangenome_nopa.vcf
   add_polyA.py pangenome_nopa.vcf -o pangenome.vcf
   """
 }
