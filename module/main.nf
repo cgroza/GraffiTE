@@ -187,7 +187,7 @@ process concat_repeatmask {
   cat TSD_full_log_*.txt > TSD_full_log.txt
   bcftools concat tsd_pangenome_*.vcf | \
     awk '\$1 ~ /^#/ {print \$0;next} {print \$0 | "LC_ALL=C sort -k1,1 -k2,2n"}' | \
-    bcftools view -Ov -o pangenome_temp.vcf -i 'INFO/total_match_span > 0.80'
+    bcftools view -Ov -o pangenome_temp.vcf -i 'INFO/total_repeat_span > ${params.repeat_span_cutoff}'
   fix_vcf.py --ref ${ref_fasta} --vcf_in pangenome_temp.vcf --vcf_out pangenome_nopa.vcf
   add_polyA.py pangenome_nopa.vcf -o pangenome.vcf
   """
@@ -211,7 +211,7 @@ process repeatmask_VCF {
   }
   """
   repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library} ${mammal}
-  bcftools view -Ov -o genotypes_repmasked_filtered.vcf -i 'INFO/total_match_span > 0.80' genotypes_repmasked.vcf.gz
+  bcftools view -Ov -o genotypes_repmasked_filtered.vcf -i 'INFO/total_repeat_span > ${params.repeat_span_cutoff}' genotypes_repmasked.vcf.gz
   """
 }
 

@@ -82,11 +82,29 @@ join -13 -21 -a1 <(sort -k3,3 ${ANNOT_FILE}_1)  <(sort -k1,1 span) | sed 's/ /\t
 join -11 -21 <(sort -k1,1 ultra_out.span) <(sort -k1,1 indels.length) | \
  awk 'BEGIN{OFS="\t"} {r=$2/$3; if(r>1)r=1; print $1, $2, r}' | \
  sort -k1,1 > ultra_out.stats
-# left-join ULTRA stats onto the annotation (key = SV ID, col 3)
-# unmatched SVs (no tandem repeat found by ULTRA) get ULTRA_TR=0, ULTRA_TR_span=0
-join -13 -21 -a1 <(sort -k3,3 vcf_annotation.tmp) ultra_out.stats | sed 's/ /\t/g' | \
- awk 'BEGIN{OFS="\t"} {u_bp=(NF>=17)?$16:0; u_sp=(NF>=17)?$17:0; print $2,$3,$1,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,u_bp,u_sp}' | \
-  sort -k1,1 -k2,2n > vcf_annotation #${ANNOT_FILE}
+
+# total_repeat_span = union (non-redundant) of RM intervals (TE-only: merge.bed
+# already excludes Simple_repeat/Low_complexity) and ULTRA tandem-repeat
+# intervals, merged per SV, divided by variant length (capped at 1).
+cat <(cut -f1-3 merge.bed) ultra_out.bed | sort -k1,1 -k2,2n | bedtools merge | \
+ awk 'BEGIN{OFS="\t"} {sum[$1]+=$3-$2} END{for(i in sum) print i, sum[i]}' | \
+ sort -k1,1 > union.bp
+join -11 -21 union.bp <(sort -k1,1 indels.length) | \
+ awk 'BEGIN{OFS="\t"} {r=$2/$3; if(r>1)r=1; print $1, r}' | \
+ sort -k1,1 > total_repeat_span.tsv
+
+# outer-join ULTRA stats and total_repeat_span into a single per-SV stats file
+# columns: id, ULTRA_TR, ULTRA_TR_span, total_repeat_span (missing -> 0)
+join -a1 -a2 -e 0 -o '0,1.2,1.3,2.2' ultra_out.stats total_repeat_span.tsv | \
+ sed 's/ /\t/g' | sort -k1,1 > combined.stats
+
+# left-join combined stats onto the annotation (key = SV ID, col 3 of tmp).
+# Unmatched SVs (no RM TE hit and no ULTRA hit) default to 0,0,0.
+join -13 -21 -a1 <(sort -k3,3 vcf_annotation.tmp) combined.stats | sed 's/ /\t/g' | \
+ awk 'BEGIN{OFS="\t"} {
+   u_bp=(NF>=18)?$16:0; u_sp=(NF>=18)?$17:0; tr=(NF>=18)?$18:0;
+   print $2,$3,$1,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,u_bp,u_sp,tr
+ }' | sort -k1,1 -k2,2n > vcf_annotation #${ANNOT_FILE}
 # copy for dev
 cp vcf_annotation vcf_annotation.bak.txt
 
@@ -116,9 +134,10 @@ echo -e '##INFO=<ID=total_match_span,Number=1,Type=Float,Description="Insertion 
 echo -e '##INFO=<ID=L1_5PINV,Number=.,Type=String,Description="RM hit ID in this SV flagged as LINE1 with 5-prime inversion">' >> ${HDR_FILE}
 echo -e '##INFO=<ID=ULTRA_TR,Number=1,Type=Integer,Description="Non-redundant bases of tandem repeats annotated by ULTRA within the insertion (bedtools-merged)">' >> ${HDR_FILE}
 echo -e '##INFO=<ID=ULTRA_TR_span,Number=1,Type=Float,Description="Fraction of the variant sequence spanned by ULTRA tandem repeats (ULTRA_TR / variant length, capped at 1)">' >> ${HDR_FILE}
+echo -e '##INFO=<ID=total_repeat_span,Number=1,Type=Float,Description="Fraction of the variant sequence spanned by the union of RepeatMasker TE hits and ULTRA tandem repeats (non-redundant, capped at 1)">' >> ${HDR_FILE}
 echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
 cat <(bcftools view -h ${VCF}) <(bcftools view -H ${VCF} | sort -k1,1 -k2,2n) > genotypes.sorted.vcf
 bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \
--c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/L1_5PINV,INFO/total_match_length,INFO/total_match_span,INFO/ULTRA_TR,INFO/ULTRA_TR_span genotypes.sorted.vcf | \
+-c CHROM,POS,~ID,REF,ALT,INFO/n_hits,INFO/fragmts,INFO/match_lengths,INFO/repeat_ids,INFO/matching_classes,INFO/RM_hit_strands,INFO/RM_hit_IDs,INFO/L1_5PINV,INFO/total_match_length,INFO/total_match_span,INFO/ULTRA_TR,INFO/ULTRA_TR_span,INFO/total_repeat_span genotypes.sorted.vcf | \
 bcftools view -Oz -o ${OUT_VCF}
