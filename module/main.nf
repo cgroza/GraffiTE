@@ -199,8 +199,9 @@ process repeatmask_VCF {
   tuple path("genotypes.vcf"), path(TE_library), path(ref_fasta)
 
   output:
-  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/")
-  path('ultra.span')
+  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/"), emit: vcf
+  path("ultra_out.bed"), emit: ultra_bed
+  path("ultra_out.span"), emit: ultra_span
 
   script:
   def mammal = ""

@@ -96,7 +96,8 @@ workflow {
       } else {
         error "No --longreads, --assemblies, --vcf or --RM_dir parameters passed to GraffiTE."
       }
-      repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch)).set{RM_ch}
+      repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch))
+      repeatmask_VCF.out.vcf.set{RM_ch}
     }
     tsd_report(tsd_search(tsd_prep(RM_ch.combine(ref_asm_ch)).
                           splitText(elem: 3, by: params.tsd_batch_size, file: true)).

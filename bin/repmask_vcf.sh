@@ -37,8 +37,13 @@ mkdir ultra_temp
 ULTRA_DIR=ultra_temp
 ULTRA_OUT=ultra_out.bed
 ultra --bed -t $(nproc) -o ${ULTRA_DIR}/ultra_out ${FASTA_FILE}
-echo "=== post-ultra ls ==="; ls -la
-awk '{print $1"\t"$3-$2}' ${ULTRA_DIR}/${ULTRA_OUT} > ultra.span
+# ULTRA's -o naming varies: single-format mode may write the literal filename;
+# multi-format mode treats -o as a prefix and appends .bed/.tsv.
+if [ ! -f ${ULTRA_DIR}/ultra_out.bed ] && [ -f ${ULTRA_DIR}/ultra_out ]; then
+    mv ${ULTRA_DIR}/ultra_out ${ULTRA_DIR}/ultra_out.bed
+fi
+cp ${ULTRA_DIR}/ultra_out.bed ./ultra_out.bed
+awk '{print $1"\t"$3-$2}' ultra_out.bed > ultra_out.span
 
 ANNOT_FILE=vcf_annotation
 
