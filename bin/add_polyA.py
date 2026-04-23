@@ -20,14 +20,15 @@ import sys
 
 MIN_LEN = 8          # minimum tail length
 MIN_PURITY = 0.8     # minimum A/T fraction within the tail window
-FLANK = 50           # bp to scan past the reported TSD length
+MAX_SLACK = 5        # max bp between tail end and the (TSD-trimmed) terminus
 
 INFO_HEADER = ('##INFO=<ID=polyA,Number=1,Type=String,'
                'Description="TRUE if an imperfect polyA (or polyT on minus '
-               'strand) tail is detected near the breakpoint of a single-hit '
-               'TE insertion/deletion; FALSE if no tail found; NA if n_hits>1. '
+               'strand) tail is detected anchored to the 3\' (or 5\') end of a '
+               'single-hit TE insertion/deletion after trimming any exact TSD '
+               'suffix/prefix; FALSE if no tail found; NA if n_hits>1. '
                f'Params: min_len={MIN_LEN}, '
-               f'min_purity={MIN_PURITY}, flank={FLANK}.">')
+               f'min_purity={MIN_PURITY}, max_slack={MAX_SLACK}.">')
 
 
 def parse_info(info):
@@ -41,45 +42,47 @@ def parse_info(info):
     return d
 
 
-def has_tail(seq, base):
-    """Return True if seq contains a window of length >= MIN_LEN with
-    >= MIN_PURITY fraction of `base`."""
-    if len(seq) < MIN_LEN:
+def has_anchored_tail(seq, base):
+    """Return True iff seq contains a window of length >= MIN_LEN with
+    >= MIN_PURITY fraction of `base` whose END lies within MAX_SLACK bp
+    of the 3' terminus of seq."""
+    n = len(seq)
+    if n < MIN_LEN:
         return False
     seq = seq.upper()
     base = base.upper()
-    # Try every window size from MIN_LEN up to len(seq); accept if any window matches.
-    # Efficient check: for each window of length MIN_LEN, compute purity.
-    # Additionally try to extend: scan for maximal runs of base allowing mismatches.
-    n = len(seq)
-    # Prefix sum of base occurrences
     ps = [0] * (n + 1)
     for i, c in enumerate(seq):
         ps[i + 1] = ps[i] + (1 if c == base else 0)
-    # Check any window of length >= MIN_LEN with purity >= MIN_PURITY.
+    # window [i, i+L) must have j = i+L in [n-MAX_SLACK, n]
     for L in range(MIN_LEN, n + 1):
         need = L * MIN_PURITY
-        for i in range(0, n - L + 1):
+        i_lo = max(0, n - MAX_SLACK - L)
+        i_hi = n - L  # inclusive
+        for i in range(i_lo, i_hi + 1):
             if ps[i + L] - ps[i] >= need:
                 return True
-        # early exit: if max possible count in any window of length L is below need,
-        # longer windows will also fail at that start, but could still succeed
-        # elsewhere. Simpler to just keep looping; sequences here are short.
     return False
 
 
-def detect_polyA(variant_seq, strand, tsd_len):
+def detect_polyA(variant_seq, strand, tsd):
     """variant_seq: inserted/deleted sequence (without the anchor base).
        strand: '+' or 'C'.
-       tsd_len: reported TSD length.
-       Returns True if a polyA (or polyT) tail is called."""
-    window = tsd_len + FLANK
+       tsd: reported TSD sequence (may be empty/'.')."""
+    seq = variant_seq.upper()
+    tsd_up = (tsd or '').upper()
     if strand == '+':
-        region = variant_seq[-window:] if window < len(variant_seq) else variant_seq
-        return has_tail(region, 'A')
+        # polyA at 3' end: trim an exact TSD suffix if present, then scan
+        # anchored to the new 3' terminus.
+        if tsd_up and seq.endswith(tsd_up):
+            seq = seq[:-len(tsd_up)]
+        return has_anchored_tail(seq, 'A')
     elif strand == 'C':
-        region = variant_seq[:window] if window < len(variant_seq) else variant_seq
-        return has_tail(region, 'T')
+        # polyT at 5' end: trim an exact TSD prefix, reverse, then scan
+        # anchored to the (reversed) 3' terminus for T.
+        if tsd_up and seq.startswith(tsd_up):
+            seq = seq[len(tsd_up):]
+        return has_anchored_tail(seq[::-1], 'T')
     return False
 
 
@@ -112,9 +115,10 @@ def annotate_record(fields):
             variant_seq = ''
 
         tsd = info.get('TSD', '')
-        tsd_len = len(tsd) if isinstance(tsd, str) and tsd not in ('.', '') else 0
+        if not isinstance(tsd, str) or tsd in ('.', ''):
+            tsd = ''
 
-        if variant_seq and detect_polyA(variant_seq, strands, tsd_len):
+        if variant_seq and detect_polyA(variant_seq, strands, tsd):
             call = 'TRUE'
 
     # Append polyA to INFO (replace if somehow already present)
