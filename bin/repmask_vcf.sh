@@ -86,7 +86,7 @@ join -11 -21 <(sort -k1,1 ultra_out.span) <(sort -k1,1 indels.length) | \
 # total_repeat_span = union (non-redundant) of RM intervals (TE-only: merge.bed
 # already excludes Simple_repeat/Low_complexity) and ULTRA tandem-repeat
 # intervals, merged per SV, divided by variant length (capped at 1).
-cat <(cut -f1-3 merge.bed) ultra_out.bed | sort -k1,1 -k2,2n | bedtools merge | \
+cat <(cut -f1-3 merge.bed) <(cut -f1-3 ultra_out.bed) | sort -k1,1 -k2,2n | bedtools merge -i - | \
  awk 'BEGIN{OFS="\t"} {sum[$1]+=$3-$2} END{for(i in sum) print i, sum[i]}' | \
  sort -k1,1 > union.bp
 join -11 -21 union.bp <(sort -k1,1 indels.length) | \
