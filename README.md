@@ -16,7 +16,7 @@
 
 1. First, each genome assembly or long read dataset is aligned to the reference genome with [`minimap2`](https://github.com/lh3/minimap2), alternatively, [`winnowmap`](https://www.nature.com/articles/s41592-022-01457-8) is available. For each sample considered, structural variants (SVs) are called with [`svim-asm`](https://github.com/eldariont/svim-asm) if using assemblies or [`sniffles2`](https://github.com/fritzsedlazeck/Sniffles) if using long reads and only insertions and deletions relative to the reference genome are kept.
 ![](https://i.imgur.com/V5NHK3G.png)
-2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided library of repeats of interest (.fasta). SVs covered ≥80% by repeats are kept. At this step, target site duplications (TSDs) are searched for SVs representing a single TE family.
+2. Candidate SVs (INS and DEL) are scanned with [`RepeatMasker`](https://www.repeatmasker.org/), using a user-provided library of repeats of interest (.fasta), and with [`ULTRA`](https://github.com/TravisWheelerLab/ULTRA) to detect tandem repeats. SVs whose `total_repeat_span` (non-redundant union of TE + tandem-repeat coverage) is above `--repeat_span_cutoff` (default 0.80) are kept. Target site duplications (TSDs) are then searched for SVs representing a single TE family, and a polyA tail is annotated on single-hit TE insertions.
 ![](https://i.imgur.com/2qRpojE.png)
 
 3. Each candidate repeat polymorphism is induced in a graph-genome where TEs and repeats are represented as bubbles, allowing reads to be mapped on either presence of absence alleles with [`Pangenie`](https://github.com/eblerjana/pangenie), [`Giraffe`](https://www.science.org/doi/10.1126/science.abg8871) or  [`GraphAligner`](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02157-2).
@@ -32,8 +32,25 @@
 ## Changelog
 
 
-**Last update: 01/0125** | commit [1cbebbf](https://github.com/cgroza/GraffiTE/commit/1cbebbfc0f4ccc5436670d9aa8d2023a90f2eeef)
+**Last update: v1.1** (dev)
+- :sparkles: **Tandem repeat annotation with ULTRA:** every candidate SV is now also scanned with [`ULTRA`](https://github.com/TravisWheelerLab/ULTRA) after `RepeatMasker`. Two new INFO fields are emitted: `ULTRA_TR` (non-redundant bp of tandem repeat in the variant) and `ULTRA_TR_span` (fraction of the variant covered by tandem repeats, capped at 1).
+- :sparkles: **New filter metric `total_repeat_span`:** the pre-TSD filter now uses the non-redundant union of RepeatMasker TE hits and ULTRA tandem repeats, divided by variant length, instead of `total_match_span` alone. This retains long insertions where a TE is adjacent to a polyA/tandem tail (previously filtered out).
+- :sparkles: **`--repeat_span_cutoff`** (default `0.80`) exposes this threshold to users.
+- :sparkles: **polyA tail detection:** a new INFO field `polyA=TRUE/FALSE/NA` is added to `pangenome.vcf`. For single-hit TE insertions/deletions (`n_hits=1`), the tool trims any exact case-insensitive TSD suffix/prefix from the variant sequence and scans for an A-rich window (≥8 bp, ≥80% A) anchored to the appropriate end (3' for `+` strand hits, 5' for `C` strand, as polyT). `NA` when `n_hits>1`.
+- :sparkles: **`--svs` input:** a new CSV option to pass per-sample VCFs directly (skipping assembly/long-read alignment and SV discovery). See [Input files](#input-files).
+- :wrench: **`--mammal` discontinued:** the option is removed. L1 5' inversion detection and SVA VNTR-only handling are now **always on** and systematically reported for all runs.
+- :wrench: **L1 5' inversion reported as `INFO/L1_5PINV`:** the old `mam_filter_1=5P_INV` flag is replaced by `L1_5PINV`, whose value is the RepeatMasker hit ID(s) of the L1 fragment flagged (or `None`). Detection rule: a LINE/L1 with two fragments sharing the same hit ID but opposite strands (`C,+`), i.e. the twin-priming signature.
+- :wrench: **SVA VNTR-only reclassified:** insertions whose RepeatMasker hit falls entirely within the VNTR region of an SVA consensus are reclassified from `Retroposon/SVA` to `Simple_repeat` (and the family name is suffixed accordingly). This prevents VNTR-only length polymorphisms from being mistakenly counted as SVA MEI. The old `mam_filter_2=SVA_VNTR` field is removed.
+- :beetle: `concat_repeatmask` now accepts a gzip-compressed `--reference` (auto-re-compresses to BGZF if needed).
+- :beetle: Multiple TSD-report fixes: removed repeat-class filter from annotation step; satellites/RNA are now filtered out of the pangenome VCF.
+
+<details><summary>01/01/25 update (commit <a href="https://github.com/cgroza/GraffiTE/commit/1cbebbfc0f4ccc5436670d9aa8d2023a90f2eeef">1cbebbf</a>):</summary>
+<p>
+
 - :beetle: bug fix: remove `--nolow` from RepeatMasker call: this could have caused spurious hits on low complexity regions of some TE consensus, mistaking obvious tandem repeats for real TEs. It is very important to NOT USE `--nolow` with RepeatMasker (unless needed for debugging and special cases).
+
+</p>
+</details>
 
 **Previous update: 11/07/24** | commit: [76537f9](https://github.com/cgroza/GraffiTE/commit/76537f9b5da4024ba03f760f58b024a5f485bf7a)
 
@@ -313,6 +330,17 @@ AND/OR
    /path/to/reads/sampleZ.fq.gz,sampleZ_name,ont
    ```
 
+AND/OR
+
+- `--svs`: a CSV file listing pre-computed per-sample SV VCFs. Use this to skip the alignment and SV-calling stages and go directly to repeat annotation. Sample names must be unique. **The header is required**.
+
+   Example `svs.csv`:
+   ```
+   path,sample
+   /path/to/sampleA.vcf,sampleA_name
+   /path/to/sampleB.vcf,sampleB_name
+   ```
+
 AND (always required)
 
 - `--TE_library`: a FASTA file that lists the consensus sequences (models) of the transposable elements to be discovered. Must be compatible with `RepeatMasker`, i.e. with header in the format: `>TEname#class/superfamily` for example `AluY#SINE/Alu`. The library can include a single repeat model or all the known repeat models of your species of interest.
@@ -346,10 +374,9 @@ AND (always required)
 - `--out`: if you would like to change the default output directory (`out/`).
 - `--genotype`: true or false. Use this if you would like to discover polymorphisms in assemblies but you would like to skip genotyping polymorphisms from reads.
 - `--tsd_win`: the length (in bp) of flanking region (5' and 3' ends) for Target Site Duplication (TSD) search. Default 30bp. By default, 30bp upstream and downstream each variant will be added to search for TSD. (see also [TSD section](#tsd-module))
+- `--repeat_span_cutoff`: minimum fraction of a variant that must be covered by the non-redundant union of RepeatMasker TE hits and ULTRA tandem repeats (`INFO/total_repeat_span`) to be kept in the pangenome VCF. Default `0.80`.
 - `--cores`: global CPU parameter. Will apply the chosen integer to all multi-threaded processes. See [here](#changing-the-number-of-cpus-and-memory-required-by-each-step) for more customization.
-- `--mammal`: Apply mammal-specific annotation filters (see [Mammal filter section](#mammalian-filters---mammal) for more details). 
-   - (i) will search for LINE1 5' inversion (due to Twin Priming or similar mechanisms). Will call 5' inversion if (and only if) the variant has two RepeatMasker hits on the same L1 model (for example L1HS, L1HS) with the same hit ID, and a `C,+` strand pattern. 
-   - (ii) will search for VNTR polymorphism between orthologous SVA elements.
+- `--mammal`: **discontinued in v1.1** — accepting the flag is harmless but it no longer gates behavior. The two filters it used to enable (LINE1 5' inversion detection, SVA VNTR-only reclassification) are now always on. See [L1 5' inversion](#l1-5-inversion) for details.
 - `--break_scaffolds`: true or false. Break input assemblies at runs of Ns. Use this if the assemblies passed with `--assemblies` are scaffolded to avoid `[E::parse_cigar] CIGAR length too long` error.
 - `--epigenomes`: true or false. Attempt to map epigenetic modifications onto the annotated VCF. Data passed with `--genotype-with` is expected to be BAM files with `MM` and `ML` tags describing base modifications. Files that are not BAMs are ignored.
 - `--motif`: nucleotide motif to be targeted for base modifications. Supported options are CG, C, A, T, G.
@@ -556,11 +583,15 @@ VCF column:
    - `fragmts`: number of fragments stitched together for each RepeatMasker hit. If `n_hits` > 1, the number of stitched fragments for each hit are comma separated
    - `RM_hit_strands`: strands for each RepeatMasker hit. If `n_hits` > 1, the strands of each hit are comma separated. Can be `+` or `C` (complement)
    - `RM_hit_IDs`: unique RepeatMasker hit ID (last column of the `.out` file of repeatmasker). If `n_hits` > 1, hit IDs are comma separated. Fragments stitched with `OneCodeToFindThemAll` are shown separated with `/`.
-   - `total_match_length`: total number of bp covered by repeats in the SV
-   - `total_match_span`: proportion of the SV covered by repeats (minimum is 0.8)
-   - `mam_filter_1`: `5P_INV` will be shown if the SV is a LINE1 with a 5' inversion; Null otherwise; (only present if `--mammal` is set)
-   - `mam_filter_2`: `SVA_VNTR` if the SV is a length polymorphism of the VNTR region of an SVA element; Null otherwise; (only present if `--mammal` is set)
-   - `TSD`: Target Site Duplication (left_TSD,right_TSD); only present if TSD passes filters (see TSD section)
+   - `total_match_length`: total number of bp covered by RepeatMasker TE hits in the SV
+   - `total_match_span`: proportion of the SV covered by RepeatMasker TE hits
+   - `ULTRA_TR`: non-redundant bp of tandem repeat (from [`ULTRA`](https://github.com/TravisWheelerLab/ULTRA)) in the SV; `0` if no tandem repeat found
+   - `ULTRA_TR_span`: proportion of the SV covered by ULTRA tandem repeats (capped at 1)
+   - `total_repeat_span`: proportion of the SV covered by the non-redundant union of RepeatMasker TE hits and ULTRA tandem repeats. This is the metric used for filtering (`--repeat_span_cutoff`, default 0.80).
+   - `L1_5PINV`: RepeatMasker hit ID(s) of any LINE/L1 fragment in the SV flagged as 5' inversion (two fragments of the same L1 on opposite strands, i.e. twin-priming signature); `None` otherwise. **Always populated** (the old `--mammal`-gated `mam_filter_1=5P_INV` field has been removed.)
+   - SVA VNTR-only insertions: variants whose SVA RepeatMasker hit falls entirely within the SVA VNTR region are reclassified from `Retroposon/SVA` to `Simple_repeat` (`matching_classes`) to avoid being counted as SVA MEI. The old `mam_filter_2=SVA_VNTR` field is removed. **Always active** (previously gated by `--mammal`).
+   - `TSD`: Target Site Duplication sequence (single string — same on both sides, since matching is now exact); only present if the TSD candidate passes the scoring filter (see [TSD module](#tsd-module)).
+   - `polyA`: `TRUE` if an imperfect polyA (or polyT, on `C`-strand hits) tail is detected anchored to the 3' (or 5') end of the variant after trimming any exact TSD suffix/prefix. `FALSE` if no tail; `NA` for multi-hit variants (`n_hits>1`). Only annotated on single-hit TE INS/DEL.
 - `(9) FORMAT` and `(10) GENOTYPE`
    - `GT`: Genotype (0=reference allele, 1=alternative allele, .=missing)
    - `GQ`: (`4_Genotyping/GraffiTE.merged.genotypes.vcf` only): [`Pangenie`] Genotype quality: phred scaled probability that the genotype is wrong.
@@ -579,91 +610,45 @@ When using `Giraffe` and `GraphAligner` with `vg call`, the following fields are
 
 ## TSD module
 
-For SVs with a single TE insertion detected (`n_hits=1`, and LINE1s with the flag `mam_filter_1=5P_INV`) target site duplication are searched by comparing the flanking regions following this workflow:
+> **Overhauled in v1.1** — TSD search is now systematically applied to **all SVs that pass the repeat-span filter** (previously restricted to single-hit TE insertions plus L1 5' inversions). The aligner has been replaced by a lightweight **exact-match algorithm** (`exact_match.py`, seed = 4 bp) — `blastn` and EMBOSS are no longer called. Because the matching is exact, there is no longer a separate 5' and 3' TSD sequence: a single `INFO/TSD` string is reported per variant.
 
-- 1 extract the flanking sequences of each filtered SV: 
-   - 1.1 extract the bases not identified as repeat by RepeatMasker in the 5' and 3' end of the SV (these regions will often include one TSD, or a partial sequence of the TSD)
-   - 1.2 extract an additional (by default 30) bp on each side of the SV from the reference genome.
-- 2 perform the TSD search:
-   - Combine the extracted flanking and create the L (5') and R (3') fragments for each SV. 
-   - If present, trim 5' poly-A or 3' poly-T (leaves only 3 As or Ts) before alignments but keep track of the poly-A/T length.
-   - Call `blastn` to align with a seed of 4 bp 
-   - Applies PASS filters and return summary files. PASS is currently given if:
-      - L and R flanks match within +/- 5 bp of the TE ends (as defined by `RepeatMasker`, "Ns" nucleotides)
-      - tolerate (TE hit divergence to consensus x alignment length) mismatches+gaps or 1 mismatch+gap if (TE hit divergence to consensus x alignment length) < 1
-      - tolerate offset of +/- poly-A/T length
+Workflow:
 
-![](https://i.imgur.com/ZzO1ZcQ.png)
+1. **Extract flanking fragments** (script `prepTSD.sh`):
+   - 1.1 Take the bases not identified as repeat by RepeatMasker at the 5' and 3' ends of the SV (these often include part of the TSD).
+   - 1.2 Add `--tsd_win` bp (default **30**) of genomic flank on each side of the SV from the reference.
+   - Build two concatenated fragments per SV: **L** = `[30 bp 5' genomic flank][5' SV tail]`, **R** = `[3' SV tail][30 bp 3' genomic flank]`. Position **30** in each fragment is the SV breakpoint.
 
-The script also account for the presence of poly-A/T
+2. **Search** (script `TSD_Match_v2.sh`, calling `exact_match.py`):
+   - Find all exact matches of length ≥ 4 bp between R and L (word_size = 4, TSD length bounds: **min = 4, max = 20 bp**).
+   - **Score each candidate** by how "snug" the TSD sits against the SV edges. The ideal configuration has one TSD copy in the genomic flank and one inside the SV, both flush with the breakpoint at position 30:
+     ```
+     [...flank...TSD][SV/TE(s)...TSD...flank]        ← snug configuration, score → 0
+     ```
+     Concretely, for each hit with start/end positions on L and R, the script computes two deviations from position 30:
+     - `a = (|30 − R_start| + |30 − L_start|) / 2`
+     - `b = (|30 − R_end|   + |30 − L_end|  ) / 2`
+     
+     and takes `score = min(a, b)`. **Lower is better**; ties broken by longer match.
+   - **PASS / FAIL**: `PASS` if `score ≤ 5` (i.e. the TSD is within ±5 bp of the breakpoint on both sides), `FAIL` otherwise. `FAIL` candidates are kept in the log but excluded from the VCF annotation.
 
-![](https://i.imgur.com/ejDKo5x.png)
-
-- `TSD_summary.txt` output file (The header is not present in the real file).
+- `TSD_summary.txt`: tabular per-SV report. Columns (no header in the real file):
    ```
-   SV_name                          RM_family_name    RM_hit_strand  RM_hit_divergence TSD_length  Mismatches  Gaps    5P_TSD_end   5P_offset      3P_TSD_start    3P_offset     5P_TSD            3P_TSD            FILTER
-   HG002_mat.svim_asm.DEL.1014      AluY              C              2.2               10          0           0       -1           0              1               0             ATTATTATTA        ATTATTATTA        PASS
-   HG002_mat.svim_asm.DEL.1013      L1HS              C              1.3               16          0           0       -15          3              1               0             AGTATTCTGGATTTTT  AGTATTCTGGATTTTT  FAIL
-   G002_mat.svim_asm.DEL.1015       L1HS              +              1.0738            4           0           0       -9           0              1               0             AAAG              AAAG              FAIL
-   HG002_mat.svim_asm.DEL.102       AluYa5            C              0.3               11          0           0       -1           0              1               0             CTGCATACTTT       CTGCATACTTT       PASS
-   HG002_mat.svim_asm.DEL.1011      L1P2              C              6.9               4           0           0       -21          0              1               0             CATC              CATC              FAIL
-   HG002_mat.svim_asm.DEL.1005      AluY              C              1.0               12          0           0       -1           0              1               0             CCAGAAGTCTTT      CCAGAAGTCTTT      PASS
-   HG002_mat.svim_asm.DEL.1010      AluYh3            +              2.4               12          0           0       -1           0              1               0             AATTTCTATCTC      AATTTCTATCTC      PASS
+   SV_name   R_query   L_target   idty   match_len   MM   gaps   R_start   R_end   L_start   L_end   e-value   R_start_offset   L_start_offset   R_end_offset   L_end_offset   TSD_score   L_TSD   R_TSD   FILTER
    ```
- - `TSD_full_log.txt:`detailed (verbose rich) report of TSD search for each SV.
-   ```
-      --- TSD search for HG002_mat.svim_asm.DEL.1014 ---
+   `L_TSD` and `R_TSD` are identical by construction (exact match). `FILTER` is `PASS` or `FAIL`.
+- `TSD_full_log.txt`: verbose per-SV report showing the L/R fragments with a position ruler, all candidate exact matches, the best hit, the underlined TSDs inside each fragment, and the PASS/FAIL decision. Useful for manually inspecting borderline cases.
 
-   >L|5P_end
-   ACAGGCGTGAGCCTCCACGCCTGGCCTAGATATTATTATTATTATTATTA
-   ||||||||||||||||||||||||||||||||||||||||||||||||||
-   1   5    10   15   20   25   30   35   40   45   50
-   >R|3P_end
-   ATTATTATTAACCTATTTTACAGATGAGGG
-   ||||||||||||||||||||||||||||||||||||||||||||||||||
-   1   5    10   15   20   25   30   35   40   45   50
+The associated `INFO/TSD` VCF field contains the single TSD sequence (no longer `left_TSD,right_TSD`) when the variant PASSes.
 
-   3' poly_A: element is in C orientation, will not search for poly_A
-   5' poly_T: 0 bp, will not remove anything for alignment
+## Mammalian filters `--mammal` *(discontinued in v1.1)*
 
+The `--mammal` flag has been retired. The two features it used to enable are now always active in every run:
 
-   Building a new DB, current time: 11/02/2022 22:27:12
-   New DB name:   /scratch/cgoubert/GraffiTE/work/d1/3d8805a29e13fad52ed5aa1e7a9e76/L.short.fasta
-   New DB title:  L.short.fasta
-   Sequence type: Nucleotide
-   Keep MBits: T
-   Maximum file size: 1000000000B
-   Adding sequences from FASTA; added 1 sequences in 0.000507116 seconds.
+1. **L1 5' inversion detection** — reported in `INFO/L1_5PINV` (hit ID(s) of the flagged L1, or `None`). See [L1 5' inversion](#l1-5-inversion).
+2. **SVA VNTR-only reclassification** — insertions whose SVA hit is entirely inside the SVA VNTR region are relabeled from `Retroposon/SVA` to `Simple_repeat` in `matching_classes`, so they are not miscounted as SVA MEI.
 
-   candidate hits from blastn:
-   R|3P_end        L|5P_end        100.000 10      0       0       1       10      41      50      0.001   19.6
-   R|3P_end        L|5P_end        100.000 4       0       0       1       4       47      50      3.1      8.5
-   R|3P_end        L|5P_end        100.000 10      0       0       1       10      38      47      0.001   19.6
-   R|3P_end        L|5P_end        100.000 10      0       0       1       10      35      44      0.001   19.6
-   R|3P_end        L|5P_end        100.000 10      0       0       1       10      32      41      0.001   19.6
-   R|3P_end        L|5P_end        100.000 8       0       0       3       10      31      38      0.018   15.9
-   R|3P_end        L|5P_end        100.000 4       0       0       12      15      25      28      3.1      8.5
-   R|3P_end        L|5P_end        87.500  8       0       1       14      20      37      44      3.1      8.5
-   R|3P_end        L|5P_end        87.500  8       0       1       14      20      31      38      3.1      8.5
-   R|3P_end        L|5P_end        100.000 4       0       0       20      23      1       4       3.1      8.5
-   R|3P_end        L|5P_end        100.000 4       0       0       22      25      28      31      3.1      8.5
-   R|3P_end        L|5P_end        100.000 4       0       0       25      28      8       11      3.1      8.5
-
-   candidate TSDs:
-   ACAGGCGTGAGCCTCCACGCCTGGCCTAGATATTATTATTATTATTATTA[ <<< AluY C <<< ]ATTATTATTAACCTATTTTACAGATGAGGG
-                                           ‾‾‾‾‾‾‾‾‾‾                  ‾‾‾‾‾‾‾‾‾‾
-
-   PASS
-
-   3' end: nothing to extend
-   5' end: nothing to extend
-   SVname  TEname  Strand  Div     AlnLen  MM      Gaps    5P_TSD_end      5P_offset       3P_TSD_start    3P_offset       5P_TSD  3P_TSD
-   HG002_mat.svim_asm.DEL.1014     AluY    C       2.2     10      0       0       -1      0       1       0       ATTATTATTA      ATTATTATTA      PASS
-   ```
-
-## Mammalian filters `--mammal`
-
-In order to account for the particularities of several TE families, we have introduced a `--mammal` flag that will search for specific features associated with mammalian TEs. So far we are accounting for two particular cases: 5' Inversion of L1 elements and VNTR polymorphism between orthologous SVA insertions. We will try to add more of these filters, for example to detect solo vs full-length LTR polymorphisms. If you would like to see more of these filters, please share your suggestions on the [Issue](https://github.com/cgroza/GraffiTE/issues) page!
+The flag is silently accepted for backward compatibility but has no effect.
 
 ## L1 5' inversion
 

@@ -178,10 +178,17 @@ process concat_repeatmask {
 
   output:
   path("pangenome.vcf"), emit: vcf_ch
+  path("pangenome.trusted.vcf")
+  path("pangenome.trusted.human.vcf"), optional: true
+  path("pangenome.presence-absence.tsv")
+  path("pangenome.presence-absence_trusted.tsv")
+  path("pangenome.presence-absence_human.tsv"), optional: true
   path("TSD_summary.txt")
   path("TSD_full_log.txt")
 
   script:
+  def trusted_filter = "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & ULTRA_TR_span<${params.trusted_max_ultra_span} & ((matching_classes!~\"LINE\" & matching_classes!~\"SINE\") | polyA=\"TRUE\")"
+  def human_classes = '(matching_classes="LINE/L1" | matching_classes="SINE/Alu" | matching_classes="Retroposon/SVA" | matching_classes="Simple_repeat" | matching_classes="LTR/HERVK")'
   """
   cat TSD_summary_*.txt > TSD_summary.txt
   cat TSD_full_log_*.txt > TSD_full_log.txt
@@ -198,6 +205,19 @@ process concat_repeatmask {
   fi
   fix_vcf.py --ref "\$REF" --vcf_in pangenome_temp.vcf --vcf_out pangenome_nopa.vcf
   add_polyA.py pangenome_nopa.vcf -o pangenome.vcf
+
+  # trusted subset
+  bcftools view -Ov -o pangenome.trusted.vcf -i '${trusted_filter}' pangenome.vcf
+
+  # presence-absence TSVs (full + trusted)
+  vcf_to_pa_tsv.py pangenome.vcf -o pangenome.presence-absence.tsv
+  vcf_to_pa_tsv.py pangenome.trusted.vcf -o pangenome.presence-absence_trusted.tsv
+
+  # human-restricted subset (optional)
+  if [[ "${params.human}" == "true" ]]; then
+    bcftools view -Ov -o pangenome.trusted.human.vcf -i '${trusted_filter} & ${human_classes}' pangenome.vcf
+    vcf_to_pa_tsv.py pangenome.trusted.human.vcf -o pangenome.presence-absence_human.tsv
+  fi
   """
 }
 
