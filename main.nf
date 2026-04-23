@@ -1,5 +1,13 @@
 // SAY HELLO
 
+// 1. Read the version from the local file
+def versionFile = file("${baseDir}/version.txt")
+def pipelineVersion = versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : '1.1.0'
+
+// 2. Define the revision (branch name)
+def pipelineRevision = workflow.revision ?: 'main'
+
+
 log.info """
 
 ▄████  ██▀███   ▄▄▄        █████▒ █████▒██▓▄▄▄█████▓▓█████
@@ -12,10 +20,9 @@ log.info """
 ░ ░   ░   ░░   ░   ░   ▒    ░ ░    ░ ░    ▒ ░  ░         ░
 ░    ░           ░  ░               ░              ░  ░
 
-V . ${workflow.revision}
+V . ${pipelineVersion} - ${pipelineRevision}
 
-Find and Genotype Transposable Elements Insertion Polymorphisms
-in Genome Assemblies using a Pangenomic Approach
+Pangenomic Toolbox for the Analysis of Transposable Element Insertion Polymorphisms
 
 Authors: Cristian Groza and Clément Goubert
 Bug/issues: https://github.com/cgroza/GraffiTE/issues
