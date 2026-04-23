@@ -203,6 +203,12 @@ process repeatmask_VCF {
   tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/"), emit: vcf
   path("ultra_out.bed"), emit: ultra_bed
   path("ultra_out.span"), emit: ultra_span
+  path("genotypes_repmasked.vcf.gz"), emit: repmasked_vcf_debug
+  path("vcf_annotation.bak.txt"), emit: vcf_annotation_debug
+  path("union.bp"), emit: union_bp_debug
+  path("total_repeat_span.tsv"), emit: total_repeat_span_debug
+  path("combined.stats"), emit: combined_stats_debug
+  path("ultra_out.stats"), emit: ultra_stats_debug
 
   script:
   def mammal = ""
