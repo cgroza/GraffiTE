@@ -187,7 +187,7 @@ process concat_repeatmask {
   path("TSD_full_log.txt")
 
   script:
-  def trusted_filter = "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & ULTRA_TR_span<${params.trusted_max_ultra_span} & ((matching_classes!~\"LINE\" & matching_classes!~\"SINE\") | polyA=\"TRUE\")"
+  def trusted_filter = "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & (ULTRA_TR_span<${params.trusted_max_ultra_span} | matching_classes=\"Simple_repeat\") & ((matching_classes!~\"LINE\" & matching_classes!~\"SINE\" & matching_classes!~\"Retroposon\") | polyA=\"TRUE\")"
   def human_classes = '(matching_classes="LINE/L1" | matching_classes="SINE/Alu" | matching_classes="Retroposon/SVA" | matching_classes="Simple_repeat" | matching_classes="LTR/ERVK")'
   """
   cat TSD_summary_*.txt > TSD_summary.txt
