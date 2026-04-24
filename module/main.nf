@@ -204,10 +204,18 @@ process concat_repeatmask {
       fi
   fi
   fix_vcf.py --ref "\$REF" --vcf_in pangenome_temp.vcf --vcf_out pangenome_nopa.vcf
-  add_polyA.py pangenome_nopa.vcf -o pangenome.vcf
+  add_polyA.py pangenome_nopa.vcf -o pangenome_raw.vcf
 
-  # trusted subset
-  bcftools view -Ov -o pangenome.trusted.vcf -i '${trusted_filter}' pangenome.vcf
+  # Collect IDs satisfying the trusted criteria, then rewrite FILTER in
+  # pangenome.vcf: PASS for trusted, "." otherwise. The trusted / human
+  # subsets are then just "-f PASS" views of this file.
+  bcftools view -H -i '${trusted_filter}' pangenome_raw.vcf | cut -f3 | sort -u > trusted_ids.txt
+  awk 'BEGIN{FS=OFS="\\t"; while((getline id < "trusted_ids.txt")>0) keep[id]=1}
+       /^#/ {print; next}
+       {\$7 = (keep[\$3] ? "PASS" : "."); print}' pangenome_raw.vcf > pangenome.vcf
+
+  # trusted subset = everything that kept PASS
+  bcftools view -Ov -o pangenome.trusted.vcf -f PASS pangenome.vcf
 
   # presence-absence TSVs (full + trusted)
   vcf_to_pa_tsv.py pangenome.vcf -o pangenome.presence-absence.tsv
@@ -215,7 +223,7 @@ process concat_repeatmask {
 
   # human-restricted subset (optional)
   if [[ "${params.human}" == "true" ]]; then
-    bcftools view -Ov -o pangenome.trusted.human.vcf -i '${trusted_filter} & ${human_classes}' pangenome.vcf
+    bcftools view -Ov -o pangenome.trusted.human.vcf -i '${human_classes}' pangenome.trusted.vcf
     vcf_to_pa_tsv.py pangenome.trusted.human.vcf -o pangenome.presence-absence_human.tsv
   fi
   """

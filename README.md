@@ -38,6 +38,7 @@
 - :sparkles: **`--repeat_span_cutoff`** (default `0.80`) exposes this threshold to users.
 - :sparkles: **polyA tail detection:** a new INFO field `polyA=TRUE/FALSE/NA` is added to `pangenome.vcf`. For single-hit TE insertions/deletions (`n_hits=1`), the tool trims any exact case-insensitive TSD suffix/prefix from the variant sequence and scans for an A-rich window (≥8 bp, ≥80% A) anchored to the appropriate end (3' for `+` strand hits, 5' for `C` strand, as polyT). `NA` when `n_hits>1`.
 - :sparkles: **`--svs` input:** a new CSV option to pass per-sample VCFs directly (skipping assembly/long-read alignment and SV discovery). See [Input files](#input-files).
+- :sparkles: **Trusted-subset outputs and presence-absence TSVs:** `3_TSD_search/` now also emits `pangenome.trusted.vcf` (+ `pangenome.trusted.human.vcf` with `--human`) and matching `*.presence-absence*.tsv` tables. `pangenome.vcf` `FILTER` column flags trusted records as `PASS` (`.` otherwise). New params: `--trusted_min_svlen` (default 250), `--trusted_max_ultra_span` (default 0.6), `--human`. See [Trusted subsets and presence-absence TSVs](#trusted-subsets-and-presence-absence-tsvs).
 - :wrench: **`--mammal` discontinued:** the option is removed. L1 5' inversion detection and SVA VNTR-only handling are now **always on** and systematically reported for all runs.
 - :wrench: **L1 5' inversion reported as `INFO/L1_5PINV`:** the old `mam_filter_1=5P_INV` flag is replaced by `L1_5PINV`, whose value is the RepeatMasker hit ID(s) of the L1 fragment flagged (or `None`). Detection rule: a LINE/L1 with two fragments sharing the same hit ID but opposite strands (`C,+`), i.e. the twin-priming signature.
 - :wrench: **SVA VNTR-only reclassified:** insertions whose RepeatMasker hit falls entirely within the VNTR region of an SVA consensus are reclassified from `Retroposon/SVA` to `Simple_repeat` (and the family name is suffixed accordingly). This prevents VNTR-only length polymorphisms from being mistakenly counted as SVA MEI. The old `mam_filter_2=SVA_VNTR` field is removed.
@@ -375,6 +376,9 @@ AND (always required)
 - `--genotype`: true or false. Use this if you would like to discover polymorphisms in assemblies but you would like to skip genotyping polymorphisms from reads.
 - `--tsd_win`: the length (in bp) of flanking region (5' and 3' ends) for Target Site Duplication (TSD) search. Default 30bp. By default, 30bp upstream and downstream each variant will be added to search for TSD. (see also [TSD section](#tsd-module))
 - `--repeat_span_cutoff`: minimum fraction of a variant that must be covered by the non-redundant union of RepeatMasker TE hits and ULTRA tandem repeats (`INFO/total_repeat_span`) to be kept in the pangenome VCF. Default `0.80`.
+- `--trusted_min_svlen`: minimum absolute SV length (bp) for a variant to be part of the "trusted" subset. Default `250`. See [Trusted subsets and presence-absence TSVs](#trusted-subsets-and-presence-absence-tsvs).
+- `--trusted_max_ultra_span`: maximum `ULTRA_TR_span` allowed for a variant to be part of the "trusted" subset (filters out variants dominated by tandem repeats, which are more likely to be length polymorphisms than true MEI). Default `0.6`.
+- `--human`: `true` or `false`. When `true`, also emit `pangenome.trusted.human.vcf` and `pangenome.presence-absence_human.tsv`, restricted to the main human MEI classes (LINE/L1, SINE/Alu, Retroposon/SVA, SVA-VNTR as Simple_repeat, LTR/HERVK). Default `false`.
 - `--cores`: global CPU parameter. Will apply the chosen integer to all multi-threaded processes. See [here](#changing-the-number-of-cpus-and-memory-required-by-each-step) for more customization.
 - `--mammal`: **discontinued in v1.1** — accepting the flag is harmless but it no longer gates behavior. The two filters it used to enable (LINE1 5' inversion detection, SVA VNTR-only reclassification) are now always on. See [L1 5' inversion](#l1-5-inversion) for details.
 - `--break_scaffolds`: true or false. Break input assemblies at runs of Ns. Use this if the assemblies passed with `--assemblies` are scaffolded to avoid `[E::parse_cigar] CIGAR length too long` error.
@@ -499,6 +503,11 @@ OUTPUT_FOLDER/
 │       └── OneCode_LTR.dic
 ├── 3_TSD_search
 │   ├── pangenome.vcf
+│   ├── pangenome.trusted.vcf
+│   ├── pangenome.trusted.human.vcf            (only with --human)
+│   ├── pangenome.presence-absence.tsv
+│   ├── pangenome.presence-absence_trusted.tsv
+│   ├── pangenome.presence-absence_human.tsv   (only with --human)
 │   ├── TSD_full_log.txt
 │   └── TSD_summary.txt
 └── 4_Genotyping
@@ -519,9 +528,12 @@ OUTPUT_FOLDER/
       - `OneCode_LTR.dic`: `OneCodeToFindThemAll` LTR dictionary automatically produced from `--TE_library` see [here](https://mobilednajournal.biomedcentral.com/articles/10.1186/1759-8753-5-13) fore more details.
       - `onecode.log`: log file for `OneCodeToFindThemAll` process.
 - `3_TSD_Search/` (see [TSD section](#tsd-module))
-   - `pangenome.vcf` final VCF containing all retained repeat variants and annotations (with TSD if passing the TSD filters). This file is used later by `Pangenie`,`Giraffe` or `graphAligner` to create the genome-graph onto which reads are mapped for genotyping. (example [here](#output-vcfs)). Can be re-used for genotyping only with `--graffite_vcf pangenome.vcf`
-   - `TSD_summary.txt`: tab delimited output of the TSD search module. 1 line per variant. See [TSD section](#tsd-module) for more information. "PASS" entries are reported in the `pangenie.vcf` and final (with genotypes) VCF.
-   - `TSD_full_log.txt:`detailed (verbose rich) report of TSD search for each SV (see [TSD section](#tsd-module)).
+   - `pangenome.vcf` — final VCF containing **all** retained repeat variants and annotations (with TSD if passing the TSD filters). The VCF `FILTER` column now encodes the trusted-subset classification: `PASS` = satisfies the trusted criteria (see [Trusted subsets and presence-absence TSVs](#trusted-subsets-and-presence-absence-tsvs)); `.` = kept but does not meet the trusted criteria. This file is used later by `Pangenie`, `Giraffe` or `graphAligner` to build the genome-graph for genotyping. Can be re-used for genotyping only with `--graffite_vcf pangenome.vcf`.
+   - `pangenome.trusted.vcf` — subset of `pangenome.vcf` where `FILTER=PASS` (trusted MEI candidates only).
+   - `pangenome.trusted.human.vcf` — only produced when `--human` is set. Trusted subset further restricted to `matching_classes` ∈ {`LINE/L1`, `SINE/Alu`, `Retroposon/SVA`, `Simple_repeat` (SVA-VNTR), `LTR/HERVK`}.
+   - `pangenome.presence-absence.tsv`, `pangenome.presence-absence_trusted.tsv`, `pangenome.presence-absence_human.tsv` — flat TSV presence/absence tables derived from the three VCFs above. See [Trusted subsets and presence-absence TSVs](#trusted-subsets-and-presence-absence-tsvs).
+   - `TSD_summary.txt`: tab-delimited TSD-search report (1 line per variant). See [TSD section](#tsd-module).
+   - `TSD_full_log.txt`: verbose TSD-search log.
 - `4_Genotyping/`
    - `GraffiTE.merged.genotypes.vcf`: final mutli-sample VCF with the genotypes for each sample present in the `--genotype-with` file. See [VCF section](#output-vcfs) for more details.
    - `*.vcf.gz` individual genotypes (do not contain TE annotation)
@@ -607,6 +619,47 @@ When using `Giraffe` and `GraphAligner` with `vg call`, the following fields are
 - `GQ`: Genotype Quality, the Phred-scaled probability estimate of the called genotype
 - `GP`: Genotype Probability, the log-scaled posterior probability of the called genotype
 - `XD`: eXpected Depth, background coverage as used for the Poisson model
+
+#### Trusted subsets and presence-absence TSVs
+
+Starting in v1.1, `3_TSD_search/` ships three companion files alongside `pangenome.vcf` to help downstream analysis focus on high-confidence MEI calls.
+
+**Trusted criteria** (applied to `pangenome.vcf` to flag records as `PASS` or `.`):
+
+1. `n_hits == 1` — only variants whose repeat content resolves to a single RepeatMasker family.
+2. `|SVLEN| >= --trusted_min_svlen` (default **250 bp**) — filters out short, hard-to-resolve indels.
+3. `ULTRA_TR_span < --trusted_max_ultra_span` (default **0.6**) — excludes variants dominated by tandem repeats (more likely VNTR length polymorphisms than MEI).
+4. If `matching_classes` starts with `LINE` or `SINE`, `polyA=TRUE` is additionally required — non-LTR retrotransposons are expected to carry a polyA (or polyT on `C` strand) tail.
+
+`pangenome.vcf` retains **every** record that passed the pre-TSD `total_repeat_span` filter. The 7th VCF column (`FILTER`) encodes trust:
+- `PASS` — meets all 4 trusted criteria.
+- `.` — does not meet the trusted criteria (still kept so that variants needed to build the genotyping graph are not silently dropped).
+
+`pangenome.trusted.vcf` = `bcftools view -f PASS pangenome.vcf` — guaranteed PASS-only.
+
+`pangenome.trusted.human.vcf` (only with `--human`) = trusted subset further restricted to the main human MEI classes: `LINE/L1`, `SINE/Alu`, `Retroposon/SVA`, `Simple_repeat` (SVA-VNTR, see [VNTR polymorphisms in SVA elements](#vntr-polymorphisms-in-sva-elements)), `LTR/HERVK`.
+
+**Presence/absence TSVs** are flat tables derived one-for-one from the three VCFs above (`pangenome.presence-absence.tsv`, `pangenome.presence-absence_trusted.tsv`, `pangenome.presence-absence_human.tsv`). Fixed column schema:
+
+```
+CHROM  POS  END  ID  SVTYPE  SVLEN  n_hits  match_lengths  repeat_ids  matching_classes
+fragmts  RM_hit_strands  RM_hit_IDs  total_match_length  total_match_span  L1_5PINV
+ULTRA_TR  ULTRA_TR_span  total_repeat_span  TSD  polyA  <sample_1>  <sample_2>  ...
+```
+
+Missing INFO fields are filled with `NA`. No `REF`, `ALT`, `QUAL`, `FILTER`, or `FORMAT` columns.
+
+> :warning: **Important — TSV values are TE presence/absence, *not* VCF ALT-allele dosage.** The VCF encodes the SV relative to the reference (e.g. `SVTYPE=INS` means the ALT allele carries an inserted TE; `SVTYPE=DEL` means the ALT allele is a deletion of a reference-resident TE). The TSV flips this for deletions so that `1` always means "TE is present in the sample" and `0` always means "TE is absent":
+>
+> | VCF `SVTYPE` | Sample GT       | TSV value |
+> |--------------|-----------------|-----------|
+> | `INS`        | `0/1` or `1/1`  | `1` (TE present)  |
+> | `INS`        | `0/0`           | `0` (TE absent)   |
+> | `DEL`        | `0/1` or `1/1`  | `0` (TE absent)   |
+> | `DEL`        | `0/0`           | `1` (TE present)  |
+> | any          | `./.` or `.`    | `NA`              |
+>
+> Do **not** compare TSV values directly to VCF GT fields — the semantics differ for deletions by design, so the TSV gives you a clean per-sample TE gene-content matrix across both `INS` and `DEL` variants.
 
 ## TSD module
 

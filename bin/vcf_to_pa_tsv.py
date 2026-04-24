@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Convert a VCF to a flat presence/absence TSV.
+"""Convert a GraffiTE VCF to a flat presence/absence TSV.
 
-- INFO fields are flattened to columns (ordered by ##INFO header lines).
-  Missing values are written as NA. Flag-type (no '=') INFO entries become '1'.
+Fixed output schema (21 columns + one column per sample):
+  CHROM POS END ID SVTYPE SVLEN n_hits match_lengths repeat_ids matching_classes
+  fragmts RM_hit_strands RM_hit_IDs total_match_length total_match_span L1_5PINV
+  ULTRA_TR ULTRA_TR_span total_repeat_span TSD polyA <sample1> <sample2> ...
+
+- Missing INFO fields are written as NA.
 - FORMAT column is dropped.
-- Per-sample columns report TE presence based on SVTYPE:
+- Per-sample values: TE presence based on SVTYPE:
     INS: any ALT allele in GT -> 1 ; all ref -> 0
     DEL: any ALT allele in GT -> 0 ; all ref -> 1
   Missing genotypes (./., .) -> NA.
@@ -14,7 +18,12 @@ import argparse
 import re
 import sys
 
-INFO_HEADER_RE = re.compile(r'^##INFO=<ID=([^,]+),')
+INFO_COLS = [
+    'END', 'SVTYPE', 'SVLEN', 'n_hits', 'match_lengths', 'repeat_ids',
+    'matching_classes', 'fragmts', 'RM_hit_strands', 'RM_hit_IDs',
+    'total_match_length', 'total_match_span', 'L1_5PINV', 'ULTRA_TR',
+    'ULTRA_TR_span', 'total_repeat_span', 'TSD', 'polyA',
+]
 
 
 def parse_info(info):
@@ -26,7 +35,7 @@ def parse_info(info):
             k, v = kv.split('=', 1)
             d[k] = v
         else:
-            d[kv] = ''  # flag
+            d[kv] = ''
     return d
 
 
@@ -54,23 +63,19 @@ def main():
     fin = sys.stdin if args.vcf == '-' else open(args.vcf)
     fout = sys.stdout if args.output == '-' else open(args.output, 'w')
 
-    info_ids = []
-    seen_info = set()
     samples = []
     header_written = False
 
     for line in fin:
         line = line.rstrip('\n')
         if line.startswith('##'):
-            m = INFO_HEADER_RE.match(line)
-            if m and m.group(1) not in seen_info:
-                info_ids.append(m.group(1))
-                seen_info.add(m.group(1))
             continue
         if line.startswith('#CHROM'):
             cols = line.split('\t')
             samples = cols[9:] if len(cols) > 9 else []
-            header = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER'] + info_ids + samples
+            header = ['CHROM', 'POS'] + INFO_COLS[:1] + ['ID'] + INFO_COLS[1:] + samples
+            # Re-order: CHROM POS END ID SVTYPE ... (END before ID, per spec)
+            header = ['CHROM', 'POS', 'END', 'ID'] + INFO_COLS[1:] + samples
             fout.write('\t'.join(header) + '\n')
             header_written = True
             continue
@@ -79,16 +84,17 @@ def main():
         fields = line.split('\t')
         if len(fields) < 8:
             continue
-        chrom, pos, vid, ref, alt, qual, filt, info = fields[:8]
+        chrom, pos, vid, _ref, _alt, _qual, _filt, info = fields[:8]
         info_d = parse_info(info)
-        info_vals = []
-        for k in info_ids:
+        svtype = info_d.get('SVTYPE', '')
+        end_val = info_d.get('END', 'NA')
+        other_vals = []
+        for k in INFO_COLS[1:]:  # skip END (already placed)
             if k in info_d:
                 v = info_d[k]
-                info_vals.append('1' if v == '' else v)
+                other_vals.append('1' if v == '' else v)
             else:
-                info_vals.append('NA')
-        svtype = info_d.get('SVTYPE', '')
+                other_vals.append('NA')
         sample_vals = []
         if samples and len(fields) > 9:
             fmt = fields[8].split(':')
@@ -99,7 +105,8 @@ def main():
             for s_data in fields[9:]:
                 gt = s_data.split(':')[gt_idx] if s_data else '.'
                 sample_vals.append(gt_presence(gt, svtype))
-        fout.write('\t'.join([chrom, pos, vid, ref, alt, qual, filt] + info_vals + sample_vals) + '\n')
+        row = [chrom, pos, end_val, vid] + other_vals + sample_vals
+        fout.write('\t'.join(row) + '\n')
 
     if fin is not sys.stdin:
         fin.close()
