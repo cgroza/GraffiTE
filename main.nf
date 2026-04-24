@@ -20,7 +20,7 @@ log.info """
 ░ ░   ░   ░░   ░   ░   ▒    ░ ░    ░ ░    ▒ ░  ░         ░
 ░    ░           ░  ░               ░              ░  ░
 
-V . ${pipelineVersion} - ${pipelineRevision}
+V. ${pipelineVersion} - ${pipelineRevision}
 
 Pangenomic Toolbox for the Analysis of Transposable Element Insertion Polymorphisms
 
