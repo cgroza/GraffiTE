@@ -145,15 +145,16 @@ process truvari_merge {
   else
 
     for f in *.vcf.gz
-    do
-      bcftools annotate -x INFO \${f} -Oz -o stripped_\${f}
-      tabix stripped_\${f}
-    done
+  do
+  bcftools annotate -x INFO \${f} -Oz -o stripped_\${f}
+  tabix stripped_\${f}
+  done
 
   bcftools merge -Oz -m none -o merged.vcf.gz stripped_*.vcf.gz
   tabix merged.vcf.gz
   truvari collapse --chain -P 0.5 -p 0.5 -S -1 -k common -i merged.vcf.gz -o truvari_merged.vcf
-    bcftools +setGT truvari_merged.vcf -- -t . -n 0 | bcftools norm -f ${ref} > truvari_merged_filled.vcf
+    bcftools +setGT truvari_merged.vcf -- -t . -n 0 | bcftools norm -f ${ref} | \
+    bcftools +fill-tags - -Ov -o truvari_merged_filled.vcf -- -t 'SVLEN=strlen(ALT)-strlen(REF)'
     shorten_ids.py --vcf_in  truvari_merged_filled.vcf --vcf_out SVs.vcf
   fi
   """
