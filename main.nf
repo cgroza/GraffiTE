@@ -1,5 +1,13 @@
 // SAY HELLO
 
+// 1. Read the version from the local file
+def versionFile = file("${baseDir}/version.txt")
+def pipelineVersion = versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : '1.1.0'
+
+// 2. Define the revision (branch name)
+def pipelineRevision = workflow.revision ?: 'main'
+
+
 log.info """
 
 ▄████  ██▀███   ▄▄▄        █████▒ █████▒██▓▄▄▄█████▓▓█████
@@ -12,10 +20,9 @@ log.info """
 ░ ░   ░   ░░   ░   ░   ▒    ░ ░    ░ ░    ▒ ░  ░         ░
 ░    ░           ░  ░               ░              ░  ░
 
-V . ${workflow.commitId}
+V. ${pipelineVersion} - ${pipelineRevision}
 
-Find and Genotype Transposable Elements Insertion Polymorphisms
-in Genome Assemblies using a Pangenomic Approach
+Pangenomic Toolbox for the Analysis of Transposable Element Insertion Polymorphisms
 
 Authors: Cristian Groza and Clément Goubert
 Bug/issues: https://github.com/cgroza/GraffiTE/issues
@@ -96,7 +103,8 @@ workflow {
       } else {
         error "No --longreads, --assemblies, --vcf or --RM_dir parameters passed to GraffiTE."
       }
-      repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch)).set{RM_ch}
+      repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch))
+      repeatmask_VCF.out.vcf.set{RM_ch}
     }
     tsd_report(tsd_search(tsd_prep(RM_ch.combine(ref_asm_ch)).
                           splitText(elem: 3, by: params.tsd_batch_size, file: true)).

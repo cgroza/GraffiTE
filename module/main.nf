@@ -185,17 +185,54 @@ process concat_repeatmask {
 
   output:
   path("pangenome.vcf"), emit: vcf_ch
+  path("pangenome.trusted.vcf")
+  path("pangenome.trusted.human.vcf"), optional: true
+  path("pangenome.presence-absence.tsv")
+  path("pangenome.presence-absence_trusted.tsv")
+  path("pangenome.presence-absence_human.tsv"), optional: true
   path("TSD_summary.txt")
   path("TSD_full_log.txt")
 
   script:
+  def trusted_filter = "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & (ULTRA_TR_span<${params.trusted_max_ultra_span} | matching_classes=\"Simple_repeat\") & ((matching_classes!~\"LINE\" & matching_classes!~\"SINE\" & matching_classes!~\"Retroposon\") | polyA=\"TRUE\")"
+  def human_classes = '(matching_classes="LINE/L1" | matching_classes="SINE/Alu" | matching_classes="Retroposon/SVA" | matching_classes="Simple_repeat" | matching_classes="LTR/ERVK")'
   """
   cat TSD_summary_*.txt > TSD_summary.txt
   cat TSD_full_log_*.txt > TSD_full_log.txt
   bcftools concat tsd_pangenome_*.vcf | \
     awk '\$1 ~ /^#/ {print \$0;next} {print \$0 | "LC_ALL=C sort -k1,1 -k2,2n"}' | \
-    bcftools view -Ov -o pangenome_temp.vcf -i 'INFO/total_match_span > 0.80'
-  fix_vcf.py --ref ${ref_fasta} --vcf_in pangenome_temp.vcf --vcf_out pangenome.vcf
+    bcftools view -Ov -o pangenome_temp.vcf -i 'INFO/total_repeat_span > ${params.repeat_span_cutoff}'
+  # htslib can't index gzip-compressed fasta; re-compress with bgzip if needed
+  REF="${ref_fasta}"
+  if [[ "\$REF" == *.gz ]]; then
+      if ! (file -L "\$REF" | grep -q "BGZF"); then
+          zcat "\$REF" | bgzip -c > ref.fa.gz
+          REF=ref.fa.gz
+      fi
+  fi
+  fix_vcf.py --ref "\$REF" --vcf_in pangenome_temp.vcf --vcf_out pangenome_nopa.vcf
+  add_polyA.py pangenome_nopa.vcf -o pangenome_raw.vcf
+
+  # Collect IDs satisfying the trusted criteria, then rewrite FILTER in
+  # pangenome.vcf: PASS for trusted, "." otherwise. The trusted / human
+  # subsets are then just "-f PASS" views of this file.
+  bcftools view -H -i '${trusted_filter}' pangenome_raw.vcf | cut -f3 | sort -u > trusted_ids.txt
+  awk 'BEGIN{FS=OFS="\\t"; while((getline id < "trusted_ids.txt")>0) keep[id]=1}
+       /^#/ {print; next}
+       {\$7 = (keep[\$3] ? "PASS" : "."); print}' pangenome_raw.vcf > pangenome.vcf
+
+  # trusted subset = everything that kept PASS
+  bcftools view -Ov -o pangenome.trusted.vcf -f PASS pangenome.vcf
+
+  # presence-absence TSVs (full + trusted)
+  vcf_to_pa_tsv.py pangenome.vcf -o pangenome.presence-absence.tsv
+  vcf_to_pa_tsv.py pangenome.trusted.vcf -o pangenome.presence-absence_trusted.tsv
+
+  # human-restricted subset (optional)
+  if [[ "${params.human}" == "true" ]]; then
+    bcftools view -Ov -o pangenome.trusted.human.vcf -i '${human_classes}' pangenome.trusted.vcf
+    vcf_to_pa_tsv.py pangenome.trusted.human.vcf -o pangenome.presence-absence_human.tsv
+  fi
   """
 }
 
@@ -206,7 +243,15 @@ process repeatmask_VCF {
   tuple path("genotypes.vcf"), path(TE_library), path(ref_fasta)
 
   output:
-  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/")
+  tuple path("genotypes_repmasked_filtered.vcf"), path("repeatmasker_dir/"), emit: vcf
+  path("ultra_out.bed"), emit: ultra_bed
+  path("ultra_out.span"), emit: ultra_span
+  path("genotypes_repmasked.vcf.gz"), emit: repmasked_vcf_debug
+  path("vcf_annotation.bak.txt"), emit: vcf_annotation_debug
+  path("union.bp"), emit: union_bp_debug
+  path("total_repeat_span.tsv"), emit: total_repeat_span_debug
+  path("combined.stats"), emit: combined_stats_debug
+  path("ultra_out.stats"), emit: ultra_stats_debug
 
   script:
   def mammal = ""
@@ -215,7 +260,7 @@ process repeatmask_VCF {
   }
   """
   repmask_vcf.sh genotypes.vcf genotypes_repmasked.vcf.gz ${TE_library} ${mammal}
-  bcftools view -Ov -o genotypes_repmasked_filtered.vcf -i 'INFO/total_match_span > 0.80' genotypes_repmasked.vcf.gz
+  bcftools view -Ov -o genotypes_repmasked_filtered.vcf -i 'INFO/total_repeat_span > ${params.repeat_span_cutoff}' genotypes_repmasked.vcf.gz
   """
 }
 
