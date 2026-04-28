@@ -196,6 +196,7 @@ process concat_repeatmask {
 
   script:
   def trusted_filter = "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & (ULTRA_TR_span<${params.trusted_max_ultra_span} | matching_classes=\"Simple_repeat\") & ((matching_classes!~\"LINE\" & matching_classes!~\"SINE\" & matching_classes!~\"Retroposon\") | polyA=\"TRUE\")"
+  def trusted_filter_full = params.trusted_ignore_filter ? trusted_filter : "(${trusted_filter}) & FILTER=\"PASS\""
   def human_classes = '(matching_classes="LINE/L1" | matching_classes="SINE/Alu" | matching_classes="Retroposon/SVA" | matching_classes="Simple_repeat" | (matching_classes="LTR/ERVK" & (repeat_ids~"LTR5_Hs" | repeat_ids~"HERVK")))'
   """
   cat TSD_summary_*.txt > TSD_summary.txt
@@ -214,16 +215,12 @@ process concat_repeatmask {
   fix_vcf.py --ref "\$REF" --vcf_in pangenome_temp.vcf --vcf_out pangenome_nopa.vcf
   add_polyA.py pangenome_nopa.vcf -o pangenome_raw.vcf
 
-  # Collect IDs satisfying the trusted criteria, then rewrite FILTER in
-  # pangenome.vcf: PASS for trusted, "." otherwise. The trusted / human
-  # subsets are then just "-f PASS" views of this file.
-  bcftools view -H -i '${trusted_filter}' pangenome_raw.vcf | cut -f3 | sort -u > trusted_ids.txt
-  awk 'BEGIN{FS=OFS="\\t"; while((getline id < "trusted_ids.txt")>0) keep[id]=1}
-       /^#/ {print; next}
-       {\$7 = (keep[\$3] ? "PASS" : "."); print}' pangenome_raw.vcf > pangenome.vcf
+  # pangenome.vcf retains the original FILTER values from upstream.
+  cp pangenome_raw.vcf pangenome.vcf
 
-  # trusted subset = everything that kept PASS
-  bcftools view -Ov -o pangenome.trusted.vcf -f PASS pangenome.vcf
+  # trusted subset: variants matching the trusted criteria. By default
+  # also requires existing FILTER=="PASS"; bypass with --trusted_ignore_filter.
+  bcftools view -Ov -o pangenome.trusted.vcf -i '${trusted_filter_full}' pangenome.vcf
 
   # presence-absence TSVs (full + trusted)
   vcf_to_pa_tsv.py pangenome.vcf -o pangenome.presence-absence.tsv
