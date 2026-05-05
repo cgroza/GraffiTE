@@ -126,12 +126,20 @@ process truvari_merge {
   input:
   path(vcfs)
   path(ref)
+  val(from_vcf)
 
   output:
   path("SVs.vcf")
 
   script:
   """
+  if [[ "${from_vcf}" == "true" ]]; then
+    if [[ "${vcfs}" == *.gz ]]; then
+      gunzip --force ${vcfs}
+    fi
+    shorten_ids.py --vcf_in *.vcf --vcf_out SVs.vcf
+  else
+
   for f in ${vcfs}
   do
   tabix \${f}
@@ -156,6 +164,7 @@ process truvari_merge {
     bcftools +setGT truvari_merged.vcf -- -t . -n 0 | bcftools norm -f ${ref} | \
     bcftools +fill-tags - -Ov -o truvari_merged_filled.vcf -- -t 'SVLEN=strlen(ALT)-strlen(REF)'
     shorten_ids.py --vcf_in  truvari_merged_filled.vcf --vcf_out SVs.vcf
+  fi
   fi
   """
 }
