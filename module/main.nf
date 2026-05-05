@@ -374,11 +374,12 @@ process make_graph {
   script:
   prep = """
   mkdir index
+  bcftools +setGT ${vcf} -- -t a -n u > unphased.vcf
   """
   switch(graph_method) {
     case "giraffe":
       prep + """
-      vg autoindex --tmp-dir \$PWD  -p index/index -w sr-giraffe -w lr-giraffe -v ${vcf} -r ${fasta}
+      vg autoindex --tmp-dir \$PWD  -p index/index -w sr-giraffe -w lr-giraffe -v unphased.vcf -r ${fasta}
       vg convert --vg-algorithm -f index/index.giraffe.gbz > index/index.gfa
       vg snarls index/index.giraffe.gbz > index/index.pb
       """
@@ -386,7 +387,7 @@ process make_graph {
     case "graphaligner":
       prep + """
       export TMPDIR=$PWD
-      vg construct -a  -r ${fasta} -v ${vcf} -m 1024 > index/index.vg
+      vg construct -a  -r ${fasta} -v unphased.vcf -m 1024 > index/index.vg
       vg convert --vg-algorithm -f index/index.vg > index/index.gfa
       vg snarls index/index.gfa > index/index.pb
       """
