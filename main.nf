@@ -99,7 +99,7 @@ workflow {
       if(params.longreads || params.bams || params.assemblies || params.svs){
         sv_variants_ch.set{raw_vcf_ch}
       } else if(params.vcf){
-        Channel.fromPath(params.vcf, checkIfExists : true).set{raw_vcf_ch}
+        truvari_merge(Channel.fromPath(params.vcf, checkIfExists : true), ref_asm_ch).set{raw_vcf_ch}
       } else {
         error "No --longreads, --assemblies, --vcf or --RM_dir parameters passed to GraffiTE."
       }
