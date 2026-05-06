@@ -200,6 +200,7 @@ process concat_repeatmask {
   path("pangenome.presence-absence.tsv")
   path("pangenome.presence-absence_trusted.tsv")
   path("pangenome.presence-absence_human.tsv"), optional: true
+  path("hervk_polymorphism_summary.md"), optional: true
   path("TSD_summary.txt")
   path("TSD_full_log.txt")
 
@@ -239,6 +240,39 @@ process concat_repeatmask {
   if [[ "${params.human}" == "true" ]]; then
     bcftools view -Ov -o pangenome.trusted.human.vcf -i '${human_classes}' pangenome.trusted.vcf
     vcf_to_pa_tsv.py pangenome.trusted.human.vcf -o pangenome.presence-absence_human.tsv
+
+    # HERV-K (HML-2) classification — runs only on --human pipelines.
+    # Annotates the main VCF/TSV without filtering, and applies a strict
+    # filter (drop class==other or pmap<threshold) to the trusted and
+    # human VCF/TSV outputs. Defaults are baked into bin/hervk_classify.py;
+    # users can override via params.hervk_config (path to a JSON file).
+    CFG_ARG=""
+    if [[ -n "${params.hervk_config ?: ''}" ]]; then
+      CFG_ARG="--config ${params.hervk_config}"
+    fi
+
+    hervk_classify.py \$CFG_ARG \\
+        --vcf-in pangenome.vcf --vcf-out pangenome.vcf.hervk \\
+        --tsv-in pangenome.presence-absence.tsv \\
+        --tsv-out pangenome.presence-absence.tsv.hervk \\
+        --summary hervk_polymorphism_summary.md
+    mv pangenome.vcf.hervk pangenome.vcf
+    mv pangenome.presence-absence.tsv.hervk pangenome.presence-absence.tsv
+
+    hervk_classify.py \$CFG_ARG --strict \\
+        --vcf-in pangenome.trusted.vcf --vcf-out pangenome.trusted.vcf.hervk \\
+        --tsv-in pangenome.presence-absence_trusted.tsv \\
+        --tsv-out pangenome.presence-absence_trusted.tsv.hervk
+    mv pangenome.trusted.vcf.hervk pangenome.trusted.vcf
+    mv pangenome.presence-absence_trusted.tsv.hervk pangenome.presence-absence_trusted.tsv
+
+    hervk_classify.py \$CFG_ARG --strict \\
+        --vcf-in pangenome.trusted.human.vcf \\
+        --vcf-out pangenome.trusted.human.vcf.hervk \\
+        --tsv-in pangenome.presence-absence_human.tsv \\
+        --tsv-out pangenome.presence-absence_human.tsv.hervk
+    mv pangenome.trusted.human.vcf.hervk pangenome.trusted.human.vcf
+    mv pangenome.presence-absence_human.tsv.hervk pangenome.presence-absence_human.tsv
   fi
   """
 }
