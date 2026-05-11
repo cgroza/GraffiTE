@@ -4,6 +4,9 @@
 def versionFile = file("${baseDir}/version.txt")
 def pipelineVersion = versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : '1.1.0'
 
+// Expose version to process scripts (used for stamping VCF headers)
+params.graffite_version = pipelineVersion
+
 // 2. Define the revision (branch name)
 def pipelineRevision = workflow.revision ?: 'main'
 

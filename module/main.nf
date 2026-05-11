@@ -274,6 +274,12 @@ process concat_repeatmask {
     mv pangenome.trusted.human.vcf.hervk pangenome.trusted.human.vcf
     mv pangenome.presence-absence_human.tsv.hervk pangenome.presence-absence_human.tsv
   fi
+
+  # Stamp GraffiTE version into the header of each published VCF
+  for VCF in pangenome.vcf pangenome.trusted.vcf pangenome.trusted.human.vcf; do
+    [ -f "\$VCF" ] || continue
+    awk -v v="${params.graffite_version}" 'NR==1 && /^##fileformat/ {print; print "##GraffiTE_version="v; next} {print}' "\$VCF" > "\$VCF.tmp" && mv "\$VCF.tmp" "\$VCF"
+  done
   """
 }
 
@@ -526,6 +532,7 @@ process merge_VCFs {
   bgzip pangenome.sorted.vcf
   tabix -p vcf pangenome.sorted.vcf.gz
   bcftools annotate -a pangenome.sorted.vcf.gz -c CHROM,POS,ID,REF,ALT,INFO GraffiTE.merged.genotypes.vcf.gz > GraffiTE.merged.genotypes.vcf
+  awk -v v="${params.graffite_version}" 'NR==1 && /^##fileformat/ {print; print "##GraffiTE_version="v; next} {print}' GraffiTE.merged.genotypes.vcf > GraffiTE.merged.genotypes.vcf.tmp && mv GraffiTE.merged.genotypes.vcf.tmp GraffiTE.merged.genotypes.vcf
   rm -f GraffiTE.merged.genotypes.vcf.gz
   bgzip GraffiTE.merged.genotypes.vcf
   """
