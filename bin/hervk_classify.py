@@ -13,10 +13,8 @@ size and HERV-K family content:
 
 Inputs/outputs are GraffiTE-style VCF and presence-absence TSV. The tool
 adds INFO/HERVK_CLASS, INFO/HERVK_PMAP, INFO/HERVK_LAMBDA, INFO/HERVK_NU
-to the VCF, plus an optional FORMAT/HERVK_AS field giving the per-sample
-per-haplotype allelic state (e.g. "solo|null"). When --strict is set,
-candidate rows whose MAP class is "other" or whose MAP posterior is below
-the threshold are dropped.
+to the VCF. When --strict is set, candidate rows whose MAP class is
+"other" or whose MAP posterior is below the threshold are dropped.
 
 Usage examples:
 
@@ -39,7 +37,6 @@ import argparse
 import json
 import math
 import os
-import re
 import sys
 from collections import Counter, defaultdict
 
@@ -85,16 +82,6 @@ DEFAULTS = {
     "pmap_min": 0.90,
     # Polyallelic flag window (bp).
     "polyallelic_window": 100,
-    # FORMAT/HERVK_AS: emit "?|?" when MAP posterior below this.
-    "as_min_posterior": 0.90,
-}
-
-ALLELE_INTERPRETATION = {
-    'C': {'ref': 'null',  'alt': 'solo'           },
-    'T': {'ref': 'null',  'alt': 'truncated_prov' },
-    'B': {'ref': 'solo',  'alt': 'prov'           },
-    'A': {'ref': 'null',  'alt': 'prov'           },
-    'X': {'ref': '?',     'alt': '?'              },
 }
 
 CLASS_LABEL = {
@@ -236,14 +223,6 @@ INFO_HEADERS = [
     '##INFO=<ID=HERVK_NU,Number=1,Type=Float,'
     'Description="bp matching HML-2 internal family (HERVK-int).">',
 ]
-FORMAT_HEADER = (
-    '##FORMAT=<ID=HERVK_AS,Number=1,Type=String,'
-    'Description="Per-haplotype HERV-K allelic state derived from GT and '
-    'INFO/HERVK_CLASS (e.g. solo|null, prov|solo). Set to ?|? when MAP '
-    'posterior is below threshold or class is other.">'
-)
-
-
 def parse_info(info):
     d = {}
     if not info or info == '.':
@@ -283,37 +262,8 @@ def is_candidate(info_d, cfg):
     return False
 
 
-def interpret_haplotype_allele(allele, klass, svtype):
-    """Map a single allele char ('0','1','.') to an allelic state."""
-    if allele in ('.', ''):
-        return '?'
-    interp = ALLELE_INTERPRETATION[klass]
-    if svtype == 'DEL':
-        interp = {'ref': interp['alt'], 'alt': interp['ref']}
-    return interp['alt'] if allele not in ('0',) else interp['ref']
-
-
-def build_hervk_as(gt, klass, posterior, svtype, cfg):
-    if klass == 'X' or posterior < cfg['as_min_posterior']:
-        # Preserve haplotype shape (slash vs pipe, ploidy).
-        sep_match = re.search(r'[/|]', gt or '')
-        if sep_match:
-            sep = sep_match.group(0)
-            n = len(re.split(r'[/|]', gt))
-            return sep.join(['?'] * n)
-        return '?'
-    alleles = re.split(r'([/|])', gt)  # keep separators
-    out = []
-    for tok in alleles:
-        if tok in ('/', '|'):
-            out.append(tok)
-        else:
-            out.append(interpret_haplotype_allele(tok, klass, svtype))
-    return ''.join(out)
-
-
 def process_vcf(vcf_in, vcf_out, cfg, strict, classifications):
-    """Stream-rewrite the VCF, adding HERVK INFO and FORMAT fields.
+    """Stream-rewrite the VCF, adding HERVK INFO fields.
 
     classifications: dict to be populated with vid -> dict for downstream
     TSV annotation and summary.
@@ -323,7 +273,6 @@ def process_vcf(vcf_in, vcf_out, cfg, strict, classifications):
     fin = open(vcf_in) if in_close else sys.stdin
     fout = open(vcf_out, 'w') if out_close else sys.stdout
 
-    samples = []
     header_done = False
 
     for line in fin:
@@ -334,9 +283,6 @@ def process_vcf(vcf_in, vcf_out, cfg, strict, classifications):
         if line.startswith('#CHROM'):
             for h in INFO_HEADERS:
                 fout.write(h + '\n')
-            fout.write(FORMAT_HEADER + '\n')
-            cols = line.rstrip('\n').split('\t')
-            samples = cols[9:] if len(cols) > 9 else []
             fout.write(line)
             header_done = True
             continue
@@ -399,23 +345,6 @@ def process_vcf(vcf_in, vcf_out, cfg, strict, classifications):
         info_d['HERVK_LAMBDA'] = f'{lam:.0f}'
         info_d['HERVK_NU']     = f'{nu:.0f}'
         fields[7] = info_to_str(info_d)
-
-        # Update FORMAT/per-sample with HERVK_AS.
-        if samples and len(fields) > 9:
-            svtype = info_d.get('SVTYPE', '')
-            fmt_keys = fields[8].split(':')
-            if 'HERVK_AS' not in fmt_keys:
-                fmt_keys.append('HERVK_AS')
-                fields[8] = ':'.join(fmt_keys)
-                try:
-                    gt_idx = fmt_keys.index('GT')
-                except ValueError:
-                    gt_idx = 0
-                for i in range(9, len(fields)):
-                    parts = fields[i].split(':') if fields[i] else ['.']
-                    gt = parts[gt_idx] if gt_idx < len(parts) else '.'
-                    parts.append(build_hervk_as(gt, klass, pmap, svtype, cfg))
-                    fields[i] = ':'.join(parts)
 
         fout.write('\t'.join(fields) + '\n')
 
