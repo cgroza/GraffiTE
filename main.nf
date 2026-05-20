@@ -4,6 +4,9 @@
 def versionFile = file("${baseDir}/version.txt")
 def pipelineVersion = versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : '1.1.0'
 
+// Expose version to process scripts (used for stamping VCF headers)
+params.graffite_version = pipelineVersion
+
 // 2. Define the revision (branch name)
 def pipelineRevision = workflow.revision ?: 'main'
 
@@ -82,7 +85,7 @@ workflow {
         [row.sample, file(row.path, checkIfExists:true)]}.map{sample -> sample[1]}.set{vcfs_variants_ch}
     }
 
-    truvari_merge(svim_variants_ch.mix(sn_variants_ch).mix(vcfs_variants_ch).collect(), ref_asm_ch).set{sv_variants_ch}
+    truvari_merge(svim_variants_ch.mix(sn_variants_ch).mix(vcfs_variants_ch).collect(), ref_asm_ch, false).set{sv_variants_ch}
   }
 
   // if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
@@ -99,7 +102,7 @@ workflow {
       if(params.longreads || params.bams || params.assemblies || params.svs){
         sv_variants_ch.set{raw_vcf_ch}
       } else if(params.vcf){
-        truvari_merge(Channel.fromPath(params.vcf, checkIfExists : true), ref_asm_ch).set{raw_vcf_ch}
+        truvari_merge(Channel.fromPath(params.vcf, checkIfExists : true), ref_asm_ch, true).set{raw_vcf_ch}
       } else {
         error "No --longreads, --assemblies, --vcf or --RM_dir parameters passed to GraffiTE."
       }

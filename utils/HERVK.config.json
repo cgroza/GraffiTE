@@ -1,0 +1,30 @@
+{
+  "_comment": "Optional overrides for bin/hervk_classify.py. Only keys present here override the script defaults; missing keys keep their defaults. Pass via --hervk_config <path> when running GraffiTE with --human.",
+
+  "sigmas": {
+    "s_C": 30.0,
+    "s_B": 800.0,
+    "s_A": 800.0,
+    "lam": 300.0,
+    "nu":  1000.0,
+    "t":   200.0
+  },
+
+  "priors": {
+    "C": 0.55,
+    "T": 0.08,
+    "B": 0.05,
+    "A": 0.02,
+    "X": 0.30
+  },
+
+  "t_min": 1500,
+  "t_max": 8000,
+
+  "sva_mimic_min": 250,
+  "sva_mimic_max": 400,
+
+  "pmap_min": 0.90,
+  "polyallelic_window": 100,
+  "as_min_posterior": 0.90
+}
