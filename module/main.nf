@@ -135,9 +135,11 @@ process truvari_merge {
   """
   if [[ "${from_vcf}" == "true" ]]; then
     if [[ "${vcfs}" == *.gz ]]; then
-      gunzip --force ${vcfs}
+      gunzip --force --stdout ${vcfs} > input_\$\$.vcf
+    else
+      cp ${vcfs} input_\$\$.vcf
     fi
-    shorten_ids.py --vcf_in *.vcf --vcf_out SVs.vcf
+    shorten_ids.py --vcf_in input_\$\$.vcf --vcf_out SVs.vcf
   else
 
   for f in ${vcfs}
@@ -148,8 +150,8 @@ process truvari_merge {
   num_files=\$(ls -1q ${vcfs} | wc -l)
 
   if [[ "\$num_files" -eq "1" ]]; then
-    gunzip --force ${vcfs}
-    shorten_ids.py --vcf_in *.vcf --vcf_out SVs.vcf
+    gunzip --force --stdout ${vcfs} > input_\$\$.vcf
+    shorten_ids.py --vcf_in input_\$\$.vcf --vcf_out SVs.vcf
   else
 
     for f in *.vcf.gz
