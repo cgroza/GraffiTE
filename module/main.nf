@@ -359,7 +359,7 @@ process tsd_report {
   cat ${y} > TSD_full_log.txt
   join -13 -21 <(grep -v "#" genotypes_repmasked_filtered.vcf | cut -f 1-5 | \
     sort -k3,3) <(grep 'PASS' TSD_summary.txt | \
-    awk '{print \$1"\t"\$toupper(NF-2)}' | sort -k1,1) | \
+    awk '{print \$1"\t"toupper(\$(NF-2))","toupper(\$(NF-1))}' | sort -k1,1) | \
     awk '{print \$2"\t"\$3"\t"\$1"\t"\$4"\t"\$5"\t"\$6}' | \
     sort -k1,1 -k2,2n > TSD_annotation
   HDR_FILE=header_file
