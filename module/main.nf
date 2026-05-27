@@ -134,12 +134,13 @@ process truvari_merge {
   script:
   """
   if [[ "${from_vcf}" == "true" ]]; then
+    # User-supplied --vcf: a single VCF, no truvari collapse needed.
+    # Pass IDs through unchanged (shorten_ids.py is only for collapse output).
     if [[ "${vcfs}" == *.gz ]]; then
-      gunzip --force --stdout ${vcfs} > input_\$\$.vcf
+      gunzip --force --stdout ${vcfs} > SVs.vcf
     else
-      cp ${vcfs} input_\$\$.vcf
+      cp ${vcfs} SVs.vcf
     fi
-    shorten_ids.py --vcf_in input_\$\$.vcf --vcf_out SVs.vcf
   else
 
   for f in ${vcfs}
@@ -150,8 +151,8 @@ process truvari_merge {
   num_files=\$(ls -1q ${vcfs} | wc -l)
 
   if [[ "\$num_files" -eq "1" ]]; then
-    gunzip --force --stdout ${vcfs} > input_\$\$.vcf
-    shorten_ids.py --vcf_in input_\$\$.vcf --vcf_out SVs.vcf
+    # Single caller VCF: no collapse, preserve original IDs.
+    gunzip --force --stdout ${vcfs} > SVs.vcf
   else
 
     for f in *.vcf.gz
