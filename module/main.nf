@@ -102,6 +102,42 @@ process sniffles_population_call {
   """
 }
 
+
+process pav_asm {
+  container "library://becklab/pav/pav:latest"
+  publishDir "${params.out}/1_SV_search/pav_individual_VCFs/", mode: 'copy'
+
+  input:
+  tuple val(sample_name), path(haps), path(ref)
+
+  output:
+  path("*.vcf.gz")
+
+  script:
+  """
+  echo "{\"reference\": \"${ref}\"}" > config.json
+
+  echo -n "NAME" > assemblies.tsv
+  i=1
+  for hap in ${haps}
+  do
+  echo -n "\t\${HAP}\${i}" >> assemblies.tsv
+  ((i++))
+  done
+  echo >> assemblies.tsv
+
+  echo -n "${sample_name}" >> assemblies.tsv
+  for hap in ${haps}
+  do
+  echo -n "\t\${hap}" >> assemblies.tsv
+  done
+  echo >> assemblies.tsv
+
+
+  /opt/pav/files/docker/run -c ${task.cpus}
+  """
+}
+
 process svim_asm {
   publishDir "${params.out}/1_SV_search/svim-asm_individual_VCFs/", mode: 'copy'
 
