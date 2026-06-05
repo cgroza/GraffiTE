@@ -115,6 +115,7 @@ process pav_asm {
 
   script:
   """
+  export XDG_CACHE_HOME=\$(pwd)
   echo "{\"reference\": \"${ref}\"}" > config.json
 
   echo -n "NAME" > assemblies.tsv
