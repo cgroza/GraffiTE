@@ -104,7 +104,6 @@ process sniffles_population_call {
 
 
 process pav_asm {
-  container "library://becklab/pav/pav:latest"
   publishDir "${params.out}/1_SV_search/pav_individual_VCFs/", mode: 'copy'
 
   input:
