@@ -116,13 +116,13 @@ process pav_asm {
   script:
   """
   export XDG_CACHE_HOME=\$(pwd)
-  echo "{\"reference\": \"${ref}\"}" > config.json
+  echo "{\\"reference\\": \\"${ref}\\"}" > config.json
 
   echo -n "NAME" > assemblies.tsv
   i=1
   for hap in ${haps}
   do
-  echo -n "\t\${HAP}\${i}" >> assemblies.tsv
+  echo -n "\tHAP\${i}" >> assemblies.tsv
   ((i++))
   done
   echo >> assemblies.tsv

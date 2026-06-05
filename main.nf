@@ -82,8 +82,8 @@ workflow {
     }
 
     if(params.pav) {
-      Channel.fromPath(params.pav).splitCsv(header:true).map{row ->
-        [row.sample, row[1..-1].collect({ file(it, checkIfExists:true) })]}.set{pav_in_ch}
+      Channel.fromPath(params.pav).splitCsv(header:false, skip:1).map{row ->
+        [row[0], row[1..-1].collect({ file(it, checkIfExists:true) })]}.set{pav_in_ch}
       pav_asm(pav_in_ch.combine(ref_asm_ch)).set{pav_variants_ch}
     }
 
