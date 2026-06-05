@@ -47,11 +47,11 @@ workflow {
     svim_variants_ch = channel.empty()
     pav_variants_ch = channel.empty()
     sn_variants_ch = channel.empty()
+    vcfs_variants_ch = channel.empty()
 
     if(params.longreads || params.bams) {
       sniffles_reads_in_ch = channel.empty()
       sniffles_bams_in_ch = channel.empty()
-      vcfs_variants_ch = channel.empty()
 
       if(params.longreads) {
         Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
@@ -83,7 +83,7 @@ workflow {
 
     if(params.pav) {
       Channel.fromPath(params.pav).splitCsv(header:true).map{row ->
-        [row.sample, row[1..].collect(file(it, checkIfExists:true))]}.set{pav_in_ch}
+        [row.sample, row[1..-1].collect(file(it, checkIfExists:true))]}.set{pav_in_ch}
       pav_asm(pav_in_ch.combine(ref_asm_ch)).set{pav_variants_ch}
     }
 
