@@ -110,7 +110,7 @@ process pav_asm {
   tuple val(sample_name), path(haps), path(ref)
 
   output:
-  path("*.vcf.gz")
+  path("sv_${sample_name}.vcf.gz")
 
   script:
   """
@@ -135,6 +135,7 @@ process pav_asm {
 
 
   /opt/pav/files/docker/run -c ${task.cpus}
+  bcftools filter -i 'INFO/SVLEN > 50' -Oz -o sv_${sample_name}.vcf.gz ${sample_name}.vcf.gz
   """
 }
 
