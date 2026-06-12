@@ -135,7 +135,7 @@ process pav_asm {
 
 
   /opt/pav/files/docker/run -c ${task.cpus}
-  bcftools filter -i 'INFO/SVLEN > 50' -Oz -o sv_${sample_name}.vcf.gz ${sample_name}.vcf.gz
+  bcftools filter -i 'ABS(INFO/SVLEN) > 50' -Oz -o sv_${sample_name}.vcf.gz ${sample_name}.vcf.gz
   """
 }
 
