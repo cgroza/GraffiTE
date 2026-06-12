@@ -102,6 +102,41 @@ process sniffles_population_call {
   """
 }
 
+
+process pav_asm {
+  publishDir "${params.out}/1_SV_search/pav_individual_VCFs/", mode: 'copy'
+
+  input:
+  tuple val(sample_name), path(haps), path(ref)
+
+  output:
+  path("sv_${sample_name}.vcf.gz")
+
+  script:
+  """
+  export XDG_CACHE_HOME=\$(pwd)
+  echo "{\\"reference\\": \\"${ref}\\"}" > config.json
+
+  printf 'NAME' > assemblies.tsv
+  i=1
+  for hap in ${haps}; do
+    printf '\tHAP%s' "${i}" >> assemblies.tsv
+    ((i++))
+  done
+  printf '\n' >> assemblies.tsv
+
+  printf '%s' "${sample_name}" >> assemblies.tsv
+  for hap in ${haps}; do
+    printf '\t%s' "${hap}" >> assemblies.tsv
+  done
+  printf '\n' >> assemblies.tsv
+
+
+  /opt/pav/files/docker/run -c ${task.cpus}
+  bcftools filter -i 'ABS(INFO/SVLEN) > 50' -Oz -o sv_${sample_name}.vcf.gz ${sample_name}.vcf.gz
+  """
+}
+
 process svim_asm {
   publishDir "${params.out}/1_SV_search/svim-asm_individual_VCFs/", mode: 'copy'
 

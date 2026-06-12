@@ -35,7 +35,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 include { index_graph; bamtags_to_BED; lift_epigenome; annotate_VCF; annotate_BED; merge_BED; BED_to_graph; merge_CSV } from './panmethyl/module/'
 
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
-         svim_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
+         svim_asm; pav_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
          tsd_search; tsd_report; pangenie_index; pangenie; make_graph; bam_to_fastq;
          graph_align_reads; vg_call; merge_VCFs } from './module'
 
@@ -45,12 +45,13 @@ workflow {
 
   if(!params.graffite_vcf && !params.vcf && !params.RM_dir) {
     svim_variants_ch = channel.empty()
+    pav_variants_ch = channel.empty()
     sn_variants_ch = channel.empty()
+    vcfs_variants_ch = channel.empty()
 
     if(params.longreads || params.bams) {
       sniffles_reads_in_ch = channel.empty()
       sniffles_bams_in_ch = channel.empty()
-      vcfs_variants_ch = channel.empty()
 
       if(params.longreads) {
         Channel.fromPath(params.longreads).splitCsv(header:true).map{row ->
@@ -80,12 +81,18 @@ workflow {
       svim_asm(map_asm(map_asm_in_ch.combine(ref_asm_ch))).map{sample -> sample[1]}.set{svim_variants_ch}
     }
 
+    if(params.pav) {
+      Channel.fromPath(params.pav).splitCsv(header:false, skip:1).map{row ->
+        [row[0], row[1..-1].collect({ file(it, checkIfExists:true) })]}.set{pav_in_ch}
+      pav_asm(pav_in_ch.combine(ref_asm_ch)).set{pav_variants_ch}
+    }
+
     if(params.svs) {
       Channel.fromPath(params.svs).splitCsv(header:true).map{row ->
         [row.sample, file(row.path, checkIfExists:true)]}.map{sample -> sample[1]}.set{vcfs_variants_ch}
     }
 
-    truvari_merge(svim_variants_ch.mix(sn_variants_ch).mix(vcfs_variants_ch).collect(), ref_asm_ch, false).set{sv_variants_ch}
+    truvari_merge(svim_variants_ch.mix(sn_variants_ch).mix(vcfs_variants_ch).mix(pav_variants_ch).collect(), ref_asm_ch, false).set{sv_variants_ch}
   }
 
   // if the user doesn't provide a VCF already made by GraffiTE with --graffite_vcf, use RepeatMasker to annotate repeats
@@ -99,12 +106,12 @@ workflow {
     } else {
       Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
-      if(params.longreads || params.bams || params.assemblies || params.svs){
+      if(params.longreads || params.bams || params.assemblies || params.pav || params.svs){
         sv_variants_ch.set{raw_vcf_ch}
       } else if(params.vcf){
         truvari_merge(Channel.fromPath(params.vcf, checkIfExists : true), ref_asm_ch, true).set{raw_vcf_ch}
       } else {
-        error "No --longreads, --assemblies, --vcf or --RM_dir parameters passed to GraffiTE."
+        error "No --longreads, --assemblies, --pav, --vcf or --RM_dir parameters passed to GraffiTE."
       }
       repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch))
       repeatmask_VCF.out.vcf.set{RM_ch}
