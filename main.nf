@@ -175,7 +175,7 @@ workflow {
 
       if (params.vcfs) {
         Channel.fromPath(params.vcfs).splitCsv(header : true).map{
-          row -> [row.sample, file(row.path, checkIfExists: true).toSorted()]}.set{indexed_vg_call_vcfs}
+          row -> [row.sample, file(row.path, checkIfExists: true)]}.set{indexed_vg_call_vcfs}
       } else {
         reads_ch.combine(graph_index_ch).set{reads_align_ch}
         graph_align_reads(reads_align_ch, graph_method).set{aligned_ch}
@@ -187,10 +187,10 @@ workflow {
         index_graph(graph_index_ch.map(p -> p / 'index.gfa'),
                     channel.value(params.motif)).set{indexed_graph_ch}
 
-        mods_csv_ch = channel.empty()
+        lifted_mods_ch = channel.empty()
         if (params.lifted) {
           Channel.fromPath(params.lifted).splitCsv(header : true)
-            .map{row -> [row.sample, file(row.path, checkIfExists : true)]}.set{mods_csv_ch}
+            .map{row -> [row.sample, file(row.path, checkIfExists : true)]}.set{lifted_mods_ch}
         }
         else {
           reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}
@@ -199,9 +199,9 @@ workflow {
 
           lift_epigenome(mods_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0).combine(indexed_graph_ch)).set{lifted_mods_ch}
 
-          merge_CSV(lifted_mods_ch.groupTuple(by: 0).combine(indexed_graph_ch)).set{mods_csv_ch}
         }
 
+        merge_CSV(lifted_mods_ch.groupTuple(by: 0).combine(indexed_graph_ch)).set{mods_csv_ch}
         annotate_VCF(indexed_vg_call_vcfs.map{v -> [v[0], v[1][0]]}.combine(mods_csv_ch, by: 0)).map{it -> [it[0], it[1]]}.set{indexed_vcfs}
 
         if(params.bed) {
