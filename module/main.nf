@@ -492,7 +492,13 @@ process bam_to_fastq {
 
   script:
   """
-  samtools sort -n -@ ${task.cpus} ${sample_reads} | samtools fastq -@ ${task.cpus} - | pigz > ${sample_reads.baseName}.fq.gz
+
+  samtools view -h ${sample_reads} \
+    | awk 'BEGIN{OFS="\t"} /^@/{print; next} {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11}' \
+    | samtools view -bS - \
+    | samtools sort -n -@ ${task.cpus} - \
+    | samtools fastq -@ ${task.cpus} - \
+    | pigz > ${sample_reads.baseName}.fq.gz
   """
 }
 
