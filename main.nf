@@ -175,7 +175,7 @@ workflow {
 
       if (params.vcfs) {
         Channel.fromPath(params.vcfs).splitCsv(header : true).map{
-          row -> [row.sample, file(row.path, checkIfExists: true)]}.set{indexed_vg_call_vcfs}
+          row -> [row.sample, file(row.path, checkIfExists: true).toSorted()]}.set{indexed_vg_call_vcfs}
       } else {
         reads_ch.combine(graph_index_ch).set{reads_align_ch}
         graph_align_reads(reads_align_ch, graph_method).set{aligned_ch}
