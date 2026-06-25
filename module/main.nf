@@ -117,21 +117,19 @@ process pav_asm {
   export XDG_CACHE_HOME=\$(pwd)
   echo "{\\"reference\\": \\"${ref}\\"}" > config.json
 
-  echo -n "NAME" > assemblies.tsv
+  printf 'NAME' > assemblies.tsv
   i=1
-  for hap in ${haps}
-  do
-  echo -n "\tHAP\${i}" >> assemblies.tsv
-  ((i++))
+  for hap in ${haps}; do
+    printf '\tHAP%s' "${i}" >> assemblies.tsv
+    ((i++))
   done
-  echo >> assemblies.tsv
+  printf '\n' >> assemblies.tsv
 
-  echo -n "${sample_name}" >> assemblies.tsv
-  for hap in ${haps}
-  do
-  echo -n "\t\${hap}" >> assemblies.tsv
+  printf '%s' "${sample_name}" >> assemblies.tsv
+  for hap in ${haps}; do
+    printf '\t%s' "${hap}" >> assemblies.tsv
   done
-  echo >> assemblies.tsv
+  printf '\n' >> assemblies.tsv
 
 
   /opt/pav/files/docker/run -c ${task.cpus}
