@@ -120,14 +120,14 @@ process pav_asm {
   printf 'NAME' > assemblies.tsv
   i=1
   for hap in ${haps}; do
-    printf '\tHAP%s' "${i}" >> assemblies.tsv
+    printf '\tHAP%s' "\${i}" >> assemblies.tsv
     ((i++))
   done
   printf '\n' >> assemblies.tsv
 
   printf '%s' "${sample_name}" >> assemblies.tsv
   for hap in ${haps}; do
-    printf '\t%s' "${hap}" >> assemblies.tsv
+    printf '\t%s' "\${hap}" >> assemblies.tsv
   done
   printf '\n' >> assemblies.tsv
 
