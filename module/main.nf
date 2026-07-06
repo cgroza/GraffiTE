@@ -209,7 +209,7 @@ process truvari_merge {
     collapse_shard() {
         local shard="\$1"
         local base
-        base=$(basename "\${shard}" .vcf.gz)
+        base=\$(basename "\${shard}" .vcf.gz)
         truvari collapse \
             --chain -P 0.5 -p 0.5 -S -1 -k common \
             -i "\${shard}" \
