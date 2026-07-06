@@ -190,15 +190,53 @@ process truvari_merge {
     gunzip --force --stdout ${vcfs} > SVs.vcf
   else
 
-    for f in *.vcf.gz
+  for f in *.vcf.gz
   do
-  bcftools annotate -x INFO \${f} -Oz -o stripped_\${f}
-  tabix stripped_\${f}
-  done
+    bcftools annotate -x INFO \${f} -Oz -o stripped_\${f}
+    tabix stripped_\${f}
+    done
 
-  bcftools merge -Oz -m none -o merged.vcf.gz stripped_*.vcf.gz
-  tabix merged.vcf.gz
-  truvari collapse --chain -P 0.5 -p 0.5 -S -1 -k common -i merged.vcf.gz -o truvari_merged.vcf
+    bcftools merge -Oz -m none -o merged.vcf.gz stripped_*.vcf.gz
+    tabix merged.vcf.gz
+
+    mkdir -p shards collapsed
+    truvari divide -o shards/ merged.vcf.gz
+
+    for shard in shards/*.vcf.gz; do
+        [[ -f "\${shard}.tbi" ]] || tabix "\${shard}"
+    done
+
+    collapse_shard() {
+        local shard="\$1"
+        local base
+        base=$(basename "\${shard}" .vcf.gz)
+        truvari collapse \
+            --chain -P 0.5 -p 0.5 -S -1 -k common \
+            -i "\${shard}" \
+            -o "collapsed/\${base}.vcf"
+        bgzip "collapsed/\${base}.vcf"
+        tabix "collapsed/\${base}.vcf.gz"
+    }
+    export -f collapse_shard
+
+    printf '%s\n' shards/*.vcf.gz | \
+    xargs -P "${task.cpus}" -I{} bash -c '
+    shard="{}"
+    base=\$(basename "\${shard}" .vcf.gz)
+    truvari collapse \
+      --chain -P 0.5 -p 0.5 -S -1 -k common \
+      -i "\${shard}" \
+      -o "collapsed/\${base}.vcf"
+    bgzip "collapsed/\${base}.vcf"
+    tabix "collapsed/\${base}.vcf.gz"
+    '
+
+    bcftools concat -Oz -o unsorted.vcf.gz \
+      \$(find collapsed/ -name '*.vcf.gz' | sort -V)
+    bcftools sort  -Oz -o truvari_merged.vcf.gz unsorted.vcf.gz
+    tabix truvari_merged.vcf.gz
+    rm unsorted.vcf.gz
+
     bcftools +setGT truvari_merged.vcf -- -t . -n 0 | bcftools norm -f ${ref} | \
     bcftools +fill-tags - -Ov -o truvari_merged_filled.vcf -- -t 'SVLEN=strlen(ALT)-strlen(REF)'
     shorten_ids.py --vcf_in  truvari_merged_filled.vcf --vcf_out SVs.vcf
