@@ -198,7 +198,7 @@ process truvari_merge {
     bcftools merge -Oz -m none -o merged.vcf.gz stripped_*.vcf.gz
     tabix merged.vcf.gz
 
-    mkdir -p shards collapsed
+    mkdir -p collapsed
     truvari divide -T ${task.cpus} merged.vcf.gz shards
 
     for shard in shards/*.vcf.gz; do
