@@ -206,19 +206,6 @@ process truvari_merge {
         [[ -f "\${shard}.tbi" ]] || tabix "\${shard}"
     done
 
-    collapse_shard() {
-        local shard="\$1"
-        local base
-        base=\$(basename "\${shard}" .vcf.gz)
-        truvari collapse \
-            --chain -P 0.5 -p 0.5 -S -1 -k common \
-            -i "\${shard}" \
-            -o "collapsed/\${base}.vcf"
-        bgzip "collapsed/\${base}.vcf"
-        tabix "collapsed/\${base}.vcf.gz"
-    }
-    export -f collapse_shard
-
     printf '%s\n' shards/*.vcf.gz | \
     xargs -P "${task.cpus}" -I{} bash -c '
     shard="{}"
