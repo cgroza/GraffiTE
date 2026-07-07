@@ -186,7 +186,6 @@ process truvari_merge {
   num_files=\$(ls -1q ${vcfs} | wc -l)
 
   if [[ "\$num_files" -eq "1" ]]; then
-    # Single caller VCF: no collapse, preserve original IDs.
     gunzip --force --stdout ${vcfs} > SVs.vcf
   else
 
@@ -200,7 +199,7 @@ process truvari_merge {
     tabix merged.vcf.gz
 
     mkdir -p shards collapsed
-    truvari divide -o shards/ merged.vcf.gz
+    truvari divide merged.vcf.gz shards
 
     for shard in shards/*.vcf.gz; do
         [[ -f "\${shard}.tbi" ]] || tabix "\${shard}"
