@@ -199,7 +199,7 @@ process truvari_merge {
     tabix merged.vcf.gz
 
     mkdir -p shards collapsed
-    truvari divide merged.vcf.gz shards
+    truvari divide -T ${task.cpus} merged.vcf.gz shards
 
     for shard in shards/*.vcf.gz; do
         [[ -f "\${shard}.tbi" ]] || tabix "\${shard}"
