@@ -212,9 +212,13 @@ process truvari_merge {
     truvari collapse \
       --chain -P 0.5 -p 0.5 -S -1 -k common \
       -i "\${shard}" \
-      -o "collapsed/\${base}.vcf"
-    bgzip "collapsed/\${base}.vcf"
-    tabix "collapsed/\${base}.vcf.gz"
+      -o "collapsed/\${base}.vcf" && \
+      bcftools sort \
+      -o "collapsed/\${base}.sorted.vcf.gz" \
+      -O z \
+      "collapsed/\${base}.vcf" && \
+      bcftools index --tbi "collapsed/\${base}.sorted.vcf.gz" && \
+      rm "collapsed/\${base}.vcf"
     '
 
     bcftools concat -Oz -o unsorted.vcf.gz \
