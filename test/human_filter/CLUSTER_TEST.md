@@ -81,8 +81,12 @@ and wait for confirmation before launching.**
 git clone -b v1.1dev-human-filter https://github.com/cgroza/GraffiTE.git
 # reuse the cached image if $NXF_SINGULARITY_CACHEDIR already has it, otherwise:
 singularity pull graffite.sif library://cgroza/collection/graffite:latest
-singularity exec graffite.sif bash GraffiTE/test/human_filter/run_test.sh
+singularity exec --bind "$PWD" graffite.sif bash GraffiTE/test/human_filter/run_test.sh
 ```
+
+(`--bind "$PWD"` because this is a manual `singularity exec` and does not inherit the
+`singularity.runOptions` the pipeline uses. If the clone sits outside an auto-mounted
+path you will otherwise get "No such file or directory" rather than a test failure.)
 
 Expected — 7 `ok` lines and `all human filter tests passed`:
 
