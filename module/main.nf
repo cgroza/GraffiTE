@@ -529,6 +529,7 @@ process bam_to_fastq {
 }
 
 process graph_align_reads {
+  publishDir "${params.out}/GraffiTE_alignments/", mode: 'copy'
   input:
   tuple val(sample_name), path(sample_reads), val(preset), path("index")
   val(graph_method)

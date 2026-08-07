@@ -177,8 +177,14 @@ workflow {
         Channel.fromPath(params.vcfs).splitCsv(header : true).map{
           row -> [row.sample, file(row.path, checkIfExists: true).toSorted()]}.set{indexed_vg_call_vcfs}
       } else {
-        reads_ch.combine(graph_index_ch).set{reads_align_ch}
-        graph_align_reads(reads_align_ch, graph_method).set{aligned_ch}
+        aligned_ch = channel.empty()
+        if(params.graph_alignments) {
+          Channel.fromPath(params.graph_alignments).splitCsv(header : true).map{
+            row -> [row.sample, file(row.gaf , checkIfExists: true), file(row.pack, checkIfExists: true)]}.set{aligned_ch}
+        } else {
+          reads_ch.combine(graph_index_ch).set{reads_align_ch}
+          graph_align_reads(reads_align_ch, graph_method).set{aligned_ch}
+        }
         aligned_ch.combine(graph_index_ch).set{graph_pack_ch}
         vg_call(graph_pack_ch, graph_method).set{indexed_vg_call_vcfs}
       }
@@ -194,9 +200,7 @@ workflow {
         }
         else {
           reads_input_ch.bam.map{row -> [row[0], row[1]]}.set{epigenome_ch}
-
           bamtags_to_BED(epigenome_ch, channel.value(params.code)).set{mods_ch}
-
           lift_epigenome(mods_ch.combine(aligned_ch.map{it -> [it[0], it[1]]}, by: 0).combine(indexed_graph_ch)).set{lifted_mods_ch}
 
         }
