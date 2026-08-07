@@ -25,10 +25,10 @@ Usage examples:
         --tsv-out pangenome.presence-absence.hervk.tsv \\
         --summary hervk_polymorphism_summary.md
 
-    # Strict-filter the trusted/human VCF + TSV
+    # Strict-filter the human pME VCF + TSV
     hervk_classify.py --strict \\
-        --vcf-in pangenome.trusted.human.vcf \\
-        --vcf-out pangenome.trusted.human.hervk.vcf \\
+        --vcf-in pangenome.human.vcf \\
+        --vcf-out pangenome.human.hervk.vcf \\
         --tsv-in pangenome.presence-absence_human.tsv \\
         --tsv-out pangenome.presence-absence_human.hervk.tsv
 """
