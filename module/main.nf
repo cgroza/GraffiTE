@@ -186,19 +186,47 @@ process truvari_merge {
   num_files=\$(ls -1q ${vcfs} | wc -l)
 
   if [[ "\$num_files" -eq "1" ]]; then
-    # Single caller VCF: no collapse, preserve original IDs.
     gunzip --force --stdout ${vcfs} > SVs.vcf
   else
 
-    for f in *.vcf.gz
+  for f in *.vcf.gz
   do
-  bcftools annotate -x INFO \${f} -Oz -o stripped_\${f}
-  tabix stripped_\${f}
-  done
+    bcftools annotate -x INFO \${f} -Oz -o stripped_\${f}
+    tabix stripped_\${f}
+    done
 
-  bcftools merge -Oz -m none -o merged.vcf.gz stripped_*.vcf.gz
-  tabix merged.vcf.gz
-  truvari collapse --chain -P 0.5 -p 0.5 -S -1 -k common -i merged.vcf.gz -o truvari_merged.vcf
+    bcftools merge -Oz -m none -o merged.vcf.gz stripped_*.vcf.gz
+    tabix merged.vcf.gz
+
+    mkdir -p collapsed
+    truvari divide -T ${task.cpus} merged.vcf.gz shards
+
+    for shard in shards/*.vcf.gz; do
+        [[ -f "\${shard}.tbi" ]] || tabix "\${shard}"
+    done
+
+    printf '%s\n' shards/*.vcf.gz | \
+    xargs -P "${task.cpus}" -I{} bash -c '
+    shard="{}"
+    base=\$(basename "\${shard}" .vcf.gz)
+    truvari collapse \
+      --chain -P 0.5 -p 0.5 -S -1 -k common \
+      -i "\${shard}" \
+      -o "collapsed/\${base}.vcf" && \
+      bcftools sort \
+      -o "collapsed/\${base}.sorted.vcf.gz" \
+      -O z \
+      "collapsed/\${base}.vcf" && \
+      bcftools index --tbi "collapsed/\${base}.sorted.vcf.gz" && \
+      rm "collapsed/\${base}.vcf"
+    '
+
+    bcftools concat -Oz -o unsorted.vcf.gz \
+      \$(find collapsed/ -name '*.vcf.gz' | sort -V)
+    bcftools sort  -Oz -o truvari_merged.vcf.gz unsorted.vcf.gz
+    tabix truvari_merged.vcf.gz
+    rm unsorted.vcf.gz
+
     bcftools +setGT truvari_merged.vcf -- -t . -n 0 | bcftools norm -f ${ref} | \
     bcftools +fill-tags - -Ov -o truvari_merged_filled.vcf -- -t 'SVLEN=strlen(ALT)-strlen(REF)'
     shorten_ids.py --vcf_in  truvari_merged_filled.vcf --vcf_out SVs.vcf
@@ -490,7 +518,13 @@ process bam_to_fastq {
 
   script:
   """
-  samtools sort -n -@ ${task.cpus} ${sample_reads} | samtools fastq -@ ${task.cpus} - | pigz > ${sample_reads.baseName}.fq.gz
+
+  samtools view -h ${sample_reads} \
+    | awk 'BEGIN{OFS="\t"} /^@/{print; next} {print \$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10,\$11}' \
+    | samtools view -bS - \
+    | samtools sort -n -@ ${task.cpus} - \
+    | samtools fastq -@ ${task.cpus} - \
+    | pigz > ${sample_reads.baseName}.fq.gz
   """
 }
 
