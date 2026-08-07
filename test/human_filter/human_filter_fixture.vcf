@@ -1,0 +1,31 @@
+##fileformat=VCFv4.2
+##contig=<ID=chr1,length=100000>
+##INFO=<ID=SVLEN,Number=1,Type=Integer,Description="Length of the SV">
+##INFO=<ID=n_hits,Number=1,Type=Integer,Description="Number of repeats found in insertion">
+##INFO=<ID=match_lengths,Number=.,Type=Integer,Description="Insertion lengths spanned by each repeat">
+##INFO=<ID=repeat_ids,Number=.,Type=String,Description="Repeat family IDs">
+##INFO=<ID=matching_classes,Number=.,Type=String,Description="Repeat class names">
+##INFO=<ID=ULTRA_TR_span,Number=1,Type=Float,Description="Fraction of the variant covered by tandem repeats">
+##INFO=<ID=polyA,Number=1,Type=String,Description="polyA tail detected">
+##FILTER=<ID=PASS,Description="All filters passed">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	1000	AluY	A	<INS>	.	PASS	SVLEN=312;n_hits=1;match_lengths=310;repeat_ids=AluYa5(x);matching_classes=SINE/Alu;ULTRA_TR_span=0.05;polyA=TRUE
+chr1	2000	AluSx	A	<INS>	.	PASS	SVLEN=298;n_hits=1;match_lengths=295;repeat_ids=AluSx;matching_classes=SINE/Alu;ULTRA_TR_span=0.05;polyA=TRUE
+chr1	3000	L1HS	A	<INS>	.	PASS	SVLEN=6019;n_hits=1;match_lengths=6015;repeat_ids=L1HS;matching_classes=LINE/L1;ULTRA_TR_span=0.02;polyA=TRUE
+chr1	4000	L1PA2	A	<INS>	.	PASS	SVLEN=6035;n_hits=1;match_lengths=6025;repeat_ids=L1PA2;matching_classes=LINE/L1;ULTRA_TR_span=0.02;polyA=TRUE
+chr1	5000	SVAD	A	<INS>	.	PASS	SVLEN=855;n_hits=1;match_lengths=850;repeat_ids=SVA_D(VNTR_only);matching_classes=Simple_repeat;ULTRA_TR_span=0.95;polyA=TRUE
+chr1	6000	SVAF	A	<INS>	.	PASS	SVLEN=1400;n_hits=1;match_lengths=1390;repeat_ids=SVA_F;matching_classes=Retroposon/SVA;ULTRA_TR_span=0.30;polyA=TRUE
+chr1	7000	SVAA	A	<INS>	.	PASS	SVLEN=1300;n_hits=1;match_lengths=1290;repeat_ids=SVA_A;matching_classes=Retroposon/SVA;ULTRA_TR_span=0.30;polyA=TRUE
+chr1	8000	LTR5Hs	A	<INS>	.	PASS	SVLEN=968;n_hits=1;match_lengths=966;repeat_ids=LTR5_Hs;matching_classes=LTR/ERVK;ULTRA_TR_span=0.01;polyA=FALSE
+chr1	9000	HERVKint	A	<INS>	.	PASS	SVLEN=8504;n_hits=1;match_lengths=8502;repeat_ids=HERVK-int(x);matching_classes=LTR/ERVK;ULTRA_TR_span=0.01;polyA=FALSE
+chr1	10000	HERVK9	A	<INS>	.	PASS	SVLEN=5668;n_hits=1;match_lengths=5660;repeat_ids=HERVK9-int;matching_classes=LTR/ERVK;ULTRA_TR_span=0.01;polyA=FALSE
+chr1	11000	PAIRfwd	A	<INS>	.	PASS	SVLEN=8229;n_hits=2;match_lengths=8199,327;repeat_ids=HERVK-int(x),SVA_A;matching_classes=LTR/ERVK,Retroposon/SVA;ULTRA_TR_span=0.02;polyA=FALSE
+chr1	12000	PAIRrev	A	<INS>	.	PASS	SVLEN=8504;n_hits=2;match_lengths=172,8328;repeat_ids=SVA_A,HERVK-int(x);matching_classes=Retroposon/SVA,LTR/ERVK;ULTRA_TR_span=0.02;polyA=FALSE
+chr1	13000	PAIRbig	A	<INS>	.	PASS	SVLEN=20000;n_hits=2;match_lengths=19700,300;repeat_ids=HERVK-int(x),SVA_A;matching_classes=LTR/ERVK,Retroposon/SVA;ULTRA_TR_span=0.02;polyA=FALSE
+chr1	14000	PAIRother	A	<INS>	.	PASS	SVLEN=3000;n_hits=2;match_lengths=290,2700;repeat_ids=AluSx,L1PA7;matching_classes=SINE/Alu,LINE/L1;ULTRA_TR_span=0.02;polyA=TRUE
+chr1	15000	AluYshort	A	<INS>	.	PASS	SVLEN=140;n_hits=1;match_lengths=138;repeat_ids=AluY;matching_classes=SINE/Alu;ULTRA_TR_span=0.05;polyA=TRUE
+chr1	16000	AluYnopolyA	A	<INS>	.	PASS	SVLEN=310;n_hits=1;match_lengths=305;repeat_ids=AluY;matching_classes=SINE/Alu;ULTRA_TR_span=0.05;polyA=FALSE
+chr1	17000	AluYnopass	A	<INS>	.	.	SVLEN=310;n_hits=1;match_lengths=305;repeat_ids=AluY;matching_classes=SINE/Alu;ULTRA_TR_span=0.05;polyA=TRUE
+chr1	18000	AluYtr	A	<INS>	.	PASS	SVLEN=320;n_hits=1;match_lengths=315;repeat_ids=AluY;matching_classes=SINE/Alu;ULTRA_TR_span=0.80;polyA=TRUE
+chr1	19000	L1HSdel	A	<DEL>	.	PASS	SVLEN=-6019;n_hits=1;match_lengths=6015;repeat_ids=L1HS;matching_classes=LINE/L1;ULTRA_TR_span=0.02;polyA=TRUE
+chr1	20000	LTR5	A	<INS>	.	PASS	SVLEN=970;n_hits=1;match_lengths=965;repeat_ids=LTR5;matching_classes=LTR/ERVK;ULTRA_TR_span=0.01;polyA=FALSE

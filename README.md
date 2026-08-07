@@ -38,8 +38,9 @@
 - :sparkles: **`--repeat_span_cutoff`** (default `0.80`) exposes this threshold to users.
 - :sparkles: **polyA tail detection:** a new INFO field `polyA=TRUE/FALSE/NA` is added to `pangenome.vcf`. For single-hit TE insertions/deletions (`n_hits=1`), the tool trims any exact case-insensitive TSD suffix/prefix from the variant sequence and scans for an A-rich window (≥8 bp, ≥80% A) anchored to the appropriate end (3' for `+` strand hits, 5' for `C` strand, as polyT). `NA` when `n_hits>1`.
 - :sparkles: **`--svs` input:** a new CSV option to pass per-sample VCFs directly (skipping assembly/long-read alignment and SV discovery). See [Input files](#input-files).
-- :sparkles: **Trusted-subset outputs and presence-absence TSVs:** `3_TSD_search/` now also emits `pangenome.trusted.vcf` (+ `pangenome.trusted.human.vcf` with `--human`) and matching `*.presence-absence*.tsv` tables. `pangenome.vcf` `FILTER` column flags trusted records as `PASS` (`.` otherwise). New params: `--trusted_min_svlen` (default 250), `--trusted_max_ultra_span` (default 0.6), `--human`. See [Trusted subsets and presence-absence TSVs](#trusted-subsets-and-presence-absence-tsvs).
-- :sparkles: **HERV-K (HML-2) insertion classifier (`--human` only):** every HERV-K-overlapping SV is post-classified into one of five hypotheses (null↔solo, truncated proviral, solo↔proviral, null↔proviral, other) using a Bayesian model with literature-informed priors. Adds `INFO/HERVK_CLASS`, `INFO/HERVK_PMAP`, `INFO/HERVK_LAMBDA`, `INFO/HERVK_NU` and per-sample `FORMAT/HERVK_AS` (allelic state per haplotype) to the VCF outputs; appends matching columns to the TSV outputs; emits `hervk_polymorphism_summary.md` with per-class counts, posterior confidence distribution, and polyallelic-site flags. Trusted/human outputs additionally drop low-confidence HERV-K calls (class==`other` or pmap<0.90 by default). Defaults can be overridden via `--hervk_config <file>` (template at `utils/HERVK.config.json`). See [HERV-K (HML-2) insertion classifier](#herv-k-hml-2-insertion-classifier---human-only).
+- :warning: **`--human` no longer derives from the trusted subset (breaking):** the human output is now built directly from `pangenome.vcf` by its own polymorphic-MEI filter and is named **`pangenome.human.vcf`** (was `pangenome.trusted.human.vcf`); `pangenome.trusted.vcf` and `pangenome.presence-absence_trusted.tsv` are **not produced** in `--human` runs. The filter keeps only young subfamilies — `AluY*`, `L1HS`, `SVA_D/E/F`, and the strict HML-2 lineage (`HERVK-int`, `LTR5_Hs`, `LTR5A`, `LTR5B`) — instead of whole TE classes, and admits the `n_hits==2` `HERVK-int`+`SVA` proviral pattern that the `n_hits==1` rule used to discard. Whitelists and thresholds are exposed as params (`--human_alu_ids`, `--human_l1_ids`, `--human_sva_ids`, `--human_hervk_ids`, `--human_min_svlen`, `--human_max_ultra_span`, `--human_ignore_filter`, `--hervk_sva_pair`, `--hervk_pair_max_svlen`). A `human_filter_summary.txt` reporting kept and dropped subfamilies is written next to the VCF. See [The `--human` pME subset](#the---human-pme-subset).
+- :sparkles: **Trusted-subset outputs and presence-absence TSVs:** `3_TSD_search/` now also emits `pangenome.trusted.vcf` (non-`--human` runs) and matching `*.presence-absence*.tsv` tables. `pangenome.vcf` `FILTER` column flags trusted records as `PASS` (`.` otherwise). New params: `--trusted_min_svlen` (default 250), `--trusted_max_ultra_span` (default 0.6), `--human`. See [Trusted subsets and presence-absence TSVs](#trusted-subsets-and-presence-absence-tsvs).
+- :sparkles: **HERV-K (HML-2) insertion classifier (`--human` only):** every HERV-K-overlapping SV is post-classified into one of five hypotheses (null↔solo, truncated proviral, solo↔proviral, null↔proviral, other) using a Bayesian model with literature-informed priors. Adds `INFO/HERVK_CLASS`, `INFO/HERVK_PMAP`, `INFO/HERVK_LAMBDA`, `INFO/HERVK_NU` and per-sample `FORMAT/HERVK_AS` (allelic state per haplotype) to the VCF outputs; appends matching columns to the TSV outputs; emits `hervk_polymorphism_summary.md` with per-class counts, posterior confidence distribution, and polyallelic-site flags. The human output additionally drops low-confidence HERV-K calls (class==`other` or pmap<0.90 by default). Defaults can be overridden via `--hervk_config <file>` (template at `utils/HERVK.config.json`). See [HERV-K (HML-2) insertion classifier](#herv-k-hml-2-insertion-classifier---human-only).
 - :wrench: **`--mammal` discontinued:** the option is removed. L1 5' inversion detection and SVA VNTR-only handling are now **always on** and systematically reported for all runs.
 - :wrench: **L1 5' inversion reported as `INFO/L1_5PINV`:** the old `mam_filter_1=5P_INV` flag is replaced by `L1_5PINV`, whose value is the RepeatMasker hit ID(s) of the L1 fragment flagged (or `None`). Detection rule: a LINE/L1 with two fragments sharing the same hit ID but opposite strands (`C,+`), i.e. the twin-priming signature.
 - :wrench: **SVA VNTR-only reclassified:** insertions whose RepeatMasker hit falls entirely within the VNTR region of an SVA consensus are reclassified from `Retroposon/SVA` to `Simple_repeat` (and the family name is suffixed accordingly). This prevents VNTR-only length polymorphisms from being mistakenly counted as SVA MEI. The old `mam_filter_2=SVA_VNTR` field is removed.
@@ -379,7 +380,13 @@ AND (always required)
 - `--repeat_span_cutoff`: minimum fraction of a variant that must be covered by the non-redundant union of RepeatMasker TE hits and ULTRA tandem repeats (`INFO/total_repeat_span`) to be kept in the pangenome VCF. Default `0.80`.
 - `--trusted_min_svlen`: minimum absolute SV length (bp) for a variant to be part of the "trusted" subset. Default `250`. See [Trusted subsets and presence-absence TSVs](#trusted-subsets-and-presence-absence-tsvs).
 - `--trusted_max_ultra_span`: maximum `ULTRA_TR_span` allowed for a variant to be part of the "trusted" subset (filters out variants dominated by tandem repeats, which are more likely to be length polymorphisms than true MEI). Default `0.6`.
-- `--human`: `true` or `false`. When `true`, also emit `pangenome.trusted.human.vcf` and `pangenome.presence-absence_human.tsv`, restricted to the main human MEI classes (LINE/L1, SINE/Alu, Retroposon/SVA, SVA-VNTR as Simple_repeat, LTR/HERVK). In addition, the HERV-K (HML-2) classifier is run on every HERV-K-overlapping SV: it adds `INFO/HERVK_CLASS`, `INFO/HERVK_PMAP`, `INFO/HERVK_LAMBDA`, `INFO/HERVK_NU` and a per-sample `FORMAT/HERVK_AS` field, drops low-confidence HERV-K calls from the trusted/human outputs, and writes `hervk_polymorphism_summary.md` to `3_TSD_search/`. See [HERV-K (HML-2) insertion classifier](#herv-k-hml-2-insertion-classifier---human-only). Default `false`.
+- `--human`: `true` or `false`. When `true`, GraffiTE emits `pangenome.human.vcf` and `pangenome.presence-absence_human.tsv` **instead of** the trusted subset, filtered for polymorphic mobile elements: young subfamilies only (`AluY*`, `L1HS`, `SVA_D/E/F`, HML-2), a single RepeatMasker hit, plus the `HERVK-int`+`SVA` proviral exception. In addition, the HERV-K (HML-2) classifier is run on every HERV-K-overlapping SV: it adds `INFO/HERVK_CLASS`, `INFO/HERVK_PMAP`, `INFO/HERVK_LAMBDA`, `INFO/HERVK_NU` and a per-sample `FORMAT/HERVK_AS` field, drops low-confidence HERV-K calls from the human output, and writes `hervk_polymorphism_summary.md` to `3_TSD_search/`. See [The `--human` pME subset](#the---human-pme-subset) and [HERV-K (HML-2) insertion classifier](#herv-k-hml-2-insertion-classifier---human-only). Default `false`.
+- `--human_alu_ids`, `--human_l1_ids`, `--human_sva_ids`, `--human_hervk_ids`: comma-separated lists of regexes matched against `INFO/repeat_ids` to define the retained subfamilies. Defaults `^AluY`, `^L1HS`, `^SVA_[DEF]`, `^HERVK-int,^LTR5_Hs,^LTR5A,^LTR5B`. Setting one to the empty string keeps its whole class. Only used when `--human`. See [The `--human` pME subset](#the---human-pme-subset).
+- `--human_min_svlen`: minimum absolute SV length (bp) for `pangenome.human.vcf`. Default `250` (independent of `--trusted_min_svlen`; lower it to keep short 5'-truncated Alu insertions and short SVA-VNTR expansions).
+- `--human_max_ultra_span`: maximum `ULTRA_TR_span` for `pangenome.human.vcf`, waived for `Simple_repeat` (SVA-VNTR) records. Default `0.6`.
+- `--human_ignore_filter`: if `true`, do not require `FILTER=="PASS"` for the human subset. Default `false`.
+- `--hervk_sva_pair`: if `true`, admit `n_hits==2` records annotated `HERVK-int` + SVA into the human subset. These are HML-2 proviral SVs where RepeatMasker assigns part of the LTR to SVA (`SVA_A`/`LTR5_Hs` homology); they would otherwise be lost to the single-hit rule. Default `true`.
+- `--hervk_pair_max_svlen`: maximum `|SVLEN|` for the above. Default `10500` (a complete proviral element is 9472 bp).
 - `--hervk_config`: path to an optional JSON config (template at `utils/HERVK.config.json`) overriding HERV-K classifier defaults (priors, sigmas, H_T window, SVA-mimic window, strict pmap threshold, polyallelic window). Only used when `--human`. Default `null` (use script defaults).
 - `--cores`: global CPU parameter. Will apply the chosen integer to all multi-threaded processes. See [here](#changing-the-number-of-cpus-and-memory-required-by-each-step) for more customization.
 - `--mammal`: **discontinued in v1.1** — accepting the flag is harmless but it no longer gates behavior. The two filters it used to enable (LINE1 5' inversion detection, SVA VNTR-only reclassification) are now always on. See [L1 5' inversion](#l1-5-inversion) for details.
@@ -505,11 +512,12 @@ OUTPUT_FOLDER/
 │       └── OneCode_LTR.dic
 ├── 3_TSD_search
 │   ├── pangenome.vcf
-│   ├── pangenome.trusted.vcf
-│   ├── pangenome.trusted.human.vcf            (only with --human)
+│   ├── pangenome.trusted.vcf                  (not with --human)
+│   ├── pangenome.human.vcf                    (only with --human)
 │   ├── pangenome.presence-absence.tsv
-│   ├── pangenome.presence-absence_trusted.tsv
+│   ├── pangenome.presence-absence_trusted.tsv (not with --human)
 │   ├── pangenome.presence-absence_human.tsv   (only with --human)
+│   ├── human_filter_summary.txt               (only with --human)
 │   ├── hervk_polymorphism_summary.md          (only with --human)
 │   ├── TSD_full_log.txt
 │   └── TSD_summary.txt
@@ -532,9 +540,10 @@ OUTPUT_FOLDER/
       - `onecode.log`: log file for `OneCodeToFindThemAll` process.
 - `3_TSD_Search/` (see [TSD section](#tsd-module))
    - `pangenome.vcf` — final VCF containing **all** retained repeat variants and annotations (with TSD if passing the TSD filters). The VCF `FILTER` column now encodes the trusted-subset classification: `PASS` = satisfies the trusted criteria (see [Trusted subsets and presence-absence TSVs](#trusted-subsets-and-presence-absence-tsvs)); `.` = kept but does not meet the trusted criteria. This file is used later by `Pangenie`, `Giraffe` or `graphAligner` to build the genome-graph for genotyping. Can be re-used for genotyping only with `--graffite_vcf pangenome.vcf`.
-   - `pangenome.trusted.vcf` — subset of `pangenome.vcf` where `FILTER=PASS` (trusted MEI candidates only).
-   - `pangenome.trusted.human.vcf` — only produced when `--human` is set. Trusted subset further restricted to `matching_classes` ∈ {`LINE/L1`, `SINE/Alu`, `Retroposon/SVA`, `Simple_repeat` (SVA-VNTR), `LTR/HERVK`}.
-   - `pangenome.presence-absence.tsv`, `pangenome.presence-absence_trusted.tsv`, `pangenome.presence-absence_human.tsv` — flat TSV presence/absence tables derived from the three VCFs above. See [Trusted subsets and presence-absence TSVs](#trusted-subsets-and-presence-absence-tsvs).
+   - `pangenome.trusted.vcf` — subset of `pangenome.vcf` where `FILTER=PASS` (trusted MEI candidates only). Not produced when `--human` is set.
+   - `pangenome.human.vcf` — only produced when `--human` is set, and produced *instead of* `pangenome.trusted.vcf`. Polymorphic mobile elements only, filtered directly from `pangenome.vcf` on young subfamilies. See [The `--human` pME subset](#the---human-pme-subset).
+   - `human_filter_summary.txt` — only with `--human`. Kept and dropped subfamily tallies for the filter above.
+   - `pangenome.presence-absence.tsv`, `pangenome.presence-absence_trusted.tsv`, `pangenome.presence-absence_human.tsv` — flat TSV presence/absence tables derived one-for-one from the VCFs above. See [Trusted subsets and presence-absence TSVs](#trusted-subsets-and-presence-absence-tsvs).
    - `TSD_summary.txt`: tab-delimited TSD-search report (1 line per variant). See [TSD section](#tsd-module).
    - `TSD_full_log.txt`: verbose TSD-search log.
 - `4_Genotyping/`
@@ -640,7 +649,7 @@ Starting in v1.1, `3_TSD_search/` ships three companion files alongside `pangeno
 
 `pangenome.trusted.vcf` = `bcftools view -f PASS pangenome.vcf` — guaranteed PASS-only.
 
-`pangenome.trusted.human.vcf` (only with `--human`) = trusted subset further restricted to the main human MEI classes: `LINE/L1`, `SINE/Alu`, `Retroposon/SVA`, `Simple_repeat` (SVA-VNTR, see [VNTR polymorphisms in SVA elements](#vntr-polymorphisms-in-sva-elements)), `LTR/HERVK`.
+With `--human`, `pangenome.trusted.vcf` is **not** produced; `pangenome.human.vcf` takes its place and is filtered directly from `pangenome.vcf` — see [The `--human` pME subset](#the---human-pme-subset).
 
 **Presence/absence TSVs** are flat tables derived one-for-one from the three VCFs above (`pangenome.presence-absence.tsv`, `pangenome.presence-absence_trusted.tsv`, `pangenome.presence-absence_human.tsv`). Fixed column schema:
 
@@ -663,6 +672,36 @@ Missing INFO fields are filled with `NA`. No `REF`, `ALT`, `QUAL`, `FILTER`, or 
 > | any          | `./.` or `.`    | `NA`              |
 >
 > Do **not** compare TSV values directly to VCF GT fields — the semantics differ for deletions by design, so the TSV gives you a clean per-sample TE gene-content matrix across both `INS` and `DEL` variants.
+
+#### The `--human` pME subset
+
+The trusted criteria above are deliberately species-agnostic: with no prior expectation about which families are active, they cast a wide net and buy specificity with `n_hits == 1`. In human we know exactly which subfamilies are still mobilizing, so `--human` replaces that heuristic with its own filter, applied **directly to `pangenome.vcf`**. `pangenome.trusted.vcf` is not produced in this mode.
+
+A variant enters `pangenome.human.vcf` when **all** of the following hold:
+
+1. **Young subfamily.** `INFO/repeat_ids` matches one of the whitelists, within the matching class:
+
+   | class | param | default | keeps |
+   |---|---|---|---|
+   | `SINE/Alu` | `--human_alu_ids` | `^AluY` | AluY and all AluY\* subfamilies (AluYa5, AluYb8, AluYg6, …); drops AluS\*/AluJ\* |
+   | `LINE/L1` | `--human_l1_ids` | `^L1HS` | the human-specific L1; drops L1PA2 and older |
+   | `Retroposon/SVA` | `--human_sva_ids` | `^SVA_[DEF]` | SVA_D/E/F; drops SVA_A/B/C |
+   | `Simple_repeat` | `--human_sva_ids` | `^SVA_[DEF]` | SVA-VNTR expansions only (`SVA_F(VNTR_only)` etc., see [VNTR polymorphisms in SVA elements](#vntr-polymorphisms-in-sva-elements)); drops unrelated tandem-repeat expansions |
+   | `LTR/ERVK` | `--human_hervk_ids` | `^HERVK-int,^LTR5_Hs,^LTR5A,^LTR5B` | the strict HML-2 lineage; drops other ERVK families (`HERVK9-int`, `HERVK11-int`, `HERVK22-int`, `HERVKC4-int`, `MER11*`, `LTR13`, …) and the ancestral `LTR5` |
+
+   Each param is a **comma-separated list of regexes**, matched element-wise against `repeat_ids` (bcftools regexes support `^ $ . * [...]` but *not* alternation, hence the lists). Match on prefixes: `repeat_ids` carries `(x)` and `(VNTR_only)` suffixes. Setting a param to the empty string keeps its whole class.
+
+2. **`|SVLEN| >= --human_min_svlen`** (default 250) and **`ULTRA_TR_span < --human_max_ultra_span`** (default 0.6, waived for `Simple_repeat`/SVA-VNTR records).
+
+3. **A single RepeatMasker hit** (`n_hits == 1`) — more than one hit almost always means an SV that carries TE sequence rather than a bona fide transposition product. L1 5' inversions are merged upstream and remain single-hit, so they are unaffected. The one exception is 4.
+
+4. **or the HERV-K proviral pattern**: `n_hits == 2` with classes `{LTR/ERVK, Retroposon/SVA}` and a `HERVK-int` hit, up to `--hervk_pair_max_svlen` (default 10500 bp). `SVA_A` shares homology with `LTR5_Hs`, so RepeatMasker routinely splits a small SVA hit off the LTR of a HML-2 proviral SV; without this exception those records — the full-length and truncated proviral polymorphisms — are all lost to the single-hit rule. Disable with `--hervk_sva_pair false`.
+
+5. **polyA**, for `SINE/Alu`, `LINE/L1` and `Retroposon/SVA` records: `polyA=TRUE` is required as a TPRT signature. HML-2 (no polyA) and SVA-VNTR records are exempt.
+
+6. **`FILTER == "PASS"`**, unless `--human_ignore_filter` is set.
+
+`human_filter_summary.txt` reports the exact expression used, kept counts per class and subfamily, and the tally of dropped pME-class records — so a whitelist that is too strict or too loose for your dataset is visible without re-running anything.
 
 ## TSD module
 
@@ -721,22 +760,24 @@ The classifier runs only on SVs whose `matching_classes` contains `LTR/ERVK` and
 
 For the n_hits==2 case, the SVA bp contribution is **added to λ** when the SVA hit length lies in the empirical "LTR-mimic" window (default 250–400 bp); otherwise the SVA bp is treated as neutral and subtracted from `s` for the coverage-term computation only (so a true HERV-K event accompanied by a separate SVA insertion is not pushed into `H_X`).
 
+> :information_source: These `n_hits == 2` records reach `pangenome.human.vcf` only because the pME filter carves them out explicitly (`--hervk_sva_pair`, on by default) — see [The `--human` pME subset](#the---human-pme-subset). They are still annotated in `pangenome.vcf` either way.
+
 ### Outputs
 
 When `--human` is set, the following are produced in `3_TSD_search/`:
 
-- **VCF annotations** (added to `pangenome.vcf`, `pangenome.trusted.vcf`, `pangenome.trusted.human.vcf`):
+- **VCF annotations** (added to `pangenome.vcf` and `pangenome.human.vcf`):
   - `INFO/HERVK_CLASS=<null_solo|truncated_prov|solo_prov|null_prov|other>` — MAP class.
   - `INFO/HERVK_PMAP=<float>` — posterior probability of the MAP class.
   - `INFO/HERVK_LAMBDA=<float>` — bp matching HML-2 LTR family.
   - `INFO/HERVK_NU=<float>` — bp matching HML-2 INT family.
   - `FORMAT/HERVK_AS=<state[|state]…>` — per-haplotype allelic state derived from each sample's GT and the MAP class (e.g. `solo|null`, `prov|solo`). Set to `?|?` when MAP posterior is below threshold or class is `other`.
-- **TSV annotations** (appended to the three presence-absence TSVs): `HERVK_class`, `HERVK_pmap`, `HERVK_lambda`, `HERVK_nu`. Non-candidate rows get `NA`.
+- **TSV annotations** (appended to `pangenome.presence-absence.tsv` and `pangenome.presence-absence_human.tsv`): `HERVK_class`, `HERVK_pmap`, `HERVK_lambda`, `HERVK_nu`. Non-candidate rows get `NA`.
 - **`hervk_polymorphism_summary.md`** — per-class counts, median \|SVLEN\| per class, posterior confidence distribution, `(x)`-merge breakdown, and a list of polyallelic candidate sites (pairs of `H_C` and `H_B`/`H_T` SVs within 100 bp, suggesting all three alleles segregating at one locus).
 
-### Strict filtering of trusted/human outputs
+### Strict filtering of the human output
 
-The annotation is informational on `pangenome.vcf`. On `pangenome.trusted.vcf` and `pangenome.trusted.human.vcf` (and their TSVs), HERV-K candidate rows whose MAP class is `other` or whose MAP posterior is below the threshold (default `0.90`) are **dropped** to keep these outputs conservative. Non-candidate rows are unaffected.
+The annotation is informational on `pangenome.vcf`. On `pangenome.human.vcf` (and its TSV), HERV-K candidate rows whose MAP class is `other` or whose MAP posterior is below the threshold (default `0.90`) are **dropped** to keep this output conservative. Non-candidate rows are unaffected.
 
 ### Tuning
 

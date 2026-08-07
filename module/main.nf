@@ -261,11 +261,12 @@ process concat_repeatmask {
 
   output:
   path("pangenome.vcf"), emit: vcf_ch
-  path("pangenome.trusted.vcf")
-  path("pangenome.trusted.human.vcf"), optional: true
+  path("pangenome.trusted.vcf"), optional: true
+  path("pangenome.human.vcf"), optional: true
   path("pangenome.presence-absence.tsv")
-  path("pangenome.presence-absence_trusted.tsv")
+  path("pangenome.presence-absence_trusted.tsv"), optional: true
   path("pangenome.presence-absence_human.tsv"), optional: true
+  path("human_filter_summary.txt"), optional: true
   path("hervk_polymorphism_summary.md"), optional: true
   path("TSD_summary.txt")
   path("TSD_full_log.txt")
@@ -273,7 +274,34 @@ process concat_repeatmask {
   script:
   def trusted_filter = "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & (ULTRA_TR_span<${params.trusted_max_ultra_span} | matching_classes=\"Simple_repeat\") & ((matching_classes!~\"LINE\" & matching_classes!~\"SINE\" & matching_classes!~\"Retroposon\") | polyA=\"TRUE\")"
   def trusted_filter_full = params.trusted_ignore_filter ? trusted_filter : "(${trusted_filter}) & FILTER=\"PASS\""
-  def human_classes = '(matching_classes="LINE/L1" | matching_classes="SINE/Alu" | matching_classes="Retroposon/SVA" | matching_classes="Simple_repeat" | (matching_classes="LTR/ERVK" & (repeat_ids~"LTR5_Hs" | repeat_ids~"HERVK")))'
+
+  // --human pME filter, applied directly to pangenome.vcf (not to the trusted
+  // subset, which is a species-agnostic heuristic for non-model organisms).
+  // Each whitelist param is a comma-separated list of regexes because bcftools
+  // regexes have no alternation; ~ is matched element-wise on these Number=.
+  // fields, and anchoring with ^ applies per element. Prefixes only: repeat_ids
+  // carry "(x)" and "(VNTR_only)" suffixes from bin/annotate_vcf.R.
+  def orIds = { csv -> '(' + csv.toString().split(',').collect{ "repeat_ids~\"${it.trim()}\"" }.join(' | ') + ')' }
+  def grp   = { cls, csv -> csv?.toString()?.trim() ? "(matching_classes=\"${cls}\" & ${orIds(csv)})" : "matching_classes=\"${cls}\"" }
+  def human_ids = [grp('SINE/Alu',       params.human_alu_ids),
+                   grp('LINE/L1',        params.human_l1_ids),
+                   grp('Retroposon/SVA', params.human_sva_ids),
+                   grp('Simple_repeat',  params.human_sva_ids),
+                   grp('LTR/ERVK',       params.human_hervk_ids)].join(' | ')
+  def human_size   = "abs(SVLEN)>=${params.human_min_svlen} & (ULTRA_TR_span<${params.human_max_ultra_span} | matching_classes=\"Simple_repeat\")"
+  // polyA (TPRT signature) is required for Alu/L1/SVA but not for HML-2 or for
+  // SVA-VNTR expansions. Stated positively: bcftools "!~" does not negate
+  // reliably on these Number=. fields (matching_classes!~"SINE" is true for
+  // every record, including SINE/Alu ones), so the trusted filter's
+  // "!~LINE & !~SINE & !~Retroposon" idiom must not be reused here.
+  def human_single = "n_hits==1 & (matching_classes=\"LTR/ERVK\" | matching_classes=\"Simple_repeat\" | polyA=\"TRUE\")"
+  // HML-2 proviral SVs where RepeatMasker splits a small SVA hit off the LTR
+  // (SVA/LTR5_Hs homology). OR-ed at the n_hits level so it also bypasses the
+  // polyA requirement that "Retroposon" in matching_classes would trigger.
+  def hervk_pair   = "n_hits==2 & matching_classes=\"LTR/ERVK\" & matching_classes=\"Retroposon/SVA\" & repeat_ids~\"^HERVK-int\" & abs(SVLEN)<=${params.hervk_pair_max_svlen}"
+  def human_hits   = params.hervk_sva_pair ? "((${human_single}) | (${hervk_pair}))" : "(${human_single})"
+  def human_filter_base = "(${human_ids}) & ${human_size} & ${human_hits}"
+  def human_filter = params.human_ignore_filter ? human_filter_base : "(${human_filter_base}) & FILTER=\"PASS\""
   """
   cat TSD_summary_*.txt > TSD_summary.txt
   cat TSD_full_log_*.txt > TSD_full_log.txt
@@ -294,24 +322,44 @@ process concat_repeatmask {
   # pangenome.vcf retains the original FILTER values from upstream.
   cp pangenome_raw.vcf pangenome.vcf
 
-  # trusted subset: variants matching the trusted criteria. By default
-  # also requires existing FILTER=="PASS"; bypass with --trusted_ignore_filter.
-  bcftools view -Ov -o pangenome.trusted.vcf -i '${trusted_filter_full}' pangenome.vcf
-
-  # presence-absence TSVs (full + trusted)
+  # presence-absence TSV for the full callset
   vcf_to_pa_tsv.py pangenome.vcf -o pangenome.presence-absence.tsv
-  vcf_to_pa_tsv.py pangenome.trusted.vcf -o pangenome.presence-absence_trusted.tsv
 
-  # human-restricted subset (optional)
-  if [[ "${params.human}" == "true" ]]; then
-    bcftools view -Ov -o pangenome.trusted.human.vcf -i '${human_classes}' pangenome.trusted.vcf
-    vcf_to_pa_tsv.py pangenome.trusted.human.vcf -o pangenome.presence-absence_human.tsv
+  if [[ "${params.human}" != "true" ]]; then
+    # trusted subset: variants matching the trusted criteria. By default
+    # also requires existing FILTER=="PASS"; bypass with --trusted_ignore_filter.
+    bcftools view -Ov -o pangenome.trusted.vcf -i '${trusted_filter_full}' pangenome.vcf
+    vcf_to_pa_tsv.py pangenome.trusted.vcf -o pangenome.presence-absence_trusted.tsv
+  else
+    # --human replaces the trusted subset with a polymorphic-MEI subset built
+    # directly from pangenome.vcf: young subfamilies only (AluY*, L1HS,
+    # SVA_D/E/F, HML-2), single RepeatMasker hit, plus the HERVK-int+SVA
+    # proviral exception.
+    bcftools view -Ov -o pangenome.human.vcf -i '${human_filter}' pangenome.vcf
+    vcf_to_pa_tsv.py pangenome.human.vcf -o pangenome.presence-absence_human.tsv
+
+    {
+      echo "# GraffiTE --human pME filter"
+      echo
+      echo "filter expression:"
+      echo '  ${human_filter}'
+      echo
+      printf 'records in pangenome.vcf       : %s\\n' "\$(bcftools view -H pangenome.vcf | wc -l | tr -d ' ')"
+      printf 'records in pangenome.human.vcf : %s (before HERV-K strict filtering)\\n' "\$(bcftools view -H pangenome.human.vcf | wc -l | tr -d ' ')"
+      echo
+      echo "kept (count, matching_classes, repeat_ids):"
+      bcftools query -f '%INFO/matching_classes\\t%INFO/repeat_ids\\n' pangenome.human.vcf | sort | uniq -c | sort -rn
+      echo
+      echo "dropped pME-class records (count, matching_classes, repeat_ids):"
+      bcftools query -e '${human_filter}' -f '%INFO/matching_classes\\t%INFO/repeat_ids\\n' pangenome.vcf | \\
+        awk -F'\\t' '\$1 ~ /Alu|L1|SVA|Simple_repeat|ERVK/' | sort | uniq -c | sort -rn
+    } > human_filter_summary.txt
 
     # HERV-K (HML-2) classification — runs only on --human pipelines.
     # Annotates the main VCF/TSV without filtering, and applies a strict
-    # filter (drop class==other or pmap<threshold) to the trusted and
-    # human VCF/TSV outputs. Defaults are baked into bin/hervk_classify.py;
-    # users can override via params.hervk_config (path to a JSON file).
+    # filter (drop class==other or pmap<threshold) to the human VCF/TSV.
+    # Defaults are baked into bin/hervk_classify.py; users can override via
+    # params.hervk_config (path to a JSON file).
     CFG_ARG=""
     if [[ -n "${params.hervk_config ?: ''}" ]]; then
       CFG_ARG="--config ${params.hervk_config}"
@@ -326,23 +374,16 @@ process concat_repeatmask {
     mv pangenome.presence-absence.tsv.hervk pangenome.presence-absence.tsv
 
     hervk_classify.py \$CFG_ARG --strict \\
-        --vcf-in pangenome.trusted.vcf --vcf-out pangenome.trusted.vcf.hervk \\
-        --tsv-in pangenome.presence-absence_trusted.tsv \\
-        --tsv-out pangenome.presence-absence_trusted.tsv.hervk
-    mv pangenome.trusted.vcf.hervk pangenome.trusted.vcf
-    mv pangenome.presence-absence_trusted.tsv.hervk pangenome.presence-absence_trusted.tsv
-
-    hervk_classify.py \$CFG_ARG --strict \\
-        --vcf-in pangenome.trusted.human.vcf \\
-        --vcf-out pangenome.trusted.human.vcf.hervk \\
+        --vcf-in pangenome.human.vcf \\
+        --vcf-out pangenome.human.vcf.hervk \\
         --tsv-in pangenome.presence-absence_human.tsv \\
         --tsv-out pangenome.presence-absence_human.tsv.hervk
-    mv pangenome.trusted.human.vcf.hervk pangenome.trusted.human.vcf
+    mv pangenome.human.vcf.hervk pangenome.human.vcf
     mv pangenome.presence-absence_human.tsv.hervk pangenome.presence-absence_human.tsv
   fi
 
   # Stamp GraffiTE version into the header of each published VCF
-  for VCF in pangenome.vcf pangenome.trusted.vcf pangenome.trusted.human.vcf; do
+  for VCF in pangenome.vcf pangenome.trusted.vcf pangenome.human.vcf; do
     [ -f "\$VCF" ] || continue
     awk -v v="${params.graffite_version}" 'NR==1 && /^##fileformat/ {print; print "##GraffiTE_version="v; next} {print}' "\$VCF" > "\$VCF.tmp" && mv "\$VCF.tmp" "\$VCF"
   done
