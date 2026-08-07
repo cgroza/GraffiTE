@@ -617,7 +617,7 @@ process vg_call {
   def flags = graph_method == "giraffe" ? "-z -A" : ""
   def graph = graph_method == "giraffe" ? 'index.giraffe.gbz' : 'index.gfa'
   """
-  vg call --threads ${task.cpus} ${flags} -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | \
+  vg call --threads ${task.cpus} ${flags} -R chrX:1,chrY:1 -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | \
     bcftools norm -m-  | \
     bcftools sort -Oz -o ${sample_name}.vcf.gz
   tabix ${sample_name}.vcf.gz
