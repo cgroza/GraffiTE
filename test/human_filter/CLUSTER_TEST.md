@@ -209,10 +209,18 @@ The old trusted filter used `matching_classes!~"LINE"`, which does not negate on
 now actually applies:
 
 ```bash
-bcftools view -H -i '(matching_classes="SINE/Alu" | matching_classes="LINE/L1" | matching_classes="Retroposon/SVA") & polyA!="TRUE"' pangenome.human.vcf | wc -l
+bcftools view -H -i 'n_hits==1 & (matching_classes="SINE/Alu" | matching_classes="LINE/L1" | matching_classes="Retroposon/SVA") & polyA!="TRUE"' pangenome.human.vcf | wc -l
 ```
 Expected: `0`. `LTR/ERVK` and `Simple_repeat` records are exempt by design and may have
 `polyA=FALSE` or `NA`.
+
+The `n_hits==1` guard is required, not cosmetic: the HERVK+SVA pair records carry
+`matching_classes=LTR/ERVK,Retroposon/SVA` and `polyA=NA`, so the `Retroposon/SVA`
+element matches and they get false-flagged. Note you cannot fix this by appending
+`& matching_classes!="LTR/ERVK"` — **negation is unreliable on these `Number=.` fields**.
+Both `!=` and `!~` use "some element differs" semantics, so `matching_classes!="LTR/ERVK"`
+is *true* for a record whose classes are `LTR/ERVK,Retroposon/SVA`. Always express
+exclusions positively, or gate on `n_hits`.
 
 **g. Before/after comparison** (only if the previous human VCF was found in §2)
 
@@ -231,14 +239,16 @@ comm -23 /tmp/old.ids /tmp/new.ids > /tmp/dropped.ids
 bcftools query -f '%ID\t%INFO/matching_classes\t%INFO/repeat_ids\n' "$OLD" \
   | grep -Ff /tmp/dropped.ids | cut -f2,3 | sed 's/(x)//' | sort | uniq -c | sort -rn
 ```
-The dropped set must be entirely old subfamilies; the gained set must be entirely
-`n_hits==2` HERVK+SVA records. **If anything else appears in either set, that is a
-finding — report it.**
+The dropped set must be entirely old subfamilies. The gained set is the `n_hits==2`
+HERVK+SVA records **plus any `LTR5A`/`LTR5B` records**: the old class filter tested
+`repeat_ids~"LTR5_Hs" | repeat_ids~"HERVK"`, which matched neither, so those HML-2 solo
+LTRs were never in the old output even though they were in `pangenome.vcf`. **Anything
+else in either set is a finding — report it.**
 
 Anchor numbers, if and only if the `RM_dir` is the 20-sample CaG cohort: old 5855 →
-5747 after the subfamily filter → +12 surviving pairs → **5759**, with drops of 52 Alu,
-32 L1, 3 SVA, 13 SVA-VNTR, 8 non-HML-2 ERVK. For any other dataset, report the observed
-relationship instead of trying to match these.
+5747 after the subfamily filter → +12 surviving HERVK+SVA pairs → +1 newly admitted
+`LTR5A` → **5760**, with drops of 52 Alu, 32 L1, 3 SVA, 13 SVA-VNTR, 8 non-HML-2 ERVK.
+For any other dataset, report the observed relationship instead of trying to match these.
 
 **h. The filter's own report**
 
