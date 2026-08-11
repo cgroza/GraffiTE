@@ -614,10 +614,9 @@ process vg_call {
   tuple val(sample_name), path("${sample_name}.vcf.gz*")
 
   script:
-  def flags = graph_method == "giraffe" ? "-z -a -A" : ""
   def graph = graph_method == "giraffe" ? 'index.giraffe.gbz' : 'index.gfa'
   """
-  vg call --threads ${task.cpus} ${flags} -R chrX:1,chrY:1 -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | \
+  vg call -a -A --threads ${task.cpus} -R chrX:1,chrY:1 -m ${params.min_support} -r index/index.pb -s ${sample_name} -k ${pack} index/${graph} | \
     bcftools norm -m-  | \
     bcftools sort -Oz -o ${sample_name}.vcf.gz
   tabix ${sample_name}.vcf.gz
