@@ -36,25 +36,44 @@ Ask for these if they are not already pointed at:
 | `PAV_VCF` | the merged PAV call set for the CaG cohort |
 | `REFERENCE` | CHM13v2 FASTA (a `.fai` beside it helps but is built if absent) |
 | `TE_LIBRARY` | the RepeatMasker library FASTA — **must contain `LTR5_Hs` and `HERVK-int`** |
-| `GRAFFITE_SIF` | the GraffiTE singularity image (omit if tools are on `PATH`) |
+| `GRAFFITE_SIF` | a local GraffiTE `.sif`. Optional — with `-profile cluster` Nextflow pulls `library://cgroza/collection/graffite:latest` itself. Setting it lets pre-flight inspect the image and pins the version. |
 | `GT_DIR` | the GraffiTE checkout — must be on branch **`v1.1dev-hervk-v2`** |
 
 ## Run it
 
+All paths must be **absolute** — `nextflow.config` runs the container with
+`--contain`, so a relative path will not resolve inside it.
+
 ```bash
-export PAV_VCF=/path/to/pav_merged.vcf.gz
-export REFERENCE=/path/to/chm13v2.0.fa
-export TE_LIBRARY=/path/to/te_library.fa
-export GRAFFITE_SIF=/path/to/GraffiTE.sif     # optional
+export PAV_VCF=/abs/path/pav_merged.vcf.gz
+export REFERENCE=/abs/path/chm13v2.0.fa
+export TE_LIBRARY=/abs/path/te_library.fa
+export GRAFFITE_SIF=/abs/path/graffite_latest.sif   # optional but recommended
 export OUTDIR=hervk_v2_run
+export PROFILE=cluster        # slurm; use `standard` only for a local test
+export CPUS=8
 
 ./preflight.sh          # stop here if it fails
 ./run_hervk_test.sh     # runs the pipeline, then the assertions
 ./bundle_results.sh     # -> hervk_v2_results_<date>.tar.gz
 ```
 
+To pin the container rather than letting Nextflow pull it:
+
+```bash
+apptainer pull --arch amd64 graffite_latest.sif \
+    library://cgroza/collection/graffite:latest
+export GRAFFITE_SIF=$PWD/graffite_latest.sif
+```
+
 `run_hervk_test.sh` uses `-resume`, so a re-run after a transient failure picks
-up where it stopped.
+up where it stopped. Run it from a login node under `tmux`/`screen`, or wrap it
+in a batch job — with `-profile cluster` Nextflow submits its own slurm jobs and
+the driver process must stay alive.
+
+Expected runtime: this annotates an existing call set and does not genotype, so
+the long pole is RepeatMasker over the SV sequences — hours, not days. The
+HERV-K step itself masks ~50 windows of ~12 kb and takes seconds.
 
 ## What must pass
 

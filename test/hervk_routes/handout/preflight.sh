@@ -30,18 +30,47 @@ echo "== tools =="
 for t in nextflow; do
   command -v "$t" >/dev/null && ok "$t $(nextflow -v 2>/dev/null)" || bad "$t not on PATH"
 done
+PROFILE="${PROFILE:-cluster}"
 if [[ -n "${GRAFFITE_SIF:-}" ]]; then
   [[ -f "$GRAFFITE_SIF" ]] && ok "container $GRAFFITE_SIF" || bad "GRAFFITE_SIF=$GRAFFITE_SIF missing"
-  for t in RepeatMasker samtools bcftools python3; do
-    singularity exec "$GRAFFITE_SIF" which "$t" >/dev/null 2>&1 \
-      && ok "container has $t" || bad "container is missing $t"
-  done
+  RUNNER=""
+  command -v apptainer   >/dev/null && RUNNER=apptainer
+  [[ -z "$RUNNER" ]] && command -v singularity >/dev/null && RUNNER=singularity
+  if [[ -n "$RUNNER" ]]; then
+    ok "$RUNNER available"
+    for t in RepeatMasker samtools bcftools python3; do
+      "$RUNNER" exec "$GRAFFITE_SIF" which "$t" >/dev/null 2>&1 \
+        && ok "container has $t" || bad "container is missing $t"
+    done
+  else
+    bad "neither apptainer nor singularity on PATH"
+  fi
+elif [[ "$PROFILE" == "cluster" || "$PROFILE" == "aws" ]]; then
+  # Tools live in library://cgroza/collection/graffite:latest, which Nextflow
+  # pulls on first use. Nothing to check on the host.
+  warn "GRAFFITE_SIF not set — Nextflow will pull the container for -profile $PROFILE."
+  warn "Set GRAFFITE_SIF to a local .sif to check its contents here instead."
+  command -v apptainer >/dev/null || command -v singularity >/dev/null \
+    && ok "container runtime present" || bad "no apptainer/singularity on PATH"
 else
-  warn "GRAFFITE_SIF not set — assuming tools are on PATH (-profile local)"
+  warn "-profile $PROFILE with no container — tools must be on PATH"
   for t in RepeatMasker samtools bcftools python3; do
     command -v "$t" >/dev/null && ok "$t" || bad "$t not on PATH"
   done
 fi
+
+echo "== data visibility =="
+# nextflow.config sets singularity.runOptions = "--contain --bind $(pwd):/tmp",
+# so inputs outside the launch directory need autoMounts to bind them. It is
+# on by default, but a path on a filesystem the node cannot see fails late.
+for var in PAV_VCF REFERENCE TE_LIBRARY; do
+  val="${!var:-}"
+  [[ -z "$val" ]] && continue
+  case "$val" in
+    /*) ok "$var is an absolute path" ;;
+    *)  warn "$var=$val is relative — use an absolute path so the container resolves it" ;;
+  esac
+done
 
 echo "== pipeline =="
 GT_DIR="${GT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"

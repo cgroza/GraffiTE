@@ -10,7 +10,7 @@ set -euo pipefail
 : "${TE_LIBRARY:?set TE_LIBRARY to the RepeatMasker library FASTA}"
 OUTDIR="${OUTDIR:-hervk_v2_run}"
 GT_DIR="${GT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
-PROFILE="${PROFILE:-standard}"
+PROFILE="${PROFILE:-cluster}"   # cluster = slurm + container; standard = local
 CPUS="${CPUS:-8}"
 
 echo "GraffiTE : $GT_DIR  ($(cd "$GT_DIR" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?'))"
@@ -25,6 +25,7 @@ nextflow run "$GT_DIR/main.nf" \
     --out        "$OUTDIR" \
     --cores      "$CPUS" \
     -profile     "$PROFILE" \
+    ${GRAFFITE_SIF:+-with-singularity "$GRAFFITE_SIF"} \
     -with-report "$OUTDIR/nextflow_report.html" \
     -with-trace  "$OUTDIR/nextflow_trace.txt" \
     -resume
