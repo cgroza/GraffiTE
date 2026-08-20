@@ -2,6 +2,13 @@
 # Pre-flight for the HERV-K v2 discovery test. Checks inputs and tools before
 # committing a cluster allocation to a run that would fail an hour in.
 set -uo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+if [[ -f INPUTS.env ]]; then
+  # shellcheck disable=SC1091
+  source ./INPUTS.env
+else
+  echo "INPUTS.env not found — run ./bootstrap.sh first" >&2; exit 1
+fi
 fail=0
 ok(){   printf '  [ ok ] %s\n' "$1"; }
 bad(){  printf '  [FAIL] %s\n' "$1"; fail=1; }
@@ -26,10 +33,7 @@ if [[ -n "${TE_LIBRARY:-}" && -f "${TE_LIBRARY:-}" ]]; then
   done
 fi
 
-echo "== tools =="
-for t in nextflow; do
-  command -v "$t" >/dev/null && ok "$t $(nextflow -v 2>/dev/null)" || bad "$t not on PATH"
-done
+echo "== container =="
 PROFILE="${PROFILE:-cluster}"
 if [[ -n "${GRAFFITE_SIF:-}" ]]; then
   [[ -f "$GRAFFITE_SIF" ]] && ok "container $GRAFFITE_SIF" || bad "GRAFFITE_SIF=$GRAFFITE_SIF missing"
@@ -72,19 +76,32 @@ for var in PAV_VCF REFERENCE TE_LIBRARY; do
   esac
 done
 
-echo "== pipeline =="
-GT_DIR="${GT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
-for f in main.nf bin/hervk_arch.py bin/hervk_ref_state.py bin/hervk_classify.py bin/hervk_reconcile.py; do
-  [[ -f "$GT_DIR/$f" ]] && ok "$f" || bad "$GT_DIR/$f missing — wrong branch? expected v1.1dev-hervk-v2"
-done
-if [[ -f "$GT_DIR/bin/hervk_arch.py" ]]; then
-  ( cd "$GT_DIR" && python3 bin/hervk_classify.py --selftest \
-      test/hervk/hervk_arch_fixture.tsv \
-      test/hervk/hervk_refstate_fixture.tsv \
-      test/hervk/hervk_expect.tsv >/dev/null 2>&1 ) \
-    && ok "classifier selftest passes" \
-    || bad "classifier selftest FAILED — do not run the pipeline, report this"
+echo "== pipeline revision =="
+PROJECT="${PROJECT:-cgroza/GraffiTE}"
+REVISION="${REVISION:-v1.1dev-hervk-v2}"
+GT_DIR="${NXF_ASSETS:-$HOME/.nextflow/assets}/$PROJECT"
+if [[ ! -d "$GT_DIR" ]]; then
+  bad "$GT_DIR not cached — run ./bootstrap.sh (or: nextflow pull $PROJECT -r $REVISION)"
+else
+  BR="$(cd "$GT_DIR" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  [[ "$BR" == "$REVISION" ]] && ok "cached revision $BR ($(cd "$GT_DIR" && git rev-parse --short HEAD))" \
+    || bad "cached revision is $BR, expected $REVISION — rerun ./bootstrap.sh"
+  for f in main.nf bin/hervk_arch.py bin/hervk_ref_state.py bin/hervk_classify.py bin/hervk_reconcile.py; do
+    [[ -f "$GT_DIR/$f" ]] && ok "$f" || bad "$GT_DIR/$f missing"
+  done
+  if [[ -f "$GT_DIR/bin/hervk_arch.py" ]]; then
+    ( cd "$GT_DIR" && python3 bin/hervk_classify.py --selftest \
+        test/hervk/hervk_arch_fixture.tsv \
+        test/hervk/hervk_refstate_fixture.tsv \
+        test/hervk/hervk_expect.tsv >/dev/null 2>&1 ) \
+      && ok "classifier selftest passes" \
+      || bad "classifier selftest FAILED — do not run the pipeline, report this"
+  fi
 fi
+
+echo "== nextflow =="
+command -v nextflow >/dev/null && ok "nextflow $(nextflow -v 2>/dev/null)" \
+  || bad "nextflow not on PATH (module load nextflow?)"
 
 echo
 [[ $fail -eq 0 ]] && echo "pre-flight PASSED" || echo "pre-flight FAILED — fix the above before running"

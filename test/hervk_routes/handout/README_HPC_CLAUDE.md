@@ -27,49 +27,50 @@ of the *existing* CaG run before the new code was written. So this is a real
 test: the answers were derived independently, and the classifier is being asked
 to reproduce them.
 
-## Inputs you need
+## Inputs
 
-Ask for these if they are not already pointed at:
+Everything is driven by **`INPUTS.env`** in this directory. Populate the three
+paths at the top; the rest have working defaults.
 
 | variable | what |
 |---|---|
 | `PAV_VCF` | the merged PAV call set for the CaG cohort |
 | `REFERENCE` | CHM13v2 FASTA (a `.fai` beside it helps but is built if absent) |
-| `TE_LIBRARY` | the RepeatMasker library FASTA — **must contain `LTR5_Hs` and `HERVK-int`** |
-| `GRAFFITE_SIF` | a local GraffiTE `.sif`. Optional — with `-profile cluster` Nextflow pulls `library://cgroza/collection/graffite:latest` itself. Setting it lets pre-flight inspect the image and pins the version. |
-| `GT_DIR` | the GraffiTE checkout — must be on branch **`v1.1dev-hervk-v2`** |
+| `TE_LIBRARY` | RepeatMasker library FASTA — **must contain `LTR5_Hs` and `HERVK-int`** |
+| `GRAFFITE_SIF` | optional local `.sif`; leave empty to let Nextflow pull the image |
+| `OUTDIR`, `PROFILE`, `CPUS` | defaults `hervk_v2_run`, `cluster`, `8` |
+| `REVISION` | GraffiTE branch — `v1.1dev-hervk-v2` |
+
+All paths must be **absolute**. `nextflow.config` runs the container with
+`--contain`, so a relative path resolves to nothing inside it and the run fails
+late, after the allocation is already spent. Pre-flight warns about this.
 
 ## Run it
 
-All paths must be **absolute** — `nextflow.config` runs the container with
-`--contain`, so a relative path will not resolve inside it.
+The pipeline is not checked out locally — Nextflow fetches and caches
+`cgroza/GraffiTE` at the pinned revision, and `bootstrap.sh` copies this
+handout out of that cache.
 
 ```bash
-export PAV_VCF=/abs/path/pav_merged.vcf.gz
-export REFERENCE=/abs/path/chm13v2.0.fa
-export TE_LIBRARY=/abs/path/te_library.fa
-export GRAFFITE_SIF=/abs/path/graffite_latest.sif   # optional but recommended
-export OUTDIR=hervk_v2_run
-export PROFILE=cluster        # slurm; use `standard` only for a local test
-export CPUS=8
+cd /xdisk/cgoubert/cgoubert/GraffiTE1.1/CaG
+module load nextflow            # whatever the site provides
 
-./preflight.sh          # stop here if it fails
-./run_hervk_test.sh     # runs the pipeline, then the assertions
-./bundle_results.sh     # -> hervk_v2_results_<date>.tar.gz
+./bootstrap.sh                  # nextflow pull + refresh this handout
+$EDITOR INPUTS.env              # fill in the three paths
+./preflight.sh                  # stop here if it fails
+./run_hervk_test.sh             # pipeline, then assertions
+./bundle_results.sh             # -> hervk_v2_results_<date>.tar.gz
 ```
 
-To pin the container rather than letting Nextflow pull it:
+`bootstrap.sh` never overwrites a populated `INPUTS.env` — a newer template
+lands as `INPUTS.env.new` instead.
 
-```bash
-apptainer pull --arch amd64 graffite_latest.sif \
-    library://cgroza/collection/graffite:latest
-export GRAFFITE_SIF=$PWD/graffite_latest.sif
-```
+`run_hervk_test.sh` passes `-latest`, so a fix pushed upstream is picked up
+rather than silently running a stale cache, and `-resume`, so a re-run after a
+transient failure continues where it stopped.
 
-`run_hervk_test.sh` uses `-resume`, so a re-run after a transient failure picks
-up where it stopped. Run it from a login node under `tmux`/`screen`, or wrap it
-in a batch job — with `-profile cluster` Nextflow submits its own slurm jobs and
-the driver process must stay alive.
+Run it under `tmux`/`screen` or as a batch job: with `-profile cluster`
+Nextflow submits its own slurm jobs and the driver process must stay alive.
 
 Expected runtime: this annotates an existing call set and does not genotype, so
 the long pole is RepeatMasker over the SV sequences — hours, not days. The

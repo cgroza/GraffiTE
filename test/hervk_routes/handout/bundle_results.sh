@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Pack the HERV-K outputs into one archive to bring back for analysis.
 set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+[[ -f INPUTS.env ]] && source ./INPUTS.env
 OUTDIR="${1:-${OUTDIR:-hervk_v2_run}}"
 STAMP="$(date +%Y%m%d)"
 BUNDLE="hervk_v2_results_${STAMP}"
@@ -20,11 +22,11 @@ done
 {
   echo "date        : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "host        : $(hostname)"
-  GT_DIR="${GT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
-  echo "graffite    : $GT_DIR"
-  echo "branch      : $(cd "$GT_DIR" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
-  echo "commit      : $(cd "$GT_DIR" && git rev-parse HEAD 2>/dev/null || echo '?')"
-  echo "dirty       : $(cd "$GT_DIR" && git status --porcelain 2>/dev/null | wc -l | tr -d ' ') modified files"
+  GT_DIR="${NXF_ASSETS:-$HOME/.nextflow/assets}/${PROJECT:-cgroza/GraffiTE}"
+  echo "project     : ${PROJECT:-cgroza/GraffiTE} -r ${REVISION:-?}"
+  echo "asset dir   : $GT_DIR"
+  echo "branch      : $(cd "$GT_DIR" 2>/dev/null && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  echo "commit      : $(cd "$GT_DIR" 2>/dev/null && git rev-parse HEAD 2>/dev/null || echo '?')"
   echo "pav_vcf     : ${PAV_VCF:-<unset>}"
   echo "reference   : ${REFERENCE:-<unset>}"
   echo "te_library  : ${TE_LIBRARY:-<unset>}"

@@ -4,19 +4,28 @@
 # Graph genotyping is NOT run and CANNOT be run for this cohort -- there are no
 # raw reads. --genotype false is deliberate; do not remove it.
 set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+[[ -f INPUTS.env ]] || { echo "INPUTS.env not found — run ./bootstrap.sh first" >&2; exit 1; }
+# shellcheck disable=SC1091
+source ./INPUTS.env
 
-: "${PAV_VCF:?set PAV_VCF to the merged PAV call set}"
-: "${REFERENCE:?set REFERENCE to the CHM13v2 FASTA}"
-: "${TE_LIBRARY:?set TE_LIBRARY to the RepeatMasker library FASTA}"
+for v in PAV_VCF REFERENCE TE_LIBRARY; do
+  [[ -n "${!v:-}" ]] || { echo "$v is empty in INPUTS.env" >&2; exit 1; }
+done
 OUTDIR="${OUTDIR:-hervk_v2_run}"
-GT_DIR="${GT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}"
-PROFILE="${PROFILE:-cluster}"   # cluster = slurm + container; standard = local
+PROFILE="${PROFILE:-cluster}"
 CPUS="${CPUS:-8}"
+REVISION="${REVISION:-v1.1dev-hervk-v2}"
+PROJECT="${PROJECT:-cgroza/GraffiTE}"
 
-echo "GraffiTE : $GT_DIR  ($(cd "$GT_DIR" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?'))"
+mkdir -p "$OUTDIR"
+echo "project  : $PROJECT -r $REVISION"
 echo "out      : $OUTDIR"
+echo "profile  : $PROFILE"
 
-nextflow run "$GT_DIR/main.nf" \
+# -latest re-pulls the branch tip, so a fix pushed upstream is picked up
+# instead of silently running a stale cached copy.
+nextflow run "$PROJECT" -r "$REVISION" -latest \
     --vcf        "$PAV_VCF" \
     --reference  "$REFERENCE" \
     --TE_library "$TE_LIBRARY" \
@@ -32,5 +41,4 @@ nextflow run "$GT_DIR/main.nf" \
 
 echo
 echo "== assertions =="
-python3 "$(dirname "${BASH_SOURCE[0]}")/assert_hervk_test.py" --outdir "$OUTDIR" \
-    | tee "$OUTDIR/hervk_assertions.log"
+python3 ./assert_hervk_test.py --outdir "$OUTDIR" | tee "$OUTDIR/hervk_assertions.log"
