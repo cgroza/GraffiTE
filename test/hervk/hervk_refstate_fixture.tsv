@@ -1,0 +1,6 @@
+id	ref_state	ref_ltr_bp	ref_int_bp	ref_dist	ref_elem_chrom	ref_elem_start	ref_elem_end	ref_arch
+chr11-101704641-INS-8504_18797	solo	968	0	0	chr11	101704640	101705607	LTR:1-968
+chr19-22370220-INS-8229_60593	null	0	0		chr19			NONE
+chr6-78894317-DEL-8465_106220	provirus	1936	7536	0	chr6	78893849	78903320	LTR:1-968/INT:1-7536/LTR:1-968
+chr3-151318628-INS-3985_92620	solo	968	0	0	chr3	151318627	151319594	LTR:1-968
+chr14-99889248-INS-141_31996	null	0	0		chr14			NONE
