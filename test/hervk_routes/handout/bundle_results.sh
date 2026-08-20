@@ -27,6 +27,7 @@ done
   echo "asset dir   : $GT_DIR"
   echo "branch      : $(cd "$GT_DIR" 2>/dev/null && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
   echo "commit      : $(cd "$GT_DIR" 2>/dev/null && git rev-parse HEAD 2>/dev/null || echo '?')"
+  echo "rm_dir      : ${RM_DIR:-<unset>}"
   echo "pav_vcf     : ${PAV_VCF:-<unset>}"
   echo "reference   : ${REFERENCE:-<unset>}"
   echo "te_library  : ${TE_LIBRARY:-<unset>}"

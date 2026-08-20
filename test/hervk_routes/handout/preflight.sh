@@ -14,8 +14,37 @@ ok(){   printf '  [ ok ] %s\n' "$1"; }
 bad(){  printf '  [FAIL] %s\n' "$1"; fail=1; }
 warn(){ printf '  [warn] %s\n' "$1"; }
 
+echo "== entry point =="
+if [[ -n "${RM_DIR:-}" ]]; then
+  if [[ ! -d "$RM_DIR" ]]; then
+    bad "RM_DIR=$RM_DIR is not a directory"
+  else
+    ok "RM_DIR=$RM_DIR (RepeatMasker will be skipped)"
+    n_sh=$(find "$RM_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+    n_vcf=$(find "$RM_DIR" -mindepth 2 -maxdepth 2 -name genotypes_repmasked_filtered.vcf 2>/dev/null | wc -l | tr -d ' ')
+    n_rm=$(find "$RM_DIR" -mindepth 2 -maxdepth 2 -type d -name repeatmasker_dir 2>/dev/null | wc -l | tr -d ' ')
+    n_out=$(find "$RM_DIR" -mindepth 3 -maxdepth 3 -name indels.fa.out 2>/dev/null | wc -l | tr -d ' ')
+    ok "$n_sh shard directories"
+    [[ "$n_vcf" -eq "$n_sh" && "$n_sh" -gt 0 ]] \
+      && ok "$n_vcf genotypes_repmasked_filtered.vcf" \
+      || bad "$n_vcf of $n_sh shards have genotypes_repmasked_filtered.vcf — is this a published 2_Repeat_Filtering output rather than a work/ directory?"
+    [[ "$n_rm" -eq "$n_sh" ]] && ok "$n_rm repeatmasker_dir" \
+      || bad "$n_rm of $n_sh shards have repeatmasker_dir"
+    [[ "$n_out" -eq "$n_sh" ]] && ok "$n_out indels.fa.out (the HERV-K architecture source)" \
+      || bad "$n_out of $n_sh shards have repeatmasker_dir/indels.fa.out — without these the classifier cannot read LTR architecture"
+    hk=$(grep -lE "HERVK-int|LTR5_Hs" "$RM_DIR"/*/repeatmasker_dir/indels.fa.out 2>/dev/null | wc -l | tr -d ' ')
+    [[ "$hk" -gt 0 ]] && ok "HML-2 hits present in $hk shard(s)" \
+      || bad "no HERVK-int/LTR5_Hs hits anywhere in the RepeatMasker output"
+  fi
+elif [[ -n "${PAV_VCF:-}" ]]; then
+  [[ -f "$PAV_VCF" ]] && ok "PAV_VCF=$PAV_VCF (full re-mask, slow path)" \
+    || bad "PAV_VCF=$PAV_VCF does not exist"
+else
+  bad "neither RM_DIR nor PAV_VCF is set in INPUTS.env"
+fi
+
 echo "== inputs =="
-for var in PAV_VCF REFERENCE TE_LIBRARY; do
+for var in REFERENCE TE_LIBRARY; do
   val="${!var:-}"
   if   [[ -z "$val"    ]]; then bad "$var is not set"
   elif [[ ! -f "$val"  ]]; then bad "$var=$val does not exist"
@@ -67,7 +96,7 @@ echo "== data visibility =="
 # nextflow.config sets singularity.runOptions = "--contain --bind $(pwd):/tmp",
 # so inputs outside the launch directory need autoMounts to bind them. It is
 # on by default, but a path on a filesystem the node cannot see fails late.
-for var in PAV_VCF REFERENCE TE_LIBRARY; do
+for var in RM_DIR PAV_VCF REFERENCE TE_LIBRARY; do
   val="${!var:-}"
   [[ -z "$val" ]] && continue
   case "$val" in

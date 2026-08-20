@@ -100,7 +100,6 @@ workflow {
     // except if --RM_dir is given, in which case skip RepeatMasker here and set the input channel
     RM_ch = channel.empty()
     rm_dirs_ch = channel.empty()
-    Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
     if(params.RM_dir){
       channel.fromPath("${params.RM_dir}/*", type: "dir").
       map{p -> [file("${p}/genotypes_repmasked_filtered.vcf", checkIfExists: true), file("${p}/repeatmasker_dir", checkIfExists: true)]}.
@@ -112,6 +111,7 @@ workflow {
       map{p -> file("${p}/repeatmasker_dir", checkIfExists: true)}.
       collect().set{rm_dirs_ch}
     } else {
+      Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
       if(params.longreads || params.bams || params.assemblies || params.pav || params.svs){
         sv_variants_ch.set{raw_vcf_ch}
@@ -139,12 +139,16 @@ workflow {
     // HERV-K allele states + locus flags. --human only, and deliberately NOT
     // rebinding vcf_ch: pangenome.vcf must reach the graph unmodified.
     if(params.human) {
+      // Own channel rather than reusing TE_library_ch: with --RM_dir the
+      // masking step never runs, so TE_library_ch is not defined there. The
+      // library is still needed here to mask the reference windows.
+      Channel.fromPath(params.TE_library, checkIfExists:true).set{hervk_lib_ch}
       hervk_annotate(concat_repeatmask.out.vcf_ch,
                      concat_repeatmask.out.human_vcf_ch,
                      concat_repeatmask.out.human_tsv_ch,
                      rm_dirs_ch,
                      ref_asm_ch,
-                     TE_library_ch)
+                     hervk_lib_ch)
     }
   } else {
     // if a vcf is provided as parameter, skip discovery and go directly to genotyping

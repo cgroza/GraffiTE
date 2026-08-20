@@ -32,14 +32,35 @@ to reproduce them.
 Everything is driven by **`INPUTS.env`** in this directory. Populate the three
 paths at the top; the rest have working defaults.
 
+Pick **one** entry point:
+
 | variable | what |
 |---|---|
-| `PAV_VCF` | the merged PAV call set for the CaG cohort |
+| `RM_DIR` | **preferred.** A published `2_Repeat_Filtering` directory from a previous run. RepeatMasker is skipped entirely and the run resumes at TSD search — hours saved. |
+| `PAV_VCF` | the merged PAV call set. Only used when `RM_DIR` is empty; re-masks from scratch. |
+
+Then the rest:
+
+| variable | what |
+|---|---|
 | `REFERENCE` | CHM13v2 FASTA (a `.fai` beside it helps but is built if absent) |
 | `TE_LIBRARY` | RepeatMasker library FASTA — **must contain `LTR5_Hs` and `HERVK-int`** |
 | `GRAFFITE_SIF` | optional local `.sif`; leave empty to let Nextflow pull the image |
 | `OUTDIR`, `PROFILE`, `CPUS` | defaults `hervk_v2_run`, `cluster`, `8` |
 | `REVISION` | GraffiTE branch — `v1.1dev-hervk-v2` |
+
+`RM_DIR` must be the **published** output directory, not a Nextflow `work/`
+directory. Published shards carry both files:
+
+```
+<RM_DIR>/<N>/genotypes_repmasked_filtered.vcf
+<RM_DIR>/<N>/repeatmasker_dir/indels.fa.out
+```
+
+A `work/` directory has `repeatmasker_dir` but not the VCF, and the run will
+stop immediately. Pre-flight checks both, counts the shards, and confirms
+`indels.fa.out` actually contains HML-2 hits — that file *is* the architecture
+source for the classifier, so an `RM_DIR` without it makes the test vacuous.
 
 All paths must be **absolute**. `nextflow.config` runs the container with
 `--contain`, so a relative path resolves to nothing inside it and the run fails
@@ -72,9 +93,10 @@ transient failure continues where it stopped.
 Run it under `tmux`/`screen` or as a batch job: with `-profile cluster`
 Nextflow submits its own slurm jobs and the driver process must stay alive.
 
-Expected runtime: this annotates an existing call set and does not genotype, so
-the long pole is RepeatMasker over the SV sequences — hours, not days. The
-HERV-K step itself masks ~50 windows of ~12 kb and takes seconds.
+Expected runtime: with `RM_DIR` set, RepeatMasker over the SV sequences is
+skipped and the long pole becomes TSD search — well under an hour for this
+cohort. Without it, budget hours for the re-mask. The HERV-K step itself masks
+~50 reference windows of ~12 kb and takes seconds either way.
 
 ## What must pass
 

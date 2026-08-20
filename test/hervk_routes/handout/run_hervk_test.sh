@@ -9,9 +9,18 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 # shellcheck disable=SC1091
 source ./INPUTS.env
 
-for v in PAV_VCF REFERENCE TE_LIBRARY; do
+for v in REFERENCE TE_LIBRARY; do
   [[ -n "${!v:-}" ]] || { echo "$v is empty in INPUTS.env" >&2; exit 1; }
 done
+if [[ -n "${RM_DIR:-}" ]]; then
+  ENTRY=(--RM_dir "$RM_DIR")
+  echo "entry    : --RM_dir $RM_DIR  (RepeatMasker skipped)"
+elif [[ -n "${PAV_VCF:-}" ]]; then
+  ENTRY=(--vcf "$PAV_VCF")
+  echo "entry    : --vcf $PAV_VCF  (full re-mask, slow path)"
+else
+  echo "set RM_DIR or PAV_VCF in INPUTS.env" >&2; exit 1
+fi
 OUTDIR="${OUTDIR:-hervk_v2_run}"
 PROFILE="${PROFILE:-cluster}"
 CPUS="${CPUS:-8}"
@@ -26,7 +35,7 @@ echo "profile  : $PROFILE"
 # -latest re-pulls the branch tip, so a fix pushed upstream is picked up
 # instead of silently running a stale cached copy.
 nextflow run "$PROJECT" -r "$REVISION" -latest \
-    --vcf        "$PAV_VCF" \
+    "${ENTRY[@]}" \
     --reference  "$REFERENCE" \
     --TE_library "$TE_LIBRARY" \
     --human      true \
