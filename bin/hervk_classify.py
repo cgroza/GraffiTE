@@ -68,6 +68,11 @@ DEFAULTS = {
     "pmap_min": 0.90,
     # Minimum HML-2 bp for a candidate to be classified at all.
     "min_hml2_bp": 50,
+    # Upper |SVLEN| bound for candidacy. The gate is matching_classes=LTR/ERVK
+    # with no size limit, which let a 25.3 Mb deletion into the HERV-K set --
+    # it carried 38430 RepeatMasker hits and dominated the cost of the whole
+    # stage. A whole provirus is 9472 bp; nothing plausible needs 25 kb.
+    "max_svlen": 25000,
     # Minimum LTR bp before the SV allele counts as carrying a whole solo LTR
     # (half a consensus). Below this it is an LTR fragment, not an allele.
     "min_solo_bp": 484,
@@ -127,7 +132,7 @@ def info_to_str(d):
     return ';'.join(k if v == '' else f'{k}={v}' for k, v in d.items()) or '.'
 
 
-def is_candidate(info_d):
+def is_candidate(info_d, cfg=None):
     """HERV-K candidate gate: an LTR/ERVK SV, alone or paired with SVA.
 
     Kept identical to the bcftools --human carve-out in module/main.nf so the
@@ -143,7 +148,15 @@ def is_candidate(info_d):
         n_hits = int(float(info_d.get('n_hits', '0')))
     except ValueError:
         return False
-    return n_hits == 1 or (n_hits == 2 and 'Retroposon/SVA' in classes)
+    if not (n_hits == 1 or (n_hits == 2 and 'Retroposon/SVA' in classes)):
+        return False
+    cap = (cfg or DEFAULTS).get('max_svlen')
+    try:
+        if cap and abs(int(float(info_d.get('_svlen', 0)))) > cap:
+            return False
+    except (TypeError, ValueError):
+        pass
+    return True
 
 
 def hml2_bp_from_info(info_d):
@@ -206,18 +219,43 @@ def resolve(arch, ref, svlen, lam, nu, cfg):
     notes = []
     sig = (arch or {}).get('signature', '')
     is_ins = svlen >= 0
+    observed_ref = (ref or {}).get('ref_state', '')
 
-    # 1-2. Architecture settles it outright.
+    def check(arch_ref, alt, code):
+        """Architecture resolved it -- but say so if the reference disagrees.
+
+        The two are independent measurements of the same thing, so a
+        disagreement is information, not noise. chr6-78894876 reads ARCH_PERM
+        (REF = solo) at a locus where the masked reference holds a whole
+        provirus; its DEL partner reads the reference correctly. One of the two
+        records is a mis-polarised representation of the other, and the
+        reference is what settles which.
+        """
+        if observed_ref in ('null', 'solo', 'provirus') and observed_ref != arch_ref:
+            notes.append(f'REF_ARCH_CONFLICT:arch={arch_ref},ref={observed_ref}')
+        return arch_ref, alt, code, notes
+
+    # 1-2. Architecture settles it outright -- but which side of the pair the
+    # SV *carries* depends on its polarity. For an insertion the architecture
+    # describes the allele being added; for a deletion it describes reference
+    # sequence being removed, so the same signature means the opposite thing.
+    #   ARCH_2LTR  INS: null -> provirus     DEL: provirus -> null
+    #   ARCH_PERM  INS: solo -> provirus     DEL: provirus -> solo
+    # (The class label is the same either way, since it names the pair, but
+    # HERVK_ALLELE_REF / HERVK_ALLELE are what consolidation and the figures
+    # read, and those were inverted for deletions.)
     if sig == 'ARCH_2LTR':
-        return 'null', 'provirus', 'ARCH_2LTR', notes
+        return check('null', 'provirus', 'ARCH_2LTR') if is_ins \
+            else check('provirus', 'null', 'ARCH_2LTR')
     if sig == 'ARCH_PERM':
-        return 'solo', 'provirus', 'ARCH_PERM', notes
+        return check('solo', 'provirus', 'ARCH_PERM') if is_ins \
+            else check('provirus', 'solo', 'ARCH_PERM')
     if sig == 'ARCH_SOLO':
-        return ('null', 'solo', 'ARCH_SOLO', notes) if is_ins \
-            else ('solo', 'null', 'ARCH_SOLO', notes)
+        return check('null', 'solo', 'ARCH_SOLO') if is_ins \
+            else check('solo', 'null', 'ARCH_SOLO')
 
     # 4. Degenerate architecture: the reference decides.
-    ref_state = (ref or {}).get('ref_state', '')
+    ref_state = observed_ref
     sv_allele = alt_state_from_content(lam, nu, cfg)
 
     if ref_state in ('null', 'solo', 'provirus', 'partial'):
@@ -302,6 +340,9 @@ INFO_HEADERS = [
     '##INFO=<ID=HERVK_PMAP,Number=1,Type=Float,Description="Confidence in the '
     'resolved class under the size model. Reporting only -- it does not '
     'determine the class.">',
+    '##INFO=<ID=HERVK_NOTE,Number=.,Type=String,Description="Diagnostics for '
+    'this call, e.g. REF_ARCH_CONFLICT when the architecture and the masked '
+    'reference imply different REF allele states.">',
 ]
 
 TSV_COLUMNS = ['HERVK_class', 'HERVK_allele_ref', 'HERVK_allele',
@@ -315,7 +356,7 @@ TSV_COLUMNS = ['HERVK_class', 'HERVK_allele_ref', 'HERVK_allele',
 # merge partner cannot go missing just because it failed an unrelated filter.
 CALLS_COLUMNS = ['id', 'chrom', 'pos', 'svlen', 'class', 'allele_ref',
                  'allele', 'evidence', 'k', 'ref_state', 'lambda', 'nu',
-                 'cov', 'pmap', 'arch']
+                 'cov', 'pmap', 'arch', 'notes']
 
 
 def write_calls(results, path):
@@ -330,6 +371,7 @@ def write_calls(results, path):
                 r['ref_state'] or 'unknown',
                 f"{r['lambda']:.0f}", f"{r['nu']:.0f}",
                 f"{r['cov']:.4f}", f"{r['pmap']:.4f}", r['arch'] or '.',
+                ','.join(r.get('notes') or []) or '.',
             ]) + '\n')
 
 
@@ -399,12 +441,15 @@ def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results):
                 continue
 
             info_d = parse_info(fields[7])
-            if not is_candidate(info_d):
+            svlen = len(fields[4].split(',')[0]) - len(fields[3])
+            info_d['_svlen'] = str(svlen)
+            if not is_candidate(info_d, cfg):
+                info_d.pop('_svlen', None)
                 fout.write(line)
                 continue
+            info_d.pop('_svlen', None)
 
             vid = fields[2]
-            svlen = len(fields[4].split(',')[0]) - len(fields[3])
             info_d['_chrom'], info_d['_pos'] = fields[0], int(fields[1])
             r = classify_record(vid, info_d, svlen, arch_tbl, ref_tbl, cfg)
             r['chrom'], r['pos'] = fields[0], int(fields[1])
@@ -428,6 +473,8 @@ def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results):
             info_d['HERVK_NU'] = f"{r['nu']:.0f}"
             info_d['HERVK_COV'] = f"{r['cov']:.4f}"
             info_d['HERVK_PMAP'] = f"{r['pmap']:.4f}"
+            if r.get('notes'):
+                info_d['HERVK_NOTE'] = ','.join(r['notes'])
             fields[7] = info_to_str(info_d)
             fout.write('\t'.join(fields) + '\n')
     finally:
@@ -531,7 +578,9 @@ def selftest(arch_path, ref_path, expect_path):
             r = classify_record(vid, info_d, int(row['svlen']),
                                 arch_tbl, ref_tbl, cfg)
             checked += 1
-            for field, got in (('class', r['cls']), ('evidence', r['evidence'])):
+            for field, got in (('class', r['cls']), ('evidence', r['evidence']),
+                               ('allele_ref', r['ref_allele'] or ''),
+                               ('allele', r['alt_allele'] or '')):
                 want = row.get(field, '')
                 if want and want != got:
                     failures.append(f'{vid}: {field} expected {want}, got {got}')

@@ -40,8 +40,16 @@ from hervk_arch import (DEFAULTS as ARCH_DEFAULTS, INT_FAMILIES, arch_string,
                         is_ltr_family, ltr_len, parse_rm_out, reassign_sine_r,
                         tile_hits)
 
+# A complete HML-2 provirus is 2*968 + 7536 = 9472 bp.
+FULL_PROVIRUS = 9472
+
 DEFAULTS = {
     "flank": 1500,
+    # Flank used on the second pass for candidates whose reference element ran
+    # into the window edge. Must comfortably hold a whole provirus.
+    "rescue_flank": 12000,
+    # An element within this many bp of a window edge is treated as truncated.
+    "edge_tol": 50,
     # Max gap (bp) between HML-2 fragments still counted as one element.
     "element_gap": 1000,
     # Min HML-2 bp in the window before the locus is anything but `null`.
@@ -121,6 +129,21 @@ def extract_windows(footprints, reference, flank, workdir):
 def run_repeatmasker(fasta, te_library, threads, workdir):
     rm_dir = os.path.join(workdir, 'rm')
     os.makedirs(rm_dir, exist_ok=True)
+
+    # Resume hook. Masking is the long pole here, and RepeatMasker leaves
+    # ref_windows.fa.cat.gz behind, so ProcessRepeats can be rerun standalone
+    # to produce the .out without masking again. When a .out over the same
+    # windows and library already exists, use it. Only the subprocess call is
+    # bypassed -- offsets, parsing and evaluation all still run.
+    precomputed = os.environ.get('HERVK_REF_RM_OUT')
+    if precomputed:
+        if not os.path.exists(precomputed):
+            # Fail loud rather than silently re-masking for hours.
+            sys.exit(f'ERROR: HERVK_REF_RM_OUT={precomputed} does not exist')
+        sys.stderr.write(f'hervk_ref_state: using precomputed {precomputed}, '
+                         'skipping RepeatMasker\n')
+        return precomputed
+
     subprocess.run(['RepeatMasker', '-lib', te_library, '-s',
                     '-dir', rm_dir, '-pa', str(max(1, threads)), fasta],
                    check=True, capture_output=True, text=True)
@@ -225,6 +248,26 @@ def call_state(element, cfg):
     return state, ltr_bp, int_bp, arch
 
 
+def truncated_by_window(result, fp, cfg):
+    """Did the chosen element run into the edge of its window?
+
+    An insertion footprint is a point, so at flank=1500 the window is ~3 kb --
+    a third of a provirus. A proviral reference locus then reads `partial`,
+    and two records at the same locus can disagree purely because one is a DEL
+    (window spans the whole deletion) and the other an INS (window does not).
+    That is exactly what happened at chr6:78,894,316.
+    """
+    if not result.get('elem_start'):
+        return False
+    _, chrom, fp_start, fp_end, _ = fp
+    win_start = max(1, fp_start - cfg['flank'])
+    win_end = fp_end + cfg['flank']
+    tol = cfg['edge_tol']
+    at_edge = (result['elem_start'] - win_start <= tol
+               or win_end - result['elem_end'] <= tol)
+    return at_edge and result['state'] != 'provirus'
+
+
 def evaluate(footprints, rm_hits, offsets, cfg):
     """Pick the HML-2 element at (or nearest) each footprint and call its state."""
     arch_cfg = dict(ARCH_DEFAULTS)
@@ -293,6 +336,10 @@ def main():
     ap.add_argument('--out', required=True)
     ap.add_argument('--ids', help='optional file of SV IDs to restrict to')
     ap.add_argument('--flank', type=int, default=DEFAULTS['flank'])
+    ap.add_argument('--rescue-flank', type=int, default=DEFAULTS['rescue_flank'],
+                    help='flank for the second pass over edge-truncated windows')
+    ap.add_argument('--no-rescue', action='store_true',
+                    help='skip the second pass (diagnostic only)')
     ap.add_argument('--threads', type=int, default=4)
     ap.add_argument('--keep-temp', action='store_true')
     args = ap.parse_args()
@@ -314,21 +361,44 @@ def main():
         sys.stderr.write('hervk_ref_state: no candidates; empty table written\n')
         return
 
-    if args.rm_annotation:
-        rm_hits = hits_from_annotation(args.rm_annotation, footprints, args.flank)
-        offsets = {fp[0]: (fp[1], max(1, fp[2] - args.flank)) for fp in footprints}
-    else:
-        workdir = tempfile.mkdtemp(prefix='hervk_ref_')
-        try:
-            fasta, offsets = extract_windows(footprints, args.reference,
-                                             args.flank, workdir)
-            rm_out = run_repeatmasker(fasta, args.te_library, args.threads, workdir)
-            rm_hits = parse_rm_out([rm_out]) if rm_out else {}
-        finally:
-            if not args.keep_temp:
-                shutil.rmtree(workdir, ignore_errors=True)
+    def call_pass(fps, flank):
+        sub = dict(cfg)
+        sub['flank'] = flank
+        if args.rm_annotation:
+            hits = hits_from_annotation(args.rm_annotation, fps, flank)
+            offs = {f[0]: (f[1], max(1, f[2] - flank)) for f in fps}
+        else:
+            wd = tempfile.mkdtemp(prefix='hervk_ref_')
+            try:
+                fasta, offs = extract_windows(fps, args.reference, flank, wd)
+                rm_out = run_repeatmasker(fasta, args.te_library, args.threads, wd)
+                hits = parse_rm_out([rm_out]) if rm_out else {}
+            finally:
+                if not args.keep_temp:
+                    shutil.rmtree(wd, ignore_errors=True)
+        return evaluate(fps, hits, offs, sub)
 
-    results = evaluate(footprints, rm_hits, offsets, cfg)
+    results = call_pass(footprints, args.flank)
+
+    # Second pass, only for candidates whose element hit the window edge. A
+    # ~3 kb insertion window cannot contain a 9.5 kb provirus, so those come
+    # back `partial` when the truth is `provirus`. Re-cut just those, wide
+    # enough to hold a whole element. Typically a handful of candidates.
+    if not args.no_rescue:
+        by_id = {fp[0]: fp for fp in footprints}
+        redo = [by_id[i] for i, r in results.items()
+                if truncated_by_window(r, by_id[i], cfg)]
+        if redo:
+            sys.stderr.write(
+                f'hervk_ref_state: re-cutting {len(redo)} window(s) at '
+                f'flank={args.rescue_flank} (element reached the window edge)\n')
+            # HERVK_REF_RM_OUT names a .out over the first-pass windows; it
+            # cannot describe these wider ones.
+            os.environ.pop('HERVK_REF_RM_OUT', None)
+            for sv_id, r in call_pass(redo, args.rescue_flank).items():
+                results[sv_id] = r
+
+    results = results
     write_tsv(results, args.out)
     counts = {}
     for r in results.values():

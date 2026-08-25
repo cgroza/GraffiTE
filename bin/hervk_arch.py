@@ -40,6 +40,7 @@ import argparse
 import glob
 import os
 import sys
+from collections import Counter
 
 # -------- HML-2 reference architecture --------
 LTR_CONSENSUS_LEN = {'LTR5_Hs': 968, 'LTR5A': 1033, 'LTR5B': 968, 'LTR5': 968}
@@ -65,7 +66,14 @@ DEFAULTS = {
 
 
 def is_ltr_family(name):
-    return name.startswith('LTR5')
+    """HML-2 LTRs only.
+
+    This was a startswith('LTR5') prefix test, which is wrong: a Dfam human
+    library carries ~20 families on that prefix and only these four are HML-2.
+    LTR57-int and LTR53-int are not even LTRs -- they are the internal regions
+    of other ERV lineages -- and were being counted as LTR bp.
+    """
+    return name in LTR_CONSENSUS_LEN
 
 
 def is_sva_family(name):
@@ -148,9 +156,17 @@ def tile_hits(hits, cfg):
             if owner[p] is None:
                 owner[p] = h
 
+    # One pass over `owner` instead of one per hit. The previous form,
+    # `sum(1 for o in owner if o == i)` inside this loop, is O(n_hits * span):
+    # chr1-120594342-DEL-25264467 is a 25.3 Mb DEL carrying 38430 hits, i.e.
+    # ~9.7e11 comparisons, which ran 45 min at ~4% before being killed.
+    # `owner[p]` already holds the winning index for every base, so counting it
+    # once is the same arithmetic.
+    claims = Counter(o for o in owner if o is not None)
+
     tiled = []
     for i, h in enumerate(hits):
-        claimed = sum(1 for o in owner if o == i)
+        claimed = claims.get(i, 0)
         if claimed < cfg['min_frag_bp']:
             continue
         frag = dict(h)
