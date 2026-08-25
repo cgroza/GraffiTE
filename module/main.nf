@@ -283,7 +283,20 @@ process hervk_annotate {
   samtools faidx "\$REF"
 
   # Every LTR/ERVK record in the discovery VCF, not just the human subset.
-  bcftools view -H -i 'matching_classes="LTR/ERVK"' in.pangenome.vcf \\
+  #
+  # The |SVLEN| cap has to be applied HERE, at candidacy, not only in
+  # hervk_classify.py's DEFAULTS (max_svlen=25000). hervk_candidate.ids is what
+  # hervk_ref_state.py masks against, so a cap that only bites at classify time
+  # drops the record from the calls *after* its reference window has already
+  # been masked. On the CaG set that is one 25.3 Mb window
+  # (chr1-120594342-DEL-25264467, a zero-query-footprint ALNTRUNC artefact)
+  # carrying 95.8% of the 26.4 Mb sent to RepeatMasker -- 1h39m of masking plus
+  # 2h14m of ProcessRepeats, which timed out two 4h jobs. With the cap here the
+  # first pass is ~1.1 Mb, as RERUN_2.md predicts.
+  #
+  # 25000 mirrors hervk_classify.py DEFAULTS['max_svlen']; upstream should make
+  # it one shared param rather than two constants that can drift.
+  bcftools view -H -i 'matching_classes="LTR/ERVK" & abs(SVLEN)<=25000' in.pangenome.vcf \\
     | cut -f3 > hervk_candidate.ids
 
   hervk_arch.py --rm-out rmdir_* --ids hervk_candidate.ids --out hervk_arch.tsv
