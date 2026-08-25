@@ -28,7 +28,32 @@ REVISION="${REVISION:-v1.1dev-hervk-v2}"
 PROJECT="${PROJECT:-cgroza/GraffiTE}"
 
 mkdir -p "$OUTDIR"
-echo "project  : $PROJECT -r $REVISION"
+
+# Resume safety.
+#
+# Nextflow's task hash covers the process script text and the input files. It
+# does NOT cover the contents of bin/, which is staged onto PATH. So when the
+# HERV-K scripts change but the process block does not, -resume happily reuses
+# the previous task output and the run reports stale results while appearing to
+# succeed. Stamp the revision and drop -resume whenever it moves.
+ASSET="${NXF_ASSETS:-$HOME/.nextflow/assets}/$PROJECT"
+COMMIT="$(cd "$ASSET" 2>/dev/null && git rev-parse HEAD 2>/dev/null || echo unknown)"
+STAMP="$OUTDIR/.last_commit"
+RESUME_ARG=(-resume)
+if [[ -f "$STAMP" ]]; then
+  PREV="$(cat "$STAMP")"
+  if [[ "$PREV" != "$COMMIT" ]]; then
+    RESUME_ARG=()
+    echo "!! pipeline moved ${PREV:0:8} -> ${COMMIT:0:8}"
+    echo "!! running WITHOUT -resume: Nextflow does not hash bin/, so resuming"
+    echo "!! here would reuse the previous HERV-K output and hide the change."
+  fi
+elif [[ -d "$OUTDIR/3_TSD_search" ]]; then
+  RESUME_ARG=()
+  echo "!! existing output with no revision stamp — running without -resume"
+fi
+
+echo "project  : $PROJECT -r $REVISION (${COMMIT:0:8})"
 echo "out      : $OUTDIR"
 echo "profile  : $PROFILE"
 
@@ -46,7 +71,9 @@ nextflow run "$PROJECT" -r "$REVISION" -latest \
     ${GRAFFITE_SIF:+-with-singularity "$GRAFFITE_SIF"} \
     -with-report "$OUTDIR/nextflow_report.html" \
     -with-trace  "$OUTDIR/nextflow_trace.txt" \
-    -resume
+    "${RESUME_ARG[@]}"
+
+echo "$COMMIT" > "$STAMP"
 
 echo
 echo "== assertions =="

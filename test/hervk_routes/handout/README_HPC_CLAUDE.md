@@ -1,5 +1,10 @@
 # HERV-K v2 discovery test — handout
 
+> **Doing the corrected re-run?** Read **`RERUN_2.md`** first. Run 1 passed but
+> surfaced five bugs, three of which change the output. That file says what
+> changed, why the reference must be masked again, and what must be true this
+> time.
+
 You are running one test on a cluster and reporting what came back. Everything
 needed is in this directory. Read this file top to bottom before starting.
 
