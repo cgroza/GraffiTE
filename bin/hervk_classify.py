@@ -611,6 +611,9 @@ def main():
     ap.add_argument('--tsv-out')
     ap.add_argument('--summary')
     ap.add_argument('--config')
+    ap.add_argument('--max-svlen', type=int,
+                    help='|SVLEN| cap for candidacy; must match the cap used to '
+                         'build the candidate list the reference masking ran on')
     ap.add_argument('--strict', action='store_true',
                     help='drop candidates classed "other" or below pmap_min '
                          '(off by default: dropping records is what hid the '
@@ -629,6 +632,8 @@ def main():
         ap.error('at least one of --vcf-out or --calls-out is required')
 
     cfg = load_config(args.config)
+    if args.max_svlen:
+        cfg['max_svlen'] = args.max_svlen
     arch_tbl = load_table(args.arch)
     ref_tbl = load_table(args.ref_state)
     results = {}

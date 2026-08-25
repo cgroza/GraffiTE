@@ -78,13 +78,21 @@ if [[ -n "${GRAFFITE_SIF:-}" ]]; then
   else
     bad "neither apptainer nor singularity on PATH"
   fi
-elif [[ "$PROFILE" == "cluster" || "$PROFILE" == "aws" ]]; then
+elif [[ "$PROFILE" == "cluster" || "$PROFILE" == "aws" || "$PROFILE" == "standard" ]]; then
   # Tools live in library://cgroza/collection/graffite:latest, which Nextflow
   # pulls on first use. Nothing to check on the host.
+  # Every profile in nextflow.config sets process.container, and
+  # singularity.enabled is set outside the profiles block -- so `standard`
+  # means "local executor", not "no container". The tools are in the image,
+  # never on the host PATH.
   warn "GRAFFITE_SIF not set — Nextflow will pull the container for -profile $PROFILE."
   warn "Set GRAFFITE_SIF to a local .sif to check its contents here instead."
-  command -v apptainer >/dev/null || command -v singularity >/dev/null \
-    && ok "container runtime present" || bad "no apptainer/singularity on PATH"
+  if command -v apptainer >/dev/null || command -v singularity >/dev/null; then
+    ok "container runtime present"
+  else
+    # A login node often has no runtime while the compute nodes do.
+    warn "no apptainer/singularity on this host — fine if you submit to nodes that have it"
+  fi
 else
   warn "-profile $PROFILE with no container — tools must be on PATH"
   for t in RepeatMasker samtools bcftools python3; do

@@ -22,6 +22,13 @@ for f in "$SRC"/*; do
   if [[ "$b" == "INPUTS.env" && -f ./INPUTS.env ]]; then
     echo "  keeping your existing INPUTS.env (new template at INPUTS.env.new)"
     cp "$f" ./INPUTS.env.new
+  elif [[ -f "./$b" ]] && ! cmp -s "$f" "./$b"; then
+    # Do not silently discard a local edit. Run 1 patched preflight.sh for the
+    # local-executor setup and bootstrap reverted it, so the next preflight
+    # failed on "RepeatMasker not on PATH" for no visible reason.
+    cp "./$b" "./$b.local.bak"
+    cp "$f" ./
+    echo "  $b differed — yours saved as $b.local.bak"
   else
     cp "$f" ./
   fi

@@ -294,9 +294,7 @@ process hervk_annotate {
   # 2h14m of ProcessRepeats, which timed out two 4h jobs. With the cap here the
   # first pass is ~1.1 Mb, as RERUN_2.md predicts.
   #
-  # 25000 mirrors hervk_classify.py DEFAULTS['max_svlen']; upstream should make
-  # it one shared param rather than two constants that can drift.
-  bcftools view -H -i 'matching_classes="LTR/ERVK" & abs(SVLEN)<=25000' in.pangenome.vcf \\
+  bcftools view -H -i 'matching_classes="LTR/ERVK" & abs(SVLEN)<=${params.hervk_max_svlen}' in.pangenome.vcf \\
     | cut -f3 > hervk_candidate.ids
 
   hervk_arch.py --rm-out rmdir_* --ids hervk_candidate.ids --out hervk_arch.tsv
@@ -313,12 +311,12 @@ process hervk_annotate {
   fi
 
   # Calls over the full candidate set; no VCF is written from this pass.
-  hervk_classify.py ${cfg_arg} \\
+  hervk_classify.py ${cfg_arg} --max-svlen ${params.hervk_max_svlen} \\
       --vcf-in in.pangenome.vcf --calls-out hervk_calls.tsv \\
       --arch hervk_arch.tsv --ref-state hervk_refstate.tsv \\
       --summary hervk_polymorphism_summary.md
 
-  hervk_classify.py ${cfg_arg} ${strict_arg} \\
+  hervk_classify.py ${cfg_arg} ${strict_arg} --max-svlen ${params.hervk_max_svlen} \\
       --vcf-in in.pangenome.human.vcf --vcf-out human.hervk.vcf \\
       --arch hervk_arch.tsv --ref-state hervk_refstate.tsv \\
       --tsv-in in.pangenome.presence-absence_human.tsv \\

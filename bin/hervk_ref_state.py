@@ -58,6 +58,12 @@ DEFAULTS = {
     "min_int_bp": 200,
     # Tolerance (bp) when matching total LTR bp against 1x or 2x consensus.
     "ltr_tol": 250,
+    # An element spanning more than this is bigger than one provirus and is
+    # probably two neighbouring elements pulled together by `element_gap`.
+    # 9472 bp is a whole provirus; 10500 leaves ~1 kb of slack. Verified
+    # reachable: a solo LTR 932 bp from a provirus merges into one 11372 bp
+    # "element" reading `provirus` with ltr_bp 2904.
+    "max_element_span": 10500,
 }
 
 
@@ -277,14 +283,14 @@ def evaluate(footprints, rm_hits, offsets, cfg):
         if not hits:
             results[sv_id] = {'state': 'null', 'ltr_bp': 0, 'int_bp': 0,
                               'dist': '', 'arch': 'NONE', 'chrom': chrom,
-                              'elem_start': '', 'elem_end': ''}
+                              'elem_start': '', 'elem_end': '', 'flags': '.'}
             continue
         frags = reassign_sine_r(tile_hits(hits, arch_cfg), arch_cfg)
         elements = cluster_elements(frags, cfg)
         if not elements:
             results[sv_id] = {'state': 'null', 'ltr_bp': 0, 'int_bp': 0,
                               'dist': '', 'arch': 'NONE', 'chrom': chrom,
-                              'elem_start': '', 'elem_end': ''}
+                              'elem_start': '', 'elem_end': '', 'flags': '.'}
             continue
 
         win_start = offsets.get(sv_id, (chrom, max(1, fp_start - cfg['flank'])))[1]
@@ -302,8 +308,15 @@ def evaluate(footprints, rm_hits, offsets, cfg):
 
         best = min(elements, key=distance)
         state, ltr_bp, int_bp, arch = call_state(best, cfg)
+        span = max(f['qend'] for f in best) - min(f['qstart'] for f in best) + 1
+        flags = []
+        if span > cfg['max_element_span']:
+            flags.append('OVERSIZE_ELEMENT')
+        if state == 'provirus' and span > cfg['max_element_span']:
+            flags.append('PROVIRUS_CALL_SUSPECT')
         results[sv_id] = {'state': state, 'ltr_bp': ltr_bp, 'int_bp': int_bp,
                           'dist': distance(best), 'arch': arch,
+                          'flags': ','.join(flags) or '.',
                           'chrom': chrom,
                           'elem_start': min(f['qstart'] for f in best) + win_start - 1,
                           'elem_end': max(f['qend'] for f in best) + win_start - 1}
@@ -311,7 +324,8 @@ def evaluate(footprints, rm_hits, offsets, cfg):
 
 
 COLUMNS = ['id', 'ref_state', 'ref_ltr_bp', 'ref_int_bp', 'ref_dist',
-           'ref_elem_chrom', 'ref_elem_start', 'ref_elem_end', 'ref_arch']
+           'ref_elem_chrom', 'ref_elem_start', 'ref_elem_end', 'ref_flags',
+           'ref_arch']
 
 
 def write_tsv(results, path):
@@ -322,7 +336,8 @@ def write_tsv(results, path):
             fh.write('\t'.join([sv_id, r['state'], str(int(r['ltr_bp'])),
                                 str(int(r['int_bp'])), str(r['dist']),
                                 r.get('chrom', ''), str(r.get('elem_start', '')),
-                                str(r.get('elem_end', '')), r['arch']]) + '\n')
+                                str(r.get('elem_end', '')), r.get('flags', '.'),
+                                r['arch']]) + '\n')
 
 
 def main():
