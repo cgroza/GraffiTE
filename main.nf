@@ -37,7 +37,8 @@ include { index_graph; bamtags_to_BED; lift_epigenome; annotate_VCF; annotate_BE
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
          svim_asm; pav_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
          tsd_search; tsd_report; pangenie_index; pangenie; make_graph; bam_to_fastq;
-         graph_align_reads; vg_call; merge_VCFs; hervk_annotate } from './module'
+         graph_align_reads; vg_call; merge_VCFs; hervk_annotate;
+         hervk_reconcile } from './module'
 
 workflow {
   // initiate channels that will provide the reference genome to processes
@@ -245,5 +246,16 @@ workflow {
     }
 
     merge_VCFs(indexed_vcfs.map{v -> v[1]}.collect(), vcf_ch)
+
+    // HERV-K locus consolidation on the human subset of the genotyped calls.
+    // Only giraffe is validated; the reconciler refuses other back ends rather
+    // than producing an unchecked answer.
+    if(params.human && params.hervk_reconcile) {
+      hervk_reconcile(merge_VCFs.out.typeref_outputs,
+                      hervk_annotate.out.human_vcf_ch,
+                      hervk_annotate.out.loci_ch,
+                      hervk_annotate.out.calls_ch,
+                      params.graph_method)
+    }
   }
 }

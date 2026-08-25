@@ -263,8 +263,8 @@ process hervk_annotate {
   output:
   path("pangenome.human.vcf"), emit: human_vcf_ch
   path("pangenome.presence-absence_human.tsv")
-  path("hervk_loci.tsv")
-  path("hervk_calls.tsv")
+  path("hervk_loci.tsv"), emit: loci_ch
+  path("hervk_calls.tsv"), emit: calls_ch
   path("hervk_arch.tsv")
   path("hervk_refstate.tsv")
   path("hervk_polymorphism_summary.md")
@@ -331,6 +331,52 @@ process hervk_annotate {
 
   awk -v v="${params.graffite_version}" 'NR==1 && /^##fileformat/ {print; print "##GraffiTE_version="v; next} {print}' \\
       pangenome.human.vcf > pangenome.human.vcf.tmp && mv pangenome.human.vcf.tmp pangenome.human.vcf
+  """
+}
+
+
+// Stage E: the human merged genotypes VCF, with HERV-K loci consolidated.
+// --human only, and only after graph genotyping.
+//
+// GraffiTE.merged.genotypes.vcf.gz (the full call set) is never rewritten; the
+// human subset is a separate output and is where consolidation lands.
+process hervk_reconcile {
+  publishDir "${params.out}/4_Genotyping", mode: 'copy', overwrite: true
+
+  input:
+  path(merged_vcf)
+  path(human_vcf)
+  path(loci_tsv)
+  path(calls_tsv)
+  val(genotyper)
+
+  output:
+  path("GraffiTE.merged.genotypes.human.vcf.gz"), emit: human_gt_ch
+  path("GraffiTE.merged.genotypes.human.vcf.gz.tbi")
+  path("hervk_unconsolidated_records.vcf")
+  path("hervk_reconciliation_report.md")
+
+  script:
+  """
+  # Subset the merged genotypes to the human candidate set, by ID. Records whose
+  # ID did not survive merge_VCFs' `bcftools annotate` keep a raw snarl ID and
+  # simply will not match -- the reconciler reports any locus member it cannot
+  # locate rather than emitting a partial locus.
+  bcftools query -f '%ID\\n' ${human_vcf} > human.ids
+  bcftools view -i 'ID=@human.ids' -Ov -o merged.human.vcf ${merged_vcf}
+
+  hervk_reconcile.py consolidate \\
+      --genotyped-vcf merged.human.vcf \\
+      --loci          ${loci_tsv} \\
+      --calls         ${calls_tsv} \\
+      --discovery-vcf ${human_vcf} \\
+      --genotyper     ${genotyper} \\
+      --out-vcf       GraffiTE.merged.genotypes.human.vcf \\
+      --out-archive   hervk_unconsolidated_records.vcf \\
+      --report        hervk_reconciliation_report.md
+
+  bgzip -f GraffiTE.merged.genotypes.human.vcf
+  tabix -p vcf GraffiTE.merged.genotypes.human.vcf.gz
   """
 }
 

@@ -215,7 +215,52 @@ Getting this wrong costs more than three mislabelled haplotypes: reading
 polarity of the whole locus**. At chr6 that is the difference between solo at
 0.200 and solo at 0.800, across the other 39 haplotypes.
 
-## 10. Deliberately deferred
+## 10. Stage E — consolidating loci in the genotyped calls
+
+Genotypes are resolved by **ALT dosage across the member records**, not by
+taking each record's call at face value. A locus is one place with one allele
+set; the members are partial views of it, and `vg call` routinely leaves one
+member uncalled because the reads took another member's path. That missingness
+is *structural* — no DP reported at all, as opposed to evaluated and ambiguous
+— and it affects 9 samples at chr6 and 11 at chr12.
+
+Summing dosages fixes most of it. Where the called members already account for
+every haplotype, an uncalled member is pinned to zero. That is arithmetic, not
+inference. Measured on CaG:
+
+| locus | dosage resolves | struct. missing | ploidy violations | graph AC/AN | discovery |
+|---|---|---|---|---|---|
+| chr1 | 20/20 | 0 | 0 | 18/40 | 20/40 |
+| chr6 *(tandem masked)* | 11/20 | 9 | 0 | **8**/22 | **8**/40 |
+| chr8 | 19/20 | 0 | 1 | 10/40 | n/a |
+| chr11 | 20/20 | 0 | 0 | **23/40** | **23/40** |
+| chr12 | 17/20 | 11 | 2 | 6,21/33 | 8,21/40 |
+
+Three things this bought:
+
+- **chr11 is exact.** Two records the paper reports as separate loci at 0.400
+  and 0.175 are one locus at 0.575, and the assemblies agree to the allele.
+- **The ploidy check is free and it works.** Summed dosage cannot exceed
+  ploidy; three CaG samples violate it (chr12 ×2, chr8 ×1). At chr12 those two
+  samples are precisely the gap between graph and assemblies — they are the
+  third allele flattened by `bcftools norm -m-`.
+- **Dosage beats the alternative badly.** At chr12 it resolves 17 of 20 where
+  treating any missing member as fatal resolves 7.
+
+### Why no missing genotype is ever inferred
+
+An earlier design would have converted structurally-missing calls to reference.
+It is unnecessary: chr1, chr8 and chr11 have no structural missingness at all,
+and dosage handles chr12. It would only ever have fired at chr6 — the one locus
+where the graph is least trustworthy, since that is where the tandem record's
+spurious calls live. Adding an assumption on the weakest data is the wrong place
+for one.
+
+Instead **AC and AN are reported separately.** At chr6 the graph finds every
+solo carrier (AC=8, matching the assemblies exactly) and fails only to confirm
+non-carriers (AN=22 of 40). `AF=0.364` hides that; `AC=8 AN=40*` does not.
+
+## 11. Deliberately deferred
 
 - **`DENOVO_LTR`** (rule 5) is not implemented. It was specified as a fallback
   for when the reference is unavailable or ambiguous. Every degenerate CaG
@@ -231,8 +276,10 @@ polarity of the whole locus**. At chr6 that is the difference between solo at
   regardless of sex. The locus layer flags non-autosomes
   (`PLOIDY_UNVERIFIED`) and otherwise stays out of the way.
 - **Caller dependence of `k`** — untested; needs the route coverage test set.
-- **Masking tandem genotypes in the graph-genotyped VCF** — phase 2; only the
-  discovery-stage human VCF is masked today.
+- **Multi-allelic loci with no spanning deletion.** `build_locus_record` splices
+  literal sequence out of a deletion member's REF field, so it needs no FASTA.
+  A locus with several alleles and no spanning deletion would; none occurs in
+  CaG, and the reconciler says so rather than guessing.
 - **Proviral arrays / clusters.** chr7:4.70 Mb carries neighbouring HML-2
   elements that `element_gap` fuses into one oversize reference element (now
   flagged `OVERSIZE_ELEMENT`). Not pursued by decision: of no interest without
