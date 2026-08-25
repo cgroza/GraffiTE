@@ -1,7 +1,7 @@
 id	svlen	class	evidence	k	matching_classes	n_hits	allele_ref	allele
 chr19-21797327-INS-9478_60578	9478	null_prov	ARCH_2LTR		LTR/ERVK,Retroposon/SVA	2	null	provirus
 chr8-7226885-INS-9468_114234	9468	null_prov	ARCH_2LTR		LTR/ERVK,Retroposon/SVA	2	null	provirus
-chr6-78894876-INS-8465_106221	8465	solo_prov	ARCH_PERM	410	LTR/ERVK,Retroposon/SVA	2	solo	provirus
+chr6-78894876-INS-8465_106221	8465	tandem_prov	ARCH_PERM	410	LTR/ERVK,Retroposon/SVA	2	provirus	tandem_prov
 chr11-101705464-INS-8498_18798	8498	solo_prov	ARCH_PERM	574	LTR/ERVK,Retroposon/SVA	2	solo	provirus
 chr7-4700334-INS-8504_108499	8504	solo_prov	ARCH_PERM	174	LTR/ERVK,Retroposon/SVA	2	solo	provirus
 chr12-58305931-DEL-8489_21709	-8489	solo_prov	ARCH_PERM	303	LTR/ERVK,Retroposon/SVA	2	provirus	solo

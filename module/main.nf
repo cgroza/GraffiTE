@@ -272,6 +272,7 @@ process hervk_annotate {
   script:
   def cfg_arg = params.hervk_config ? "--config ${params.hervk_config}" : ""
   def strict_arg = params.hervk_strict ? "--strict" : ""
+  def tandem_arg = params.hervk_mask_tandem ? "" : "--no-mask-tandem"
   """
   REF="${ref_fasta}"
   if [[ "\$REF" == *.gz ]]; then
@@ -311,12 +312,12 @@ process hervk_annotate {
   fi
 
   # Calls over the full candidate set; no VCF is written from this pass.
-  hervk_classify.py ${cfg_arg} --max-svlen ${params.hervk_max_svlen} \\
+  hervk_classify.py ${cfg_arg} --max-svlen ${params.hervk_max_svlen} ${tandem_arg} \\
       --vcf-in in.pangenome.vcf --calls-out hervk_calls.tsv \\
       --arch hervk_arch.tsv --ref-state hervk_refstate.tsv \\
       --summary hervk_polymorphism_summary.md
 
-  hervk_classify.py ${cfg_arg} ${strict_arg} --max-svlen ${params.hervk_max_svlen} \\
+  hervk_classify.py ${cfg_arg} ${strict_arg} --max-svlen ${params.hervk_max_svlen} ${tandem_arg} \\
       --vcf-in in.pangenome.human.vcf --vcf-out human.hervk.vcf \\
       --arch hervk_arch.tsv --ref-state hervk_refstate.tsv \\
       --tsv-in in.pangenome.presence-absence_human.tsv \\

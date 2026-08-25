@@ -184,7 +184,38 @@ masked reference should say `provirus` — which would invert the solo/provirus
 frequencies that `paper/LATEST_GT/build_hervk_vcf.py` currently reports for
 that locus. Confirm against the reference before trusting either.
 
-## 9. Deliberately deferred
+## 9. Tandem duplications — recorded, genotypes withheld
+
+`ARCH_PERM` says the aligner split an LTR and inserted into it. Which LTR is
+not something the architecture can say: a solo has one, a provirus has two, and
+the aligner splits whichever it anchored in. Only the reference distinguishes
+them, so the rule consults it:
+
+| | REF | ALT | class |
+|---|---|---|---|
+| `ARCH_PERM`, reference `solo` | solo | provirus | `solo_prov` |
+| `ARCH_PERM`, reference `provirus` | provirus | tandem | `tandem_prov` |
+
+Three CaG loci are the second case — chr6:78,894,876, chr7:4,700,334 and
+chr12:133,148,145 — each a singleton haplotype. The size arithmetic confirms
+the reading: the inserted length is the reference element's span minus one LTR
+(chr6 8465 = 9425 − 960 exactly; chr12 4933 vs 4934; chr7 8504 = 9472 − 968).
+chr12 settles it — its reference provirus is internally deleted, and the
+insertion duplicates *that* deleted unit rather than a canonical provirus.
+
+**Their genotypes are withheld.** A second proviral unit landing in an LTR of
+an existing provirus is neither transposition nor intra-element recombination,
+so it does not belong in HERV-K allele frequencies; it is a chance duplication
+or a misassembly. The record and its annotation are kept, the genotypes are set
+to missing (ploidy preserved), and the locus contributes `AN=0`. Governed by
+`params.hervk_mask_tandem`.
+
+Getting this wrong costs more than three mislabelled haplotypes: reading
+`ARCH_PERM` as `REF=solo` where the reference is a provirus **inverts the
+polarity of the whole locus**. At chr6 that is the difference between solo at
+0.200 and solo at 0.800, across the other 39 haplotypes.
+
+## 10. Deliberately deferred
 
 - **`DENOVO_LTR`** (rule 5) is not implemented. It was specified as a fallback
   for when the reference is unavailable or ambiguous. Every degenerate CaG
@@ -200,3 +231,9 @@ that locus. Confirm against the reference before trusting either.
   regardless of sex. The locus layer flags non-autosomes
   (`PLOIDY_UNVERIFIED`) and otherwise stays out of the way.
 - **Caller dependence of `k`** — untested; needs the route coverage test set.
+- **Masking tandem genotypes in the graph-genotyped VCF** — phase 2; only the
+  discovery-stage human VCF is masked today.
+- **Proviral arrays / clusters.** chr7:4.70 Mb carries neighbouring HML-2
+  elements that `element_gap` fuses into one oversize reference element (now
+  flagged `OVERSIZE_ELEMENT`). Not pursued by decision: of no interest without
+  evidence of a null/solo state or intra-locus recombination.
