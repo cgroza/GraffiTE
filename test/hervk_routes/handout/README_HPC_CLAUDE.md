@@ -1,5 +1,9 @@
 # HERV-K v2 discovery test — handout
 
+> **Testing the full wiring including stage E?** See **`E2E_TEST.md`** — set
+> `GENOTYPED_VCF` to an existing `4_Genotyping` VCF and the whole pipeline runs
+> end to end without re-genotyping.
+
 > **Doing the corrected re-run?** Read **`RERUN_2.md`** first. Run 1 passed but
 > surfaced five bugs, three of which change the output. That file says what
 > changed, why the reference must be masked again, and what must be true this

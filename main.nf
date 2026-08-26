@@ -250,12 +250,26 @@ workflow {
     // HERV-K locus consolidation on the human subset of the genotyped calls.
     // Only giraffe is validated; the reconciler refuses other back ends rather
     // than producing an unchecked answer.
-    if(params.human && params.hervk_reconcile) {
+    if(params.human && params.hervk_reconcile && !params.hervk_reconcile_vcf) {
       hervk_reconcile(merge_VCFs.out.typeref_outputs,
                       hervk_annotate.out.human_vcf_ch,
                       hervk_annotate.out.loci_ch,
                       hervk_annotate.out.calls_ch,
                       params.graph_method)
     }
+  }
+
+  // Consolidate against a genotyped VCF from an earlier run instead of one this
+  // run produced. Graph genotyping is by far the most expensive stage, and the
+  // HERV-K work downstream of it does not depend on how the calls were made --
+  // so pointing at an existing 4_Genotyping VCF exercises the whole stage-3 and
+  // stage-E wiring without paying for genotyping again. Pairs with
+  // --genotype false.
+  if(params.human && params.hervk_reconcile && params.hervk_reconcile_vcf) {
+    hervk_reconcile(Channel.fromPath(params.hervk_reconcile_vcf, checkIfExists:true),
+                    hervk_annotate.out.human_vcf_ch,
+                    hervk_annotate.out.loci_ch,
+                    hervk_annotate.out.calls_ch,
+                    params.graph_method)
   }
 }

@@ -27,6 +27,16 @@ CPUS="${CPUS:-8}"
 REVISION="${REVISION:-v1.1dev-hervk-v2}"
 PROJECT="${PROJECT:-cgroza/GraffiTE}"
 
+# Stage E runs against an existing genotyped VCF rather than re-genotyping.
+STAGE_E=()
+if [[ -n "${GENOTYPED_VCF:-}" ]]; then
+  [[ -f "$GENOTYPED_VCF" ]] || { echo "GENOTYPED_VCF=$GENOTYPED_VCF not found" >&2; exit 1; }
+  STAGE_E=(--hervk_reconcile_vcf "$GENOTYPED_VCF")
+  echo "stage E   : consolidating against $GENOTYPED_VCF"
+else
+  echo "stage E   : skipped (GENOTYPED_VCF not set)"
+fi
+
 mkdir -p "$OUTDIR"
 
 # Resume safety.
@@ -65,6 +75,7 @@ nextflow run "$PROJECT" -r "$REVISION" -latest \
     --TE_library "$TE_LIBRARY" \
     --human      true \
     --genotype   false \
+    "${STAGE_E[@]}" \
     --out        "$OUTDIR" \
     --cores      "$CPUS" \
     -profile     "$PROFILE" \
