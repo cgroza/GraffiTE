@@ -18,6 +18,18 @@ for f in hervk_assertions.log nextflow_report.html nextflow_trace.txt; do
   [[ -f "$OUTDIR/$f" ]] && cp "$OUTDIR/$f" "$BUNDLE/"
 done
 
+# Stage E outputs. Only exist when GENOTYPED_VCF was set, so absence is normal
+# and not reported as missing -- but when stage E did run these ARE the result,
+# and the bundle used to drop them silently.
+if [[ -d "$OUTDIR/4_Genotyping" ]]; then
+  for f in GraffiTE.merged.genotypes.human.vcf.gz \
+           GraffiTE.merged.genotypes.human.vcf.gz.tbi \
+           hervk_unconsolidated_records.vcf \
+           hervk_reconciliation_report.md; do
+    [[ -f "$OUTDIR/4_Genotyping/$f" ]] && cp "$OUTDIR/4_Genotyping/$f" "$BUNDLE/"
+  done
+fi
+
 # Provenance: without this the numbers cannot be tied to a commit.
 {
   echo "date        : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
