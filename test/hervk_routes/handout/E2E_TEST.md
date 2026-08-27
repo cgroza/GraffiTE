@@ -5,6 +5,11 @@ work depends on *how* the calls were made — only on having them. So stage E ca
 be pointed at a genotyped VCF from an earlier run, and the whole wiring runs
 end to end for the cost of the discovery stage alone.
 
+Use the **stock TE library** you masked with — no renamed copy is needed. The
+HML-2 internal region is named `HERVK` by Dfam and `HERVK-int` by other sets,
+and both are recognised (as are `HERVK_int` and `HERVKint`). `HERVK9-int`,
+`HERVK11-int` and `HERVK14-int` are deliberately excluded: different lineages.
+
 Set two things in `INPUTS.env`:
 
 ```bash

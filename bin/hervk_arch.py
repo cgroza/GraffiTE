@@ -39,6 +39,7 @@ Usage:
 import argparse
 import glob
 import os
+import re
 import sys
 from collections import Counter
 
@@ -46,7 +47,14 @@ from collections import Counter
 LTR_CONSENSUS_LEN = {'LTR5_Hs': 968, 'LTR5A': 1033, 'LTR5B': 968, 'LTR5': 968}
 INT_CONSENSUS_LEN = 7536
 
-INT_FAMILIES = {'HERVK-int'}
+# The HML-2 internal region is named differently by different libraries:
+# Dfam calls it HERVK, RepBase-derived sets HERVK-int, and HERVK_int / HERVKint
+# also occur. Match all of them, but only them -- HERVK9-int, HERVK11-int and
+# HERVK14-int are separate ERV lineages and a loose prefix would sweep them in.
+# Requiring the name to end right after the optional "int" is what keeps the
+# digit-suffixed families out.
+INT_RE = re.compile(r'^HERVK[-_]?(int(ernal)?)?$', re.IGNORECASE)
+INT_FAMILIES = {'HERVK-int', 'HERVK'}   # kept for callers that want a literal set
 SKIP_CLASSES = {'Simple_repeat', 'Low_complexity'}
 
 DEFAULTS = {
@@ -63,6 +71,11 @@ DEFAULTS = {
     # Minimum bp for a tiled fragment to be reported at all.
     "min_frag_bp": 20,
 }
+
+
+def is_int_family(name):
+    """HML-2 internal region, whatever the library calls it."""
+    return bool(INT_RE.match(name))
 
 
 def is_ltr_family(name):
@@ -185,7 +198,7 @@ def reassign_sine_r(frags, cfg):
     completes the LTR exactly (chr12-58305931: 303 bp SVA + LTR5_Hs 304-968).
     """
     hml2 = [f for f in frags
-            if is_ltr_family(f['name']) or f['name'] in INT_FAMILIES]
+            if is_ltr_family(f['name']) or is_int_family(f['name'])]
     if not hml2:
         return frags
     for f in frags:
@@ -213,7 +226,7 @@ def element_order(frags):
     are swapped relative to query order.
     """
     hml2 = [f for f in frags
-            if is_ltr_family(f['name']) or f['name'] in INT_FAMILIES]
+            if is_ltr_family(f['name']) or is_int_family(f['name'])]
     pool = hml2 or frags
     rev = sum(f['sw'] for f in pool if f['strand'] == 'C') > \
           sum(f['sw'] for f in pool if f['strand'] != 'C')
@@ -236,7 +249,7 @@ def architecture(frags, svlen, cfg):
     """
     ordered, strand = element_order(frags)
     ltr_bp = sum(f['bp'] for f in ordered if is_ltr_family(f['name']))
-    int_bp = sum(f['bp'] for f in ordered if f['name'] in INT_FAMILIES)
+    int_bp = sum(f['bp'] for f in ordered if is_int_family(f['name']))
     other_bp = sum(f['bp'] for f in ordered
                    if not is_ltr_family(f['name'])
                    and f['name'] not in INT_FAMILIES)
@@ -307,7 +320,7 @@ def int_consensus_gaps(ordered):
     """Internal-region consensus gaps, e.g. the recurrent 291 bp HERVK-int
     5535-5825 deletion seen at chr3/chr5/chr12/chr19."""
     ints = [f for f in ordered
-            if f['name'] in INT_FAMILIES and f['cons_start'] is not None]
+            if is_int_family(f['name']) and f['cons_start'] is not None]
     if len(ints) < 2:
         return ''
     ints.sort(key=lambda f: f['cons_start'])
@@ -324,7 +337,7 @@ def arch_string(ordered):
     for f in ordered:
         if is_ltr_family(f['name']):
             tag = 'LTR'
-        elif f['name'] in INT_FAMILIES:
+        elif is_int_family(f['name']):
             tag = 'INT'
         else:
             tag = f['name']

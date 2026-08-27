@@ -260,7 +260,25 @@ Instead **AC and AN are reported separately.** At chr6 the graph finds every
 solo carrier (AC=8, matching the assemblies exactly) and fails only to confirm
 non-carriers (AN=22 of 40). `AF=0.364` hides that; `AC=8 AN=40*` does not.
 
-## 11. Deliberately deferred
+## 11. Library naming
+
+The HML-2 internal region is named differently by different repeat libraries:
+`HERVK` in Dfam, `HERVK-int` in RepBase-derived sets, and `HERVK_int` /
+`HERVKint` elsewhere. All are matched, by
+`^HERVK[-_]?(int(ernal)?)?$` — anchored at both ends on purpose, because
+`HERVK9-int`, `HERVK11-int` and `HERVK14-int` are separate ERV lineages that a
+prefix match would sweep in. LTRs are matched against the explicit HML-2 set
+(`LTR5_Hs`, `LTR5A`, `LTR5B`, `LTR5`).
+
+`human_hervk_ids` carries both `^HERVK-int` and `^HERVK$` for the same reason;
+the `$` is what keeps the digit-suffixed lineages out of a bcftools regex.
+
+Verified identical architecture calls on the same fixture with the internal
+region renamed between conventions. **No modified library is required**, and an
+earlier version of the pre-flight check — which demanded the literal name
+`HERVK-int` — is what made one look necessary.
+
+## 12. Deliberately deferred
 
 - **`DENOVO_LTR`** (rule 5) is not implemented. It was specified as a fallback
   for when the reference is unavailable or ambiguous. Every degenerate CaG

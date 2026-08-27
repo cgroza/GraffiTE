@@ -36,9 +36,9 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from hervk_arch import (DEFAULTS as ARCH_DEFAULTS, INT_FAMILIES, arch_string,
-                        is_ltr_family, ltr_len, parse_rm_out, reassign_sine_r,
-                        tile_hits)
+from hervk_arch import (DEFAULTS as ARCH_DEFAULTS, arch_string,
+                        is_int_family, is_ltr_family, ltr_len, parse_rm_out,
+                        reassign_sine_r, tile_hits)
 
 # A complete HML-2 provirus is 2*968 + 7536 = 9472 bp.
 FULL_PROVIRUS = 9472
@@ -219,7 +219,7 @@ def cluster_elements(frags, cfg):
     """Merge HML-2 fragments separated by <= element_gap into single elements,
     so a neighbouring unrelated HML-2 copy in the window is not pooled in."""
     hml2 = sorted((f for f in frags
-                   if is_ltr_family(f['name']) or f['name'] in INT_FAMILIES),
+                   if is_ltr_family(f['name']) or is_int_family(f['name'])),
                   key=lambda f: f['qstart'])
     elements, current = [], []
     for f in hml2:
@@ -238,7 +238,7 @@ def call_state(element, cfg):
         return 'null', 0, 0, ''
 
     ltr_bp = sum(f['bp'] for f in element if is_ltr_family(f['name']))
-    int_bp = sum(f['bp'] for f in element if f['name'] in INT_FAMILIES)
+    int_bp = sum(f['bp'] for f in element if is_int_family(f['name']))
     arch = arch_string(element)
     if ltr_bp + int_bp < cfg['min_hml2_bp']:
         return 'null', ltr_bp, int_bp, arch

@@ -43,7 +43,7 @@ import sys
 from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from hervk_arch import INT_CONSENSUS_LEN, ltr_len
+from hervk_arch import INT_CONSENSUS_LEN, is_int_family, ltr_len
 
 # -------- Reference architecture --------
 LTR_LEN, INT_LEN = 968, INT_CONSENSUS_LEN
@@ -51,7 +51,8 @@ SOLO_PROV = LTR_LEN + INT_LEN          # 8504
 NULL_PROV = 2 * LTR_LEN + INT_LEN      # 9472
 
 LTR_FAMILY = {'LTR5_Hs', 'LTR5A', 'LTR5B', 'LTR5'}
-INT_FAMILY = {'HERVK-int'}
+# Naming varies between libraries; is_int_family() handles the variants.
+INT_FAMILY = {'HERVK-int', 'HERVK'}
 SVA_FAMILIES = {'SVA_A', 'SVA_B', 'SVA_C', 'SVA_D', 'SVA_E', 'SVA_F'}
 
 DEFAULTS = {
@@ -186,7 +187,7 @@ def hml2_bp_from_info(info_d):
     if len(lv) != len(iv):
         return 0.0, 0.0
     lam = sum(v for v, r in zip(lv, iv) if r in LTR_FAMILY)
-    nu = sum(v for v, r in zip(lv, iv) if r in INT_FAMILY)
+    nu = sum(v for v, r in zip(lv, iv) if is_int_family(r))
     return lam, nu
 
 

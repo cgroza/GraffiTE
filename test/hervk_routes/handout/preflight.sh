@@ -32,9 +32,9 @@ if [[ -n "${RM_DIR:-}" ]]; then
       || bad "$n_rm of $n_sh shards have repeatmasker_dir"
     [[ "$n_out" -eq "$n_sh" ]] && ok "$n_out indels.fa.out (the HERV-K architecture source)" \
       || bad "$n_out of $n_sh shards have repeatmasker_dir/indels.fa.out — without these the classifier cannot read LTR architecture"
-    hk=$(grep -lE "HERVK-int|LTR5_Hs" "$RM_DIR"/*/repeatmasker_dir/indels.fa.out 2>/dev/null | wc -l | tr -d ' ')
+    hk=$(grep -lE "[[:space:]](HERVK[-_]?(int(ernal)?)?|LTR5_Hs|LTR5A|LTR5B)[[:space:]]" "$RM_DIR"/*/repeatmasker_dir/indels.fa.out 2>/dev/null | wc -l | tr -d ' ')
     [[ "$hk" -gt 0 ]] && ok "HML-2 hits present in $hk shard(s)" \
-      || bad "no HERVK-int/LTR5_Hs hits anywhere in the RepeatMasker output"
+      || bad "no HML-2 hits (HERVK*/LTR5*) anywhere in the RepeatMasker output"
   fi
 elif [[ -n "${PAV_VCF:-}" ]]; then
   [[ -f "$PAV_VCF" ]] && ok "PAV_VCF=$PAV_VCF (full re-mask, slow path)" \
@@ -69,11 +69,20 @@ done
   || warn "no ${REFERENCE:-<REFERENCE>}.fai — the run will build one (needs a writable directory)"
 
 if [[ -n "${TE_LIBRARY:-}" && -f "${TE_LIBRARY:-}" ]]; then
-  for fam in LTR5_Hs HERVK-int; do
-    grep -q ">$fam" "$TE_LIBRARY" \
-      && ok "TE library contains $fam" \
-      || bad "TE library has no >$fam — reference masking cannot call HML-2 states"
-  done
+  # The HML-2 internal region is named HERVK by Dfam and HERVK-int by other
+  # sets; both are accepted, so no library needs renaming. HERVK9/11/14-int are
+  # different lineages and do not count.
+  int_name=$(grep -oE "^>(HERVK[-_]?(int(ernal)?)?)\b" "$TE_LIBRARY" 2>/dev/null \
+             | sed 's/^>//' | sort -u | head -1)
+  if [[ -n "$int_name" ]]; then
+    ok "TE library internal region: $int_name"
+  else
+    bad "TE library has no HML-2 internal region (looked for HERVK, HERVK-int, HERVK_int)"
+  fi
+  ltr_found=$(grep -cE "^>(LTR5_Hs|LTR5A|LTR5B|LTR5)\b" "$TE_LIBRARY" 2>/dev/null || echo 0)
+  [[ "${ltr_found:-0}" -gt 0 ]] \
+    && ok "TE library HML-2 LTRs: $ltr_found (LTR5*)" \
+    || bad "TE library has no LTR5_Hs/LTR5A/LTR5B — reference masking cannot call HML-2 states"
 fi
 
 echo "== container =="
