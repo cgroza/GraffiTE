@@ -1,8 +1,12 @@
 # HERV-K v2 discovery test — handout
 
-> **Testing the full wiring including stage E?** See **`E2E_TEST.md`** — set
-> `GENOTYPED_VCF` to an existing `4_Genotyping` VCF and the whole pipeline runs
-> end to end without re-genotyping.
+> **Start with `E2E_TEST.md`.** It is the current instruction set: set
+> `GENOTYPED_VCF` to an existing `4_Genotyping` VCF and the whole pipeline —
+> discovery, classification, locus flagging and consolidation — runs end to end
+> without re-genotyping.
+>
+> `RERUN_2.md` and `HERVK_RUN_STATE.md` are historical records of earlier runs.
+> They are kept for their measurements; do not run against their checklists.
 
 > **Doing the corrected re-run?** Read **`RERUN_2.md`** first. Run 1 passed but
 > surfaced five bugs, three of which change the output. That file says what

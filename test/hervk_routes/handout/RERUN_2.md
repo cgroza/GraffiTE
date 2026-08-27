@@ -1,5 +1,12 @@
 # Re-run 2 — instructions
 
+> **Superseded. Read `E2E_TEST.md` instead.** Re-run 2 completed and passed
+> (see `HERVK_RUN_STATE.md`); this file is kept as the record of what it was
+> testing. Two of its expectations have since changed — the three
+> `REF_ARCH_CONFLICT` records it flags for analysis turned out to be tandem
+> duplications and are now classified as such, so they raise no conflict at
+> all. Do not run against this file's checklist.
+
 Run 1 (commit `28109e7`, local) **passed all 41 assertions**. Its results are
 still not usable, because analysing them turned up five bugs, three of which
 change the output. This is the corrected re-run.
@@ -106,12 +113,11 @@ Everything from `README_HPC_CLAUDE.md` still applies, plus:
    fix, zero. Any conflict remaining is a genuine disagreement and is the most
    interesting thing in the output — report it in full.
 
-2. **`chr6-78894876-INS-8465` should now read `ref_state=provirus`**, not
-   `partial`. Both chr6 records then agree the reference holds a provirus.
-   Note the INS record's *architecture* still says `ARCH_PERM` (REF = solo), so
-   it should now raise `REF_ARCH_CONFLICT` — that is correct and expected. It
-   is the mis-polarised representation; its DEL partner reads the reference
-   correctly.
+2. ~~**`chr6-78894876-INS-8465` should raise `REF_ARCH_CONFLICT`**~~ — no
+   longer true. That record is a tandem duplication (a second proviral unit in
+   an LTR of the existing provirus), is now classified `tandem_prov`, and has
+   its genotypes withheld. Both chr6 records agree the reference is a provirus,
+   so there is no conflict to raise. See `E2E_TEST.md`.
 
 3. **`partial` count should drop sharply** from 22. Any `partial` that survives
    the rescue pass is a real partial element, not a windowing artefact.

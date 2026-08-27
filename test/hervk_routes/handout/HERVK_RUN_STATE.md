@@ -1,5 +1,10 @@
 # HERV-K v2 test — run state as of 2026-08-25 (re-run 2)
 
+> Historical record of re-run 2, kept for its measurements and job history.
+> Its open question — the three `REF_ARCH_CONFLICT` records — has been
+> answered: they are tandem duplications, now classified `tandem_prov` with
+> genotypes withheld. For what to run and expect now, see `E2E_TEST.md`.
+
 Status: **COMPLETE, PASS.** Pipeline commit `a507cc8`.
 Bundle: `hervk_v2_results_20260825.tar.gz` (2.7 MB, not in git).
 Driver job 23687175, exit 0, 34m13s total; `hervk_annotate` 1m45s / 264 MB.

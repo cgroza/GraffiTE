@@ -89,7 +89,67 @@ def main():
         if want_locus not in merge_loci:
             failures.append(f'{want_locus} not flagged MERGE_CANDIDATE — {why}')
 
-    # ---- 3. things worth seeing but not failing on -----------------------
+    # ---- 3. tandem duplications -----------------------------------------
+    tandem = sorted(v for v, r in calls.items() if r['class'] == 'tandem_prov')
+    for vid in tandem:
+        if 'GT_MASKED' not in calls[vid].get('notes', ''):
+            failures.append(f'{vid}: classed tandem_prov but genotypes were not '
+                            'withheld -- a tandem duplication is neither '
+                            'transposition nor recombination and must not enter '
+                            'allele frequencies')
+
+    # ---- 4. stage E, when it ran ----------------------------------------
+    gt_dir = os.path.join(args.outdir, '4_Genotyping')
+    cons = os.path.join(gt_dir, 'GraffiTE.merged.genotypes.human.vcf.gz')
+    cons_plain = cons[:-3]
+    cons_path = cons if os.path.exists(cons) else (
+        cons_plain if os.path.exists(cons_plain) else None)
+    stage_e = {}
+    if cons_path:
+        import gzip
+        opener = gzip.open if cons_path.endswith('.gz') else open
+        merged, masked_ok, gt_masked = {}, True, []
+        with opener(cons_path, 'rt') as fh:
+            for line in fh:
+                if line.startswith('#'):
+                    continue
+                f = line.rstrip('\n').split('\t')
+                info = dict(kv.split('=', 1) if '=' in kv else (kv, '')
+                            for kv in f[7].split(';'))
+                if f[2].startswith('HERVK_'):
+                    merged[f[2]] = info
+                if 'HERVK_GT_MASKED' in info:
+                    gt_masked.append(f[2])
+                    called = [g.split(':')[0] for g in f[9:]]
+                    if any(c.replace('|', '/').replace('.', '').replace('/', '')
+                           for c in called):
+                        masked_ok = False
+        stage_e = {'merged': merged, 'gt_masked': gt_masked}
+
+        for lid in ('HERVK_chr11_101704640', 'HERVK_chr12_55299985'):
+            if lid not in merged:
+                failures.append(f'{lid} was not consolidated in {cons_path}')
+        if 'HERVK_chr11_101704640' in merged:
+            m = merged['HERVK_chr11_101704640']
+            if m.get('HERVK_AC') != '23' or m.get('HERVK_AN') != '40':
+                failures.append(
+                    f"chr11 AC/AN = {m.get('HERVK_AC')}/{m.get('HERVK_AN')}, "
+                    'expected 23/40 -- graph and assemblies agree exactly here, '
+                    'so a mismatch means the dosage resolution changed')
+            if 'HERVK_DISC_CONCORDANT' not in m:
+                warnings.append('chr11 not flagged HERVK_DISC_CONCORDANT; the '
+                                'graph and the assemblies disagree there now')
+        if 'HERVK_chr12_55299985' in merged:
+            m = merged['HERVK_chr12_55299985']
+            if m.get('HERVK_N_PLOIDY_EXCEEDED') != '2':
+                warnings.append(
+                    f"chr12 ploidy violations = {m.get('HERVK_N_PLOIDY_EXCEEDED')}, "
+                    'expected 2 (the third allele flattened by bcftools norm -m-)')
+        if gt_masked and not masked_ok:
+            failures.append('a HERVK_GT_MASKED record still carries called '
+                            'genotypes')
+
+    # ---- 5. things worth seeing but not failing on -----------------------
     unknown_ref = [v for v, r in calls.items()
                    if r['evidence'] == 'REF_ANNOT' and r['ref_state'] == 'unknown']
     if unknown_ref:
@@ -111,6 +171,13 @@ def main():
     # ---- report ----------------------------------------------------------
     print(f'HERV-K v2 assertions — {checked} records checked against '
           f'{len(expected)} expectations')
+    print(f'  tandem_prov           : {len(tandem)}  {", ".join(tandem)}')
+    if stage_e:
+        print(f'  stage E: consolidated : {len(stage_e["merged"])}  '
+              f'({", ".join(sorted(stage_e["merged"]))})')
+        print(f'  stage E: GT withheld  : {len(stage_e["gt_masked"])}')
+    else:
+        print('  stage E               : not run (set GENOTYPED_VCF to test it)')
     print(f'  candidates classified : {len(calls)}')
     print(f'  loci                  : {len(loci)}  '
           f'({len(merge_loci)} flagged for merge)')

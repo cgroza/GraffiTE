@@ -43,6 +43,20 @@ else
   bad "neither RM_DIR nor PAV_VCF is set in INPUTS.env"
 fi
 
+echo "== stage E =="
+if [[ -n "${GENOTYPED_VCF:-}" ]]; then
+  if [[ ! -f "$GENOTYPED_VCF" ]]; then
+    bad "GENOTYPED_VCF=$GENOTYPED_VCF does not exist"
+  else
+    ok "GENOTYPED_VCF=$GENOTYPED_VCF"
+    n=$(bcftools query -l "$GENOTYPED_VCF" 2>/dev/null | wc -l | tr -d ' ')
+    [[ "${n:-0}" -gt 0 ]] && ok "$n samples in the genotyped VCF" \
+      || warn "could not read samples from it (bcftools missing on this host?)"
+  fi
+else
+  warn "GENOTYPED_VCF not set — stage E will be skipped, only discovery runs"
+fi
+
 echo "== inputs =="
 for var in REFERENCE TE_LIBRARY; do
   val="${!var:-}"
@@ -104,7 +118,7 @@ echo "== data visibility =="
 # nextflow.config sets singularity.runOptions = "--contain --bind $(pwd):/tmp",
 # so inputs outside the launch directory need autoMounts to bind them. It is
 # on by default, but a path on a filesystem the node cannot see fails late.
-for var in RM_DIR PAV_VCF REFERENCE TE_LIBRARY; do
+for var in RM_DIR PAV_VCF REFERENCE TE_LIBRARY GENOTYPED_VCF; do
   val="${!var:-}"
   [[ -z "$val" ]] && continue
   case "$val" in
