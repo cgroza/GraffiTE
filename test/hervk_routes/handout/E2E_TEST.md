@@ -17,7 +17,10 @@ RM_DIR="/abs/path/2_Repeat_Filtering"                              # skips Repea
 GENOTYPED_VCF="/abs/path/4_Genotyping/GraffiTE.merged.genotypes.vcf.gz"
 ```
 
-then `./preflight.sh && ./run_hervk_test.sh` as usual. The run adds
+then `./preflight.sh && ./run_hervk_test.sh` as usual. You do **not** need to
+set `graph_method`: the back end is read from the genotyped VCF's own header,
+since it is a property of that file rather than of this run (which genotypes
+nothing). The run adds
 `--hervk_reconcile_vcf`, keeps `--genotype false`, and exercises:
 
 - `hervk_annotate` — architecture, reference masking, classification, locus flags

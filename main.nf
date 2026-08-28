@@ -266,10 +266,15 @@ workflow {
   // stage-E wiring without paying for genotyping again. Pairs with
   // --genotype false.
   if(params.human && params.hervk_reconcile && params.hervk_reconcile_vcf) {
+    // 'auto', not params.graph_method: that param describes the genotyping
+    // *this* run would do, and this path pairs with --genotype false, so it
+    // describes nothing. The back end is a property of the VCF being read, and
+    // the reconciler recovers it from the header. Passing graph_method here
+    // made the default ("pangenie") reject a perfectly good vg call VCF.
     hervk_reconcile(Channel.fromPath(params.hervk_reconcile_vcf, checkIfExists:true),
                     hervk_annotate.out.human_vcf_ch,
                     hervk_annotate.out.loci_ch,
                     hervk_annotate.out.calls_ch,
-                    params.graph_method)
+                    'auto')
   }
 }

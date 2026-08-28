@@ -306,6 +306,46 @@ def cmd_flag(args):
 
 SUPPORTED_GENOTYPERS = ('giraffe',)
 
+
+def detect_genotyper(vcf_path):
+    """Identify which back end wrote a genotyped VCF, from its header alone.
+
+    Needed because --hervk_reconcile_vcf points at a VCF from an *earlier* run,
+    whose back end is a property of that file and not of this run's
+    params.graph_method (which is moot anyway -- that path pairs with
+    --genotype false, so nothing is being genotyped here).
+
+    vg call declares FORMAT/MAD ("Minimum site allele depth") and FORMAT/XD
+    ("eXpected Depth ... Poisson model"); PanGenie declares neither and names
+    itself in ##source or ##commandline.
+
+    giraffe, graphaligner and precomputed all genotype *through* vg call, so a
+    vg-shaped file is reported as 'giraffe'. That names the validated VCF
+    shape, not a claim about which aligner produced the GAM -- and since
+    --genotyper only selects the guard, the distinction has no effect on the
+    consolidation itself.
+
+    Returns a genotyper name, or None when the header settles nothing.
+    """
+    fmt_ids, other = set(), []
+    opener = gzip.open if vcf_path.endswith('.gz') else open
+    with opener(vcf_path, 'rt') as fh:
+        for line in fh:
+            if not line.startswith('##'):
+                break  # #CHROM or the first record: header is done
+            if line.startswith('##FORMAT=<ID='):
+                fmt_ids.add(line.split('##FORMAT=<ID=', 1)[1].split(',', 1)[0])
+            else:
+                other.append(line.lower())
+
+    if 'pangenie' in ''.join(other):
+        return 'pangenie'
+    if {'MAD', 'XD'} <= fmt_ids:
+        return 'giraffe'
+    if 'KC' in fmt_ids:          # PanGenie's kmer count, if it named nothing
+        return 'pangenie'
+    return None
+
 CONSOLIDATED_HEADERS = [
     '##INFO=<ID=HERVK_LOCUS,Number=1,Type=String,Description="HERV-K locus id.">',
     '##INFO=<ID=HERVK_ALLELE_REF,Number=1,Type=String,Description="HERV-K state '
@@ -460,6 +500,17 @@ def discovery_counts(path, members, samples):
 
 
 def cmd_consolidate(args):
+    if args.genotyper == 'auto':
+        detected = detect_genotyper(args.genotyped_vcf)
+        if detected is None:
+            sys.exit('hervk_reconcile consolidate: --genotyper auto could not '
+                     f'identify the back end that wrote {args.genotyped_vcf} '
+                     '(no vg call FORMAT/MAD+XD, no PanGenie marker). Pass '
+                     '--genotyper explicitly.')
+        sys.stderr.write(f'[hervk_reconcile] --genotyper auto: header says '
+                         f'{detected}\n')
+        args.genotyper = detected
+
     if args.genotyper not in SUPPORTED_GENOTYPERS:
         sys.exit(f'hervk_reconcile consolidate: --genotyper {args.genotyper} is '
                  f'not supported yet (only {", ".join(SUPPORTED_GENOTYPERS)}). '
@@ -833,7 +884,10 @@ def main():
     c.add_argument('--reference',
                    help='FASTA, needed only for loci with several alleles and '
                         'no deletion spanning the locus')
-    c.add_argument('--genotyper', default='giraffe')
+    c.add_argument('--genotyper', default='giraffe',
+                   help="back end that wrote --genotyped-vcf; 'auto' "
+                        'reads it from the VCF header, which is what a '
+                        'run consolidating against an existing VCF wants')
     c.add_argument('--out-vcf', required=True)
     c.add_argument('--out-archive',
                    help='the member records removed, kept verbatim')
