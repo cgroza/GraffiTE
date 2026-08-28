@@ -347,6 +347,8 @@ def detect_genotyper(vcf_path):
     return None
 
 CONSOLIDATED_HEADERS = [
+    '##INFO=<ID=SVTYPE,Number=A,Type=String,Description="Variant type per ALT.">',
+    '##INFO=<ID=SVLEN,Number=A,Type=Integer,Description="Variant length per ALT.">',
     '##INFO=<ID=HERVK_LOCUS,Number=1,Type=String,Description="HERV-K locus id.">',
     '##INFO=<ID=HERVK_ALLELE_REF,Number=1,Type=String,Description="HERV-K state '
     'of the REF allele.">',
@@ -526,11 +528,24 @@ def cmd_consolidate(args):
     for r in flagged:
         members_all.update(r['record_ids'].split(','))
 
-    head, samples, recs = read_vcf_records(args.genotyped_vcf, members_all)
     calls = load_table(args.calls, 'id') if args.calls else {}
+    # tandem records may sit outside any flagged locus, so they have to be in
+    # the read set too
+    members_all |= {vid for vid, c in calls.items()
+                    if c.get('class') == 'tandem_prov'}
+    head, samples, recs = read_vcf_records(args.genotyped_vcf, members_all)
 
     report, consolidated, archived, dropped = [], {}, [], set()
-    mask_gt, annotate_only = set(), {}
+    annotate_only = {}
+
+    # Every tandem-duplication record gets its genotypes withheld, not just the
+    # ones that happen to sit in a multi-record locus. Two of the three in CaG
+    # (chr7-4700334, chr12-133148145) are single-record loci and so are never
+    # reached by the loop below -- they were being masked in the discovery VCF
+    # and left callable in the genotyped one, which is exactly the
+    # inconsistency the masking exists to prevent.
+    mask_gt = {vid for vid, c in calls.items()
+               if c.get('class') == 'tandem_prov'}
     for locus in flagged:
         mem = [m for m in locus['record_ids'].split(',') if m in recs]
         if len(mem) < 2:
@@ -557,7 +572,6 @@ def cmd_consolidate(args):
                 # duplication is not an ERV life-cycle event and must not enter
                 # allele frequencies from either callset.
                 masked.append(m)
-                mask_gt.add(m)
             if c.get('allele_ref', '.') not in ('.', '') and \
                ref_state not in ('.', '') and c['allele_ref'] != ref_state:
                 flipped.append(m)
@@ -716,7 +730,15 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
                 dropped.discard(m)
             continue
 
+        # SVTYPE/SVLEN per ALT. A consolidated record without them is badly
+        # formed for anything downstream that keys off variant type, and the
+        # values are not recoverable from the members once the alleles have
+        # been re-expressed against a common REF.
+        alt_list = alt.split(',')
         info = {
+            'SVTYPE': ','.join('DEL' if len(a) < len(ref) else 'INS'
+                               for a in alt_list),
+            'SVLEN': ','.join(str(len(a) - len(ref)) for a in alt_list),
             'HERVK_LOCUS': lid,
             'HERVK_ALLELE_REF': c['ref_state'] or '.',
             'HERVK_ALLELE': ','.join(c['alt_states']),
