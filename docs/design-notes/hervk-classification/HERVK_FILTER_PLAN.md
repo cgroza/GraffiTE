@@ -1,3 +1,12 @@
+---
+title: HERV-K classification — implementation plan
+description: Design note — IMPLEMENTED — kept for the reasoning
+---
+
+
+!!! success "IMPLEMENTED — kept for the reasoning"
+    Unlike the other design notes, this one **shipped**. It is retained because it records the reasoning behind the model. The implementation lives in `bin/hervk_classify.py`; for current behaviour see [Human mobile element insertions](../../guides/human-mei.md) and [HERV-K biology](../../background/hervk-hml2.md). Note the repository layout suggested in this plan was not followed, and the `hervk_classify_v3.py` alongside it is a superseded reference copy.
+
 # HERV-K Insertion Polymorphism Filter — Implementation Plan
 
 **Project**: Probabilistic post-annotation filter for HERV-K (HML-2) SV polymorphism in pangenome data

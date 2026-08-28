@@ -1,3 +1,11 @@
+---
+title: 3' transduction module — design v1
+description: Design note — PROPOSED — superseded by v2, never implemented
+---
+
+!!! danger "PROPOSED — superseded by v2, never implemented"
+    Nothing in this document is implemented. It describes a proposed 3' transduction annotation module, and it was itself superseded by [design v2](transduction-module-v2.md). The INFO fields, parameters and `bin/detect_transductions.py` script described here **do not exist** in GraffiTE.
+
 # Plan: TE Transduction Annotation Module for GraffiTE
 
 ## Background

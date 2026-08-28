@@ -236,6 +236,150 @@ process truvari_merge {
 }
 
 
+
+// HERV-K (HML-2) allele-state annotation and locus layer. --human only.
+//
+// Reads the raw RepeatMasker tables rather than INFO/repeat_ids: annotate_vcf.R
+// collapses each RepeatMasker link group to one name plus "(x)", which erases
+// the LTR-INT-LTR architecture this needs. It then masks a window of the
+// reference at each candidate to establish what the REF allele actually holds.
+//
+// pangenome.vcf is READ ONLY here. It induces the graph, so it must stay
+// byte-identical; only the human subset is annotated. Candidate calling and
+// locus grouping still run over every candidate in pangenome.vcf, because the
+// --human filter requires FILTER="PASS" and would otherwise be able to hide one
+// member of a locus behind an unrelated caller flag.
+process hervk_annotate {
+  publishDir "${params.out}/3_TSD_search", mode: 'copy', overwrite: true
+
+  input:
+  path(pangenome_vcf, stageAs: 'in.pangenome.vcf')
+  path(human_vcf, stageAs: 'in.pangenome.human.vcf')
+  path(human_tsv, stageAs: 'in.pangenome.presence-absence_human.tsv')
+  path("rmdir_*")
+  path(ref_fasta)
+  path(te_library)
+
+  output:
+  path("pangenome.human.vcf"), emit: human_vcf_ch
+  path("pangenome.presence-absence_human.tsv")
+  path("hervk_loci.tsv"), emit: loci_ch
+  path("hervk_calls.tsv"), emit: calls_ch
+  path("hervk_arch.tsv")
+  path("hervk_refstate.tsv")
+  path("hervk_polymorphism_summary.md")
+
+  script:
+  def cfg_arg = params.hervk_config ? "--config ${params.hervk_config}" : ""
+  def strict_arg = params.hervk_strict ? "--strict" : ""
+  def tandem_arg = params.hervk_mask_tandem ? "" : "--no-mask-tandem"
+  """
+  REF="${ref_fasta}"
+  if [[ "\$REF" == *.gz ]]; then
+      if ! (file -L "\$REF" | grep -q "BGZF"); then
+          zcat "\$REF" | bgzip -c > ref.fa.gz
+          REF=ref.fa.gz
+      fi
+  fi
+  samtools faidx "\$REF"
+
+  # Every LTR/ERVK record in the discovery VCF, not just the human subset.
+  #
+  # The |SVLEN| cap has to be applied HERE, at candidacy, not only in
+  # hervk_classify.py's DEFAULTS (max_svlen=25000). hervk_candidate.ids is what
+  # hervk_ref_state.py masks against, so a cap that only bites at classify time
+  # drops the record from the calls *after* its reference window has already
+  # been masked. On the CaG set that is one 25.3 Mb window
+  # (chr1-120594342-DEL-25264467, a zero-query-footprint ALNTRUNC artefact)
+  # carrying 95.8% of the 26.4 Mb sent to RepeatMasker -- 1h39m of masking plus
+  # 2h14m of ProcessRepeats, which timed out two 4h jobs. With the cap here the
+  # first pass is ~1.1 Mb, as RERUN_2.md predicts.
+  #
+  bcftools view -H -i 'matching_classes="LTR/ERVK" & abs(SVLEN)<=${params.hervk_max_svlen}' in.pangenome.vcf \\
+    | cut -f3 > hervk_candidate.ids
+
+  hervk_arch.py --rm-out rmdir_* --ids hervk_candidate.ids --out hervk_arch.tsv
+
+  if [[ -n "${params.hervk_ref_annotation ?: ''}" ]]; then
+    hervk_ref_state.py --vcf in.pangenome.vcf --ids hervk_candidate.ids \\
+        --reference "\$REF" --rm-annotation ${params.hervk_ref_annotation} \\
+        --flank ${params.hervk_ref_flank} --out hervk_refstate.tsv
+  else
+    hervk_ref_state.py --vcf in.pangenome.vcf --ids hervk_candidate.ids \\
+        --reference "\$REF" --te-library ${te_library} \\
+        --flank ${params.hervk_ref_flank} --threads ${task.cpus} \\
+        --out hervk_refstate.tsv
+  fi
+
+  # Calls over the full candidate set; no VCF is written from this pass.
+  hervk_classify.py ${cfg_arg} --max-svlen ${params.hervk_max_svlen} ${tandem_arg} \\
+      --vcf-in in.pangenome.vcf --calls-out hervk_calls.tsv \\
+      --arch hervk_arch.tsv --ref-state hervk_refstate.tsv \\
+      --summary hervk_polymorphism_summary.md
+
+  hervk_classify.py ${cfg_arg} ${strict_arg} --max-svlen ${params.hervk_max_svlen} ${tandem_arg} \\
+      --vcf-in in.pangenome.human.vcf --vcf-out human.hervk.vcf \\
+      --arch hervk_arch.tsv --ref-state hervk_refstate.tsv \\
+      --tsv-in in.pangenome.presence-absence_human.tsv \\
+      --tsv-out pangenome.presence-absence_human.tsv
+
+  hervk_reconcile.py flag \\
+      --calls hervk_calls.tsv \\
+      --vcf-in human.hervk.vcf --vcf-out pangenome.human.vcf \\
+      --loci-out hervk_loci.tsv --ref-state hervk_refstate.tsv \\
+      --window ${params.hervk_locus_window}
+
+  awk -v v="${params.graffite_version}" 'NR==1 && /^##fileformat/ {print; print "##GraffiTE_version="v; next} {print}' \\
+      pangenome.human.vcf > pangenome.human.vcf.tmp && mv pangenome.human.vcf.tmp pangenome.human.vcf
+  """
+}
+
+
+// Stage E: the human merged genotypes VCF, with HERV-K loci consolidated.
+// --human only, and only after graph genotyping.
+//
+// GraffiTE.merged.genotypes.vcf.gz (the full call set) is never rewritten; the
+// human subset is a separate output and is where consolidation lands.
+process hervk_reconcile {
+  publishDir "${params.out}/4_Genotyping", mode: 'copy', overwrite: true
+
+  input:
+  path(merged_vcf)
+  path(human_vcf)
+  path(loci_tsv)
+  path(calls_tsv)
+  val(genotyper)
+
+  output:
+  path("GraffiTE.merged.genotypes.human.vcf.gz"), emit: human_gt_ch
+  path("GraffiTE.merged.genotypes.human.vcf.gz.tbi")
+  path("hervk_unconsolidated_records.vcf")
+  path("hervk_reconciliation_report.md")
+
+  script:
+  """
+  # Subset the merged genotypes to the human candidate set, by ID. Records whose
+  # ID did not survive merge_VCFs' `bcftools annotate` keep a raw snarl ID and
+  # simply will not match -- the reconciler reports any locus member it cannot
+  # locate rather than emitting a partial locus.
+  bcftools query -f '%ID\\n' ${human_vcf} > human.ids
+  bcftools view -i 'ID=@human.ids' -Ov -o merged.human.vcf ${merged_vcf}
+
+  hervk_reconcile.py consolidate \\
+      --genotyped-vcf merged.human.vcf \\
+      --loci          ${loci_tsv} \\
+      --calls         ${calls_tsv} \\
+      --discovery-vcf ${human_vcf} \\
+      --genotyper     ${genotyper} \\
+      --out-vcf       GraffiTE.merged.genotypes.human.vcf \\
+      --out-archive   hervk_unconsolidated_records.vcf \\
+      --report        hervk_reconciliation_report.md
+
+  bgzip -f GraffiTE.merged.genotypes.human.vcf
+  tabix -p vcf GraffiTE.merged.genotypes.human.vcf.gz
+  """
+}
+
 process split_repeatmask {
   input:
   path(vcf)
@@ -262,12 +406,11 @@ process concat_repeatmask {
   output:
   path("pangenome.vcf"), emit: vcf_ch
   path("pangenome.trusted.vcf"), optional: true
-  path("pangenome.human.vcf"), optional: true
+  path("pangenome.human.vcf"), emit: human_vcf_ch, optional: true
   path("pangenome.presence-absence.tsv")
   path("pangenome.presence-absence_trusted.tsv"), optional: true
-  path("pangenome.presence-absence_human.tsv"), optional: true
+  path("pangenome.presence-absence_human.tsv"), emit: human_tsv_ch, optional: true
   path("human_filter_summary.txt"), optional: true
-  path("hervk_polymorphism_summary.md"), optional: true
   path("TSD_summary.txt")
   path("TSD_full_log.txt")
 
@@ -345,7 +488,7 @@ process concat_repeatmask {
       echo '  ${human_filter}'
       echo
       printf 'records in pangenome.vcf       : %s\\n' "\$(bcftools view -H pangenome.vcf | wc -l | tr -d ' ')"
-      printf 'records in pangenome.human.vcf : %s (before HERV-K strict filtering)\\n' "\$(bcftools view -H pangenome.human.vcf | wc -l | tr -d ' ')"
+      printf 'records in pangenome.human.vcf : %s (HERV-K annotation is added downstream by hervk_annotate)\\n' "\$(bcftools view -H pangenome.human.vcf | wc -l | tr -d ' ')"
       echo
       echo "kept (count, matching_classes, repeat_ids):"
       bcftools query -f '%INFO/matching_classes\\t%INFO/repeat_ids\\n' pangenome.human.vcf | sort | uniq -c | sort -rn
@@ -355,31 +498,6 @@ process concat_repeatmask {
         awk -F'\\t' '\$1 ~ /Alu|L1|SVA|Simple_repeat|ERVK/' | sort | uniq -c | sort -rn
     } > human_filter_summary.txt
 
-    # HERV-K (HML-2) classification — runs only on --human pipelines.
-    # Annotates the main VCF/TSV without filtering, and applies a strict
-    # filter (drop class==other or pmap<threshold) to the human VCF/TSV.
-    # Defaults are baked into bin/hervk_classify.py; users can override via
-    # params.hervk_config (path to a JSON file).
-    CFG_ARG=""
-    if [[ -n "${params.hervk_config ?: ''}" ]]; then
-      CFG_ARG="--config ${params.hervk_config}"
-    fi
-
-    hervk_classify.py \$CFG_ARG \\
-        --vcf-in pangenome.vcf --vcf-out pangenome.vcf.hervk \\
-        --tsv-in pangenome.presence-absence.tsv \\
-        --tsv-out pangenome.presence-absence.tsv.hervk \\
-        --summary hervk_polymorphism_summary.md
-    mv pangenome.vcf.hervk pangenome.vcf
-    mv pangenome.presence-absence.tsv.hervk pangenome.presence-absence.tsv
-
-    hervk_classify.py \$CFG_ARG --strict \\
-        --vcf-in pangenome.human.vcf \\
-        --vcf-out pangenome.human.vcf.hervk \\
-        --tsv-in pangenome.presence-absence_human.tsv \\
-        --tsv-out pangenome.presence-absence_human.tsv.hervk
-    mv pangenome.human.vcf.hervk pangenome.human.vcf
-    mv pangenome.presence-absence_human.tsv.hervk pangenome.presence-absence_human.tsv
   fi
 
   # Stamp GraffiTE version into the header of each published VCF

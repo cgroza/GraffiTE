@@ -1,36 +1,38 @@
 #!/usr/bin/env python3
 """
-HERV-K (HML-2) SV polymorphism classifier for GraffiTE --human runs.
+HERV-K (HML-2) allele-state classifier for GraffiTE --human runs.
 
-Classifies each TE-annotated SV into one of five hypotheses based on its
-size and HERV-K family content:
+Version 2 -- evidence first. The previous version decided REF and ALT states
+from expected allele-size arithmetic alone (a Gaussian MAP over |SVLEN|, LTR bp
+and internal bp against 968 / 8504 / 9472). That is not sufficient: an 8.5 kb
+insertion is equally consistent with LTR+INT entering a solo LTR and with a
+complete provirus entering an empty site whose internal region carries a
+deletion. Size cannot separate them; the reference and the element's own
+architecture can.
 
-    H_C : null     <-> solo-LTR        (canonical |SVLEN| ~  968 bp)
-    H_T : truncated proviral           (1500 <= |SVLEN| <= 8000)
-    H_B : solo-LTR <-> proviral        (canonical |SVLEN| ~ 8504 bp)
-    H_A : null     <-> proviral        (canonical |SVLEN| ~ 9472 bp)
-    H_X : non-transposition / other    (flat background)
+Resolution order -- the first rule that fires wins, and every call records the
+evidence that produced it:
 
-Inputs/outputs are GraffiTE-style VCF and presence-absence TSV. The tool
-adds INFO/HERVK_CLASS, INFO/HERVK_PMAP, INFO/HERVK_LAMBDA, INFO/HERVK_NU
-to the VCF. When --strict is set, candidate rows whose MAP class is
-"other" or whose MAP posterior is below the threshold are dropped.
+    ARCH_2LTR    two full-length terminal LTRs on the SV allele
+                 -> nothing was consumed by the alignment, so REF = null
+    ARCH_PERM    one LTR split across the termini, consensus intervals
+                 complementary -> the SV sits inside a solo LTR, REF = solo
+    ARCH_SOLO    a lone LTR with no internal region
+    REF_ANNOT    architecture is degenerate (k = 0, or no terminal LTR);
+                 the masked reference window decides
+    DENOVO_LTR   reference unavailable/ambiguous; terminal direct repeat scan
+    UNRESOLVED   nothing resolved it -- kept and flagged, never dropped
 
-Usage examples:
+HERVK_PMAP is now a *confidence* derived from the size model, reported and used
+by --strict. It never decides the class.
 
-    # Annotate the main VCF + TSV; emit summary
+Usage:
     hervk_classify.py \\
-        --vcf-in pangenome.vcf --vcf-out pangenome.hervk.vcf \\
-        --tsv-in pangenome.presence-absence.tsv \\
-        --tsv-out pangenome.presence-absence.hervk.tsv \\
-        --summary hervk_polymorphism_summary.md
-
-    # Strict-filter the human pME VCF + TSV
-    hervk_classify.py --strict \\
-        --vcf-in pangenome.human.vcf \\
-        --vcf-out pangenome.human.hervk.vcf \\
+        --vcf-in pangenome.human.vcf --vcf-out pangenome.human.hervk.vcf \\
+        --arch hervk_arch.tsv --ref-state hervk_refstate.tsv \\
         --tsv-in pangenome.presence-absence_human.tsv \\
-        --tsv-out pangenome.presence-absence_human.hervk.tsv
+        --tsv-out pangenome.presence-absence_human.hervk.tsv \\
+        --summary hervk_polymorphism_summary.md
 """
 
 import argparse
@@ -38,62 +40,60 @@ import json
 import math
 import os
 import sys
-from collections import Counter, defaultdict
+from collections import defaultdict
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from hervk_arch import INT_CONSENSUS_LEN, is_int_family, ltr_len
 
 # -------- Reference architecture --------
-LTR_LEN, INT_LEN = 968, 7536
+LTR_LEN, INT_LEN = 968, INT_CONSENSUS_LEN
 SOLO_PROV = LTR_LEN + INT_LEN          # 8504
 NULL_PROV = 2 * LTR_LEN + INT_LEN      # 9472
 
-EXPECTED = {
-    'C': {'s': LTR_LEN,    'lam': LTR_LEN,   'nu': 0       },
-    'B': {'s': SOLO_PROV,  'lam': LTR_LEN,   'nu': INT_LEN },
-    'A': {'s': NULL_PROV,  'lam': 2*LTR_LEN, 'nu': INT_LEN },
-}
-
-LTR_FAMILY = {'LTR5_Hs', 'LTR5A', 'LTR5B'}
-INT_FAMILY = {'HERVK-int'}
+LTR_FAMILY = {'LTR5_Hs', 'LTR5A', 'LTR5B', 'LTR5'}
+# Naming varies between libraries; is_int_family() handles the variants.
+INT_FAMILY = {'HERVK-int', 'HERVK'}
 SVA_FAMILIES = {'SVA_A', 'SVA_B', 'SVA_C', 'SVA_D', 'SVA_E', 'SVA_F'}
 
-# Defaults — see HERVK.config.json for runtime overrides.
 DEFAULTS = {
-    "sigmas": {
-        "s_C": 30.0,    # solo-LTRs are very length-uniform
-        "s_B": 800.0,   # allow ~10% INT truncation
-        "s_A": 800.0,
-        "lam": 300.0,   # absorbs (x)-merged LTR/INT calls
-        "nu":  1000.0,
-        "t":   200.0,   # SV must be mostly HERV-K
-    },
-    "priors": {"C": 0.55, "T": 0.08, "B": 0.05, "A": 0.02, "X": 0.30},
+    "sigmas": {"solo": 60.0, "prov": 800.0},
+    "priors": {"null_solo": 0.55, "solo_prov": 0.20, "null_prov": 0.08,
+               "truncated_prov": 0.07, "other": 0.10},
     "t_min": 1500,
-    "t_max": 8000,
-    # Background flat density support for H_X.
+    "t_max": 9000,
     "s_range": 30000.0,
-    "lam_range": 5000.0,
-    "nu_range": 30000.0,
-    # SVA-as-LTR-mimic window for n_hits==2 HERVK+SVA cases.
-    # Empirical observation: SVA "steals" ~328 bp of LTR5_Hs annotation due
-    # to LTR5_Hs/SVA homology; treat SVA bp as LTR-equivalent in this window.
-    "sva_mimic_min": 250,
-    "sva_mimic_max": 400,
+    # Below this fraction of the full internal consensus, a proviral allele is
+    # reported as truncated_prov rather than solo_prov / null_prov.
+    "int_full_frac": 0.80,
     # Strict-mode threshold (only applied when --strict).
     "pmap_min": 0.90,
-    # Polyallelic flag window (bp).
-    "polyallelic_window": 100,
+    # Blank the genotypes of tandem-duplication records (keeping the record and
+    # its annotation). A second proviral unit inserted into an LTR of an
+    # existing provirus is not a step in the ERV life cycle -- no transposition,
+    # no intra-element recombination -- so it should not enter allele-frequency
+    # analyses. It is either a chance duplication or a misassembly, and is a
+    # singleton at all three CaG loci. The evidence stays in hervk_calls.tsv
+    # and hervk_loci.tsv; only the genotypes are withheld.
+    "mask_tandem": True,
+    # Minimum HML-2 bp for a candidate to be classified at all.
+    "min_hml2_bp": 50,
+    # Upper |SVLEN| bound for candidacy. The gate is matching_classes=LTR/ERVK
+    # with no size limit, which let a 25.3 Mb deletion into the HERV-K set --
+    # it carried 38430 RepeatMasker hits and dominated the cost of the whole
+    # stage. A whole provirus is 9472 bp; nothing plausible needs 25 kb.
+    "max_svlen": 25000,
+    # Minimum LTR bp before the SV allele counts as carrying a whole solo LTR
+    # (half a consensus). Below this it is an LTR fragment, not an allele.
+    "min_solo_bp": 484,
+    # Minimum internal bp before the SV allele counts as proviral.
+    "min_prov_int_bp": 500,
 }
 
-CLASS_LABEL = {
-    'C': 'null_solo',
-    'T': 'truncated_prov',
-    'B': 'solo_prov',
-    'A': 'null_prov',
-    'X': 'other',
-}
+CLASSES = ('null_solo', 'solo_prov', 'truncated_prov', 'null_prov',
+           'tandem_prov', 'other')
 
 
-# -------- Config loading --------
+# -------- Config --------
 def load_config(path):
     cfg = {k: (dict(v) if isinstance(v, dict) else v)
            for k, v in DEFAULTS.items()}
@@ -108,121 +108,23 @@ def load_config(path):
     return cfg
 
 
-# -------- Annotation parsing --------
-def parse_hits(match_lengths, repeat_ids, matching_classes, n_hits, cfg):
-    """Return (lambda, nu, sva_neutral_bp).
-
-    lambda  = bp matching LTR family (+ SVA bp when SVA mimics LTR5_Hs)
-    nu      = bp matching INT family
-    sva_neutral_bp = SVA bp that is *not* counted as LTR-mimic; subtracted
-                     from s for the coverage term so a true HERV-K event
-                     accompanied by a separate large SVA insertion is not
-                     incorrectly pushed into H_X.
-    """
-    if not match_lengths or not repeat_ids:
-        return 0.0, 0.0, 0.0
-    try:
-        lens = [float(x) for x in str(match_lengths).split(',')]
-    except ValueError:
-        return 0.0, 0.0, 0.0
-    ids = [r.strip().replace('(x)', '') for r in str(repeat_ids).split(',')]
-    if len(lens) != len(ids):
-        return 0.0, 0.0, 0.0
-
-    lam = sum(L for L, r in zip(lens, ids) if r in LTR_FAMILY)
-    nu  = sum(L for L, r in zip(lens, ids) if r in INT_FAMILY)
-    sva_neutral = 0.0
-
-    # Special case: n_hits == 2 with HERVK + SVA. Add SVA bp to lambda when
-    # in the empirical mimic window; otherwise treat as neutral background
-    # (subtracted from s for coverage term only).
-    try:
-        n_hits_int = int(float(n_hits))
-    except (TypeError, ValueError):
-        n_hits_int = -1
-    classes = set()
-    if matching_classes:
-        classes = {c.strip() for c in str(matching_classes).split(',')}
-    is_hervk_sva = (n_hits_int == 2
-                    and 'LTR/ERVK' in classes
-                    and 'Retroposon/SVA' in classes)
-
-    if is_hervk_sva:
-        mimic_lo = cfg['sva_mimic_min']
-        mimic_hi = cfg['sva_mimic_max']
-        for L, r in zip(lens, ids):
-            if r in SVA_FAMILIES:
-                if mimic_lo <= L <= mimic_hi:
-                    lam += L
-                else:
-                    sva_neutral += L
-
-    return lam, nu, sva_neutral
+# -------- Side-table loading --------
+def load_table(path, key='id'):
+    if not path:
+        return {}
+    rows = {}
+    with open(path) as fh:
+        header = fh.readline().rstrip('\n').split('\t')
+        ki = header.index(key)
+        for line in fh:
+            f = line.rstrip('\n').split('\t')
+            if len(f) < len(header):
+                f += [''] * (len(header) - len(f))
+            rows[f[ki]] = dict(zip(header, f))
+    return rows
 
 
-# -------- Likelihoods --------
-def log_likelihood_gaussian(s, lam, nu, hyp, cfg):
-    sigmas = cfg['sigmas']
-    e = EXPECTED[hyp]
-    sig_s = sigmas[f's_{hyp}']
-    t = lam + nu
-    return (
-        -0.5 * ((s   - e['s'])   / sig_s        ) ** 2
-        -0.5 * ((lam - e['lam']) / sigmas['lam']) ** 2
-        -0.5 * ((nu  - e['nu'])  / sigmas['nu'] ) ** 2
-        -0.5 * ((s   - t)        / sigmas['t']  ) ** 2
-    )
-
-
-def log_likelihood_truncated(s, lam, nu, cfg):
-    if s < cfg['t_min'] or s > cfg['t_max']:
-        return -1e6
-    sigmas = cfg['sigmas']
-    t = lam + nu
-    return (
-        -math.log(cfg['t_max'] - cfg['t_min'])
-        - 0.5 * ((lam - LTR_LEN) / sigmas['lam']) ** 2
-        - 0.5 * ((s   - t)       / sigmas['t']  ) ** 2
-    )
-
-
-def log_background(cfg):
-    return -math.log(cfg['s_range'] * cfg['lam_range'] * cfg['nu_range'])
-
-
-def classify(s, lam, nu, cfg):
-    """Return posterior dict over {'C','T','B','A','X'}."""
-    priors = cfg['priors']
-    lp = {k: log_likelihood_gaussian(s, lam, nu, k, cfg) + math.log(priors[k])
-          for k in 'ABC'}
-    lp['T'] = log_likelihood_truncated(s, lam, nu, cfg) + math.log(priors['T'])
-    lp['X'] = log_background(cfg) + math.log(priors['X'])
-    m = max(lp.values())
-    e = {k: math.exp(v - m) for k, v in lp.items()}
-    Z = sum(e.values())
-    return {k: v / Z for k, v in e.items()}
-
-
-def map_class(post):
-    k = max(post, key=post.get)
-    return k, post[k]
-
-
-# -------- VCF I/O --------
-INFO_HEADERS = [
-    '##INFO=<ID=HERVK_CLASS,Number=1,Type=String,'
-    'Description="HERV-K (HML-2) MAP class: null_solo|truncated_prov|'
-    'solo_prov|null_prov|other|NA. Computed only for SVs in the HERV-K '
-    'candidate set (LTR/ERVK with HML-2 family bp, or n_hits==2 with '
-    'LTR/ERVK+Retroposon/SVA).">',
-    '##INFO=<ID=HERVK_PMAP,Number=1,Type=Float,'
-    'Description="Posterior probability of the HERV-K MAP class.">',
-    '##INFO=<ID=HERVK_LAMBDA,Number=1,Type=Float,'
-    'Description="bp matching HML-2 LTR family (LTR5_Hs/LTR5A/LTR5B); '
-    'includes SVA bp when SVA mimics LTR5_Hs in n_hits==2 HERVK+SVA case.">',
-    '##INFO=<ID=HERVK_NU,Number=1,Type=Float,'
-    'Description="bp matching HML-2 internal family (HERVK-int).">',
-]
+# -------- INFO helpers --------
 def parse_info(info):
     d = {}
     if not info or info == '.':
@@ -237,315 +139,567 @@ def parse_info(info):
 
 
 def info_to_str(d):
-    parts = []
-    for k, v in d.items():
-        parts.append(k if v == '' else f'{k}={v}')
-    return ';'.join(parts) if parts else '.'
+    return ';'.join(k if v == '' else f'{k}={v}' for k, v in d.items()) or '.'
 
 
-def is_candidate(info_d, cfg):
-    """Return True if SV qualifies for HERV-K classification."""
+def is_candidate(info_d, cfg=None):
+    """HERV-K candidate gate: an LTR/ERVK SV, alone or paired with SVA.
+
+    Kept identical to the bcftools --human carve-out in module/main.nf so the
+    two gates cannot disagree.
+    """
     matching_classes = info_d.get('matching_classes', '')
     if not matching_classes or matching_classes == 'NA':
         return False
     classes = {c.strip() for c in matching_classes.split(',')}
+    if 'LTR/ERVK' not in classes:
+        return False
     try:
         n_hits = int(float(info_d.get('n_hits', '0')))
     except ValueError:
         return False
-    if 'LTR/ERVK' not in classes:
+    if not (n_hits == 1 or (n_hits == 2 and 'Retroposon/SVA' in classes)):
         return False
-    if n_hits == 1:
-        return True
-    if n_hits == 2 and 'Retroposon/SVA' in classes:
-        return True
-    return False
+    cap = (cfg or DEFAULTS).get('max_svlen')
+    try:
+        if cap and abs(int(float(info_d.get('_svlen', 0)))) > cap:
+            return False
+    except (TypeError, ValueError):
+        pass
+    return True
 
 
-def process_vcf(vcf_in, vcf_out, cfg, strict, classifications):
-    """Stream-rewrite the VCF, adding HERVK INFO fields.
+def hml2_bp_from_info(info_d):
+    """Fallback lambda/nu when no architecture table row exists.
 
-    classifications: dict to be populated with vid -> dict for downstream
-    TSV annotation and summary.
+    Only used when the raw RepeatMasker table is unavailable for a record;
+    it inherits the (x)-collapse problem and so cannot resolve architecture.
     """
-    in_close = vcf_in != '-'
-    out_close = vcf_out != '-'
-    fin = open(vcf_in) if in_close else sys.stdin
-    fout = open(vcf_out, 'w') if out_close else sys.stdout
+    lens, ids = info_d.get('match_lengths', ''), info_d.get('repeat_ids', '')
+    if not lens or not ids:
+        return 0.0, 0.0
+    try:
+        lv = [float(x) for x in lens.split(',')]
+    except ValueError:
+        return 0.0, 0.0
+    iv = [r.strip().replace('(x)', '').replace('(VNTR_only)', '')
+          for r in ids.split(',')]
+    if len(lv) != len(iv):
+        return 0.0, 0.0
+    lam = sum(v for v, r in zip(lv, iv) if r in LTR_FAMILY)
+    nu = sum(v for v, r in zip(lv, iv) if is_int_family(r))
+    return lam, nu
 
+
+# -------- Allele-state resolution --------
+def alt_state_from_content(lam, nu, cfg):
+    """What kind of HML-2 allele does the SV sequence itself represent?
+
+    Fragments below half an LTR are not an allele of anything -- a 141 bp
+    LTR5B piece is a fragment, and calling it a solo LTR would invent a
+    polymorphism that is not there.
+    """
+    if nu >= cfg['min_prov_int_bp']:
+        return 'provirus'
+    if lam >= cfg['min_solo_bp']:
+        return 'solo'
+    return None
+
+
+def classify_pair(ref_state, alt_state, int_bp, cfg):
+    """Map a (REF, ALT) allele-state pair onto a HERVK_CLASS label."""
+    pair = {ref_state, alt_state}
+    if pair == {'null', 'solo'}:
+        return 'null_solo'
+    if pair == {'null', 'provirus'}:
+        return ('truncated_prov'
+                if int_bp < cfg['int_full_frac'] * INT_LEN else 'null_prov')
+    if pair == {'solo', 'provirus'}:
+        return ('truncated_prov'
+                if int_bp < cfg['int_full_frac'] * INT_LEN else 'solo_prov')
+    if pair == {'provirus', 'tandem_prov'}:
+        return 'tandem_prov'
+    return 'other'
+
+
+def resolve(arch, ref, svlen, lam, nu, cfg):
+    """Return (ref_state, alt_state, evidence, notes).
+
+    `arch` is a row from hervk_arch.py; `ref` a row from hervk_ref_state.py.
+    Either may be missing.
+    """
+    notes = []
+    sig = (arch or {}).get('signature', '')
+    is_ins = svlen >= 0
+    observed_ref = (ref or {}).get('ref_state', '')
+
+    def check(arch_ref, alt, code):
+        """Architecture resolved it -- but say so if the reference disagrees.
+
+        The two are independent measurements of the same thing, so a
+        disagreement is information, not noise. chr6-78894876 reads ARCH_PERM
+        (REF = solo) at a locus where the masked reference holds a whole
+        provirus; its DEL partner reads the reference correctly. One of the two
+        records is a mis-polarised representation of the other, and the
+        reference is what settles which.
+        """
+        if observed_ref in ('null', 'solo', 'provirus') and observed_ref != arch_ref:
+            notes.append(f'REF_ARCH_CONFLICT:arch={arch_ref},ref={observed_ref}')
+        return arch_ref, alt, code, notes
+
+    # 1-2. Architecture settles it outright -- but which side of the pair the
+    # SV *carries* depends on its polarity. For an insertion the architecture
+    # describes the allele being added; for a deletion it describes reference
+    # sequence being removed, so the same signature means the opposite thing.
+    #   ARCH_2LTR  INS: null -> provirus     DEL: provirus -> null
+    #   ARCH_PERM  INS: solo -> provirus     DEL: provirus -> solo
+    # (The class label is the same either way, since it names the pair, but
+    # HERVK_ALLELE_REF / HERVK_ALLELE are what consolidation and the figures
+    # read, and those were inverted for deletions.)
+    # ARCH_PERM says the aligner split an LTR and inserted into it. Which LTR
+    # is not something the architecture can say: a solo has one, a provirus has
+    # two, and the aligner splits whichever it anchored in. Only the reference
+    # distinguishes them.
+    #   ref = solo      -> solo becomes a provirus (the ERV dimorphism)
+    #   ref = provirus  -> a second proviral unit in tandem, sharing an LTR
+    # Verified at all three CaG loci: the inserted length equals the reference
+    # element's span minus one LTR, exactly (chr6 8465 = 9425-960; chr12 4933
+    # vs 4934; chr7 8504 = 9472-968). chr12 is decisive -- its reference
+    # provirus is internally deleted, and the insertion duplicates that same
+    # deleted unit rather than a canonical provirus.
+    if sig == 'ARCH_2LTR':
+        if is_ins and observed_ref == 'provirus':
+            notes.append('TANDEM_DUP')
+            return 'provirus', 'tandem_prov', 'ARCH_2LTR', notes
+        return check('null', 'provirus', 'ARCH_2LTR') if is_ins \
+            else check('provirus', 'null', 'ARCH_2LTR')
+    if sig == 'ARCH_PERM':
+        if is_ins and observed_ref == 'provirus':
+            notes.append('TANDEM_DUP')
+            return 'provirus', 'tandem_prov', 'ARCH_PERM', notes
+        return check('solo', 'provirus', 'ARCH_PERM') if is_ins \
+            else check('provirus', 'solo', 'ARCH_PERM')
+    if sig == 'ARCH_SOLO':
+        return check('null', 'solo', 'ARCH_SOLO') if is_ins \
+            else check('solo', 'null', 'ARCH_SOLO')
+
+    # 4. Degenerate architecture: the reference decides.
+    ref_state = observed_ref
+    sv_allele = alt_state_from_content(lam, nu, cfg)
+
+    if ref_state in ('null', 'solo', 'provirus', 'partial'):
+        if is_ins:
+            if ref_state == 'null':
+                return 'null', sv_allele, 'REF_ANNOT', notes
+            if ref_state == 'solo':
+                # A solo LTR plus an inserted LTR+INT block is a provirus.
+                return 'solo', 'provirus', 'REF_ANNOT', notes
+            notes.append('INS_INTO_NONEMPTY_REF')
+            return ref_state, sv_allele, 'REF_ANNOT', notes
+        # Deletion: the SV sequence is reference sequence being removed.
+        if ref_state == 'provirus':
+            # Removing LTR+INT out of LTR-INT-LTR leaves one LTR behind.
+            remaining = 'solo' if sv_allele == 'provirus' else 'null'
+            return 'provirus', remaining, 'REF_ANNOT', notes
+        if ref_state == 'solo':
+            return 'solo', 'null', 'REF_ANNOT', notes
+        if ref_state == 'partial':
+            return 'partial', 'null', 'REF_ANNOT', notes
+        notes.append('DEL_FROM_EMPTY_REF')
+        return ref_state, None, 'REF_ANNOT', notes
+
+    # 5-6. Nothing resolved it. Keep the record, say so plainly.
+    return None, sv_allele, 'UNRESOLVED', notes
+
+
+# -------- Confidence (never decides the class) --------
+def _gauss(x, mu, sigma):
+    return math.exp(-0.5 * ((x - mu) / sigma) ** 2) / (sigma * math.sqrt(2 * math.pi))
+
+
+def size_confidence(svlen, resolved_class, cfg):
+    """Posterior of the resolved class under a properly normalised size model.
+
+    Every component is a real probability density here -- the v1 model mixed
+    unnormalised Gaussians of different sigma with normalised flat densities,
+    which silently favoured the narrow solo-LTR hypothesis by ~26x.
+    """
+    s = abs(svlen)
+    sig, pri = cfg['sigmas'], cfg['priors']
+    t_lo, t_hi = cfg['t_min'], cfg['t_max']
+    lik = {
+        'null_solo': _gauss(s, LTR_LEN, sig['solo']),
+        'solo_prov': _gauss(s, SOLO_PROV, sig['prov']),
+        'null_prov': _gauss(s, NULL_PROV, sig['prov']),
+        'truncated_prov': (1.0 / (t_hi - t_lo)) if t_lo <= s <= t_hi else 0.0,
+        'other': 1.0 / cfg['s_range'],
+    }
+    post = {k: lik[k] * pri.get(k, 0.0) for k in lik}
+    z = sum(post.values())
+    if z <= 0:
+        return 0.0
+    return post.get(resolved_class, post['other']) / z
+
+
+# -------- VCF I/O --------
+INFO_HEADERS = [
+    '##INFO=<ID=HERVK_CLASS,Number=1,Type=String,Description="HERV-K (HML-2) '
+    'polymorphism class: null_solo|solo_prov|truncated_prov|null_prov|other.">',
+    '##INFO=<ID=HERVK_ALLELE_REF,Number=1,Type=String,Description="HERV-K state '
+    'of the REF allele: null|solo|provirus|partial|. (unresolved).">',
+    '##INFO=<ID=HERVK_ALLELE,Number=.,Type=String,Description="HERV-K state of '
+    'each ALT allele, in ALT order: null|solo|provirus|partial|.">',
+    '##INFO=<ID=HERVK_EVIDENCE,Number=1,Type=String,Description="Evidence that '
+    'resolved the allele states: ARCH_2LTR|ARCH_PERM|ARCH_SOLO|REF_ANNOT|'
+    'DENOVO_LTR|UNRESOLVED|NON_HML2.">',
+    '##INFO=<ID=HERVK_ARCH,Number=1,Type=String,Description="Element 5-prime to '
+    '3-prime architecture of the SV allele with consensus intervals, e.g. '
+    'LTR:575-968/INT:1-7536/LTR:1-574.">',
+    '##INFO=<ID=HERVK_K,Number=1,Type=Integer,Description="LTR permutation '
+    'point: alignment breakpoint inside the reference solo LTR. An alignment '
+    'property, not a biological one; do not key on its value.">',
+    '##INFO=<ID=HERVK_REF_STATE,Number=1,Type=String,Description="HML-2 state '
+    'of the masked reference window: null|solo|provirus|partial|unknown.">',
+    '##INFO=<ID=HERVK_LAMBDA,Number=1,Type=Float,Description="bp of HML-2 LTR '
+    'sequence on the SV allele, from the tiled RepeatMasker fragments.">',
+    '##INFO=<ID=HERVK_NU,Number=1,Type=Float,Description="bp of HML-2 internal '
+    '(HERVK-int) sequence on the SV allele.">',
+    '##INFO=<ID=HERVK_COV,Number=1,Type=Float,Description="Fraction of the SV '
+    'allele that is HML-2 sequence.">',
+    '##INFO=<ID=HERVK_PMAP,Number=1,Type=Float,Description="Confidence in the '
+    'resolved class under the size model. Reporting only -- it does not '
+    'determine the class.">',
+    '##INFO=<ID=HERVK_NOTE,Number=.,Type=String,Description="Diagnostics for '
+    'this call. REF_ARCH_CONFLICT: architecture and masked reference imply '
+    'different REF states. TANDEM_DUP: a second proviral unit inserted into an '
+    'LTR of an existing reference provirus -- not an ERV life-cycle event. '
+    'GT_MASKED: genotypes withheld (set to missing) so the allele is not '
+    'counted; the call itself is kept in hervk_calls.tsv.">',
+]
+
+TSV_COLUMNS = ['HERVK_class', 'HERVK_allele_ref', 'HERVK_allele',
+               'HERVK_evidence', 'HERVK_k', 'HERVK_ref_state',
+               'HERVK_lambda', 'HERVK_nu', 'HERVK_pmap', 'HERVK_arch']
+
+# Per-candidate call table. Written for *every* HERV-K candidate in the input,
+# including records the --human filter will later drop (a non-PASS FILTER from
+# the SV caller is enough to remove one: chr15-2092086-DEL-8221 carries TRIM).
+# The locus layer groups from this table rather than from the human VCF, so a
+# merge partner cannot go missing just because it failed an unrelated filter.
+CALLS_COLUMNS = ['id', 'chrom', 'pos', 'svlen', 'class', 'allele_ref',
+                 'allele', 'evidence', 'k', 'ref_state', 'lambda', 'nu',
+                 'cov', 'pmap', 'arch', 'notes']
+
+
+def write_calls(results, path):
+    with open(path, 'w') as fh:
+        fh.write('\t'.join(CALLS_COLUMNS) + '\n')
+        for vid in sorted(results):
+            r = results[vid]
+            fh.write('\t'.join([
+                vid, r['chrom'], str(r['pos']), str(r['svlen']), r['cls'],
+                r['ref_allele'] or '.', r['alt_allele'] or '.', r['evidence'],
+                str(r['k']) if r['k'] not in ('', None) else '.',
+                r['ref_state'] or 'unknown',
+                f"{r['lambda']:.0f}", f"{r['nu']:.0f}",
+                f"{r['cov']:.4f}", f"{r['pmap']:.4f}", r['arch'] or '.',
+                ','.join(r.get('notes') or []) or '.',
+            ]) + '\n')
+
+
+def classify_record(vid, info_d, svlen, arch_tbl, ref_tbl, cfg):
+    """Resolve one candidate SV. Returns a result dict."""
+    arch = arch_tbl.get(vid)
+    ref = ref_tbl.get(vid)
+
+    if arch:
+        lam = float(arch.get('ltr_bp') or 0)
+        nu = float(arch.get('int_bp') or 0)
+    else:
+        lam, nu = hml2_bp_from_info(info_d)
+
+    result = {
+        'chrom': info_d.get('_chrom', ''), 'pos': info_d.get('_pos', 0),
+        'svlen': svlen, 'lambda': lam, 'nu': nu,
+        'arch': (arch or {}).get('arch', ''),
+        'k': (arch or {}).get('k', ''),
+        'ref_state': (ref or {}).get('ref_state', 'unknown'),
+        'notes': [],
+    }
+
+    # Non-HML-2 LTR/ERVK (HERVK9-int, MER11A, LTR13 ...): say so explicitly.
+    # v1 skipped these silently, which also let them slip through --strict.
+    if lam + nu < cfg['min_hml2_bp']:
+        result.update(cls='other', ref_allele=None, alt_allele=None,
+                      evidence='NON_HML2', pmap=0.0, cov=0.0)
+        return result
+
+    ref_state, alt_state, evidence, notes = resolve(arch, ref, svlen, lam, nu, cfg)
+    cls = classify_pair(ref_state, alt_state, nu, cfg) \
+        if (ref_state and alt_state) else 'other'
+
+    result.update(cls=cls, ref_allele=ref_state, alt_allele=alt_state,
+                  evidence=evidence, notes=notes,
+                  pmap=size_confidence(svlen, cls, cfg),
+                  cov=((lam + nu) / abs(svlen)) if svlen else 0.0)
+    return result
+
+
+def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results):
+    fin = open(vcf_in) if vcf_in != '-' else sys.stdin
+    if vcf_out is None:
+        fout = open(os.devnull, 'w')
+    else:
+        fout = open(vcf_out, 'w') if vcf_out != '-' else sys.stdout
     header_done = False
+    try:
+        for line in fin:
+            if line.startswith('##'):
+                fout.write(line)
+                continue
+            if line.startswith('#CHROM'):
+                for h in INFO_HEADERS:
+                    fout.write(h + '\n')
+                fout.write(line)
+                header_done = True
+                continue
+            if not header_done or not line.strip():
+                fout.write(line)
+                continue
 
-    for line in fin:
-        if line.startswith('##'):
-            fout.write(line)
-            continue
+            fields = line.rstrip('\n').split('\t')
+            if len(fields) < 8:
+                fout.write(line)
+                continue
 
-        if line.startswith('#CHROM'):
-            for h in INFO_HEADERS:
-                fout.write(h + '\n')
-            fout.write(line)
-            header_done = True
-            continue
+            info_d = parse_info(fields[7])
+            svlen = len(fields[4].split(',')[0]) - len(fields[3])
+            info_d['_svlen'] = str(svlen)
+            if not is_candidate(info_d, cfg):
+                info_d.pop('_svlen', None)
+                fout.write(line)
+                continue
+            info_d.pop('_svlen', None)
 
-        if not header_done or not line.strip():
-            fout.write(line)
-            continue
+            vid = fields[2]
+            info_d['_chrom'], info_d['_pos'] = fields[0], int(fields[1])
+            r = classify_record(vid, info_d, svlen, arch_tbl, ref_tbl, cfg)
+            r['chrom'], r['pos'] = fields[0], int(fields[1])
+            results[vid] = r
 
-        fields = line.rstrip('\n').split('\t')
-        if len(fields) < 8:
-            fout.write(line)
-            continue
+            if strict and (r['cls'] == 'other' or r['pmap'] < cfg['pmap_min']):
+                continue
 
-        chrom, pos, vid, ref, alt, qual, filt, info = fields[:8]
-        info_d = parse_info(info)
+            if r['cls'] == 'tandem_prov' and cfg.get('mask_tandem', True):
+                # Keep the record and everything we learned about it; withhold
+                # only the genotypes, so the allele cannot be counted. Ploidy is
+                # preserved -- a haploid call stays "." and a diploid "./.".
+                for i in range(9, len(fields)):
+                    parts = fields[i].split(':')
+                    n = len(parts[0].replace('|', '/').split('/'))
+                    parts[0] = '/'.join(['.'] * n)
+                    fields[i] = ':'.join(parts)
+                r['notes'] = (r.get('notes') or []) + ['GT_MASKED']
 
-        if not is_candidate(info_d, cfg):
-            fout.write(line)
-            continue
-
-        # Compute lambda/nu/coverage-adjusted s.
-        lam, nu, sva_neutral = parse_hits(
-            info_d.get('match_lengths', ''),
-            info_d.get('repeat_ids', ''),
-            info_d.get('matching_classes', ''),
-            info_d.get('n_hits', '0'),
-            cfg,
-        )
-        if lam + nu <= 0:
-            fout.write(line)
-            continue
-
-        try:
-            svlen = abs(float(info_d.get('SVLEN', '0')))
-        except ValueError:
-            fout.write(line)
-            continue
-
-        s_for_coverage = max(0.0, svlen - sva_neutral)
-        post = classify(s_for_coverage, lam, nu, cfg)
-        klass, pmap = map_class(post)
-
-        # Stash for TSV/summary.
-        classifications[vid] = {
-            'chrom': chrom, 'pos': int(pos),
-            'svtype': info_d.get('SVTYPE', ''),
-            'svlen': svlen,
-            'class': klass, 'pmap': pmap,
-            'lambda': lam, 'nu': nu,
-            'has_x_merge': '(x)' in str(info_d.get('repeat_ids', '')),
-        }
-
-        # Strict-mode exclusion.
-        if strict and (klass == 'X' or pmap < cfg['pmap_min']):
-            continue
-
-        # Update INFO.
-        info_d['HERVK_CLASS'] = CLASS_LABEL[klass]
-        info_d['HERVK_PMAP']  = f'{pmap:.4f}'
-        info_d['HERVK_LAMBDA'] = f'{lam:.0f}'
-        info_d['HERVK_NU']     = f'{nu:.0f}'
-        fields[7] = info_to_str(info_d)
-
-        fout.write('\t'.join(fields) + '\n')
-
-    if in_close:
-        fin.close()
-    if out_close:
-        fout.close()
+            for key in ('_chrom', '_pos'):
+                info_d.pop(key, None)
+            info_d['HERVK_CLASS'] = r['cls']
+            info_d['HERVK_ALLELE_REF'] = r['ref_allele'] or '.'
+            info_d['HERVK_ALLELE'] = r['alt_allele'] or '.'
+            info_d['HERVK_EVIDENCE'] = r['evidence']
+            if r['arch']:
+                info_d['HERVK_ARCH'] = r['arch']
+            if r['k'] not in ('', None):
+                info_d['HERVK_K'] = str(r['k'])
+            info_d['HERVK_REF_STATE'] = r['ref_state'] or 'unknown'
+            info_d['HERVK_LAMBDA'] = f"{r['lambda']:.0f}"
+            info_d['HERVK_NU'] = f"{r['nu']:.0f}"
+            info_d['HERVK_COV'] = f"{r['cov']:.4f}"
+            info_d['HERVK_PMAP'] = f"{r['pmap']:.4f}"
+            if r.get('notes'):
+                info_d['HERVK_NOTE'] = ','.join(r['notes'])
+            fields[7] = info_to_str(info_d)
+            fout.write('\t'.join(fields) + '\n')
+    finally:
+        if vcf_in != '-':
+            fin.close()
+        if vcf_out != '-':
+            fout.close()
 
 
-# -------- TSV annotation --------
-def annotate_tsv(tsv_in, tsv_out, classifications, strict, cfg):
-    """Append HERVK columns to a presence-absence TSV (matched by ID).
 
-    When strict, drop rows whose HERVK class is 'other' or whose pmap is
-    below cfg['pmap_min']. Non-candidate rows always pass through.
-    """
-    new_cols = ['HERVK_class', 'HERVK_pmap', 'HERVK_lambda', 'HERVK_nu']
+def annotate_tsv(tsv_in, tsv_out, results, strict, cfg):
     with open(tsv_in) as fin, open(tsv_out, 'w') as fout:
         header = fin.readline().rstrip('\n').split('\t')
         try:
             id_idx = header.index('ID')
         except ValueError:
             raise SystemExit(f'TSV {tsv_in} has no ID column')
-        fout.write('\t'.join(header + new_cols) + '\n')
+        fout.write('\t'.join(header + TSV_COLUMNS) + '\n')
         for line in fin:
             row = line.rstrip('\n').split('\t')
             vid = row[id_idx] if id_idx < len(row) else ''
-            c = classifications.get(vid)
-            if c:
-                if strict and (c['class'] == 'X'
-                               or c['pmap'] < cfg['pmap_min']):
+            r = results.get(vid)
+            if r:
+                if strict and (r['cls'] == 'other' or r['pmap'] < cfg['pmap_min']):
                     continue
-                row += [CLASS_LABEL[c['class']],
-                        f"{c['pmap']:.4f}",
-                        f"{c['lambda']:.0f}",
-                        f"{c['nu']:.0f}"]
+                row += [r['cls'], r['ref_allele'] or 'NA', r['alt_allele'] or 'NA',
+                        r['evidence'], str(r['k']) if r['k'] not in ('', None) else 'NA',
+                        r['ref_state'] or 'unknown',
+                        f"{r['lambda']:.0f}", f"{r['nu']:.0f}",
+                        f"{r['pmap']:.4f}", r['arch'] or 'NA']
             else:
-                row += ['NA', 'NA', 'NA', 'NA']
+                row += ['NA'] * len(TSV_COLUMNS)
             fout.write('\t'.join(row) + '\n')
 
 
-# -------- Polyallelic flagging --------
-def find_polyallelic(classifications, cfg):
-    """Pairs of nearby SVs where one is H_C and the other is H_T or H_B."""
-    by_chrom = defaultdict(list)
-    for vid, c in classifications.items():
-        by_chrom[c['chrom']].append((c['pos'], vid, c))
-    flagged = []
-    window = cfg['polyallelic_window']
-    for chrom, items in by_chrom.items():
-        items.sort()
-        for i in range(len(items)):
-            for j in range(i + 1, len(items)):
-                if items[j][0] - items[i][0] > window:
-                    break
-                ka, kb = items[i][2]['class'], items[j][2]['class']
-                pair = {ka, kb}
-                if 'C' in pair and ('B' in pair or 'T' in pair):
-                    flagged.append((chrom, items[i][1], items[j][1],
-                                    items[i][2]['class'], items[j][2]['class'],
-                                    items[i][0], items[j][0]))
-    return flagged
-
-
 # -------- Summary --------
-def write_summary(path, classifications, cfg, polyallelic):
-    if not classifications:
-        with open(path, 'w') as fh:
-            fh.write('# HERV-K polymorphism summary\n\nNo HERV-K candidate '
-                     'SVs found.\n')
-        return
-
-    classes = [c['class'] for c in classifications.values()]
-    counts = Counter(classes)
-    total = len(classifications)
-    pmaps = sorted(c['pmap'] for c in classifications.values())
-    median_pmap = pmaps[len(pmaps) // 2]
-    confident = sum(1 for p in pmaps if p >= 0.90)
-    ambiguous = total - confident
-
-    def median(xs):
-        xs = sorted(xs)
-        return xs[len(xs) // 2] if xs else float('nan')
-
-    lines = []
-    lines.append('# HERV-K polymorphism summary\n')
-    lines.append(f'**Total candidate SVs:** {total}\n')
-    lines.append('## Per-class counts\n')
-    lines.append('| Class | Label | Count | Median |SVLEN| |')
-    lines.append('|---|---|---|---|')
-    for k in ('C', 'T', 'B', 'A', 'X'):
-        n = counts.get(k, 0)
-        med = median([c['svlen'] for c in classifications.values()
-                      if c['class'] == k]) if n else float('nan')
-        lines.append(f'| H_{k} | {CLASS_LABEL[k]} | {n} | '
-                     f'{med:.0f} |' if n else
-                     f'| H_{k} | {CLASS_LABEL[k]} | 0 | — |')
-
-    lines.append('\n## Posterior confidence\n')
-    lines.append(f'- Confident (pmap >= 0.90): {confident}')
-    lines.append(f'- Ambiguous  (pmap <  0.90): {ambiguous}')
-    lines.append(f'- Median pmap: {median_pmap:.3f}\n')
-
-    n_xmerge = sum(1 for c in classifications.values() if c['has_x_merge'])
-    lines.append('## (x)-merged annotations\n')
-    lines.append(f'- Total: {n_xmerge}')
-    if n_xmerge:
-        xm_by_class = Counter(c['class'] for c in classifications.values()
-                              if c['has_x_merge'])
-        for k in ('C', 'T', 'B', 'A', 'X'):
-            if xm_by_class.get(k):
-                lines.append(f'  - H_{k} ({CLASS_LABEL[k]}): '
-                             f'{xm_by_class[k]}')
-    lines.append('')
-
-    lines.append('## Polyallelic candidates\n')
-    if polyallelic:
-        lines.append(f'{len(polyallelic)} site(s) flagged within '
-                     f'{cfg["polyallelic_window"]} bp:\n')
-        lines.append('| chrom | id_a | class_a | pos_a | id_b | class_b | pos_b |')
-        lines.append('|---|---|---|---|---|---|---|')
-        for chrom, va, vb, ka, kb, pa, pb in polyallelic:
-            lines.append(f'| {chrom} | {va} | H_{ka} | {pa} | {vb} | '
-                         f'H_{kb} | {pb} |')
-    else:
-        lines.append('None flagged.')
-    lines.append('')
-
+def write_summary(path, results, cfg):
     with open(path, 'w') as fh:
-        fh.write('\n'.join(lines) + '\n')
+        fh.write('# HERV-K (HML-2) polymorphism summary\n\n')
+        if not results:
+            fh.write('No HERV-K candidate SVs found.\n')
+            return
+        fh.write(f'Candidates classified: **{len(results)}** '
+                 '(human subset of the pangenome VCF).\n\n')
+
+        fh.write('## Classes\n\n| Class | Count | Median abs(SVLEN) |\n')
+        fh.write('|---|---|---|\n')
+        by_cls = defaultdict(list)
+        for r in results.values():
+            by_cls[r['cls']].append(abs(r['svlen']))
+        for cls in CLASSES:
+            sizes = sorted(by_cls.get(cls, []))
+            med = sizes[len(sizes) // 2] if sizes else '--'
+            fh.write(f'| {cls} | {len(sizes)} | {med} |\n')
+
+        fh.write('\n## Evidence\n\n| Evidence | Count |\n|---|---|\n')
+        ev = defaultdict(int)
+        for r in results.values():
+            ev[r['evidence']] += 1
+        for k in sorted(ev, key=lambda x: -ev[x]):
+            fh.write(f'| {k} | {ev[k]} |\n')
+
+        perm = sorted((int(r['k']), vid) for vid, r in results.items()
+                      if r['evidence'] == 'ARCH_PERM' and r['k'] not in ('', None))
+        fh.write(f'\n## LTR permutation points ({len(perm)} records)\n\n')
+        if perm:
+            fh.write('`k` is where the aligner broke the reference solo LTR. It is an '
+                     'alignment property, varies between haplotypes and callers, and '
+                     'nothing downstream may key on it.\n\n| k | Record |\n|---|---|\n')
+            for k, vid in perm:
+                fh.write(f'| {k} | {vid} |\n')
+        else:
+            fh.write('None.\n')
+
+        unres = [vid for vid, r in results.items()
+                 if r['evidence'] in ('UNRESOLVED',) or r['cls'] == 'other']
+        fh.write(f'\n## Unresolved / other ({len(unres)})\n\n')
+        fh.write('These are retained, never dropped: a locus that cannot be resolved '
+                 'is a locus to look at, not one to discard.\n\n')
+        for vid in sorted(unres):
+            r = results[vid]
+            fh.write(f'- `{vid}` — {r["cls"]}, {r["evidence"]}, '
+                     f'ref_state={r["ref_state"]}\n')
 
 
-# -------- Self-test on the regression fixture --------
-def selftest(tsv_path):
-    """Replicates §7 of the plan against the toy fixture (TSV-only)."""
+# -------- Self-test --------
+def selftest(arch_path, ref_path, expect_path):
+    """Assert the architecture + reference tables reproduce known calls."""
     cfg = load_config(None)
-    counts = Counter()
-    confident = 0
-    with open(tsv_path) as fh:
+    arch_tbl, ref_tbl = load_table(arch_path), load_table(ref_path)
+    failures, checked = [], 0
+    with open(expect_path) as fh:
         header = fh.readline().rstrip('\n').split('\t')
-        idx = {k: header.index(k) for k in
-               ('SVLEN', 'match_lengths', 'repeat_ids',
-                'matching_classes', 'n_hits')}
         for line in fh:
-            row = line.rstrip('\n').split('\t')
-            try:
-                svlen = abs(float(row[idx['SVLEN']]))
-            except ValueError:
+            if not line.strip() or line.startswith('#'):
                 continue
-            lam, nu, sva = parse_hits(
-                row[idx['match_lengths']], row[idx['repeat_ids']],
-                row[idx['matching_classes']], row[idx['n_hits']], cfg)
-            post = classify(max(0.0, svlen - sva), lam, nu, cfg)
-            k, p = map_class(post)
-            counts[k] += 1
-            if p >= 0.90:
-                confident += 1
-    print('Self-test on', tsv_path)
-    for k in 'CTBAX':
-        print(f'  H_{k} ({CLASS_LABEL[k]:<14}): {counts.get(k,0)}')
-    print(f'  confident (>=0.90): {confident}')
+            row = dict(zip(header, line.rstrip('\n').split('\t')))
+            vid = row['id']
+            info_d = {'matching_classes': row.get('matching_classes', 'LTR/ERVK'),
+                      'n_hits': row.get('n_hits', '1')}
+            r = classify_record(vid, info_d, int(row['svlen']),
+                                arch_tbl, ref_tbl, cfg)
+            checked += 1
+            for field, got in (('class', r['cls']), ('evidence', r['evidence']),
+                               ('allele_ref', r['ref_allele'] or ''),
+                               ('allele', r['alt_allele'] or '')):
+                want = row.get(field, '')
+                if want and want != got:
+                    failures.append(f'{vid}: {field} expected {want}, got {got}')
+            if row.get('k'):
+                got_k = str(r['k'])
+                if got_k != row['k']:
+                    failures.append(f"{vid}: k expected {row['k']}, got {got_k}")
+
+    print(f'hervk_classify selftest: {checked} records checked')
+    for f in failures:
+        print('  FAIL', f)
+    if failures:
+        sys.exit(1)
+    print('  all expectations met')
 
 
-# -------- Main --------
 def main():
     ap = argparse.ArgumentParser(
-        description='HERV-K (HML-2) SV polymorphism classifier.')
-    ap.add_argument('--vcf-in', required=False)
-    ap.add_argument('--vcf-out', required=False)
+        description='HERV-K (HML-2) allele-state classifier (evidence-first).')
+    ap.add_argument('--vcf-in')
+    ap.add_argument('--vcf-out',
+                    help='annotated VCF; omit to classify without writing one')
+    ap.add_argument('--calls-out',
+                    help='per-candidate call table for the locus layer')
+    ap.add_argument('--arch', help='architecture TSV from hervk_arch.py')
+    ap.add_argument('--ref-state', help='reference-state TSV from hervk_ref_state.py')
     ap.add_argument('--tsv-in')
     ap.add_argument('--tsv-out')
     ap.add_argument('--summary')
     ap.add_argument('--config')
+    ap.add_argument('--max-svlen', type=int,
+                    help='|SVLEN| cap for candidacy; must match the cap used to '
+                         'build the candidate list the reference masking ran on')
+    ap.add_argument('--no-mask-tandem', action='store_true',
+                    help='keep genotypes on tandem-duplication records '
+                         '(default is to withhold them)')
     ap.add_argument('--strict', action='store_true',
-                    help='Drop HERV-K candidate rows whose MAP class is '
-                         '"other" or whose pmap < pmap_min.')
-    ap.add_argument('--selftest',
-                    help='Run regression on the toy fixture TSV and exit.')
+                    help='drop candidates classed "other" or below pmap_min '
+                         '(off by default: dropping records is what hid the '
+                         'null_prov failure in v1)')
+    ap.add_argument('--selftest', nargs=3,
+                    metavar=('ARCH_TSV', 'REFSTATE_TSV', 'EXPECT_TSV'))
     args = ap.parse_args()
 
     if args.selftest:
-        selftest(args.selftest)
+        selftest(*args.selftest)
         return
 
-    if not args.vcf_in or not args.vcf_out:
-        ap.error('--vcf-in and --vcf-out required (unless --selftest)')
+    if not args.vcf_in:
+        ap.error('--vcf-in is required (unless --selftest)')
+    if not args.vcf_out and not args.calls_out:
+        ap.error('at least one of --vcf-out or --calls-out is required')
 
     cfg = load_config(args.config)
-    classifications = {}
-    process_vcf(args.vcf_in, args.vcf_out, cfg, args.strict, classifications)
+    if args.max_svlen:
+        cfg['max_svlen'] = args.max_svlen
+    if args.no_mask_tandem:
+        cfg['mask_tandem'] = False
+    arch_tbl = load_table(args.arch)
+    ref_tbl = load_table(args.ref_state)
+    results = {}
+    process_vcf(args.vcf_in, args.vcf_out, cfg, args.strict,
+                arch_tbl, ref_tbl, results)
 
+    if args.calls_out:
+        write_calls(results, args.calls_out)
     if args.tsv_in and args.tsv_out:
-        annotate_tsv(args.tsv_in, args.tsv_out, classifications,
-                     args.strict, cfg)
-
+        annotate_tsv(args.tsv_in, args.tsv_out, results, args.strict, cfg)
     if args.summary:
-        polyallelic = find_polyallelic(classifications, cfg)
-        write_summary(args.summary, classifications, cfg, polyallelic)
+        write_summary(args.summary, results, cfg)
 
-    sys.stderr.write(
-        f'[hervk_classify] candidates classified: {len(classifications)}\n')
+    counts = defaultdict(int)
+    for r in results.values():
+        counts[r['cls']] += 1
+    detail = ', '.join(f'{k}={counts[k]}' for k in CLASSES if counts[k])
+    sys.stderr.write(f'[hervk_classify] {len(results)} candidates ({detail})\n')
 
 
 if __name__ == '__main__':

@@ -37,7 +37,8 @@ include { index_graph; bamtags_to_BED; lift_epigenome; annotate_VCF; annotate_BE
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
          svim_asm; pav_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
          tsd_search; tsd_report; pangenie_index; pangenie; make_graph; bam_to_fastq;
-         graph_align_reads; vg_call; merge_VCFs } from './module'
+         graph_align_reads; vg_call; merge_VCFs; hervk_annotate;
+         hervk_reconcile } from './module'
 
 workflow {
   // initiate channels that will provide the reference genome to processes
@@ -99,10 +100,17 @@ workflow {
   if(!params.graffite_vcf) {
     // except if --RM_dir is given, in which case skip RepeatMasker here and set the input channel
     RM_ch = channel.empty()
+    rm_dirs_ch = channel.empty()
     if(params.RM_dir){
       channel.fromPath("${params.RM_dir}/*", type: "dir").
       map{p -> [file("${p}/genotypes_repmasked_filtered.vcf", checkIfExists: true), file("${p}/repeatmasker_dir", checkIfExists: true)]}.
       map{v -> [v[0], v[1]]}.set{RM_ch}
+      // Built from params rather than by re-reading RM_ch, so the raw
+      // RepeatMasker tables reach the HERV-K step without consuming a channel
+      // that tsd_prep also needs.
+      channel.fromPath("${params.RM_dir}/*", type: "dir").
+      map{p -> file("${p}/repeatmasker_dir", checkIfExists: true)}.
+      collect().set{rm_dirs_ch}
     } else {
       Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
@@ -115,6 +123,7 @@ workflow {
       }
       repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch))
       repeatmask_VCF.out.vcf.set{RM_ch}
+      repeatmask_VCF.out.vcf.map{v -> v[1]}.collect().set{rm_dirs_ch}
     }
     tsd_report(tsd_search(tsd_prep(RM_ch.combine(ref_asm_ch)).
                           splitText(elem: 3, by: params.tsd_batch_size, file: true)).
@@ -127,6 +136,21 @@ workflow {
                       tsd_report.out.tsd_sum_group_ch.collect(),
                       ref_asm_ch)
     concat_repeatmask.out.vcf_ch.set{vcf_ch}
+
+    // HERV-K allele states + locus flags. --human only, and deliberately NOT
+    // rebinding vcf_ch: pangenome.vcf must reach the graph unmodified.
+    if(params.human) {
+      // Own channel rather than reusing TE_library_ch: with --RM_dir the
+      // masking step never runs, so TE_library_ch is not defined there. The
+      // library is still needed here to mask the reference windows.
+      Channel.fromPath(params.TE_library, checkIfExists:true).set{hervk_lib_ch}
+      hervk_annotate(concat_repeatmask.out.vcf_ch,
+                     concat_repeatmask.out.human_vcf_ch,
+                     concat_repeatmask.out.human_tsv_ch,
+                     rm_dirs_ch,
+                     ref_asm_ch,
+                     hervk_lib_ch)
+    }
   } else {
     // if a vcf is provided as parameter, skip discovery and go directly to genotyping
     Channel.fromPath(params.graffite_vcf).set{vcf_ch}
@@ -222,5 +246,35 @@ workflow {
     }
 
     merge_VCFs(indexed_vcfs.map{v -> v[1]}.collect(), vcf_ch)
+
+    // HERV-K locus consolidation on the human subset of the genotyped calls.
+    // Only giraffe is validated; the reconciler refuses other back ends rather
+    // than producing an unchecked answer.
+    if(params.human && params.hervk_reconcile && !params.hervk_reconcile_vcf) {
+      hervk_reconcile(merge_VCFs.out.typeref_outputs,
+                      hervk_annotate.out.human_vcf_ch,
+                      hervk_annotate.out.loci_ch,
+                      hervk_annotate.out.calls_ch,
+                      params.graph_method)
+    }
+  }
+
+  // Consolidate against a genotyped VCF from an earlier run instead of one this
+  // run produced. Graph genotyping is by far the most expensive stage, and the
+  // HERV-K work downstream of it does not depend on how the calls were made --
+  // so pointing at an existing 4_Genotyping VCF exercises the whole stage-3 and
+  // stage-E wiring without paying for genotyping again. Pairs with
+  // --genotype false.
+  if(params.human && params.hervk_reconcile && params.hervk_reconcile_vcf) {
+    // 'auto', not params.graph_method: that param describes the genotyping
+    // *this* run would do, and this path pairs with --genotype false, so it
+    // describes nothing. The back end is a property of the VCF being read, and
+    // the reconciler recovers it from the header. Passing graph_method here
+    // made the default ("pangenie") reject a perfectly good vg call VCF.
+    hervk_reconcile(Channel.fromPath(params.hervk_reconcile_vcf, checkIfExists:true),
+                    hervk_annotate.out.human_vcf_ch,
+                    hervk_annotate.out.loci_ch,
+                    hervk_annotate.out.calls_ch,
+                    'auto')
   }
 }

@@ -2,3 +2,7 @@
 bin/draftcode.sh
 bin/test_span.sh
 
+# Documentation build output
+/site/
+.venv-docs/
+__pycache__/
