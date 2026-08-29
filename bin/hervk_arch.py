@@ -204,7 +204,10 @@ def reassign_sine_r(frags, cfg):
     for f in frags:
         if not is_sva_family(f['name']):
             continue
-        if f['cons_start'] < cfg['sine_r_min']:
+        # A hit from a BED annotation has no consensus coordinates, so there
+        # is no way to tell the SINE-R domain from the rest of SVA. Leave it
+        # alone rather than guess -- and never compare None to an int.
+        if f['cons_start'] is None or f['cons_start'] < cfg['sine_r_min']:
             continue
         gap = min(max(f['qstart'] - o['qend'], o['qstart'] - f['qend'], 0)
                   for o in hml2)
