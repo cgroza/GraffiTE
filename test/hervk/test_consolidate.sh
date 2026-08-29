@@ -63,4 +63,18 @@ chk "chr6 tandem has no called GT" \
 chk "chr6 partner keeps its genotypes" \
     "$(awk -F'\t' '$3=="chr6-78894317-DEL-8465_106220"' "$TMP/out.vcf" | cut -f10- | tr '\t' '\n' | cut -d: -f1 | grep -c '1' | tr -d ' ')" "8"
 
+# Header validity. The input fixture defines SVTYPE (Number=1) and SVLEN
+# (Number=.), and the consolidated records carry one value per ALT, so our
+# Number=A definitions have to REPLACE those rather than sit beside them --
+# two ##INFO lines with one ID is invalid VCF and readers disagree on the winner.
+chk "no INFO id defined twice" \
+    "$(grep '^##INFO=<ID=' "$TMP/out.vcf" | sed 's/##INFO=<ID=\([^,>]*\).*/\1/' | sort | uniq -d | wc -l | tr -d ' ')" "0"
+chk "SVTYPE defined once"  "$(grep -c '##INFO=<ID=SVTYPE,' "$TMP/out.vcf")" "1"
+chk "SVLEN defined once"   "$(grep -c '##INFO=<ID=SVLEN,'  "$TMP/out.vcf")" "1"
+chk "SVTYPE is per-ALT"    "$(grep -c '##INFO=<ID=SVTYPE,Number=A,' "$TMP/out.vcf")" "1"
+chk "SVLEN is per-ALT"     "$(grep -c '##INFO=<ID=SVLEN,Number=A,'  "$TMP/out.vcf")" "1"
+# the multiallelic locus is what makes Number=A load-bearing
+chk "multiallelic SVLEN kept per-ALT" \
+    "$(awk -F'\t' '$3=="HERVK_chr12_55299985"' "$TMP/out.vcf" | grep -o 'SVLEN=[^;]*' | head -1)" "SVLEN=-974,8212"
+
 [[ $fail -eq 0 ]] && echo "PASS" || { echo "FAIL"; exit 1; }

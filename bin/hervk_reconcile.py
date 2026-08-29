@@ -53,6 +53,7 @@ Usage:
 
 import argparse
 import gzip
+import re
 import sys
 from collections import defaultdict
 
@@ -345,6 +346,34 @@ def detect_genotyper(vcf_path):
     if 'KC' in fmt_ids:          # PanGenie's kmer count, if it named nothing
         return 'pangenie'
     return None
+
+
+ID_RE = re.compile(r'##(?:INFO|FORMAT)=<ID=([^,>]+)')
+
+
+def merge_headers(head, new_lines):
+    """Drop any INFO/FORMAT definition from `head` that `new_lines` redefines.
+
+    Two ##INFO lines with the same ID is invalid VCF and readers disagree about
+    which one wins, so ours must replace rather than append. Number=A is the
+    correct shape for both kinds of record here: a consolidated locus carries
+    one SVTYPE/SVLEN per ALT, and a record carried over unchanged is biallelic,
+    so one ALT means one value. Filtering by ID also makes a second
+    consolidation pass over our own output idempotent.
+    """
+    ids = set()
+    for h in new_lines:
+        m = ID_RE.match(h)
+        if m:
+            ids.add(m.group(1))
+    keep = []
+    for h in head:
+        m = ID_RE.match(h)
+        if m and m.group(1) in ids:
+            continue
+        keep.append(h)
+    return keep
+
 
 CONSOLIDATED_HEADERS = [
     '##INFO=<ID=SVTYPE,Number=A,Type=String,Description="Variant type per ALT.">',
@@ -766,7 +795,7 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
         out_by_id[c['mem'][0]] = fields
 
     with open(args.out_vcf, 'w') as fh:
-        for h in head:
+        for h in merge_headers(head, CONSOLIDATED_HEADERS):
             fh.write(h + '\n')
         for h in CONSOLIDATED_HEADERS:
             fh.write(h + '\n')
