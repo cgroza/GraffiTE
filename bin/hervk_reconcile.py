@@ -175,12 +175,31 @@ def cluster(recs, ref_tbl, window, human_ids=None):
         for r in items:
             ref = ref_tbl.get(r['id'], {})
             elem = None
-            if ref.get('ref_elem_start') and ref.get('ref_elem_end'):
-                elem = (ref['ref_elem_chrom'], ref['ref_elem_start'],
-                        ref['ref_elem_end'])
-            joins = bool(current) and (
-                (elem is not None and elem in cur_elems)
-                or r['start'] - cur_end <= window)
+            try:
+                if ref.get('ref_elem_start') and ref.get('ref_elem_end'):
+                    elem = (ref.get('ref_elem_chrom', chrom),
+                            int(ref['ref_elem_start']), int(ref['ref_elem_end']))
+            except (TypeError, ValueError):
+                elem = None
+
+            # Two records touch the same element when their reported spans
+            # overlap, not when they match to the base. hervk_ref_state masks a
+            # window per record, so the span it recovers depends on that
+            # window: the two chr7 insertions came back 4699540-4712333 and
+            # 4699540-4711714 for one array and never compared equal.
+            shares_elem = elem is not None and any(
+                e[0] == elem[0] and e[1] <= elem[2] and elem[1] <= e[2]
+                for e in cur_elems)
+            # An array is wider than the default window, so a third record can
+            # sit inside it and still be further than `window` from the last
+            # one. At chr7 the deletion is 6475 bp from the nearer insertion
+            # and well inside the 17,975 bp array.
+            inside_elem = any(
+                e[0] == chrom and e[1] - window <= r['start'] <= e[2] + window
+                for e in cur_elems)
+
+            joins = bool(current) and (shares_elem or inside_elem
+                                       or r['start'] - cur_end <= window)
             if not joins and current:
                 loci.append(current)
                 current, cur_elems, cur_end = [], set(), None
@@ -403,10 +422,12 @@ CONSOLIDATED_HEADERS = [
     'in the discovery callset.">',
     '##INFO=<ID=HERVK_DISC_CONCORDANT,Number=0,Type=Flag,Description="Graph and '
     'discovery agree on every ALT count at this locus.">',
-    '##INFO=<ID=HERVK_GT_MASKED,Number=0,Type=Flag,Description="Genotypes '
-    'withheld: a tandem duplication, which is neither transposition nor '
-    'intra-element recombination and so does not belong in allele frequencies. '
-    'The call itself is kept in the HERV-K tables.">',
+    '##INFO=<ID=HERVK_GT_MASKED,Number=0,Type=Flag,Description="Graph '
+    'genotypes withheld at a copy-number locus: the ALT path repeats sequence '
+    'the reference already carries, so reads from the pre-existing copy '
+    'traverse it and non-carriers acquire ALT support. Discovery genotypes are '
+    'unaffected and carry the allele frequencies. The call itself is kept in the '
+    'HERV-K tables.">',
     '##INFO=<ID=HERVK_MEMBERS_MASKED,Number=.,Type=String,Description="Locus '
     'members whose genotypes were withheld.">',
     '##INFO=<ID=HERVK_MEMBERS_UNRESOLVED,Number=.,Type=String,Description="Locus '
@@ -558,23 +579,28 @@ def cmd_consolidate(args):
         members_all.update(r['record_ids'].split(','))
 
     calls = load_table(args.calls, 'id') if args.calls else {}
-    # tandem records may sit outside any flagged locus, so they have to be in
-    # the read set too
+    # copy-number records may sit outside any flagged locus, so they have to
+    # be in the read set too
     members_all |= {vid for vid, c in calls.items()
-                    if c.get('class') == 'tandem_prov'}
+                    if c.get('class') == 'copy_number'}
     head, samples, recs = read_vcf_records(args.genotyped_vcf, members_all)
 
     report, consolidated, archived, dropped = [], {}, [], set()
     annotate_only = {}
 
-    # Every tandem-duplication record gets its genotypes withheld, not just the
-    # ones that happen to sit in a multi-record locus. Two of the three in CaG
-    # (chr7-4700334, chr12-133148145) are single-record loci and so are never
-    # reached by the loop below -- they were being masked in the discovery VCF
-    # and left callable in the genotyped one, which is exactly the
-    # inconsistency the masking exists to prevent.
-    mask_gt = {vid for vid, c in calls.items()
-               if c.get('class') == 'tandem_prov'}
+    # Graph genotypes are unusable at a copy-number locus. The ALT path
+    # repeats sequence the reference already carries, so reads from the
+    # pre-existing copy traverse it and non-carriers pick up ALT support. At
+    # chr6 the ALT fraction tracks provirus dosage rather than carriage:
+    # provirus homozygotes run 0.13 to 0.42 while the eight solo-LTR carriers
+    # sit at 0.00. The discovery genotypes are haplotype-resolved alignments
+    # and do not have this problem, which is why they are left alone.
+    #
+    # Every copy-number record is masked, not only the ones in a multi-record
+    # locus: two of the CaG loci hold a single record and are never reached by
+    # the loop below.
+    mask_gt = set() if getattr(args, 'no_mask_cnv_gt', False) else {
+        vid for vid, c in calls.items() if c.get('class') == 'copy_number'}
     for locus in flagged:
         mem = [m for m in locus['record_ids'].split(',') if m in recs]
         if len(mem) < 2:
@@ -596,10 +622,7 @@ def cmd_consolidate(args):
                 # one and then demand a spanning deletion to build it.
                 unresolved.append(m)
                 continue
-            if c.get('class') == 'tandem_prov':
-                # Withheld here as well as in the discovery VCF: a tandem
-                # duplication is not an ERV life-cycle event and must not enter
-                # allele frequencies from either callset.
+            if m in mask_gt:
                 masked.append(m)
             if c.get('allele_ref', '.') not in ('.', '') and \
                ref_state not in ('.', '') and c['allele_ref'] != ref_state:
@@ -852,7 +875,7 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
     for lid, why in all_skips:
         sys.stderr.write(f'    SKIP {lid}: {why}\n')
     if mask_gt:
-        sys.stderr.write(f'    genotypes withheld on {len(mask_gt)} tandem '
+        sys.stderr.write(f'    graph genotypes withheld on {len(mask_gt)} copy-number '
                          f'record(s): {", ".join(sorted(mask_gt))}\n')
 
 
@@ -935,6 +958,10 @@ def main():
     c.add_argument('--reference',
                    help='FASTA, needed only for loci with several alleles and '
                         'no deletion spanning the locus')
+    c.add_argument('--no-mask-cnv-gt', action='store_true',
+                   help='keep the graph genotypes on copy-number records. '
+                        'They are unusable for allele frequencies (see the '
+                        'HERVK_GT_MASKED header); this is for inspecting them')
     c.add_argument('--genotyper', default='giraffe',
                    help="back end that wrote --genotyped-vcf; 'auto' "
                         'reads it from the VCF header, which is what a '

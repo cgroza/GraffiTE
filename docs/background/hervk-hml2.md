@@ -63,25 +63,40 @@ fallback but the main mechanism.
 | `solo_prov` | solo ↔ provirus | dimorphic; no null observed |
 | `truncated_prov` | as above, internal region incomplete | |
 | `null_prov` | null ↔ provirus | a whole provirus segregates |
-| `tandem_prov` | provirus ↔ tandem | a second proviral unit in an existing LTR |
+| `copy_number` | `prov_xN` ↔ `prov_xM` | the array gains or loses whole units |
 | `other` | — | not HML-2, or unresolved |
 
 `HERVK_ALLELE_REF` and `HERVK_ALLELE` give the states directly and are what
 downstream analysis should read; `HERVK_CLASS` names the pair, not the
 direction.
 
-## Tandem duplications carry no genotypes
+## Copy-number loci
 
-`ARCH_PERM` says the aligner split an LTR. It cannot say *which* — a solo has
-one, a provirus has two. When the masked reference reads `provirus`, the
-variant is a second proviral unit inserted into one of its LTRs: a tandem
-duplication.
+An HML-2 locus is not always one provirus. chr7:4,699,540-4,717,514 (7p22.1a,
+HERV-K108) carries two in tandem sharing a central LTR, and across 20 CaG
+samples one, two and three units all segregate. `ref_n_units` counts the units
+and `ref_unit_bp` measures the period, one internal region plus one LTR.
 
-That is neither transposition nor intra-element recombination, so it has no
-place in HERV-K allele frequencies. Such records are **kept and annotated**,
-with `HERVK_NOTE=TANDEM_DUP,GT_MASKED`, but their genotypes are set to missing
-so the locus contributes `AN=0` and cannot be counted. Set
-`--hervk_mask_tandem false` to keep them.
+An SV whose `|SVLEN|` lands on a multiple of that period changes copy number by
+that many units. Those states are written `prov_xN`, with `provirus` as the
+N = 1 spelling. Zero units is a solo LTR, because an array of N units carries
+N+1 LTRs and removing every unit leaves the one they shared, so the familiar
+solo/provirus dimorphism is the N = 1 case of the same arithmetic.
+
+The geometry, a unit of internal region plus exactly one LTR with the junction
+inside the element the two copies share, is what unequal exchange between
+misaligned units produces. Hughes and Coffin (2004, *PNAS* 101:1668-1672)
+proposed that for the tandem HERV-K108 allele and suggested a solo LTR they
+found was its reciprocal product. These calls belong in the analysis.
+
+**Graph genotypes at these loci are withheld.** The ALT path repeats sequence
+the reference already carries, so reads from the pre-existing copy traverse it
+and non-carriers pick up ALT support. At chr6 the ALT fraction tracks provirus
+dosage rather than carriage: provirus homozygotes run 0.13 to 0.42 while the
+eight solo-LTR carriers sit at 0.00. Discovery genotypes come from
+haplotype-resolved alignments, do not have this problem, and carry the allele
+frequencies. Set `--hervk_mask_graph_gt_at_cnv false` to inspect the graph
+calls anyway.
 
 ## Why the SVA hits are not SVA
 

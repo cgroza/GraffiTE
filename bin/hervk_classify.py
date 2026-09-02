@@ -67,14 +67,6 @@ DEFAULTS = {
     "int_full_frac": 0.80,
     # Strict-mode threshold (only applied when --strict).
     "pmap_min": 0.90,
-    # Blank the genotypes of tandem-duplication records (keeping the record and
-    # its annotation). A second proviral unit inserted into an LTR of an
-    # existing provirus is not a step in the ERV life cycle -- no transposition,
-    # no intra-element recombination -- so it should not enter allele-frequency
-    # analyses. It is either a chance duplication or a misassembly, and is a
-    # singleton at all three CaG loci. The evidence stays in hervk_calls.tsv
-    # and hervk_loci.tsv; only the genotypes are withheld.
-    "mask_tandem": True,
     # Minimum HML-2 bp for a candidate to be classified at all.
     "min_hml2_bp": 50,
     # Fraction of |SVLEN| that must be tiled HML-2 sequence before the
@@ -98,7 +90,7 @@ DEFAULTS = {
 }
 
 CLASSES = ('null_solo', 'solo_prov', 'truncated_prov', 'null_prov',
-           'tandem_prov', 'other')
+           'copy_number', 'other')
 
 
 # -------- Config --------
@@ -354,14 +346,16 @@ def resolve(arch, ref, svlen, lam, nu, cfg):
     # deleted unit rather than a canonical provirus.
     if sig == 'ARCH_2LTR':
         if is_ins and observed_ref == 'provirus':
-            notes.append('TANDEM_DUP')
-            return 'provirus', 'tandem_prov', 'ARCH_2LTR', notes
+            # The reference holds a provirus but did not resolve into counted
+            # units, so take the architecture's word for one unit gained.
+            notes.append('CNV_UNITS:1->2,UNIT_COUNT_ASSUMED')
+            return 'provirus', unit_state(2), 'ARCH_2LTR', notes
         return check('null', 'provirus', 'ARCH_2LTR') if is_ins \
             else check('provirus', 'null', 'ARCH_2LTR')
     if sig == 'ARCH_PERM':
         if is_ins and observed_ref == 'provirus':
-            notes.append('TANDEM_DUP')
-            return 'provirus', 'tandem_prov', 'ARCH_PERM', notes
+            notes.append('CNV_UNITS:1->2,UNIT_COUNT_ASSUMED')
+            return 'provirus', unit_state(2), 'ARCH_PERM', notes
         return check('solo', 'provirus', 'ARCH_PERM') if is_ins \
             else check('provirus', 'solo', 'ARCH_PERM')
     if sig == 'ARCH_SOLO':
@@ -467,10 +461,9 @@ INFO_HEADERS = [
     'determine the class.">',
     '##INFO=<ID=HERVK_NOTE,Number=.,Type=String,Description="Diagnostics for '
     'this call. REF_ARCH_CONFLICT: architecture and masked reference imply '
-    'different REF states. TANDEM_DUP: a second proviral unit inserted into an '
-    'LTR of an existing reference provirus -- not an ERV life-cycle event. '
-    'GT_MASKED: genotypes withheld (set to missing) so the allele is not '
-    'counted; the call itself is kept in hervk_calls.tsv.">',
+    'different REF states. CNV_UNITS:a->b: proviral units on the REF and ALT '
+    'alleles. UNIT_COUNT_ASSUMED: the reference did not resolve into counted '
+    'units, so the count came from the architecture instead of the period.">',
 ]
 
 TSV_COLUMNS = ['HERVK_class', 'HERVK_allele_ref', 'HERVK_allele',
@@ -591,17 +584,6 @@ def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results):
 
             if strict and (r['cls'] == 'other' or r['pmap'] < cfg['pmap_min']):
                 continue
-
-            if r['cls'] == 'copy_number' and cfg.get('mask_tandem', True):
-                # Keep the record and everything we learned about it; withhold
-                # only the genotypes, so the allele cannot be counted. Ploidy is
-                # preserved -- a haploid call stays "." and a diploid "./.".
-                for i in range(9, len(fields)):
-                    parts = fields[i].split(':')
-                    n = len(parts[0].replace('|', '/').split('/'))
-                    parts[0] = '/'.join(['.'] * n)
-                    fields[i] = ':'.join(parts)
-                r['notes'] = (r.get('notes') or []) + ['GT_MASKED']
 
             for key in ('_chrom', '_pos'):
                 info_d.pop(key, None)
@@ -766,7 +748,11 @@ def main():
                     help='|SVLEN| cap for candidacy; must match the cap used to '
                          'build the candidate list the reference masking ran on')
     ap.add_argument('--no-mask-tandem', action='store_true',
-                    help='keep genotypes on tandem-duplication records '
+                    help='deprecated no-op, kept so existing command lines '
+                         'still parse. Genotype masking moved to '
+                         'hervk_reconcile.py consolidate, which is where the '
+                         'graph genotypes are. Old help: keep genotypes on '
+                         'tandem-duplication records '
                          '(default is to withhold them)')
     ap.add_argument('--strict', action='store_true',
                     help='drop candidates classed "other" or below pmap_min '
@@ -788,8 +774,6 @@ def main():
     cfg = load_config(args.config)
     if args.max_svlen:
         cfg['max_svlen'] = args.max_svlen
-    if args.no_mask_tandem:
-        cfg['mask_tandem'] = False
     arch_tbl = load_table(args.arch)
     ref_tbl = load_table(args.ref_state)
     results = {}

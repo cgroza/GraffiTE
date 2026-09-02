@@ -89,14 +89,18 @@ def main():
         if want_locus not in merge_loci:
             failures.append(f'{want_locus} not flagged MERGE_CANDIDATE — {why}')
 
-    # ---- 3. tandem duplications -----------------------------------------
-    tandem = sorted(v for v, r in calls.items() if r['class'] == 'tandem_prov')
+    # ---- 3. copy-number loci --------------------------------------------
+    # Discovery genotypes stay on these records: they come from
+    # haplotype-resolved alignments and carry the allele frequencies. It is the
+    # GRAPH genotypes that get withheld, in hervk_reconcile.py consolidate,
+    # because the ALT path repeats sequence the reference already carries.
+    tandem = sorted(v for v, r in calls.items() if r['class'] == 'copy_number')
     for vid in tandem:
-        if 'GT_MASKED' not in calls[vid].get('notes', ''):
-            failures.append(f'{vid}: classed tandem_prov but genotypes were not '
-                            'withheld -- a tandem duplication is neither '
-                            'transposition nor recombination and must not enter '
-                            'allele frequencies')
+        ref_st = calls[vid].get('allele_ref', '')
+        alt_st = calls[vid].get('allele', '')
+        if not (ref_st.startswith('prov_x') or alt_st.startswith('prov_x')):
+            failures.append(f'{vid}: classed copy_number but neither allele is '
+                            f'a prov_xN state ({ref_st} -> {alt_st})')
 
     # ---- 4. stage E, when it ran ----------------------------------------
     gt_dir = os.path.join(args.outdir, '4_Genotyping')
@@ -171,7 +175,7 @@ def main():
     # ---- report ----------------------------------------------------------
     print(f'HERV-K v2 assertions — {checked} records checked against '
           f'{len(expected)} expectations')
-    print(f'  tandem_prov           : {len(tandem)}  {", ".join(tandem)}')
+    print(f'  copy_number           : {len(tandem)}  {", ".join(tandem)}')
     if stage_e:
         print(f'  stage E: consolidated : {len(stage_e["merged"])}  '
               f'({", ".join(sorted(stage_e["merged"]))})')
