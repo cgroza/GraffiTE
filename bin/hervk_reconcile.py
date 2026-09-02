@@ -18,9 +18,24 @@ HERV-K (HML-2) locus layer.
     first three sit outside truvari's default 500 bp refdist, which is why
     truvari did not collapse them.
 
-`consolidate` (stage 4)
-    Collapse each flagged locus in the graph-genotyped VCF into one
-    multi-allelic record.
+`consolidate` (stages 3 and 4)
+    Collapse each flagged locus into one multi-allelic record, so a reader gets
+    the locus and its alleles rather than a scatter of records to reassemble.
+
+    Runs over either callset, as an additional file each time. The input is
+    never rewritten: the discovery VCF induces the graph, and the graph VCF is
+    the native record of what vg call did.
+
+        pangenome.human.vcf              -> pangenome.human.consolidated.vcf
+        GraffiTE.merged.genotypes.vcf.gz -> ...genotypes.human.vcf.gz
+
+    --source discovery masks nothing. Those genotypes come from
+    haplotype-resolved assembly alignments, which read a tandem array off the
+    alignment directly. --source graph masks copy-number alleles, because an
+    ALT path that repeats reference sequence cannot be distinguished from the
+    reference by a read that traverses it; the other alleles at such a locus
+    are still counted, and the masked one takes its frequency from the
+    assemblies when --discovery-vcf is given.
 
     Genotypes are resolved by *allele dosage* across the member records, not
     by taking each record's call at face value. A locus is one place with one
@@ -46,13 +61,30 @@ HERV-K (HML-2) locus layer.
     (AN=22 of 40). Reporting AF alone would hide that; reporting AC/AN does
     not.
 
+    A locus the --human filter cut in half is annotated rather than merged.
+    Three CaG loci are in that state, and at chr7:4,699,714 the filter keeps
+    one of three members: all three describe the same 8,504 bp unit, and the
+    two it removes carry a third RepeatMasker fragment that the HERV-K clause
+    does not admit. The surviving record carries the locus id, the full allele
+    set, the names of the absent members and HERVK_LOCUS_INCOMPLETE, so its
+    allele frequencies are not read as covering the locus.
+
 Usage:
     hervk_reconcile.py flag --vcf-in in.vcf --vcf-out out.vcf \
         --loci-out hervk_loci.tsv [--ref-state refstate.tsv] [--window 1200]
+
+    hervk_reconcile.py consolidate --source discovery --vcf-in flagged.vcf \
+        --loci hervk_loci.tsv --calls hervk_calls.tsv --reference ref.fa \
+        --out-vcf pangenome.human.consolidated.vcf
+
+    hervk_reconcile.py consolidate --genotyped-vcf graph.vcf.gz \
+        --loci hervk_loci.tsv --calls hervk_calls.tsv --reference ref.fa \
+        --discovery-vcf pangenome.human.vcf --out-vcf consolidated.vcf
 """
 
 import argparse
 import gzip
+import os
 import re
 import subprocess
 import sys
@@ -513,6 +545,16 @@ CONSOLIDATED_HEADERS = [
     'haploid discovery caller.">',
     '##INFO=<ID=HERVK_MEMBERS_MASKED,Number=.,Type=String,Description="Locus '
     'members whose genotypes were withheld.">',
+    '##INFO=<ID=HERVK_ALLELE_SET,Number=.,Type=String,Description="Every '
+    'proviral-unit allele state segregating at this locus, including states '
+    'carried by member records that are not in this VCF. On an unmerged record '
+    'this is what the locus holds, not what the record describes.">',
+    '##INFO=<ID=HERVK_MEMBERS_ABSENT,Number=.,Type=String,Description="Member '
+    'records of this locus that the --human filter removed, so their alleles '
+    'cannot be counted here. Their states are in HERVK_ALLELE_SET.">',
+    '##INFO=<ID=HERVK_LOCUS_INCOMPLETE,Number=0,Type=Flag,Description="Some '
+    'member of this locus is absent from this VCF, so its allele frequencies '
+    'do not cover every allele that segregates. See HERVK_MEMBERS_ABSENT.">',
     '##INFO=<ID=HERVK_MEMBERS_UNRESOLVED,Number=.,Type=String,Description="Locus '
     'members with no usable allele state.">',
     '##INFO=<ID=HERVK_POLARITY_FLIPPED,Number=.,Type=String,Description="Members '
@@ -534,7 +576,14 @@ def parse_gt(gt):
 def structurally_missing(sample_field, fmt):
     """Missing with no depth reported at all -- the record was never evaluated,
     as opposed to evaluated and found ambiguous. Every missing member call at
-    chr6 and chr12 is of this kind."""
+    chr6 and chr12 is of this kind.
+
+    A callset that declares no FORMAT/DP cannot separate the two, so it reports
+    neither. The discovery VCF is that shape: it carries GT alone, and reading
+    the absent DP as evidence would count every missing call as structural.
+    The value feeds a report counter, so under-reporting it costs nothing."""
+    if 'DP' not in fmt:
+        return False
     d = dict(zip(fmt, sample_field.split(':')))
     return d.get('DP', '.') in ('.', '', None)
 
@@ -614,13 +663,17 @@ def discovery_counts(path, members, samples, graph_ploidy=None):
     reported so the caller can refuse a fallback the two callsets cannot
     support.
 
-    Returns (counts, an, ploidy_ok).
+    Returns (counts, an, ploidy_ok), where ploidy_ok is None when there was
+    nothing to check -- no discovery VCF, or none of these members in it. That
+    is not the same as a mismatch, and reporting it as one would put
+    HERVK_DISC_PLOIDY_MISMATCH on every record of a consolidation run without
+    --discovery-vcf.
     """
     if not path:
-        return None, None, False
+        return None, None, None
     _, dsamples, recs = read_vcf_records(path, set(members))
     if not recs:
-        return None, None, False
+        return None, None, None
     idx = {s: i for i, s in enumerate(dsamples)}
     counts, an, ploidy_ok = {m: 0 for m in members}, 0, True
     for s in samples:
@@ -646,7 +699,37 @@ def discovery_counts(path, members, samples, graph_ploidy=None):
 
 
 def cmd_consolidate(args):
-    if args.genotyper == 'auto':
+    """Merge the members of each flagged locus into one multi-allelic record.
+
+    Runs over either callset. The loop reads GT and nothing else, so the two
+    differ only in what has to be guarded:
+
+      graph      short reads through vg call. Copy-number alleles are masked,
+                 because an ALT path that repeats reference sequence cannot be
+                 told from the reference by a read that traverses it.
+      discovery  haplotype-resolved assembly alignments. Nothing is masked:
+                 the alignment sees the whole allele, which is exactly why the
+                 graph consolidation falls back to these counts. The genotyper
+                 guard does not apply, and neither does the discovery fallback,
+                 whose source would be this file.
+
+    Both consolidations are additional outputs. The callset they read is
+    written out unchanged, because the discovery VCF induces the graph and the
+    graph VCF is the native record of what was genotyped.
+    """
+    if not args.genotyped_vcf:
+        sys.exit('hervk_reconcile consolidate: pass the input VCF, as '
+                 '--genotyped-vcf or --vcf-in.')
+
+    discovery = getattr(args, 'source', 'graph') == 'discovery'
+    if discovery:
+        if args.discovery_vcf:
+            sys.exit('hervk_reconcile consolidate: --discovery-vcf is for '
+                     'cross-checking graph genotypes against the assemblies. '
+                     'With --source discovery the assemblies are already the '
+                     'input, so there is nothing to check against.')
+        args.genotyper = 'n/a'
+    elif args.genotyper == 'auto':
         detected = detect_genotyper(args.genotyped_vcf)
         if detected is None:
             sys.exit('hervk_reconcile consolidate: --genotyper auto could not '
@@ -657,7 +740,7 @@ def cmd_consolidate(args):
                          f'{detected}\n')
         args.genotyper = detected
 
-    if args.genotyper not in SUPPORTED_GENOTYPERS:
+    if not discovery and args.genotyper not in SUPPORTED_GENOTYPERS:
         sys.exit(f'hervk_reconcile consolidate: --genotyper {args.genotyper} is '
                  f'not supported yet (only {", ".join(SUPPORTED_GENOTYPERS)}). '
                  'The internals are back-end agnostic; the guard is here so an '
@@ -693,14 +776,33 @@ def cmd_consolidate(args):
     # Every copy-number record is masked, not only the ones in a multi-record
     # locus: two of the CaG loci hold a single record and are never reached by
     # the loop below.
-    mask_gt = set() if getattr(args, 'no_mask_cnv_gt', False) else {
-        vid for vid, c in calls.items() if c.get('class') == 'copy_number'}
+    #
+    # Discovery masks nothing. These genotypes come from whole-haplotype
+    # alignments, which resolve a tandem array directly, and masking them would
+    # throw away the only counts the locus has.
+    mask_gt = set() if (discovery or getattr(args, 'no_mask_cnv_gt', False)) \
+        else {vid for vid, c in calls.items() if c.get('class') == 'copy_number'}
     for locus in flagged:
         mem = [m for m in locus['record_ids'].split(',') if m in recs]
+        n_total = len(locus['record_ids'].split(','))
         if len(mem) < 2:
-            report.append((locus['locus_id'], 'skipped',
-                           f'{len(mem)} of {len(locus["record_ids"].split(","))} '
-                           'members present in the genotyped VCF'))
+            # Too few members here to merge anything, but the locus is real and
+            # the surviving record is one of its alleles. Dropping the
+            # annotation would leave it looking like an unrelated insertion.
+            #
+            # This is the common shape at chr7:4,699,714 and chr8:7,552,031,
+            # where the --human filter keeps one member and removes the others:
+            # all three chr7 records describe the same 8,504 bp unit, and the
+            # two that were removed carry a third RepeatMasker fragment, which
+            # the filter's HERV-K clause does not admit. The locus is intact in
+            # the full callset and split here, which is what
+            # LOCUS_SPLIT_BY_HUMAN_FILTER says.
+            if mem:
+                annotate_only[mem[0]] = (locus, [], [])
+            report.append((locus['locus_id'],
+                           'annotated' if mem else 'skipped',
+                           f'{len(mem)} of {n_total} members present in the '
+                           'input VCF'))
             continue
 
         # Locus REF state is authoritative and comes from the masked reference.
@@ -966,6 +1068,10 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
                                for a in alt_list),
             'SVLEN': ','.join(str(len(a) - len(ref)) for a in alt_list),
             'HERVK_LOCUS': lid,
+            # Members of the locus, not members merged here. The two differ
+            # whenever the --human filter removed one, and a reader comparing
+            # HERVK_MEMBERS against this count is entitled to see the gap.
+            'HERVK_LOCUS_N': c['locus']['n_records'],
             'HERVK_ALLELE_REF': c['ref_state'] or '.',
             'HERVK_ALLELE': ','.join(c['alt_states']),
             'HERVK_MEMBERS': ','.join(c['mem']),
@@ -986,6 +1092,16 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
                          ('cnv', 'HERVK_CNV')):
             if L.get(col) == '1':
                 info[key] = ''
+        absent = [x for x in L.get('records_not_in_human', '.').split(',')
+                  if x != '.']
+        if absent:
+            # A merged record can still be missing an allele. chr1:75,219,429
+            # merges two of its three members and the third is not in this
+            # file, so HERVK_AC covers the alleles present and no more.
+            info['HERVK_MEMBERS_ABSENT'] = ','.join(absent)
+            info['HERVK_LOCUS_INCOMPLETE'] = ''
+            if L.get('allele_set') not in (None, '', '.'):
+                info['HERVK_ALLELE_SET'] = L['allele_set']
         if c['flipped']:
             info['HERVK_POLARITY_FLIPPED'] = ','.join(c['flipped'])
         if c['masked']:
@@ -1016,6 +1132,11 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
             fh.write(h + '\n')
         for h in CONSOLIDATED_HEADERS:
             fh.write(h + '\n')
+        # Which genotypes these are. A consolidated discovery VCF and a
+        # consolidated graph VCF hold the same loci and different counts, and
+        # nothing else in the file distinguishes them.
+        fh.write(f'##hervk_consolidation=source:{getattr(args, "source", "graph")},'
+                 f'input:{os.path.basename(args.genotyped_vcf)}\n')
         fh.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t'
                  + '\t'.join(samples) + '\n')
         annotate_only = annotate_only or {}
@@ -1041,6 +1162,24 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
                     info = parse_info(f[7])
                     info['HERVK_LOCUS'] = locus['locus_id']
                     info['HERVK_LOCUS_N'] = locus['n_records']
+                    # An unmerged record still has to say what segregates at
+                    # its locus. Without the allele set a reader sees one
+                    # insertion and has no way to know it is one of three
+                    # alleles, two of which are not in this file.
+                    if locus.get('allele_set') not in (None, '', '.'):
+                        info['HERVK_ALLELE_SET'] = locus['allele_set']
+                    if locus.get('locus_type') not in (None, '', '.'):
+                        info['HERVK_LOCUS_TYPE'] = locus['locus_type']
+                    for col, key in (('mei', 'HERVK_MEI'),
+                                     ('solo_prov', 'HERVK_SOLO_PROV'),
+                                     ('cnv', 'HERVK_CNV')):
+                        if locus.get(col) == '1':
+                            info[key] = ''
+                    absent = [x for x in locus.get(
+                        'records_not_in_human', '.').split(',') if x != '.']
+                    if absent:
+                        info['HERVK_MEMBERS_ABSENT'] = ','.join(absent)
+                        info['HERVK_LOCUS_INCOMPLETE'] = ''
                     if masked:
                         info['HERVK_MEMBERS_MASKED'] = ','.join(masked)
                     if unresolved:
@@ -1141,7 +1280,15 @@ def main():
 
     c = sub.add_parser('consolidate',
                        help='collapse flagged loci in the graph-genotyped VCF')
-    c.add_argument('--genotyped-vcf', required=True)
+    c.add_argument('--genotyped-vcf',
+                   help='the graph-genotyped VCF (--source graph)')
+    c.add_argument('--vcf-in', dest='genotyped_vcf',
+                   help='the flagged discovery VCF (--source discovery); the '
+                        'same option under the name that fits that input')
+    c.add_argument('--source', choices=('graph', 'discovery'), default='graph',
+                   help='which callset the genotypes come from. graph masks '
+                        'copy-number alleles it cannot count; discovery masks '
+                        'nothing (default: graph)')
     c.add_argument('--loci', required=True,
                    help='hervk_loci.tsv from the flag step')
     c.add_argument('--calls',
