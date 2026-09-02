@@ -22,6 +22,15 @@ This module reads the raw `indels.fa.out` instead and recovers, per SV:
       ARCH_PERM   one LTR split across the termini, consensus intervals
                   complementary: 5' fragment [k+1..L], 3' fragment [1..k]
                   -> the SV was placed inside a pre-existing solo LTR
+      ARCH_INT_PERM
+                  the internal region split across the termini instead,
+                  5' fragment [j+1..7536] and 3' fragment [1..j], with one
+                  whole LTR between them
+                  -> the SV is a complete proviral unit whose permutation
+                     point falls in the internal region. That needs INT-INT
+                     homology, which only a tandem array has, so the
+                     signature identifies a multi-unit reference locus from
+                     the SV sequence alone.
 
 `k` is the alignment breakpoint inside the reference LTR. It is a property of
 the alignment, not of the biology: the inserted length is the same for every k,
@@ -260,7 +269,7 @@ def architecture(frags, svlen, cfg):
     out = {
         'strand': strand, 'n_frag': len(ordered),
         'ltr_bp': ltr_bp, 'int_bp': int_bp, 'other_bp': other_bp,
-        'k': None, 'signature': 'ARCH_NONE', 'ltr_family': None,
+        'k': None, 'j': None, 'signature': 'ARCH_NONE', 'ltr_family': None,
         'arch': arch_string(ordered),
         'n_ltr_termini': 0,
         'int_gaps': int_consensus_gaps(ordered),
@@ -274,15 +283,21 @@ def architecture(frags, svlen, cfg):
     out['ltr_family'] = fam
 
     has_int = int_bp >= cfg['min_int_bp']
+    tol = cfg['perm_tol']
     first, last = ordered[0], ordered[-1]
     span_lo = min(f['qstart'] for f in ordered)
     span_hi = max(f['qend'] for f in ordered)
-    first_terminal = is_ltr_family(first['name']) and (
-        (first['qstart'] - span_lo if strand == '+' else span_hi - first['qend'])
-        <= cfg['terminus_tol'])
-    last_terminal = is_ltr_family(last['name']) and (
-        (span_hi - last['qend'] if strand == '+' else last['qstart'] - span_lo)
-        <= cfg['terminus_tol'])
+
+    def at_5p(f):
+        d = (f['qstart'] - span_lo) if strand == '+' else (span_hi - f['qend'])
+        return d <= cfg['terminus_tol']
+
+    def at_3p(f):
+        d = (span_hi - f['qend']) if strand == '+' else (f['qstart'] - span_lo)
+        return d <= cfg['terminus_tol']
+
+    first_terminal = is_ltr_family(first['name']) and at_5p(first)
+    last_terminal = is_ltr_family(last['name']) and at_3p(last)
     out['n_ltr_termini'] = int(first_terminal) + int(last_terminal)
 
     # Lone LTR, no internal region: a solo LTR allele.
@@ -290,10 +305,29 @@ def architecture(frags, svlen, cfg):
         out['signature'] = 'ARCH_SOLO'
         return out
 
+    # One internal region split across the termini with a whole LTR between
+    # them. The unit is complete but rotated, so its ends are INT rather than
+    # LTR and the LTR-terminus guard below would drop it. chr7-4706809-DEL-8503
+    # reads INT:1237-7536/LTR:1-968/INT:1-1236: j = 1236, and the genome puts
+    # the deletion breakpoint 6301 bp into the internal region of a minus-strand
+    # element, i.e. consensus 7536-6301+1 = 1236.
+    if (has_int and len(ltrs) == 1 and is_int_family(first['name'])
+            and is_int_family(last['name']) and at_5p(first) and at_3p(last)
+            and _close(first['cons_end'], INT_CONSENSUS_LEN, tol)
+            and first['cons_start'] and first['cons_start'] > 1 + tol):
+        j = first['cons_start'] - 1
+        tail_ok = _close(last['bp'], j, tol)
+        if last['cons_start'] is not None:
+            tail_ok = tail_ok or (_close(last['cons_start'], 1, tol)
+                                  and _close(last['cons_end'], j, tol))
+        if tail_ok and _close(ltr_bp, L, 2 * tol):
+            out['signature'] = 'ARCH_INT_PERM'
+            out['j'] = j
+            return out
+
     if not (has_int and first_terminal and last_terminal):
         return out
 
-    tol = cfg['perm_tol']
     first_full = _close(first['cons_start'], 1, tol) and _close(first['cons_end'], L, tol)
     last_full = _close(last['cons_start'], 1, tol) and _close(last['cons_end'], L, tol)
 
@@ -362,8 +396,9 @@ def analyse(rm_hits, cfg, wanted=None):
     return out
 
 
-COLUMNS = ['id', 'signature', 'k', 'ltr_family', 'n_ltr_termini', 'n_frag',
-           'ltr_bp', 'int_bp', 'other_bp', 'strand', 'int_gaps', 'arch']
+COLUMNS = ['id', 'signature', 'k', 'j', 'ltr_family', 'n_ltr_termini',
+           'n_frag', 'ltr_bp', 'int_bp', 'other_bp', 'strand', 'int_gaps',
+           'arch']
 
 
 def write_tsv(results, path):
@@ -373,6 +408,7 @@ def write_tsv(results, path):
             r = results[sv_id]
             row = [sv_id, r['signature'],
                    '' if r['k'] is None else str(r['k']),
+                   '' if r.get('j') is None else str(r['j']),
                    r['ltr_family'] or '', str(r['n_ltr_termini']),
                    str(r['n_frag']), str(int(r['ltr_bp'])),
                    str(int(r['int_bp'])), str(int(r['other_bp'])),
