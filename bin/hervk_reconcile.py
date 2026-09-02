@@ -54,6 +54,7 @@ Usage:
 import argparse
 import gzip
 import re
+import subprocess
 import sys
 from collections import defaultdict
 
@@ -706,21 +707,61 @@ def cmd_consolidate(args):
                        archived, report, recs, mask_gt, annotate_only)
 
 
-def build_locus_record(mem_recs, keep, alt_states, allele_index):
+def fetch_ref_span(chrom, start, end, reference):
+    """Reference sequence for chrom:start-end, 1-based inclusive, upper case.
+
+    Uses `samtools faidx` rather than a FASTA parser, the same way
+    hervk_ref_state.py cuts its masking windows, so both read the reference
+    through one tool and cannot disagree about it.
+    """
+    region = f'{chrom}:{start}-{end}'
+    try:
+        raw = subprocess.run(['samtools', 'faidx', reference, region],
+                             capture_output=True, text=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError) as e:
+        raise RuntimeError(f'samtools faidx {region} failed: {e}')
+    seq = ''.join(l.strip() for l in raw.splitlines() if not l.startswith('>'))
+    if len(seq) != end - start + 1:
+        raise RuntimeError(
+            f'{region}: got {len(seq)} bp, expected {end - start + 1}')
+    return seq.upper()
+
+
+def splice_allele(rec, ref_seq, base):
+    """One member's allele, written against the locus reference span.
+
+    `rec` is a member record and `base` the 1-based start of `ref_seq`. The
+    member contributes its inserted bases after its own anchor base and takes
+    out the bases its own REF spans, so the result is the locus reference with
+    that one member's edit applied.
+    """
+    off = int(rec[1]) - base
+    ins = rec[4][1:] if len(rec[4]) > len(rec[3]) else ''
+    skip = len(rec[3]) - 1 if len(rec[3]) > len(rec[4]) else 0
+    return ref_seq[:off + 1] + ins + ref_seq[off + 1 + skip:]
+
+
+def build_locus_record(mem_recs, keep, alt_states, allele_index,
+                       reference=None):
     """Build one multi-allelic record with literal REF/ALT sequence.
 
-    Three shapes occur, and only the first two are reachable without the
-    reference FASTA:
+    Three shapes occur:
 
       a) every member describes the same allele (chr1, chr8, chr11) -- emit the
          leftmost member's own REF/ALT unchanged; it already is that allele.
       b) members describe different alleles and one is a deletion spanning the
          locus (chr12) -- its REF field *is* the reference sequence over the
          span, so the other alleles can be spliced into it exactly.
-      c) different alleles with no spanning deletion -- needs the FASTA.
+      c) different alleles with no spanning deletion (chr7:4,699,714, two
+         insertions and a deletion that starts downstream of both) -- the span
+         comes from the FASTA instead. Without `reference` this shape cannot be
+         built and the locus is skipped, which is what used to happen to every
+         locus of this shape.
 
-    Nothing is reconstructed from coordinates alone; every base emitted here
-    comes from a REF or ALT field that the caller already wrote.
+    (b) is preferred over (c) wherever both apply: a member's own REF field is
+    the exact sequence the caller emitted, so nothing fetched can disagree with
+    it. Otherwise every base still comes from either a REF/ALT field or one
+    samtools faidx call over the locus span.
     """
     kept = [mem_recs[i] for i in keep]
     anchor = min(kept, key=lambda r: int(r[1]))
@@ -735,27 +776,33 @@ def build_locus_record(mem_recs, keep, alt_states, allele_index):
                                          int(o[1]) <= span_end for o in kept):
             spanning = r
             break
-    if spanning is None:
-        return None, None, None, None, (
-            'members describe different alleles and no deletion spans the '
-            'locus, so the reference sequence over the span is not available '
-            'from the records; pass --reference to splice it from the FASTA')
+    if spanning is not None:
+        ref_seq, base, chrom = spanning[3], int(spanning[1]), spanning[0]
+    else:
+        if not reference:
+            return None, None, None, None, (
+                'members describe different alleles and no deletion spans the '
+                'locus, so the reference sequence over the span is not '
+                'available from the records; pass --reference to splice it '
+                'from the FASTA')
+        chrom = kept[0][0]
+        base = min(int(r[1]) for r in kept)
+        end = max(int(r[1]) + len(r[3]) - 1 for r in kept)
+        try:
+            ref_seq = fetch_ref_span(chrom, base, end, reference)
+        except RuntimeError as e:
+            return None, None, None, None, str(e)
 
-    ref_seq = spanning[3]
-    base = int(spanning[1])
     alts = [None] * len(alt_states)
     for i, r in zip(keep, kept):
         ai = allele_index[i] - 1
-        if r is spanning:
-            alts[ai] = r[4]
-        else:
-            off = int(r[1]) - base
-            ins = r[4][1:] if len(r[4]) > len(r[3]) else ''
-            skip = len(r[3]) - 1 if len(r[3]) > len(r[4]) else 0
-            alts[ai] = ref_seq[:off + 1] + ins + ref_seq[off + 1 + skip:]
+        # A member whose own REF *is* the span needs no splice: its ALT already
+        # is the allele written against that reference.
+        alts[ai] = r[4] if (r[3] == ref_seq and int(r[1]) == base) \
+            else splice_allele(r, ref_seq, base)
     if any(a is None for a in alts):
         return None, None, None, None, 'could not build every ALT allele'
-    return spanning[0], spanning[1], ref_seq, ','.join(alts), None
+    return chrom, str(base), ref_seq, ','.join(alts), None
 
 
 def mask_genotypes(fields):
@@ -774,7 +821,8 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
     for lid, c in consolidated.items():
         mem_recs = [recs[m] for m in c['mem']]
         chrom, pos, ref, alt, err = build_locus_record(
-            mem_recs, c['keep'], c['alt_states'], c['allele_index'])
+            mem_recs, c['keep'], c['alt_states'], c['allele_index'],
+            getattr(args, 'reference', None))
         if err:
             skipped.append((lid, err))
             report.append((lid, 'skipped', err))
