@@ -1,42 +1,44 @@
-id	expect_class	expect_evidence	expect_k	note
-chr19-21797327-INS-9478_60578	null_prov	ARCH_2LTR		complete provirus, two full terminal LTRs
-chr8-7226885-INS-9468_114234	null_prov	ARCH_2LTR		complete provirus, two full terminal LTRs
-chr1-75220301-INS-5405_1707	*_prov	ARCH_PERM	868	one LTR permuted across the termini
-chr11-101705464-INS-8498_18798	*_prov	ARCH_PERM	574	one LTR permuted across the termini
-chr12-133148145-INS-4933_23163	*_prov	ARCH_PERM	735	one LTR permuted across the termini
-chr12-55300093-INS-8212_21673	*_prov	ARCH_PERM	102	one LTR permuted across the termini
-chr12-58305931-DEL-8489_21709	*_prov	ARCH_PERM	303	one LTR permuted across the termini
-chr14-18173224-DEL-5362_30799	*_prov	ARCH_PERM	707	one LTR permuted across the termini
-chr6-78894876-INS-8465_106221	*_prov	ARCH_PERM	410	one LTR permuted across the termini
-chr7-4700334-INS-8504_108499	*_prov	ARCH_PERM	174	one LTR permuted across the termini
-chr1-111274763-INS-973_2158	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr1-154738082-DEL-991_9271	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr12-123580794-INS-974_22573	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr12-43878553-INS-965_21543	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr12-55299986-DEL-974_21672	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr13-89295305-INS-974_25959	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr15-60886237-DEL-974_38691	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr19-31895945-INS-966_62847	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr22-12639469-DEL-969_86735	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr3-198429529-DEL-973_93394	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr4-122647625-DEL-971_97426	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr4-9597300-DEL-973_94278	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr5-188148-DEL-1071_98820	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr5-65912737-INS-974_101908	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr5-81631071-INS-974_102222	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr5-8877604-DEL-974_99385	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr6-162206595-DEL-975_107323	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr6-32495456-INS-973_104396	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr7-159443679-DEL-974_113434	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr7-74179438-DEL-989_111779	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr8-19059695-INS-974_114553	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr8-37469547-INS-974_114789	null_solo	ARCH_SOLO		lone LTR, no internal region
-chr1-75219430-INS-5405_1705		REF_ANNOT		degenerate (k=0) - the masked reference decides
-chr11-101704641-INS-8504_18797		REF_ANNOT		degenerate (k=0) - the masked reference decides
-chr14-1698125-INS-8221_27937		REF_ANNOT		degenerate (k=0) - the masked reference decides
-chr15-2092086-DEL-8221_33990		REF_ANNOT		degenerate (k=0) - the masked reference decides
-chr19-22370220-INS-8229_60593		REF_ANNOT		degenerate (k=0) - the masked reference decides
-chr3-115745233-DEL-8199_92230		REF_ANNOT		degenerate (k=0) - the masked reference decides
-chr3-151318628-INS-3985_92620		REF_ANNOT		degenerate (k=0) - the masked reference decides
-chr5-157176677-DEL-8212_103038		REF_ANNOT		degenerate (k=0) - the masked reference decides
-chr6-78894317-DEL-8465_106220		REF_ANNOT		degenerate (k=0) - the masked reference decides
+id	expect_class	expect_evidence	expect_k	note	expect_allele_ref	expect_allele	expect_j
+chr19-21797327-INS-9478_60578	null_prov	ARCH_2LTR		complete provirus, two full terminal LTRs			
+chr8-7226885-INS-9468_114234	null_prov	ARCH_2LTR		complete provirus, two full terminal LTRs			
+chr1-75220301-INS-5405_1707	*_prov	ARCH_PERM	868	one LTR permuted across the termini			
+chr11-101705464-INS-8498_18798	*_prov	ARCH_PERM	574	one LTR permuted across the termini			
+chr12-133148145-INS-4933_23163	copy_number	CNV_PERIOD	735	1 -> 2 units; the reference unit is internally deleted, period 4935	provirus	prov_x2	
+chr12-55300093-INS-8212_21673	*_prov	ARCH_PERM	102	one LTR permuted across the termini			
+chr12-58305931-DEL-8489_21709	*_prov	ARCH_PERM	303	one LTR permuted across the termini			
+chr14-18173224-DEL-5362_30799	*_prov	ARCH_PERM	707	one LTR permuted across the termini			
+chr6-78894876-INS-8465_106221	copy_number	CNV_PERIOD	410	1 -> 2 units; period 8465 from the chr6 reference	provirus	prov_x2	
+chr7-4700334-INS-8504_108499	copy_number	CNV_PERIOD	174	2 -> 3 units at 7p22.1a; the reference is already a two-unit array	prov_x2	prov_x3	
+chr1-111274763-INS-973_2158	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr1-154738082-DEL-991_9271	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr12-123580794-INS-974_22573	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr12-43878553-INS-965_21543	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr12-55299986-DEL-974_21672	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr13-89295305-INS-974_25959	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr15-60886237-DEL-974_38691	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr19-31895945-INS-966_62847	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr22-12639469-DEL-969_86735	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr3-198429529-DEL-973_93394	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr4-122647625-DEL-971_97426	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr4-9597300-DEL-973_94278	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr5-188148-DEL-1071_98820	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr5-65912737-INS-974_101908	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr5-81631071-INS-974_102222	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr5-8877604-DEL-974_99385	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr6-162206595-DEL-975_107323	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr6-32495456-INS-973_104396	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr7-159443679-DEL-974_113434	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr7-74179438-DEL-989_111779	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr8-19059695-INS-974_114553	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr8-37469547-INS-974_114789	null_solo	ARCH_SOLO		lone LTR, no internal region			
+chr1-75219430-INS-5405_1705		REF_ANNOT		degenerate (k=0) - the masked reference decides			
+chr11-101704641-INS-8504_18797		REF_ANNOT		degenerate (k=0) - the masked reference decides			
+chr14-1698125-INS-8221_27937		REF_ANNOT		degenerate (k=0) - the masked reference decides			
+chr15-2092086-DEL-8221_33990		REF_ANNOT		degenerate (k=0) - the masked reference decides			
+chr19-22370220-INS-8229_60593		REF_ANNOT		degenerate (k=0) - the masked reference decides			
+chr3-115745233-DEL-8199_92230		REF_ANNOT		degenerate (k=0) - the masked reference decides			
+chr3-151318628-INS-3985_92620		REF_ANNOT		degenerate (k=0) - the masked reference decides			
+chr5-157176677-DEL-8212_103038		REF_ANNOT		degenerate (k=0) - the masked reference decides			
+chr6-78894317-DEL-8465_106220		REF_ANNOT		degenerate (k=0) - the masked reference decides; 1 -> 0 units is a solo LTR	provirus	solo	
+chr7-4699715-INS-8504_108498	copy_number	CNV_PERIOD	794	same event as chr7-4700334 at the other alignment phase; n_hits=3, dropped before the architecture gate existed	prov_x2	prov_x3	
+chr7-4706809-DEL-8503_108500	copy_number	CNV_PERIOD		the common allele at 7p22.1a, 26/40 haplotypes; ARCH_INT_PERM, j=1236 matches 7536-6301+1 from the genome	prov_x2	provirus	1236

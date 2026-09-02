@@ -68,6 +68,16 @@ def main():
             failures.append(f'{vid}: class {got["class"]}, expected a proviral class')
         if want['expect_k'] and got['k'] != want['expect_k']:
             failures.append(f'{vid}: k={got["k"]}, expected {want["expect_k"]}')
+        # j, and the allele states either side. The states are the point of the
+        # copy-number work: an array locus has to say how many units each
+        # allele carries, not just that something proviral is segregating.
+        if want.get('expect_j') and got.get('j', '') != want['expect_j']:
+            failures.append(f'{vid}: j={got.get("j")}, expected {want["expect_j"]}')
+        for col, field in (('expect_allele_ref', 'allele_ref'),
+                           ('expect_allele', 'allele')):
+            if want.get(col) and got.get(field, '') != want[col]:
+                failures.append(f'{vid}: {field}={got.get(field)}, '
+                                f'expected {want[col]}')
 
     # ---- 2. the headline results ----------------------------------------
     null_prov = sorted(v for v, r in calls.items() if r['class'] == 'null_prov')
@@ -89,14 +99,18 @@ def main():
         if want_locus not in merge_loci:
             failures.append(f'{want_locus} not flagged MERGE_CANDIDATE — {why}')
 
-    # ---- 3. tandem duplications -----------------------------------------
-    tandem = sorted(v for v, r in calls.items() if r['class'] == 'tandem_prov')
+    # ---- 3. copy-number loci --------------------------------------------
+    # Discovery genotypes stay on these records: they come from
+    # haplotype-resolved alignments and carry the allele frequencies. It is the
+    # GRAPH genotypes that get withheld, in hervk_reconcile.py consolidate,
+    # because the ALT path repeats sequence the reference already carries.
+    tandem = sorted(v for v, r in calls.items() if r['class'] == 'copy_number')
     for vid in tandem:
-        if 'GT_MASKED' not in calls[vid].get('notes', ''):
-            failures.append(f'{vid}: classed tandem_prov but genotypes were not '
-                            'withheld -- a tandem duplication is neither '
-                            'transposition nor recombination and must not enter '
-                            'allele frequencies')
+        ref_st = calls[vid].get('allele_ref', '')
+        alt_st = calls[vid].get('allele', '')
+        if not (ref_st.startswith('prov_x') or alt_st.startswith('prov_x')):
+            failures.append(f'{vid}: classed copy_number but neither allele is '
+                            f'a prov_xN state ({ref_st} -> {alt_st})')
 
     # ---- 4. stage E, when it ran ----------------------------------------
     gt_dir = os.path.join(args.outdir, '4_Genotyping')
@@ -169,9 +183,14 @@ def main():
                         'requirement: ' + ', '.join(split[:5]))
 
     # ---- report ----------------------------------------------------------
-    print(f'HERV-K v2 assertions — {checked} records checked against '
+    print(f'HERV-K v3 assertions — {checked} records checked against '
           f'{len(expected)} expectations')
-    print(f'  tandem_prov           : {len(tandem)}  {", ".join(tandem)}')
+    print(f'  copy_number           : {len(tandem)}')
+    for v in tandem:
+        r = calls[v]
+        print(f'      {v}  {r.get("allele_ref")} -> {r.get("allele")}  '
+              f'(ref_units={r.get("n_units_ref")}, period={r.get("unit_bp")}, '
+              f'k={r.get("k")}, j={r.get("j")})')
     if stage_e:
         print(f'  stage E: consolidated : {len(stage_e["merged"])}  '
               f'({", ".join(sorted(stage_e["merged"]))})')

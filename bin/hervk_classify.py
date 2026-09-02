@@ -67,16 +67,16 @@ DEFAULTS = {
     "int_full_frac": 0.80,
     # Strict-mode threshold (only applied when --strict).
     "pmap_min": 0.90,
-    # Blank the genotypes of tandem-duplication records (keeping the record and
-    # its annotation). A second proviral unit inserted into an LTR of an
-    # existing provirus is not a step in the ERV life cycle -- no transposition,
-    # no intra-element recombination -- so it should not enter allele-frequency
-    # analyses. It is either a chance duplication or a misassembly, and is a
-    # singleton at all three CaG loci. The evidence stays in hervk_calls.tsv
-    # and hervk_loci.tsv; only the genotypes are withheld.
-    "mask_tandem": True,
     # Minimum HML-2 bp for a candidate to be classified at all.
     "min_hml2_bp": 50,
+    # Fraction of |SVLEN| that must be tiled HML-2 sequence before the
+    # architecture table alone admits a candidate, whatever n_hits says.
+    "hml2_frac_min": 0.80,
+    # |SVLEN| may miss a whole number of unit periods by this much, or by
+    # cnv_period_frac of itself, whichever is larger. The four CaG records
+    # miss by 0, 1, 2 and 2 bp.
+    "cnv_period_tol": 50,
+    "cnv_period_frac": 0.005,
     # Upper |SVLEN| bound for candidacy. The gate is matching_classes=LTR/ERVK
     # with no size limit, which let a 25.3 Mb deletion into the HERV-K set --
     # it carried 38430 RepeatMasker hits and dominated the cost of the whole
@@ -90,7 +90,7 @@ DEFAULTS = {
 }
 
 CLASSES = ('null_solo', 'solo_prov', 'truncated_prov', 'null_prov',
-           'tandem_prov', 'other')
+           'copy_number', 'other')
 
 
 # -------- Config --------
@@ -142,11 +142,17 @@ def info_to_str(d):
     return ';'.join(k if v == '' else f'{k}={v}' for k, v in d.items()) or '.'
 
 
-def is_candidate(info_d, cfg=None):
-    """HERV-K candidate gate: an LTR/ERVK SV, alone or paired with SVA.
+def is_candidate(info_d, cfg=None, arch=None):
+    """HERV-K candidate gate: an LTR/ERVK SV that is HML-2 and little else.
 
-    Kept identical to the bcftools --human carve-out in module/main.nf so the
-    two gates cannot disagree.
+    The n_hits rule below stands in for "this SV is HML-2 and nothing else",
+    and it is a poor proxy. Whether RepeatMasker calls a split terminal LTR
+    LTR5_Hs or SVA_A changes n_hits without changing a base of sequence, and
+    two of the three records at chr7:4.70 Mb were dropped on exactly that
+    difference. When the architecture table has already tiled the SV, ask it
+    instead: HML-2 bp covering nearly all of the SV is the thing the hit count
+    was approximating. The hit-count rule stays as the fallback for records
+    with no architecture row.
     """
     matching_classes = info_d.get('matching_classes', '')
     if not matching_classes or matching_classes == 'NA':
@@ -158,15 +164,25 @@ def is_candidate(info_d, cfg=None):
         n_hits = int(float(info_d.get('n_hits', '0')))
     except ValueError:
         return False
-    if not (n_hits == 1 or (n_hits == 2 and 'Retroposon/SVA' in classes)):
-        return False
-    cap = (cfg or DEFAULTS).get('max_svlen')
+    cfg = cfg or DEFAULTS
+    cap = cfg.get('max_svlen')
     try:
-        if cap and abs(int(float(info_d.get('_svlen', 0)))) > cap:
-            return False
+        svlen = abs(int(float(info_d.get('_svlen', 0))))
     except (TypeError, ValueError):
-        pass
-    return True
+        svlen = 0
+    if cap and svlen > cap:
+        return False
+
+    if arch:
+        try:
+            hml2 = float(arch.get('ltr_bp') or 0) + float(arch.get('int_bp') or 0)
+        except (TypeError, ValueError):
+            hml2 = 0.0
+        if (hml2 >= cfg['min_hml2_bp'] and svlen
+                and hml2 >= cfg['hml2_frac_min'] * svlen):
+            return True
+
+    return n_hits == 1 or (n_hits == 2 and 'Retroposon/SVA' in classes)
 
 
 def hml2_bp_from_info(info_d):
@@ -206,6 +222,55 @@ def alt_state_from_content(lam, nu, cfg):
     return None
 
 
+def unit_state(n):
+    """Allele name for an element of n proviral units.
+
+    Zero units is a solo LTR, not an empty site: an array of N units carries
+    N+1 LTRs, so removing every unit still leaves the one they shared. That is
+    the same solo/provirus dimorphism the ladder already knows, arrived at by
+    arithmetic.
+    """
+    if n <= 0:
+        return 'solo'
+    if n == 1:
+        return 'provirus'
+    return f'prov_x{n}'
+
+
+def copy_number_call(ref, svlen, cfg):
+    """Read an SV as a whole number of proviral units added or removed.
+
+    The reference element's period is one internal region plus one LTR, which
+    is exactly what unequal exchange between misaligned units moves. So the
+    signature is |SVLEN| landing on a multiple of that period at a locus whose
+    reference resolves into units at all.
+
+    This covers deletions, which the LTR permutation signature cannot. A unit
+    removed from the middle of an array leaves both breakpoints in the
+    internal region rather than in an LTR, because the units are homologous
+    over their whole length once there are two of them.
+
+    Returns (m, n_ref, n_alt), or None when the arithmetic does not close.
+    """
+    if not ref:
+        return None
+    try:
+        n_ref = int(ref.get('ref_n_units') or 0)
+        period = int(ref.get('ref_unit_bp') or 0)
+    except (TypeError, ValueError):
+        return None
+    if n_ref < 1 or period <= 0 or not svlen:
+        return None
+    tol = max(cfg['cnv_period_tol'], cfg['cnv_period_frac'] * abs(svlen))
+    m = int(round(abs(svlen) / float(period)))
+    if m < 1 or abs(abs(svlen) - m * period) > tol:
+        return None
+    n_alt = n_ref + m if svlen > 0 else n_ref - m
+    if n_alt < 0:
+        return None
+    return m, n_ref, n_alt
+
+
 def classify_pair(ref_state, alt_state, int_bp, cfg):
     """Map a (REF, ALT) allele-state pair onto a HERVK_CLASS label."""
     pair = {ref_state, alt_state}
@@ -217,8 +282,8 @@ def classify_pair(ref_state, alt_state, int_bp, cfg):
     if pair == {'solo', 'provirus'}:
         return ('truncated_prov'
                 if int_bp < cfg['int_full_frac'] * INT_LEN else 'solo_prov')
-    if pair == {'provirus', 'tandem_prov'}:
-        return 'tandem_prov'
+    if any(str(s).startswith('prov_x') for s in pair):
+        return 'copy_number'
     return 'other'
 
 
@@ -232,6 +297,18 @@ def resolve(arch, ref, svlen, lam, nu, cfg):
     sig = (arch or {}).get('signature', '')
     is_ins = svlen >= 0
     observed_ref = (ref or {}).get('ref_state', '')
+
+    # 0. Copy number. Runs first, but only when the arithmetic lands on a
+    #    multi-unit state: null, solo and provirus are already resolved
+    #    correctly by the ladder below, and rerouting them through here would
+    #    change their evidence code without changing the answer. A locus is
+    #    re-read as an array only when one side carries two units or more.
+    cn = copy_number_call(ref, svlen, cfg)
+    if cn is not None:
+        m, n_ref, n_alt = cn
+        if max(n_ref, n_alt) >= 2:
+            notes.append(f'CNV_UNITS:{n_ref}->{n_alt}')
+            return unit_state(n_ref), unit_state(n_alt), 'CNV_PERIOD', notes
 
     def check(arch_ref, alt, code):
         """Architecture resolved it -- but say so if the reference disagrees.
@@ -269,14 +346,16 @@ def resolve(arch, ref, svlen, lam, nu, cfg):
     # deleted unit rather than a canonical provirus.
     if sig == 'ARCH_2LTR':
         if is_ins and observed_ref == 'provirus':
-            notes.append('TANDEM_DUP')
-            return 'provirus', 'tandem_prov', 'ARCH_2LTR', notes
+            # The reference holds a provirus but did not resolve into counted
+            # units, so take the architecture's word for one unit gained.
+            notes.append('CNV_UNITS:1->2,UNIT_COUNT_ASSUMED')
+            return 'provirus', unit_state(2), 'ARCH_2LTR', notes
         return check('null', 'provirus', 'ARCH_2LTR') if is_ins \
             else check('provirus', 'null', 'ARCH_2LTR')
     if sig == 'ARCH_PERM':
         if is_ins and observed_ref == 'provirus':
-            notes.append('TANDEM_DUP')
-            return 'provirus', 'tandem_prov', 'ARCH_PERM', notes
+            notes.append('CNV_UNITS:1->2,UNIT_COUNT_ASSUMED')
+            return 'provirus', unit_state(2), 'ARCH_PERM', notes
         return check('solo', 'provirus', 'ARCH_PERM') if is_ins \
             else check('provirus', 'solo', 'ARCH_PERM')
     if sig == 'ARCH_SOLO':
@@ -344,20 +423,31 @@ def size_confidence(svlen, resolved_class, cfg):
 # -------- VCF I/O --------
 INFO_HEADERS = [
     '##INFO=<ID=HERVK_CLASS,Number=1,Type=String,Description="HERV-K (HML-2) '
-    'polymorphism class: null_solo|solo_prov|truncated_prov|null_prov|other.">',
+    'polymorphism class: null_solo|solo_prov|truncated_prov|null_prov|'
+    'copy_number|other.">',
     '##INFO=<ID=HERVK_ALLELE_REF,Number=1,Type=String,Description="HERV-K state '
-    'of the REF allele: null|solo|provirus|partial|. (unresolved).">',
+    'of the REF allele: null|solo|provirus|prov_xN|partial|. (unresolved). '
+    'prov_xN is a tandem array of N proviral units sharing an LTR at each '
+    'junction; provirus is the N=1 case.">',
     '##INFO=<ID=HERVK_ALLELE,Number=.,Type=String,Description="HERV-K state of '
-    'each ALT allele, in ALT order: null|solo|provirus|partial|.">',
+    'each ALT allele, in ALT order: null|solo|provirus|prov_xN|partial|.">',
     '##INFO=<ID=HERVK_EVIDENCE,Number=1,Type=String,Description="Evidence that '
-    'resolved the allele states: ARCH_2LTR|ARCH_PERM|ARCH_SOLO|REF_ANNOT|'
-    'DENOVO_LTR|UNRESOLVED|NON_HML2.">',
+    'resolved the allele states: ARCH_2LTR|ARCH_PERM|ARCH_INT_PERM|'
+    'CNV_PERIOD|ARCH_SOLO|REF_ANNOT|DENOVO_LTR|UNRESOLVED|NON_HML2.">',
     '##INFO=<ID=HERVK_ARCH,Number=1,Type=String,Description="Element 5-prime to '
     '3-prime architecture of the SV allele with consensus intervals, e.g. '
     'LTR:575-968/INT:1-7536/LTR:1-574.">',
     '##INFO=<ID=HERVK_K,Number=1,Type=Integer,Description="LTR permutation '
     'point: alignment breakpoint inside the reference solo LTR. An alignment '
     'property, not a biological one; do not key on its value.">',
+    '##INFO=<ID=HERVK_J,Number=1,Type=Integer,Description="Internal-region '
+    'permutation point, the ARCH_INT_PERM counterpart of HERVK_K. Like K it is '
+    'an alignment property; do not key on its value.">',
+    '##INFO=<ID=HERVK_N_UNITS_REF,Number=1,Type=Integer,Description="Proviral '
+    'units in the masked reference element, counting a junction LTR once.">',
+    '##INFO=<ID=HERVK_UNIT_BP,Number=1,Type=Integer,Description="Period of the '
+    'reference array: one internal region plus one LTR. An SV that changes '
+    'copy number moves a whole number of these.">',
     '##INFO=<ID=HERVK_REF_STATE,Number=1,Type=String,Description="HML-2 state '
     'of the masked reference window: null|solo|provirus|partial|unknown.">',
     '##INFO=<ID=HERVK_LAMBDA,Number=1,Type=Float,Description="bp of HML-2 LTR '
@@ -371,10 +461,9 @@ INFO_HEADERS = [
     'determine the class.">',
     '##INFO=<ID=HERVK_NOTE,Number=.,Type=String,Description="Diagnostics for '
     'this call. REF_ARCH_CONFLICT: architecture and masked reference imply '
-    'different REF states. TANDEM_DUP: a second proviral unit inserted into an '
-    'LTR of an existing reference provirus -- not an ERV life-cycle event. '
-    'GT_MASKED: genotypes withheld (set to missing) so the allele is not '
-    'counted; the call itself is kept in hervk_calls.tsv.">',
+    'different REF states. CNV_UNITS:a->b: proviral units on the REF and ALT '
+    'alleles. UNIT_COUNT_ASSUMED: the reference did not resolve into counted '
+    'units, so the count came from the architecture instead of the period.">',
 ]
 
 TSV_COLUMNS = ['HERVK_class', 'HERVK_allele_ref', 'HERVK_allele',
@@ -387,8 +476,8 @@ TSV_COLUMNS = ['HERVK_class', 'HERVK_allele_ref', 'HERVK_allele',
 # The locus layer groups from this table rather than from the human VCF, so a
 # merge partner cannot go missing just because it failed an unrelated filter.
 CALLS_COLUMNS = ['id', 'chrom', 'pos', 'svlen', 'class', 'allele_ref',
-                 'allele', 'evidence', 'k', 'ref_state', 'lambda', 'nu',
-                 'cov', 'pmap', 'arch', 'notes']
+                 'allele', 'evidence', 'k', 'j', 'n_units_ref', 'unit_bp',
+                 'ref_state', 'lambda', 'nu', 'cov', 'pmap', 'arch', 'notes']
 
 
 def write_calls(results, path):
@@ -400,6 +489,9 @@ def write_calls(results, path):
                 vid, r['chrom'], str(r['pos']), str(r['svlen']), r['cls'],
                 r['ref_allele'] or '.', r['alt_allele'] or '.', r['evidence'],
                 str(r['k']) if r['k'] not in ('', None) else '.',
+                str(r.get('j')) if r.get('j') not in ('', None) else '.',
+                str(r.get('n_units_ref') or '.') or '.',
+                str(r.get('unit_bp') or '.') or '.',
                 r['ref_state'] or 'unknown',
                 f"{r['lambda']:.0f}", f"{r['nu']:.0f}",
                 f"{r['cov']:.4f}", f"{r['pmap']:.4f}", r['arch'] or '.',
@@ -423,6 +515,9 @@ def classify_record(vid, info_d, svlen, arch_tbl, ref_tbl, cfg):
         'svlen': svlen, 'lambda': lam, 'nu': nu,
         'arch': (arch or {}).get('arch', ''),
         'k': (arch or {}).get('k', ''),
+        'j': (arch or {}).get('j', ''),
+        'n_units_ref': (ref or {}).get('ref_n_units', ''),
+        'unit_bp': (ref or {}).get('ref_unit_bp', ''),
         'ref_state': (ref or {}).get('ref_state', 'unknown'),
         'notes': [],
     }
@@ -445,7 +540,8 @@ def classify_record(vid, info_d, svlen, arch_tbl, ref_tbl, cfg):
     return result
 
 
-def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results):
+def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results,
+                candidates_only=False):
     fin = open(vcf_in) if vcf_in != '-' else sys.stdin
     if vcf_out is None:
         fout = open(os.devnull, 'w')
@@ -475,9 +571,10 @@ def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results):
             info_d = parse_info(fields[7])
             svlen = len(fields[4].split(',')[0]) - len(fields[3])
             info_d['_svlen'] = str(svlen)
-            if not is_candidate(info_d, cfg):
+            if not is_candidate(info_d, cfg, arch_tbl.get(fields[2])):
                 info_d.pop('_svlen', None)
-                fout.write(line)
+                if not candidates_only:
+                    fout.write(line)
                 continue
             info_d.pop('_svlen', None)
 
@@ -490,17 +587,6 @@ def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results):
             if strict and (r['cls'] == 'other' or r['pmap'] < cfg['pmap_min']):
                 continue
 
-            if r['cls'] == 'tandem_prov' and cfg.get('mask_tandem', True):
-                # Keep the record and everything we learned about it; withhold
-                # only the genotypes, so the allele cannot be counted. Ploidy is
-                # preserved -- a haploid call stays "." and a diploid "./.".
-                for i in range(9, len(fields)):
-                    parts = fields[i].split(':')
-                    n = len(parts[0].replace('|', '/').split('/'))
-                    parts[0] = '/'.join(['.'] * n)
-                    fields[i] = ':'.join(parts)
-                r['notes'] = (r.get('notes') or []) + ['GT_MASKED']
-
             for key in ('_chrom', '_pos'):
                 info_d.pop(key, None)
             info_d['HERVK_CLASS'] = r['cls']
@@ -511,6 +597,12 @@ def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results):
                 info_d['HERVK_ARCH'] = r['arch']
             if r['k'] not in ('', None):
                 info_d['HERVK_K'] = str(r['k'])
+            if r.get('j') not in ('', None):
+                info_d['HERVK_J'] = str(r['j'])
+            if r.get('n_units_ref') not in ('', None):
+                info_d['HERVK_N_UNITS_REF'] = str(r['n_units_ref'])
+            if r.get('unit_bp') not in ('', None):
+                info_d['HERVK_UNIT_BP'] = str(r['unit_bp'])
             info_d['HERVK_REF_STATE'] = r['ref_state'] or 'unknown'
             info_d['HERVK_LAMBDA'] = f"{r['lambda']:.0f}"
             info_d['HERVK_NU'] = f"{r['nu']:.0f}"
@@ -644,6 +736,10 @@ def main():
     ap = argparse.ArgumentParser(
         description='HERV-K (HML-2) allele-state classifier (evidence-first).')
     ap.add_argument('--vcf-in')
+    ap.add_argument('--vcf-out-candidates-only', action='store_true',
+                    help='with --vcf-out, keep only the HERV-K candidates. '
+                         'The discovery VCF is ~130k records and the HERV-K '
+                         'set is a couple of hundred of them.')
     ap.add_argument('--vcf-out',
                     help='annotated VCF; omit to classify without writing one')
     ap.add_argument('--calls-out',
@@ -658,7 +754,11 @@ def main():
                     help='|SVLEN| cap for candidacy; must match the cap used to '
                          'build the candidate list the reference masking ran on')
     ap.add_argument('--no-mask-tandem', action='store_true',
-                    help='keep genotypes on tandem-duplication records '
+                    help='deprecated no-op, kept so existing command lines '
+                         'still parse. Genotype masking moved to '
+                         'hervk_reconcile.py consolidate, which is where the '
+                         'graph genotypes are. Old help: keep genotypes on '
+                         'tandem-duplication records '
                          '(default is to withhold them)')
     ap.add_argument('--strict', action='store_true',
                     help='drop candidates classed "other" or below pmap_min '
@@ -680,13 +780,12 @@ def main():
     cfg = load_config(args.config)
     if args.max_svlen:
         cfg['max_svlen'] = args.max_svlen
-    if args.no_mask_tandem:
-        cfg['mask_tandem'] = False
     arch_tbl = load_table(args.arch)
     ref_tbl = load_table(args.ref_state)
     results = {}
     process_vcf(args.vcf_in, args.vcf_out, cfg, args.strict,
-                arch_tbl, ref_tbl, results)
+                arch_tbl, ref_tbl, results,
+                candidates_only=args.vcf_out_candidates_only)
 
     if args.calls_out:
         write_calls(results, args.calls_out)

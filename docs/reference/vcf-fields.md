@@ -32,17 +32,20 @@ VCF `pangenome.vcf` is left untouched because it induces the graph. See
 
 | field | |
 |---|---|
-| `HERVK_CLASS` | `null_solo`, `solo_prov`, `truncated_prov`, `null_prov`, `tandem_prov`, `other` |
-| `HERVK_ALLELE_REF` | HERV-K state of the REF allele: `null`, `solo`, `provirus`, `partial`, `.` |
+| `HERVK_CLASS` | `null_solo`, `solo_prov`, `truncated_prov`, `null_prov`, `copy_number`, `other` |
+| `HERVK_ALLELE_REF` | HERV-K state of the REF allele: `null`, `solo`, `provirus`, `prov_xN`, `partial`, `.` |
 | `HERVK_ALLELE` | state of each ALT allele, in ALT order |
-| `HERVK_EVIDENCE` | what resolved it: `ARCH_2LTR`, `ARCH_PERM`, `ARCH_SOLO`, `REF_ANNOT`, `DENOVO_LTR`, `UNRESOLVED`, `NON_HML2` |
+| `HERVK_EVIDENCE` | what resolved it: `ARCH_2LTR`, `ARCH_PERM`, `ARCH_INT_PERM`, `CNV_PERIOD`, `ARCH_SOLO`, `REF_ANNOT`, `DENOVO_LTR`, `UNRESOLVED`, `NON_HML2` |
 | `HERVK_ARCH` | element architecture with consensus intervals, e.g. `LTR:575-968/INT:1-7536/LTR:1-574` |
 | `HERVK_K` | LTR permutation point. An alignment property — see the caveat below |
+| `HERVK_J` | internal-region permutation point, the `ARCH_INT_PERM` counterpart of `HERVK_K` |
+| `HERVK_N_UNITS_REF` | proviral units in the reference element, a junction LTR counted once |
+| `HERVK_UNIT_BP` | period of the reference array: one internal region plus one LTR |
 | `HERVK_REF_STATE` | state of the masked reference window |
 | `HERVK_LAMBDA` / `HERVK_NU` | bp of HML-2 LTR / internal sequence on the variant allele |
 | `HERVK_COV` | fraction of the variant that is HML-2 sequence |
 | `HERVK_PMAP` | confidence in the resolved class. **Reporting only** — it does not decide the class |
-| `HERVK_NOTE` | `REF_ARCH_CONFLICT`, `TANDEM_DUP`, `GT_MASKED`, `INS_INTO_NONEMPTY_REF` |
+| `HERVK_NOTE` | `REF_ARCH_CONFLICT`, `CNV_UNITS:a->b`, `UNIT_COUNT_ASSUMED`, `INS_INTO_NONEMPTY_REF` |
 | `HERVK_LOCUS`, `HERVK_LOCUS_N`, `HERVK_MERGE_FLAG` | locus grouping; `MERGE_FLAG` marks a locus holding more than one record |
 
 After consolidation (`4_Genotyping/GraffiTE.merged.genotypes.human.vcf.gz`):

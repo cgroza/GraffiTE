@@ -267,12 +267,12 @@ process hervk_annotate {
   path("hervk_calls.tsv"), emit: calls_ch
   path("hervk_arch.tsv")
   path("hervk_refstate.tsv")
+  path("hervk_candidates.vcf"), emit: hervk_candidates_ch
   path("hervk_polymorphism_summary.md")
 
   script:
   def cfg_arg = params.hervk_config ? "--config ${params.hervk_config}" : ""
   def strict_arg = params.hervk_strict ? "--strict" : ""
-  def tandem_arg = params.hervk_mask_tandem ? "" : "--no-mask-tandem"
   """
   REF="${ref_fasta}"
   if [[ "\$REF" == *.gz ]]; then
@@ -311,13 +311,21 @@ process hervk_annotate {
         --out hervk_refstate.tsv
   fi
 
-  # Calls over the full candidate set; no VCF is written from this pass.
-  hervk_classify.py ${cfg_arg} --max-svlen ${params.hervk_max_svlen} ${tandem_arg} \\
-      --vcf-in in.pangenome.vcf --calls-out hervk_calls.tsv \\
+  # Calls over the full candidate set, and a VCF of it. The --human pME
+  # filter is narrower than the HERV-K candidate list on purpose -- it defines
+  # the paper's TE set and is not ours to widen -- so a locus can lose
+  # members to it. chr7:4.70 Mb loses two of three, including the one carrying
+  # the common allele. This file is where those records keep their annotation
+  # and their discovery genotypes; hervk_loci.tsv flags the split with
+  # LOCUS_SPLIT_BY_HUMAN_FILTER.
+  hervk_classify.py ${cfg_arg} --max-svlen ${params.hervk_max_svlen} \\
+      --vcf-in in.pangenome.vcf \\
+      --vcf-out hervk_candidates.vcf --vcf-out-candidates-only \\
+      --calls-out hervk_calls.tsv \\
       --arch hervk_arch.tsv --ref-state hervk_refstate.tsv \\
       --summary hervk_polymorphism_summary.md
 
-  hervk_classify.py ${cfg_arg} ${strict_arg} --max-svlen ${params.hervk_max_svlen} ${tandem_arg} \\
+  hervk_classify.py ${cfg_arg} ${strict_arg} --max-svlen ${params.hervk_max_svlen} \\
       --vcf-in in.pangenome.human.vcf --vcf-out human.hervk.vcf \\
       --arch hervk_arch.tsv --ref-state hervk_refstate.tsv \\
       --tsv-in in.pangenome.presence-absence_human.tsv \\
@@ -357,6 +365,11 @@ process hervk_reconcile {
   path("hervk_reconciliation_report.md")
 
   script:
+  // hervk_mask_tandem is the old name for this switch; honour it while
+  // anything is still passing it.
+  def legacy   = params.hervk_mask_tandem
+  def mask_cnv = (legacy == null) ? params.hervk_mask_graph_gt_at_cnv : legacy
+  def mask_arg = mask_cnv ? "" : "--no-mask-cnv-gt"
   """
   # Subset the merged genotypes to the human candidate set, by ID. Records whose
   # ID did not survive merge_VCFs' `bcftools annotate` keep a raw snarl ID and
@@ -365,7 +378,7 @@ process hervk_reconcile {
   bcftools query -f '%ID\\n' ${human_vcf} > human.ids
   bcftools view -i 'ID=@human.ids' -Ov -o merged.human.vcf ${merged_vcf}
 
-  hervk_reconcile.py consolidate \\
+  hervk_reconcile.py consolidate ${mask_arg} \\
       --genotyped-vcf merged.human.vcf \\
       --loci          ${loci_tsv} \\
       --calls         ${calls_tsv} \\
