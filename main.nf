@@ -255,6 +255,7 @@ workflow {
                       hervk_annotate.out.human_vcf_ch,
                       hervk_annotate.out.loci_ch,
                       hervk_annotate.out.calls_ch,
+                      ref_asm_ch,
                       params.graph_method)
     }
   }
@@ -275,6 +276,7 @@ workflow {
                     hervk_annotate.out.human_vcf_ch,
                     hervk_annotate.out.loci_ch,
                     hervk_annotate.out.calls_ch,
+                    ref_asm_ch,
                     'auto')
   }
 }

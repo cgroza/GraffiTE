@@ -269,6 +269,8 @@ process hervk_annotate {
   path("hervk_refstate.tsv")
   path("hervk_candidates.vcf"), emit: hervk_candidates_ch
   path("hervk_polymorphism_summary.md")
+  path("pangenome.human.consolidated.vcf"), emit: human_consolidated_ch
+  path("hervk_discovery_consolidation_report.md")
 
   script:
   def cfg_arg = params.hervk_config ? "--config ${params.hervk_config}" : ""
@@ -337,8 +339,29 @@ process hervk_annotate {
       --loci-out hervk_loci.tsv --ref-state hervk_refstate.tsv \\
       --window ${params.hervk_locus_window}
 
-  awk -v v="${params.graffite_version}" 'NR==1 && /^##fileformat/ {print; print "##GraffiTE_version="v; next} {print}' \\
-      pangenome.human.vcf > pangenome.human.vcf.tmp && mv pangenome.human.vcf.tmp pangenome.human.vcf
+  # The same loci merged into one record each, as a separate file.
+  #
+  # pangenome.human.vcf is what induces the graph, so its record structure is
+  # fixed and a HERV-K locus reaches a reader there as a scatter of records.
+  # This is that VCF with each locus collapsed onto one multi-allelic record
+  # carrying its allele set, its counts from the assemblies, and whether it is
+  # an insertion polymorphism. Genotyping still reads the unmerged file.
+  #
+  # Nothing is masked here. These genotypes are haplotype-resolved assembly
+  # alignments, which resolve a tandem array directly; the graph consolidation
+  # downstream is the one that has to withhold copy-number alleles.
+  hervk_reconcile.py consolidate --source discovery \\
+      --vcf-in    pangenome.human.vcf \\
+      --loci      hervk_loci.tsv \\
+      --calls     hervk_calls.tsv \\
+      --reference "\$REF" \\
+      --out-vcf   pangenome.human.consolidated.vcf \\
+      --report    hervk_discovery_consolidation_report.md
+
+  for v in pangenome.human.vcf pangenome.human.consolidated.vcf; do
+    awk -v v="${params.graffite_version}" 'NR==1 && /^##fileformat/ {print; print "##GraffiTE_version="v; next} {print}' \\
+        "\$v" > "\$v".tmp && mv "\$v".tmp "\$v"
+  done
   """
 }
 
@@ -356,6 +379,7 @@ process hervk_reconcile {
   path(human_vcf)
   path(loci_tsv)
   path(calls_tsv)
+  path(ref_fasta)
   val(genotyper)
 
   output:
@@ -383,6 +407,7 @@ process hervk_reconcile {
       --loci          ${loci_tsv} \\
       --calls         ${calls_tsv} \\
       --discovery-vcf ${human_vcf} \\
+      --reference     ${ref_fasta} \\
       --genotyper     ${genotyper} \\
       --out-vcf       GraffiTE.merged.genotypes.human.vcf \\
       --out-archive   hervk_unconsolidated_records.vcf \\
