@@ -540,7 +540,8 @@ def classify_record(vid, info_d, svlen, arch_tbl, ref_tbl, cfg):
     return result
 
 
-def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results):
+def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results,
+                candidates_only=False):
     fin = open(vcf_in) if vcf_in != '-' else sys.stdin
     if vcf_out is None:
         fout = open(os.devnull, 'w')
@@ -572,7 +573,8 @@ def process_vcf(vcf_in, vcf_out, cfg, strict, arch_tbl, ref_tbl, results):
             info_d['_svlen'] = str(svlen)
             if not is_candidate(info_d, cfg, arch_tbl.get(fields[2])):
                 info_d.pop('_svlen', None)
-                fout.write(line)
+                if not candidates_only:
+                    fout.write(line)
                 continue
             info_d.pop('_svlen', None)
 
@@ -734,6 +736,10 @@ def main():
     ap = argparse.ArgumentParser(
         description='HERV-K (HML-2) allele-state classifier (evidence-first).')
     ap.add_argument('--vcf-in')
+    ap.add_argument('--vcf-out-candidates-only', action='store_true',
+                    help='with --vcf-out, keep only the HERV-K candidates. '
+                         'The discovery VCF is ~130k records and the HERV-K '
+                         'set is a couple of hundred of them.')
     ap.add_argument('--vcf-out',
                     help='annotated VCF; omit to classify without writing one')
     ap.add_argument('--calls-out',
@@ -778,7 +784,8 @@ def main():
     ref_tbl = load_table(args.ref_state)
     results = {}
     process_vcf(args.vcf_in, args.vcf_out, cfg, args.strict,
-                arch_tbl, ref_tbl, results)
+                arch_tbl, ref_tbl, results,
+                candidates_only=args.vcf_out_candidates_only)
 
     if args.calls_out:
         write_calls(results, args.calls_out)

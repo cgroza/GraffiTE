@@ -267,6 +267,7 @@ process hervk_annotate {
   path("hervk_calls.tsv"), emit: calls_ch
   path("hervk_arch.tsv")
   path("hervk_refstate.tsv")
+  path("hervk_candidates.vcf"), emit: hervk_candidates_ch
   path("hervk_polymorphism_summary.md")
 
   script:
@@ -310,9 +311,17 @@ process hervk_annotate {
         --out hervk_refstate.tsv
   fi
 
-  # Calls over the full candidate set; no VCF is written from this pass.
+  # Calls over the full candidate set, and a VCF of it. The --human pME
+  # filter is narrower than the HERV-K candidate list on purpose -- it defines
+  # the paper's TE set and is not ours to widen -- so a locus can lose
+  # members to it. chr7:4.70 Mb loses two of three, including the one carrying
+  # the common allele. This file is where those records keep their annotation
+  # and their discovery genotypes; hervk_loci.tsv flags the split with
+  # LOCUS_SPLIT_BY_HUMAN_FILTER.
   hervk_classify.py ${cfg_arg} --max-svlen ${params.hervk_max_svlen} \\
-      --vcf-in in.pangenome.vcf --calls-out hervk_calls.tsv \\
+      --vcf-in in.pangenome.vcf \\
+      --vcf-out hervk_candidates.vcf --vcf-out-candidates-only \\
+      --calls-out hervk_calls.tsv \\
       --arch hervk_arch.tsv --ref-state hervk_refstate.tsv \\
       --summary hervk_polymorphism_summary.md
 
