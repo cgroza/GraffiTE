@@ -48,6 +48,9 @@ DEFAULTS = {
     # Flank used on the second pass for candidates whose reference element ran
     # into the window edge. Must comfortably hold a whole provirus.
     "rescue_flank": 12000,
+    # How many times the rescue pass may widen a window. Each round doubles
+    # the flank, so 3 rounds reaches 8x rescue_flank.
+    "max_rescue_rounds": 3,
     # An element within this many bp of a window edge is treated as truncated.
     "edge_tol": 50,
     # Max gap (bp) between HML-2 fragments still counted as one element.
@@ -232,6 +235,40 @@ def cluster_elements(frags, cfg):
     return elements
 
 
+def unit_structure(element):
+    """Count proviral units in one clustered element, and measure their period.
+
+    An array of N units reads LTR-INT-...-LTR: N+1 LTR groups and N internal
+    regions, each junction LTR shared by the units either side of it. The
+    period is the distance between successive LTR group starts, one internal
+    region plus one LTR. That is the length an unequal exchange between
+    misaligned units adds or removes, so it is what SVLEN gets compared
+    against.
+
+    Fragments are grouped before counting because RepeatMasker splits a
+    degraded internal region into several hits: the chr12 reference element
+    carries four INT fragments and is still one unit.
+
+    Returns (n_units, period_bp), or (None, None) when the element is not a
+    clean array: a solo LTR, a truncated read, or LTR and INT groups that do
+    not alternate.
+    """
+    groups = []
+    for f in sorted(element, key=lambda f: f['qstart']):
+        kind = 'L' if is_ltr_family(f['name']) else 'I'
+        if groups and groups[-1][0] == kind:
+            groups[-1][2] = max(groups[-1][2], f['qend'])
+        else:
+            groups.append([kind, f['qstart'], f['qend']])
+    ltr_starts = [g[1] for g in groups if g[0] == 'L']
+    n_int_groups = sum(1 for g in groups if g[0] == 'I')
+    n_units = len(ltr_starts) - 1
+    if n_units < 1 or n_int_groups != n_units:
+        return None, None
+    periods = [b - a for a, b in zip(ltr_starts, ltr_starts[1:])]
+    return n_units, int(round(sum(periods) / len(periods)))
+
+
 def call_state(element, cfg):
     """Reference state for one clustered HML-2 element."""
     if not element:
@@ -254,7 +291,7 @@ def call_state(element, cfg):
     return state, ltr_bp, int_bp, arch
 
 
-def truncated_by_window(result, fp, cfg):
+def truncated_by_window(result, fp, cfg, flank=None):
     """Did the chosen element run into the edge of its window?
 
     An insertion footprint is a point, so at flank=1500 the window is ~3 kb --
@@ -262,16 +299,26 @@ def truncated_by_window(result, fp, cfg):
     and two records at the same locus can disagree purely because one is a DEL
     (window spans the whole deletion) and the other an INS (window does not).
     That is exactly what happened at chr6:78,894,316.
+
+    A `provirus` call used to be exempt here, which hid the case that matters
+    most: a tandem array reads `provirus` off its first unit and then runs
+    straight into the window edge, so the rest of the array is never masked.
+    chr7 (7p22.1a) did that at flank=12000, reporting an element that ended at
+    POS+12000 to the base. Judge the edge, not the state.
+
+    `flank` is the flank the window was actually cut at, which stops being
+    cfg['flank'] once the rescue loop has widened it.
     """
     if not result.get('elem_start'):
         return False
     _, chrom, fp_start, fp_end, _ = fp
-    win_start = max(1, fp_start - cfg['flank'])
-    win_end = fp_end + cfg['flank']
+    if flank is None:
+        flank = cfg['flank']
+    win_start = max(1, fp_start - flank)
+    win_end = fp_end + flank
     tol = cfg['edge_tol']
-    at_edge = (result['elem_start'] - win_start <= tol
-               or win_end - result['elem_end'] <= tol)
-    return at_edge and result['state'] != 'provirus'
+    return (result['elem_start'] - win_start <= tol
+            or win_end - result['elem_end'] <= tol)
 
 
 def evaluate(footprints, rm_hits, offsets, cfg):
@@ -308,14 +355,21 @@ def evaluate(footprints, rm_hits, offsets, cfg):
 
         best = min(elements, key=distance)
         state, ltr_bp, int_bp, arch = call_state(best, cfg)
+        n_units, unit_bp = unit_structure(best)
         span = max(f['qend'] for f in best) - min(f['qstart'] for f in best) + 1
         flags = []
-        if span > cfg['max_element_span']:
+        # A clean multi-unit array is longer than one provirus by construction,
+        # so the oversize threshold would fire on every one of them. Flag only
+        # spans that are long without resolving into units, which is the case
+        # the threshold was added for: a solo LTR merged with a neighbouring
+        # provirus into one 11 kb "element".
+        if span > cfg['max_element_span'] and not (n_units and n_units > 1):
             flags.append('OVERSIZE_ELEMENT')
-        if state == 'provirus' and span > cfg['max_element_span']:
-            flags.append('PROVIRUS_CALL_SUSPECT')
+            if state == 'provirus':
+                flags.append('PROVIRUS_CALL_SUSPECT')
         results[sv_id] = {'state': state, 'ltr_bp': ltr_bp, 'int_bp': int_bp,
                           'dist': distance(best), 'arch': arch,
+                          'n_units': n_units, 'unit_bp': unit_bp,
                           'flags': ','.join(flags) or '.',
                           'chrom': chrom,
                           'elem_start': min(f['qstart'] for f in best) + win_start - 1,
@@ -323,9 +377,11 @@ def evaluate(footprints, rm_hits, offsets, cfg):
     return results
 
 
-COLUMNS = ['id', 'ref_state', 'ref_ltr_bp', 'ref_int_bp', 'ref_dist',
-           'ref_elem_chrom', 'ref_elem_start', 'ref_elem_end', 'ref_flags',
-           'ref_arch']
+# ref_elem_start/ref_elem_end already give the array extent, so no separate
+# pair of array columns is emitted.
+COLUMNS = ['id', 'ref_state', 'ref_n_units', 'ref_unit_bp', 'ref_ltr_bp',
+           'ref_int_bp', 'ref_dist', 'ref_elem_chrom', 'ref_elem_start',
+           'ref_elem_end', 'ref_flags', 'ref_arch']
 
 
 def write_tsv(results, path):
@@ -333,7 +389,10 @@ def write_tsv(results, path):
         fh.write('\t'.join(COLUMNS) + '\n')
         for sv_id in sorted(results):
             r = results[sv_id]
-            fh.write('\t'.join([sv_id, r['state'], str(int(r['ltr_bp'])),
+            fh.write('\t'.join([sv_id, r['state'],
+                                '' if r.get('n_units') is None else str(r['n_units']),
+                                '' if r.get('unit_bp') is None else str(r['unit_bp']),
+                                str(int(r['ltr_bp'])),
                                 str(int(r['int_bp'])), str(r['dist']),
                                 r.get('chrom', ''), str(r.get('elem_start', '')),
                                 str(r.get('elem_end', '')), r.get('flags', '.'),
@@ -401,17 +460,26 @@ def main():
     # enough to hold a whole element. Typically a handful of candidates.
     if not args.no_rescue:
         by_id = {fp[0]: fp for fp in footprints}
-        redo = [by_id[i] for i, r in results.items()
-                if truncated_by_window(r, by_id[i], cfg)]
-        if redo:
+        # One widening is not always enough. A 17,975 bp array anchored 794 bp
+        # inside itself does not fit a 12 kb flank, so widen and look again
+        # until the element stops touching the edge.
+        flank_used = {i: args.flank for i in results}
+        flank = args.rescue_flank
+        for _ in range(cfg['max_rescue_rounds']):
+            redo = [by_id[i] for i, r in results.items()
+                    if truncated_by_window(r, by_id[i], cfg, flank_used[i])]
+            if not redo:
+                break
             sys.stderr.write(
                 f'hervk_ref_state: re-cutting {len(redo)} window(s) at '
-                f'flank={args.rescue_flank} (element reached the window edge)\n')
+                f'flank={flank} (element reached the window edge)\n')
             # HERVK_REF_RM_OUT names a .out over the first-pass windows; it
             # cannot describe these wider ones.
             os.environ.pop('HERVK_REF_RM_OUT', None)
-            for sv_id, r in call_pass(redo, args.rescue_flank).items():
+            for sv_id, r in call_pass(redo, flank).items():
                 results[sv_id] = r
+                flank_used[sv_id] = flank
+            flank *= 2
 
     results = results
     write_tsv(results, args.out)
