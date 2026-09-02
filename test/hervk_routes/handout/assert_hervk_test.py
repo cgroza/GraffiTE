@@ -68,6 +68,16 @@ def main():
             failures.append(f'{vid}: class {got["class"]}, expected a proviral class')
         if want['expect_k'] and got['k'] != want['expect_k']:
             failures.append(f'{vid}: k={got["k"]}, expected {want["expect_k"]}')
+        # j, and the allele states either side. The states are the point of the
+        # copy-number work: an array locus has to say how many units each
+        # allele carries, not just that something proviral is segregating.
+        if want.get('expect_j') and got.get('j', '') != want['expect_j']:
+            failures.append(f'{vid}: j={got.get("j")}, expected {want["expect_j"]}')
+        for col, field in (('expect_allele_ref', 'allele_ref'),
+                           ('expect_allele', 'allele')):
+            if want.get(col) and got.get(field, '') != want[col]:
+                failures.append(f'{vid}: {field}={got.get(field)}, '
+                                f'expected {want[col]}')
 
     # ---- 2. the headline results ----------------------------------------
     null_prov = sorted(v for v, r in calls.items() if r['class'] == 'null_prov')
@@ -173,9 +183,14 @@ def main():
                         'requirement: ' + ', '.join(split[:5]))
 
     # ---- report ----------------------------------------------------------
-    print(f'HERV-K v2 assertions — {checked} records checked against '
+    print(f'HERV-K v3 assertions — {checked} records checked against '
           f'{len(expected)} expectations')
-    print(f'  copy_number           : {len(tandem)}  {", ".join(tandem)}')
+    print(f'  copy_number           : {len(tandem)}')
+    for v in tandem:
+        r = calls[v]
+        print(f'      {v}  {r.get("allele_ref")} -> {r.get("allele")}  '
+              f'(ref_units={r.get("n_units_ref")}, period={r.get("unit_bp")}, '
+              f'k={r.get("k")}, j={r.get("j")})')
     if stage_e:
         print(f'  stage E: consolidated : {len(stage_e["merged"])}  '
               f'({", ".join(sorted(stage_e["merged"]))})')

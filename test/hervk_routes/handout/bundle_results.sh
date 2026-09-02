@@ -3,12 +3,13 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 [[ -f INPUTS.env ]] && source ./INPUTS.env
-OUTDIR="${1:-${OUTDIR:-hervk_v2_run}}"
+OUTDIR="${1:-${OUTDIR:-hervk_v3_run}}"
 STAMP="$(date +%Y%m%d)"
-BUNDLE="hervk_v2_results_${STAMP}"
+BUNDLE="hervk_v3_results_${STAMP}"
 rm -rf "$BUNDLE" && mkdir -p "$BUNDLE"
 
 for f in hervk_calls.tsv hervk_loci.tsv hervk_arch.tsv hervk_refstate.tsv \
+         hervk_candidates.vcf \
          hervk_polymorphism_summary.md pangenome.human.vcf \
          pangenome.presence-absence_human.tsv human_filter_summary.txt; do
   [[ -f "$OUTDIR/3_TSD_search/$f" ]] && cp "$OUTDIR/3_TSD_search/$f" "$BUNDLE/" \
@@ -47,6 +48,7 @@ fi
 
 # gzip the VCF only if it is big enough to matter
 [[ -f "$BUNDLE/pangenome.human.vcf" ]] && gzip -f "$BUNDLE/pangenome.human.vcf"
+[[ -f "$BUNDLE/hervk_candidates.vcf" ]] && gzip -f "$BUNDLE/hervk_candidates.vcf"
 
 tar czf "${BUNDLE}.tar.gz" "$BUNDLE" && rm -rf "$BUNDLE"
 echo "wrote ${BUNDLE}.tar.gz ($(du -h "${BUNDLE}.tar.gz" | cut -f1))"
