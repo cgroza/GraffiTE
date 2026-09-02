@@ -402,6 +402,32 @@ process hervk_reconcile {
   bcftools query -f '%ID\\n' ${human_vcf} > human.ids
   bcftools view -i 'ID=@human.ids' -Ov -o merged.human.vcf ${merged_vcf}
 
+  # Carry the HERV-K annotation across from the discovery VCF.
+  #
+  # Genotyping does not preserve it. merge_VCFs transfers INFO from
+  # pangenome.vcf, which is deliberately left un-annotated because it induces
+  # the graph, so the genotyped records arrive without HERVK_LOCUS or the locus
+  # flags. In the CaG run that left 4 of 29 HERV-K records carrying a locus id
+  # and none that could be filtered on HERVK_MEI, which is the field a user
+  # needs to tell an insertion polymorphism from structural variation in an
+  # element every haplotype carries.
+  #
+  # The tag list comes from the source header rather than being written out
+  # here, so a new HERVK_* field travels without another edit.
+  bcftools sort -Oz -o disc.annot.vcf.gz ${human_vcf}
+  tabix -f -p vcf disc.annot.vcf.gz
+  TAGS=\$(bcftools view -h disc.annot.vcf.gz \\
+      | sed -n 's|^##INFO=<ID=\\(HERVK_[^,>]*\\).*|INFO/\\1|p' | paste -sd, -)
+  if [[ -n "\$TAGS" ]]; then
+    # bcftools annotate reads the target through htslib's indexed reader, so
+    # the target has to be bgzipped and indexed even though it is only
+    # streamed.
+    bcftools sort -Oz -o merged.human.sorted.vcf.gz merged.human.vcf
+    tabix -f -p vcf merged.human.sorted.vcf.gz
+    bcftools annotate -a disc.annot.vcf.gz -c "\$TAGS" \\
+        -Ov -o merged.human.vcf merged.human.sorted.vcf.gz
+  fi
+
   hervk_reconcile.py consolidate ${mask_arg} \\
       --genotyped-vcf merged.human.vcf \\
       --loci          ${loci_tsv} \\

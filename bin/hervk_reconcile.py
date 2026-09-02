@@ -498,7 +498,33 @@ def merge_headers(head, new_lines):
     return keep
 
 
-CONSOLIDATED_HEADERS = [
+# The locus properties are written by both subcommands, so both header lists
+# have to declare them. Without this the graph-consolidated VCF carried
+# HERVK_MEI with no definition, bcftools guessed Type=String, and
+# `-i 'INFO/HERVK_MEI=1'` silently matched nothing. Shared rather than copied
+# so the descriptions cannot drift apart.
+LOCUS_PROPERTY_HEADERS = [h for h in INFO_HEADERS if ID_RE.match(h)
+                          and ID_RE.match(h).group(1) in (
+                              'HERVK_LOCUS', 'HERVK_LOCUS_N', 'HERVK_MEI',
+                              'HERVK_SOLO_PROV', 'HERVK_CNV',
+                              'HERVK_LOCUS_TYPE')]
+assert len(LOCUS_PROPERTY_HEADERS) == 6, LOCUS_PROPERTY_HEADERS
+
+# One definition per ID, whichever list it came from. CONSOLIDATED_HEADERS has
+# its own HERVK_LOCUS line, and two ##INFO lines with one ID is invalid VCF.
+def _dedup(lines):
+    seen, out = set(), []
+    for h in lines:
+        mt = ID_RE.match(h)
+        if mt and mt.group(1) in seen:
+            continue
+        if mt:
+            seen.add(mt.group(1))
+        out.append(h)
+    return out
+
+
+CONSOLIDATED_HEADERS = _dedup([
     '##INFO=<ID=SVTYPE,Number=A,Type=String,Description="Variant type per ALT.">',
     '##INFO=<ID=SVLEN,Number=A,Type=Integer,Description="Variant length per ALT.">',
     '##INFO=<ID=HERVK_LOCUS,Number=1,Type=String,Description="HERV-K locus id.">',
@@ -560,7 +586,7 @@ CONSOLIDATED_HEADERS = [
     '##INFO=<ID=HERVK_POLARITY_FLIPPED,Number=.,Type=String,Description="Members '
     'whose own polarity disagreed with the locus REF state; re-expressed '
     'against it.">',
-]
+] + LOCUS_PROPERTY_HEADERS)
 
 
 def parse_gt(gt):
@@ -1189,7 +1215,12 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
 
     if args.out_archive:
         with open(args.out_archive, 'w') as fh:
-            for h in head:
+            # Our definitions here too. These records carry HERVK_* INFO and
+            # the input header does not always declare all of it, which leaves
+            # bcftools guessing Type=String and refusing to sort the file.
+            for h in merge_headers(head, CONSOLIDATED_HEADERS):
+                fh.write(h + '\n')
+            for h in CONSOLIDATED_HEADERS:
                 fh.write(h + '\n')
             fh.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t'
                      + '\t'.join(samples) + '\n')
