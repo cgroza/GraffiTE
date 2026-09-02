@@ -2,8 +2,17 @@
 # Fetch the GraffiTE revision and drop this handout into the current directory.
 # Run this first, from the directory you want to work in.
 set -euo pipefail
-PROJECT="${PROJECT:-cgroza/GraffiTE}"
-REVISION="${REVISION:-v1.1dev-hervk-v2}"
+# Read INPUTS.env when it is already here, so the revision does not have to be
+# passed twice. An explicit REVISION= in the environment still wins, which is
+# what a first bootstrap onto a new branch needs.
+_env_rev=""; _env_proj=""
+if [[ -f ./INPUTS.env ]]; then
+  # shellcheck disable=SC1091
+  _env_rev="$(source ./INPUTS.env >/dev/null 2>&1; echo "${REVISION:-}")"
+  _env_proj="$(source ./INPUTS.env >/dev/null 2>&1; echo "${PROJECT:-}")"
+fi
+PROJECT="${PROJECT:-${_env_proj:-cgroza/GraffiTE}}"
+REVISION="${REVISION:-${_env_rev:-feat/hervk-copy-number}}"
 
 command -v nextflow >/dev/null || {
   echo "nextflow not on PATH — module load it first (e.g. 'module load nextflow')" >&2

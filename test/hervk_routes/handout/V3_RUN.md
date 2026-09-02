@@ -63,20 +63,32 @@ hervk_ref_state: re-cutting N window(s) at flank=24000 (element reached the wind
 
 ```bash
 cd /xdisk/cgoubert/cgoubert/GraffiTE1.1/CaG
-./bootstrap.sh                  # pulls feat/hervk-copy-number
+REVISION=feat/hervk-copy-number ./bootstrap.sh
 unset HERVK_REF_RM_OUT
 ./preflight.sh
 ./run_hervk_test.sh
 ./bundle_results.sh
 ```
 
-`INPUTS.env` needs no edits. This branch ships `REVISION` and `OUTDIR` already
-set, and `bootstrap.sh` preserves your `RM_DIR`, `REFERENCE`, `TE_LIBRARY` and
-`GENOTYPED_VCF`.
+**Edit two lines in `INPUTS.env` before `preflight.sh`.** `bootstrap.sh` never
+overwrites a populated `INPUTS.env`, by design, so the copy on the cluster keeps
+re-run 2's values and drops the new template beside it as `INPUTS.env.new`:
 
-`OUTDIR` moved to `hervk_v3_run`, so this does not collide with the re-run 2
-output. The `-resume` guard still applies: you should see the "pipeline moved"
-line. If you do not, and `$OUTDIR` already holds output, stop and say so.
+```bash
+REVISION="feat/hervk-copy-number"
+OUTDIR="hervk_v3_run"
+```
+
+`RM_DIR`, `REFERENCE`, `TE_LIBRARY` and `GENOTYPED_VCF` stay as they are.
+The separate `OUTDIR` keeps this run from colliding with re-run 2.
+
+The `REVISION=` in front of `bootstrap.sh` is needed on the first run only. The
+copy of `bootstrap.sh` already on the cluster still defaults to
+`v1.1dev-hervk-v2` and does not read `INPUTS.env`; the version it pulls fixes
+both.
+
+The `-resume` guard still applies: you should see the "pipeline moved" line. If
+you do not, and `$OUTDIR` already holds output, stop and say so.
 
 ## Nextflow was never executed against these changes
 
