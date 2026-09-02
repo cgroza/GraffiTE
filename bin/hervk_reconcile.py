@@ -65,6 +65,24 @@ INFO_HEADERS = [
     'identifier grouping records that describe the same element.">',
     '##INFO=<ID=HERVK_LOCUS_N,Number=1,Type=Integer,Description="Number of '
     'HERV-K records assigned to this locus.">',
+    '##INFO=<ID=HERVK_MEI,Number=0,Type=Flag,Description="A null allele '
+    'segregates at this locus: the element is absent from some haplotypes, so '
+    'the difference between them came from a transposition. This is what '
+    'separates an insertion polymorphism from structural variation in an '
+    'element that every haplotype carries. Filter on it to get the HERV-K loci '
+    'comparable to an Alu, L1 or SVA insertion.">',
+    '##INFO=<ID=HERVK_SOLO_PROV,Number=0,Type=Flag,Description="A solo LTR and '
+    'a provirus both segregate here: zero proviral units against one. May be '
+    'set alongside HERVK_MEI or HERVK_CNV.">',
+    '##INFO=<ID=HERVK_CNV,Number=0,Type=Flag,Description="Some allele here '
+    'carries two or more proviral units. May be set alongside HERVK_MEI or '
+    'HERVK_SOLO_PROV -- chr6:78,894,316 segregates a solo LTR, a provirus and '
+    'a two-unit allele and is both.">',
+    '##INFO=<ID=HERVK_LOCUS_TYPE,Number=1,Type=String,Description="Single '
+    'summary label, derived from the flags above so it cannot drift from them: '
+    'null_vs_present when a null allele segregates, else copy_number, else '
+    'solo_vs_provirus, else unresolved. The flags are the precise statement; '
+    'this is for readers that want one value.">',
     '##INFO=<ID=HERVK_MERGE_FLAG,Number=0,Type=Flag,Description="This locus '
     'holds more than one record describing the same element. Flagged only -- '
     'records are never merged at this stage, because this VCF must keep its '
@@ -76,8 +94,47 @@ INFO_HEADERS = [
 
 LOCI_COLUMNS = ['locus_id', 'chrom', 'start', 'end', 'n_records', 'record_ids',
                 'n_in_human', 'records_not_in_human', 'ref_state', 'allele_set',
+                'locus_type', 'mei', 'solo_prov', 'cnv',
                 'per_record_class', 'per_record_evidence', 'per_record_k',
                 'arch', 'flags']
+
+UNIT_RE = re.compile(r'^prov_x(\d+)$')
+
+
+def locus_properties(alleles):
+    """What varies at this locus, as independent properties.
+
+    A locus can be more than one of these at once and the old single category
+    could not say so. chr6:78,894,316 segregates a solo LTR, a provirus and a
+    two-unit allele, so it is both a solo/provirus dimorphism and a copy-number
+    locus; calling it one or the other loses half of what is there.
+
+      mei        a null allele segregates, so the element is absent from some
+                 haplotypes and the event behind the difference was a
+                 transposition. This is the property that separates an
+                 insertion polymorphism from structural variation in an element
+                 that is always present, and it is what a user filters on.
+      solo_prov  a solo LTR and a provirus both segregate: zero units against
+                 one.
+      cnv        some allele carries two or more proviral units.
+
+    `locus_type` stays as a single label for readers that want one, derived
+    here so it cannot drift from the flags. It answers "is this an insertion
+    polymorphism" first, because that is the question most analyses ask.
+    """
+    mei = 'null' in alleles
+    solo_prov = {'solo', 'provirus'} <= alleles
+    cnv = any(UNIT_RE.match(a) and int(UNIT_RE.match(a).group(1)) >= 2
+              for a in alleles)
+    if mei:
+        locus_type = 'null_vs_present'
+    elif cnv:
+        locus_type = 'copy_number'
+    elif solo_prov:
+        locus_type = 'solo_vs_provirus'
+    else:
+        locus_type = 'unresolved'
+    return locus_type, mei, solo_prov, cnv
 
 
 def parse_info(info):
@@ -245,8 +302,11 @@ def cluster(recs, ref_tbl, window, human_ids=None):
         if not chrom.startswith(AUTOSOME_PREFIXES):
             flags.append('PLOIDY_UNVERIFIED')
 
+        locus_type, mei, solo_prov, cnv = locus_properties(alleles)
+
         for m in members:
-            assignment[m['id']] = (locus_id, len(members), flags)
+            assignment[m['id']] = (locus_id, len(members), flags,
+                                   locus_type, mei, solo_prov, cnv)
 
         table.append({
             'locus_id': locus_id, 'chrom': chrom,
@@ -257,6 +317,10 @@ def cluster(recs, ref_tbl, window, human_ids=None):
             'records_not_in_human': ','.join(absent) or '.',
             'ref_state': ','.join(sorted(ref_states)) or '.',
             'allele_set': ','.join(sorted(alleles)) or '.',
+            'locus_type': locus_type,
+            'mei': '1' if mei else '0',
+            'solo_prov': '1' if solo_prov else '0',
+            'cnv': '1' if cnv else '0',
             'per_record_class': ','.join(m['cls'] for m in members),
             'per_record_evidence': ','.join(m['evidence'] for m in members),
             'per_record_k': ','.join(m['k'] or '.' for m in members),
@@ -286,10 +350,17 @@ def write_vcf(vcf_in, vcf_out, assignment):
             if len(f) < 8 or f[2] not in assignment:
                 fout.write(line)
                 continue
-            locus_id, n, flags = assignment[f[2]]
+            locus_id, n, flags, locus_type, mei, solo_prov, cnv = assignment[f[2]]
             info = parse_info(f[7])
             info['HERVK_LOCUS'] = locus_id
             info['HERVK_LOCUS_N'] = str(n)
+            info['HERVK_LOCUS_TYPE'] = locus_type
+            if mei:
+                info['HERVK_MEI'] = ''
+            if solo_prov:
+                info['HERVK_SOLO_PROV'] = ''
+            if cnv:
+                info['HERVK_CNV'] = ''
             if 'MERGE_CANDIDATE' in flags:
                 info['HERVK_MERGE_FLAG'] = ''
             if 'POLARITY_CONFLICT' in flags:
@@ -905,6 +976,16 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
             'HERVK_N_PARTIAL': str(c['n_part']),
             'HERVK_N_PLOIDY_EXCEEDED': str(c['n_viol']),
         }
+        # Carry the locus properties onto the consolidated record. They are
+        # computed once, in cluster(), and written to hervk_loci.tsv, so both
+        # VCFs say the same thing about a locus and neither recomputes it.
+        L = c['locus']
+        if L.get('locus_type') not in (None, '', '.'):
+            info['HERVK_LOCUS_TYPE'] = L['locus_type']
+        for col, key in (('mei', 'HERVK_MEI'), ('solo_prov', 'HERVK_SOLO_PROV'),
+                         ('cnv', 'HERVK_CNV')):
+            if L.get(col) == '1':
+                info[key] = ''
         if c['flipped']:
             info['HERVK_POLARITY_FLIPPED'] = ','.join(c['flipped'])
         if c['masked']:

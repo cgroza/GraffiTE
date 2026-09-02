@@ -72,4 +72,41 @@ chk "distant records with no element stay apart"   "$(g far_loci)"     "2"
 chk "a record beyond the array is not pulled in"   "$(g outside_loci)" "2"
 chk "same element, different spans, still merges"  "$(g chr6_loci)"    "1"
 
+# --- locus properties: a locus can be more than one thing at once ----------
+# The single locus_type label has to pick one, which is why the flags exist.
+# chr6:78,894,316 segregates a solo LTR, a provirus and a two-unit allele, so
+# it is both a solo/provirus dimorphism and a copy-number locus; the label says
+# copy_number and loses the other half.
+out2=$(python3 - <<'EOF'
+import importlib.util
+spec = importlib.util.spec_from_file_location(
+    'hervk_reconcile', '../../bin/hervk_reconcile.py')
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+cases = {
+  'mei_solo':     {'null', 'solo'},                       # 21 of the CaG loci
+  'mei_prov':     {'null', 'provirus'},
+  'mei_three':    {'null', 'solo', 'provirus'},           # chr12:55,299,985
+  'dimorphic':    {'solo', 'provirus'},
+  'cnv_only':     {'provirus', 'prov_x2'},                # chr12:133,148,144
+  'cnv_array':    {'provirus', 'prov_x2', 'prov_x3'},     # chr7:4,699,714
+  'both':         {'solo', 'provirus', 'prov_x2'},        # chr6:78,894,316
+  'solo_alone':   {'solo'},
+}
+for name, al in cases.items():
+    t, mei, sp, cnv = m.locus_properties(al)
+    print(name, t, int(mei), int(sp), int(cnv))
+EOF
+)
+p(){ echo "$out2" | awk -v k="$1" '$1==k{$1=""; sub(/^ /,""); print}'; }
+
+chk "null+solo is MEI only"            "$(p mei_solo)"   "null_vs_present 1 0 0"
+chk "null+provirus is MEI only"        "$(p mei_prov)"   "null_vs_present 1 0 0"
+chk "null+solo+provirus is MEI and solo/prov" \
+                                       "$(p mei_three)"  "null_vs_present 1 1 0"
+chk "solo+provirus is dimorphic only"  "$(p dimorphic)"  "solo_vs_provirus 0 1 0"
+chk "provirus+2 units is CNV only"     "$(p cnv_only)"   "copy_number 0 0 1"
+chk "1/2/3 units is CNV only"          "$(p cnv_array)"  "copy_number 0 0 1"
+chk "solo+provirus+2 units is BOTH"    "$(p both)"       "copy_number 0 1 1"
+chk "a lone solo LTR is none of them"  "$(p solo_alone)" "unresolved 0 0 0"
+
 [[ $fail -eq 0 ]] && echo "PASS" || { echo "FAIL"; exit 1; }
