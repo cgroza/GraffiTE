@@ -5,8 +5,14 @@
 # unfiltered graph-genotyped VCF, with the assembly callset alongside. These
 # five cover every shape the consolidator has to handle -- two loci where both
 # members describe the same allele, one genuinely triallelic locus, one where a
-# member is a tandem duplication whose genotypes must be withheld, and one where
-# a member has no usable allele state.
+# member carries a copy-number allele the graph cannot count, and one where a
+# member has no usable allele state.
+#
+# The copy-number case is the one that changed shape: masking used to drop the
+# member from the merge, leaving one usable member and no consolidation, so the
+# locus stayed as two separate records. It consolidates now, and the masking is
+# per allele -- the clean allele keeps its graph genotypes and the copy-number
+# one is named in HERVK_ALLELE_NOGT with its count in HERVK_AC_DISC.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 BIN=../../bin
@@ -27,11 +33,11 @@ chk(){ if [[ "$2" == "$3" ]]; then echo "  [ ok ] $1"; else echo "  [FAIL] $1: g
 
 # accounting: 10 members in, 6 archived, 3 consolidated records emitted
 chk "input records"      "$(grep -vc '^#' hervk_graph_fixture.vcf)" "10"
-chk "output records"     "$(grep -vc '^#' "$TMP/out.vcf")"          "7"
-chk "archived records"   "$(grep -vc '^#' "$TMP/archive.vcf")"      "6"
-# 3 merged into new multi-allelic records, 2 left in place but given their
-# locus identity (one member masked, one member unresolved)
-chk "merged records"     "$(awk -F'\t' '!/^#/ && $3 ~ /^HERVK_/' "$TMP/out.vcf" | wc -l | tr -d ' ')" "3"
+chk "output records"     "$(grep -vc '^#' "$TMP/out.vcf")"          "6"
+chk "archived records"   "$(grep -vc '^#' "$TMP/archive.vcf")"      "8"
+# 4 merged into new multi-allelic records, 1 left in place and given its locus
+# identity (its partner has no usable allele state)
+chk "merged records"     "$(awk -F'\t' '!/^#/ && $3 ~ /^HERVK_/' "$TMP/out.vcf" | wc -l | tr -d ' ')" "4"
 chk "loci annotated"     "$(grep -c 'HERVK_LOCUS=HERVK_' "$TMP/out.vcf" | tr -d ' ')" "5"
 
 get(){ grep -m1 "$1" "$TMP/out.vcf" | tr '\t' '\n' | sed -n 8p | tr ';' '\n' | grep -m1 "^$2=" | cut -d= -f2; }
@@ -51,17 +57,20 @@ chk "chr12 AC"           "$(get HERVK_chr12_55299985 HERVK_AC)"       "6,21"
 chk "chr12 AN"           "$(get HERVK_chr12_55299985 HERVK_AN)"       "33"
 chk "chr12 ploidy exceeded" "$(get HERVK_chr12_55299985 HERVK_N_PLOIDY_EXCEEDED)" "2"
 
-# chr6: the tandem member is withheld, its partner keeps the locus identity
-# match on the ID column: the partner record names the tandem member in its
-# INFO, so a whole-line grep would pick that up too
-tandem(){ awk -F'\t' '$3=="chr6-78894876-INS-8465_106221"' "$TMP/out.vcf"; }
-tandem | grep -q 'HERVK_GT_MASKED' \
-  && echo "  [ ok ] chr6 tandem record genotypes withheld" \
-  || { echo "  [FAIL] chr6 tandem record should carry HERVK_GT_MASKED"; fail=1; }
-chk "chr6 tandem has no called GT" \
-    "$(tandem | cut -f10- | tr '\t' '\n' | cut -d: -f1 | grep -cv '^\.[/|]\?\.\?$' | tr -d ' ')" "0"
-chk "chr6 partner keeps its genotypes" \
-    "$(awk -F'\t' '$3=="chr6-78894317-DEL-8465_106220"' "$TMP/out.vcf" | cut -f10- | tr '\t' '\n' | cut -d: -f1 | grep -c '1' | tr -d ' ')" "8"
+# chr6: both alleles are on one record now. The solo allele is genotyped from
+# the graph; the copy-number allele is not, and says so rather than reporting a
+# 0 that would read as absent.
+chk "chr6 consolidates"  "$(awk -F'\t' '!/^#/ && $3=="HERVK_chr6_78894316"' "$TMP/out.vcf" | wc -l | tr -d ' ')" "1"
+chk "chr6 carries both alleles" "$(get HERVK_chr6_78894316 HERVK_ALLELE)" "solo,prov_x2"
+chk "chr6 graph counts the solo allele only" "$(get HERVK_chr6_78894316 HERVK_AC)" "8,0"
+chk "chr6 names the allele it cannot genotype" \
+    "$(get HERVK_chr6_78894316 HERVK_ALLELE_NOGT)" "prov_x2"
+chk "chr6 discovery counts both alleles" \
+    "$(get HERVK_chr6_78894316 HERVK_AC_DISC)" "8,1"
+chk "chr6 keeps the clean allele's carriers" \
+    "$(awk -F'\t' '!/^#/ && $3=="HERVK_chr6_78894316"' "$TMP/out.vcf" | cut -f10- | tr '\t' '\n' | cut -d: -f1 | grep -c '1' | tr -d ' ')" "8"
+chk "chr6 is not flagged concordant" \
+    "$(awk -F'\t' '!/^#/ && $3=="HERVK_chr6_78894316"' "$TMP/out.vcf" | grep -c 'HERVK_DISC_CONCORDANT' | tr -d ' ')" "0"
 
 # Header validity. The input fixture defines SVTYPE (Number=1) and SVLEN
 # (Number=.), and the consolidated records carry one value per ALT, so our

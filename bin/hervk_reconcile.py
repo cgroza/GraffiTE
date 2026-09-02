@@ -429,6 +429,17 @@ CONSOLIDATED_HEADERS = [
     'traverse it and non-carriers acquire ALT support. Discovery genotypes are '
     'unaffected and carry the allele frequencies. The call itself is kept in the '
     'HERV-K tables.">',
+    '##INFO=<ID=HERVK_ALLELE_NOGT,Number=.,Type=String,Description="Allele '
+    'states the graph cannot genotype at this locus, so HERVK_AC reports 0 for '
+    'them. A copy-number allele repeats sequence the reference already carries '
+    'at the same locus, so a read from the pre-existing copy traverses the ALT '
+    'path and the allele is not independently identifiable. Their counts are in '
+    'HERVK_AC_DISC; the other alleles here are genotyped normally.">',
+    '##INFO=<ID=HERVK_DISC_PLOIDY_MISMATCH,Number=0,Type=Flag,Description='
+    '"Discovery and graph callsets disagree on ploidy at this locus, so the '
+    'discovery counts are withheld rather than reported on a denominator the '
+    'two callsets do not share. Expected on hemizygous chromosomes and with a '
+    'haploid discovery caller.">',
     '##INFO=<ID=HERVK_MEMBERS_MASKED,Number=.,Type=String,Description="Locus '
     'members whose genotypes were withheld.">',
     '##INFO=<ID=HERVK_MEMBERS_UNRESOLVED,Number=.,Type=String,Description="Locus '
@@ -518,38 +529,49 @@ def read_vcf_records(path, wanted):
     return head, samples, recs
 
 
-def discovery_counts(path, members, samples):
+def discovery_counts(path, members, samples, graph_ploidy=None):
     """Per-member ALT counts from the assembly-based discovery callset.
 
     An independent measurement of the same haplotypes. It is what caught the
-    flattening at chr12, so it is reported beside the graph counts rather than
-    used to correct them.
+    flattening at chr12, and it is what an allele falls back to when the graph
+    cannot genotype it.
+
+    Ploidy comes from the GT rather than being assumed. Assuming 2 is wrong on
+    a hemizygous chromosome and wrong for every record when the discovery
+    caller is haploid, e.g. SVIM-asm run per haplotype, and it would inflate AN
+    silently. When `graph_ploidy` is given, per sample, any disagreement is
+    reported so the caller can refuse a fallback the two callsets cannot
+    support.
+
+    Returns (counts, an, ploidy_ok).
     """
     if not path:
-        return None, None
+        return None, None, False
     _, dsamples, recs = read_vcf_records(path, set(members))
     if not recs:
-        return None, None
+        return None, None, False
     idx = {s: i for i, s in enumerate(dsamples)}
-    counts, an = {}, 0
-    for m in members:
-        counts[m] = 0
+    counts, an, ploidy_ok = {m: 0 for m in members}, 0, True
     for s in samples:
         if s not in idx:
             continue
         j = idx[s]
-        seen = False
+        seen, sample_ploidy = False, 0
         for m in members:
             if m not in recs:
                 continue
-            alleles, _ = parse_gt(recs[m][9 + j])
+            alleles, p = parse_gt(recs[m][9 + j])
             if alleles is None:
                 continue
             seen = True
+            sample_ploidy = max(sample_ploidy, p)
             counts[m] += sum(1 for x in alleles if x > 0)
         if seen:
-            an += 2
-    return counts, an
+            an += sample_ploidy
+            if graph_ploidy is not None and \
+               graph_ploidy.get(s) not in (None, sample_ploidy):
+                ploidy_ok = False
+    return counts, an, ploidy_ok
 
 
 def cmd_consolidate(args):
@@ -613,6 +635,23 @@ def cmd_consolidate(args):
         # Locus REF state is authoritative and comes from the masked reference.
         ref_state = (locus['ref_state'].split(',')[0]
                      if locus['ref_state'] not in ('.', '') else '.')
+
+        # Two member sets, and the distinction is the point of this function.
+        #
+        # `present` is every member carrying a usable allele state. All of them
+        # become an ALT of the consolidated record, so the record says what
+        # segregates at the locus whether or not the graph can count it.
+        #
+        # `keep` is the subset the graph can genotype. A copy-number allele is
+        # excluded: its ALT path repeats sequence the REF path already carries,
+        # so a read from the pre-existing copy traverses it and the allele is
+        # not independently identifiable, however deep the data. That is a
+        # property of the sequence, not of one cohort -- which is why the
+        # decision is made from the allele state and not from a depth
+        # threshold. Thresholding the observed ALT fraction was tried and
+        # misclassifies chr11:101,704,640, where the two members describe one
+        # insertion at different breakpoints so every carrier of one shows
+        # support on the other; merging is what resolves that, not masking.
         alt_states, allele_index, flipped, masked, unresolved = [], {}, [], [], []
         for i, m in enumerate(mem):
             c = calls.get(m, {})
@@ -634,31 +673,36 @@ def cmd_consolidate(args):
                 alt_states.append(st)
                 allele_index[i] = len(alt_states)
 
-        keep = [i for i, m in enumerate(mem)
-                if m not in masked and m not in unresolved]
-        if len(keep) < 2:
-            # Nothing to merge, but the locus is still real and the surviving
-            # member should carry its identity rather than look like a lone
-            # unrelated record.
-            why = ('one usable member (others masked or unresolved)'
-                   if keep else 'no member carries a usable allele state')
-            if keep:
-                annotate_only[mem[keep[0]]] = (locus, masked, unresolved)
-            report.append((locus['locus_id'], 'annotated' if keep else 'skipped', why))
+        present = [i for i, m in enumerate(mem) if m not in unresolved]
+        keep = [i for i in present if mem[i] not in masked]
+        if len(present) < 2:
+            why = ('one member carries a usable allele state'
+                   if present else 'no member carries a usable allele state')
+            if present:
+                annotate_only[mem[present[0]]] = (locus, masked, unresolved)
+            report.append((locus['locus_id'],
+                           'annotated' if present else 'skipped', why))
             continue
 
+        # No genotypable member: the locus is real and its alleles are known,
+        # but every count has to come from discovery.
         fmt_list = [recs[mem[i]][8].split(':') for i in keep]
         n_res = n_part = n_viol = 0
         gts, struct_miss = [], 0
         ac = {i: 0 for i in keep}
         an = 0
+        graph_ploidy = {}
         for si in range(len(samples)):
+            if not keep:
+                gts.append('.')
+                continue
             gt_fields = [recs[mem[i]][9 + si] for i in keep]
             for gf, fm in zip(gt_fields, fmt_list):
                 a, _ = parse_gt(gf)
                 if a is None and structurally_missing(gf, fm):
                     struct_miss += 1
             _, ploidy = parse_gt(gt_fields[0])
+            graph_ploidy[samples[si]] = ploidy
             dos, status = resolve_sample(gt_fields, fmt_list, ploidy)
             local = {keep[k]: v for k, v in
                      zip(range(len(keep)), [dos.get(k, 0) for k in range(len(keep))])}
@@ -678,18 +722,28 @@ def cmd_consolidate(args):
                                 {k: allele_index[keep[k]] for k in range(len(keep))},
                                 ploidy, status))
 
-        alt_ac = {}
+        # Graph counts cover the genotypable alleles; an allele with no
+        # genotypable member is reported as 0 here and named in
+        # HERVK_ALLELE_NOGT, so a reader cannot mistake it for absent.
+        alt_ac = {allele_index[i]: 0 for i in present}
         for i in keep:
-            alt_ac.setdefault(allele_index[i], 0)
             alt_ac[allele_index[i]] += ac[i]
+        nogt_alleles = sorted({allele_index[i] for i in present} -
+                              {allele_index[i] for i in keep})
 
-        dcounts, dan = discovery_counts(args.discovery_vcf,
-                                        [mem[i] for i in keep], samples)
+        # Discovery counts cover every present member, so a masked allele still
+        # has a frequency. It is only usable when both callsets agree on ploidy
+        # at this locus.
+        dcounts, dan, dploidy_ok = discovery_counts(
+            args.discovery_vcf, [mem[i] for i in present], samples,
+            graph_ploidy or None)
         disc_ac = {}
-        if dcounts:
-            for i in keep:
+        if dcounts and dploidy_ok:
+            for i in present:
                 disc_ac.setdefault(allele_index[i], 0)
                 disc_ac[allele_index[i]] += dcounts.get(mem[i], 0)
+        elif dcounts:
+            dan = None
 
         consolidated[locus['locus_id']] = {
             'locus': locus, 'mem': mem, 'keep': keep, 'gts': gts,
@@ -697,7 +751,8 @@ def cmd_consolidate(args):
             'ref_state': ref_state, 'ac': alt_ac, 'an': an,
             'n_res': n_res, 'n_part': n_part, 'n_viol': n_viol,
             'struct_miss': struct_miss, 'flipped': flipped, 'masked': masked,
-            'disc_ac': disc_ac, 'disc_an': dan,
+            'disc_ac': disc_ac, 'disc_an': dan, 'present': present,
+            'nogt_alleles': nogt_alleles, 'disc_ploidy_ok': dploidy_ok,
         }
         dropped.update(mem)
         archived.extend(recs[m] for m in mem)
@@ -821,7 +876,7 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
     for lid, c in consolidated.items():
         mem_recs = [recs[m] for m in c['mem']]
         chrom, pos, ref, alt, err = build_locus_record(
-            mem_recs, c['keep'], c['alt_states'], c['allele_index'],
+            mem_recs, c['present'], c['alt_states'], c['allele_index'],
             getattr(args, 'reference', None))
         if err:
             skipped.append((lid, err))
@@ -854,13 +909,23 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
             info['HERVK_POLARITY_FLIPPED'] = ','.join(c['flipped'])
         if c['masked']:
             info['HERVK_MEMBERS_MASKED'] = ','.join(c['masked'])
+        if c.get('nogt_alleles'):
+            # Name the alleles HERVK_AC reports as 0 because the graph cannot
+            # count them, so that 0 is not read as "absent". Their frequency is
+            # in HERVK_AC_DISC.
+            info['HERVK_ALLELE_NOGT'] = ','.join(
+                c['alt_states'][i - 1] for i in c['nogt_alleles'])
         if c['disc_an']:
             info['HERVK_AC_DISC'] = ','.join(str(c['disc_ac'].get(i + 1, 0))
                                              for i in range(len(c['alt_states'])))
             info['HERVK_AN_DISC'] = str(c['disc_an'])
-            if all(c['ac'].get(k, 0) == c['disc_ac'].get(k, 0)
+            # Concordance is only meaningful over the alleles the graph counted.
+            if not c.get('nogt_alleles') and \
+               all(c['ac'].get(k, 0) == c['disc_ac'].get(k, 0)
                    for k in set(c['ac']) | set(c['disc_ac'])):
                 info['HERVK_DISC_CONCORDANT'] = ''
+        elif c.get('disc_ploidy_ok') is False:
+            info['HERVK_DISC_PLOIDY_MISMATCH'] = ''
         fields = [chrom, pos, lid, ref, alt, '.', 'PASS', info_to_str(info), 'GT']
         fields.extend(c['gts'])
         out_by_id[c['mem'][0]] = fields
