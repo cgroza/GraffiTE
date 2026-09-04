@@ -5,9 +5,15 @@
 
 SVSEQ=$1 # SV_sequences_L_R_trimmed_WIN.fa
 FLANK=$2 # flanking_sequences.fasta
-indels=$(cat $3)  
+indels=$(cat $3)
 VERBOSE=$4 # for debug only
 name=$(cat $3 | head -n 1)
+
+# A missing matcher would otherwise read as "no_hit" on every variant.
+command -v exact_match.py > /dev/null || { echo "TSD_Match_v2.sh: exact_match.py is not on PATH" >&2; exit 1; }
+for f in "${SVSEQ}" "${FLANK}"; do
+	[[ -s "${f}" ]] || { echo "TSD_Match_v2.sh: ${f} is empty" >&2; exit 1; }
+done
 
 # clean the summary file if exists
 rm $name.TSD_summary.txt 2> /dev/null
@@ -24,8 +30,8 @@ echo ""
 echo "--- TSD search for ${i} ---"
 echo ""
 # create 5' and 3' fragments: L = [WIN bp 5' flank][WIN bp 5' SV] R = [WIN bp 3' SV][WIN bp 3' flank] 
-cat <(echo ">L|5P_end") <(paste -d "" <(grep -A 1 "${i}__L" ${FLANK} | tail -n 1) <(grep -A 1 "${i}__L" ${SVSEQ} | tail -n 1) <(echo " ") <(grep -A 1 "${i}__R" ${SVSEQ} | tail -n 1) <(grep -A 1 "${i}__R" ${FLANK} | tail -n 1) | awk '{print $1}') > L.fasta
-cat <(echo ">R|3P_end") <(paste -d "" <(grep -A 1 "${i}__L" ${FLANK} | tail -n 1) <(grep -A 1 "${i}__L" ${SVSEQ} | tail -n 1) <(echo " ") <(grep -A 1 "${i}__R" ${SVSEQ} | tail -n 1) <(grep -A 1 "${i}__R" ${FLANK} | tail -n 1) | awk '{print $2}') > R.fasta
+cat <(echo ">L|5P_end") <(paste -d '\0' <(grep -A 1 "${i}__L" ${FLANK} | tail -n 1) <(grep -A 1 "${i}__L" ${SVSEQ} | tail -n 1) <(echo " ") <(grep -A 1 "${i}__R" ${SVSEQ} | tail -n 1) <(grep -A 1 "${i}__R" ${FLANK} | tail -n 1) | awk '{print $1}') > L.fasta
+cat <(echo ">R|3P_end") <(paste -d '\0' <(grep -A 1 "${i}__L" ${FLANK} | tail -n 1) <(grep -A 1 "${i}__L" ${SVSEQ} | tail -n 1) <(echo " ") <(grep -A 1 "${i}__R" ${SVSEQ} | tail -n 1) <(grep -A 1 "${i}__R" ${FLANK} | tail -n 1) | awk '{print $2}') > R.fasta
 
 # print 5' and 3' fragments to compare with ruler
 cat <(awk 'getline seq {print $0"\n"seq"\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n1   5    10   15   20   25   30   35   40   45   50   55   60"}' L.fasta) <(awk 'getline seq {print $0"\n"seq"\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n1   5    10   15   20   25   30   35   40   45   50   55   60"}' R.fasta)
@@ -91,7 +97,7 @@ else # match found
 	Rend=$(awk '{print $8}' best_hit)
 
 	echo "candidate TSDs:"
-	paste -d "" <(echo -e $(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, 1,((Lstart-1))) "\\e[4m"substr(seq, ((Lstart)),((Lend-Lstart+1)))"\\e[0m" substr(seq, ((Lend+1)))}' L.fasta)) <(echo -e "---SV/TE(s)---") <(echo -e $(awk -v Rstart=$((${Rstart})) -v Rend=$((${Rend})) 'getline seq {printf substr(seq, 1,((Rstart-1))) "\\e[4m"substr(seq, ((Rstart)),((Rend-Rstart+1)))"\\e[0m" substr(seq, ((Rend+1)))}' R.fasta))
+	paste -d '\0' <(echo -e $(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, 1,((Lstart-1))) "\\e[4m"substr(seq, ((Lstart)),((Lend-Lstart+1)))"\\e[0m" substr(seq, ((Lend+1)))}' L.fasta)) <(echo -e "---SV/TE(s)---") <(echo -e $(awk -v Rstart=$((${Rstart})) -v Rend=$((${Rend})) 'getline seq {printf substr(seq, 1,((Rstart-1))) "\\e[4m"substr(seq, ((Rstart)),((Rend-Rstart+1)))"\\e[0m" substr(seq, ((Rend+1)))}' R.fasta))
 
 	# grab the sequences
 	L_TSD=$(awk -v Lstart=${Lstart} -v Lend=${Lend} 'getline seq {printf substr(seq, Lstart, Lend-Lstart+1)}' L.fasta)

@@ -1,57 +1,54 @@
 #! /bin/bash
 
-# USAGE: ./prepTSD.sh <REF_GENOME> <WINDOW_SIZE>
+# USAGE: ./prepTSD.sh <REF_GENOME> <WINDOW_SIZE> [THREADS]
+#
+# Prepares the two FASTA files TSD_Match_v2.sh compares: the reference flanks
+# of every indel and the two ends of every indel sequence.
 
-# variable list
+set -euo pipefail
+
 VCF="genotypes_repmasked_filtered.vcf" # filtered vcf with repeatmasker
 REF=$1 # ref genome
 WIN=$2 # windows size in flanking to search TSD
-MSK="indels.fa.masked" # masked SVs from repeatmasker
-OUT_VCF="pangenie.vcf"
+THREADS=${3:-1}
 FASTA_FILE=indels.fa
+
+n_records=$(bcftools view -H ${VCF} | wc -l)
+if [[ ${n_records} -eq 0 ]]; then
+    echo "prepTSD.sh: ${VCF} has no records, nothing to prepare"
+    : > flanking_sequences.fasta
+    : > ${FASTA_FILE}
+    : > SV_sequences_L_R_trimmed_WIN.fa
+    : > indels.txt
+    exit 0
+fi
 
 ###################################################
 # Step 1: extract flanking of each retained TE SV #
 ###################################################
 echo "extracting flanking..."
 
-# get contig length for bedtools
-grep "contig=" ${VCF} | sed 's/\#\#contig=<ID=//g;s/,length=/\t/g;s/>//g' > gLength.txt
+# htslib reads plain and BGZF FASTA and refuses gzip. A gzip reference used to
+# reach bedtools getfasta here, which failed the same way, and the failure was
+# silent: an empty flank file, and a search of each SV's two ends against each
+# other. Same re-compression as concat_repeatmask.
+if [[ "${REF}" == *.gz ]] && ! (file -L "${REF}" | grep -q "BGZF"); then
+    BGZF="bgzf_$(basename "${REF}")"
+    echo "re-compressing ${REF} to ${BGZF}"
+    gzip -dc "${REF}" | bgzip -@ "${THREADS}" -c > "${BGZF}"
+    REF=${BGZF}
+fi
+samtools faidx "${REF}"
 
-# create a bed with vcf entries
-# bcftools view -H ${VCF} | \
-#  grep 'n_hits=1;\|n_hits=2;' | \
-#  grep -v 'mam_filter_2=VNTR_ONLY' | \
-#  awk '/n_hits=1/ && length($4) < length($5) {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=1/ && length($4) > length($5) {print $1"\t"$2"\t"($2+length($4))"\t"$3; next} /n_hits=2/ && length($4) < length($5) && /5P_INV/ {print $1"\t"$2"\t"($2)+1"\t"$3; next} /n_hits=2/ && length($4) > length($5) && /5P_INV/ {print $1"\t"$2"\t"($2+length($4))"\t"$3}' > oneHit_SV_coordinates.bed
-
-# now we simply extract all SV
-bcftools view -H ${VCF} | awk -v win=${WIN} '{ if(length($4) < length($5)) {print $1"\t"($2-win)"\t"$2"\t"$3"__L"; print $1"\t"$2"\t"($2+win)"\t"$3"__R"} if (length($4) > length($5)) {print $1"\t"($2-win)"\t"$2"\t"$3"__L"; print $1"\t"($2+length($4))"\t"($2+length($4)+win)"\t"$3"__R"}}' > SV_coordinates_win.bed
-
-
-# extend +/- ${WIN} bp in two entries per SV
-# cat <(bedtools slop -i SV_coordinates.bed -g gLength.txt -l ${WIN} -r 0 | awk '{print $0"__L"}') \
-# <(bedtools slop -i SV_coordinates.bed -g gLength.txt -l 0 -r ${WIN} | awk '{print $0"__R"}') | \
-# sort -k1,1 -k2,2n -k3,3n | awk -v win=${WIN} '/__L/ {print $1":"$2"-"($2+win); next} /__R/ {print $1":"($3-win)"-"$3}' > SV_coordinates_win.regions
-# # extract fasta from flanking
-# samtools faidx -r SV_coordinates_win.regions -o flanking_sequences.fasta ${REF}
-# cat <(bedtools slop -i SV_coordinates.bed -g gLength.txt -l ${WIN} -r 0 | awk '{print $0"__L"}') \
-# <(bedtools slop -i SV_coordinates.bed -g gLength.txt -l 0 -r ${WIN} | awk '{print $0"__R"}') > SV_coordinates_win.bed
-
-
-# extract fasta from flanking
-bedtools getfasta -bed SV_coordinates_win.bed -fi ${REF} -name > flanking_sequences.fasta
+tsd_flanks.py --vcf ${VCF} --reference "${REF}" --window ${WIN} \
+    --out flanking_sequences.fasta
 
 ##################################################
 # Step 2: extract 5' and 3' of each masked TE SV #
 ##################################################
 echo "extracting SVs' 5' and 3' ends..."
 
-# we don't need that anymore
-# # filter the indels.fa.masked to keep only single RM hits (1 TE per SV)
-# perl -ne 'if(/^>(\S+)/){$c=$i{$1}}$c?print:chomp;$i{$_}=1 if @ARGV' <(cut -f 4 SV_coordinates.bed) ${MSK} > oneHit_indels.fa.masked
-
-# new: make an indel.fa file:
-bcftools view -H --types indels --include 'ILEN>0' ${VCF} | awk '{print(sprintf(">%s\n%s", $3, $5))}' >> ${FASTA_FILE}
+bcftools view -H --types indels --include 'ILEN>0' ${VCF} | awk '{print(sprintf(">%s\n%s", $3, $5))}' > ${FASTA_FILE}
 bcftools view -H --types indels --include 'ILEN<0' ${VCF} | awk '{print(sprintf(">%s\n%s", $3, $4))}' >> ${FASTA_FILE}
 
 # linearize fasta, then trim and split in two seq (L and R)
@@ -59,3 +56,11 @@ awk '/^>/ {printf("%s%s\t",(N>0?"\n":""),$0);N++;next;} {printf("%s",$0);} END {
 awk -v len=${WIN} -F '\t' '{x=len;L=length($2);printf("%s\n%s\n%s\n%s\n",$1"__L",(L<=x?$2:substr($2,2,x)),$1"__R",(L<=x?$2:substr($2,1+L-x,x)));}' > SV_sequences_L_R_trimmed_WIN.fa
 # export the list of SV to search TSD for next process parallelization
 grep '>' SV_sequences_L_R_trimmed_WIN.fa | sed 's/>//g;s/__/\t/g' | cut -f 1 | sort | uniq > indels.txt
+
+n_sv=$(wc -l < indels.txt)
+n_flank=$(grep -c '^>' flanking_sequences.fasta)
+echo "${n_sv} indels, ${n_flank} flank sequences"
+if [[ $((n_sv * 2)) -ne ${n_flank} ]]; then
+    echo "prepTSD.sh: expected two flanks per indel" >&2
+    exit 1
+fi

@@ -117,6 +117,11 @@ def annotate_record(fields):
         tsd = info.get('TSD', '')
         if not isinstance(tsd, str) or tsd in ('.', ''):
             tsd = ''
+        # INFO/TSD holds the 5' copy and the 3' copy comma-separated. Trim the
+        # copy at the end being scanned. Read as one string, "X,X" never matched
+        # a suffix, so no TSD was ever trimmed.
+        copies = tsd.split(',')
+        tsd = copies[-1] if strands == '+' else copies[0]
 
         if variant_seq and detect_polyA(variant_seq, strands, tsd):
             call = 'TRUE'

@@ -23,6 +23,14 @@ description: Every INFO and FORMAT tag GraffiTE writes, its meaning, and the cod
 
 ## TSD and polyA INFO fields
 
+Written to `pangenome.vcf` by the TSD search and carried by every record
+downstream, including the genotyped VCFs. `hervk_reconcile` builds a
+consolidated HERV-K record from scratch, without them.
+
+| field | |
+|---|---|
+| `TSD` | the target site duplication, as its 5' copy and its 3' copy comma-separated: `GATTACAG,GATTACAG`. The two copies are exact matches of each other. Absent when no exact duplication of 4 to 20 bp has its ends, on average, within 5 bp of the two breakpoints |
+| `polyA` | `TRUE` when a polyA tail (polyT for a minus-strand hit) of at least 8 bp and at least 80% A ends within 5 bp of the element's 3' end, the `TSD` copy trimmed off first. `FALSE` otherwise. `NA` when `n_hits>1` |
 
 ## HERV-K INFO fields
 

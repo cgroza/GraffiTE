@@ -611,7 +611,7 @@ process tsd_prep {
   script:
   """
   cp repeatmasker_dir/repeatmasker_dir/* .
-  prepTSD.sh ${ref_fasta} ${params.tsd_win}
+  prepTSD.sh ${ref_fasta} ${params.tsd_win} ${task.cpus}
   """
 }
 
@@ -644,18 +644,7 @@ process tsd_report {
   """
   cat ${x} > TSD_summary.txt
   cat ${y} > TSD_full_log.txt
-  join -13 -21 <(grep -v "#" genotypes_repmasked_filtered.vcf | cut -f 1-5 | \
-    sort -k3,3) <(grep 'PASS' TSD_summary.txt | \
-    awk '{print \$1"\t"toupper(\$(NF-2))","toupper(\$(NF-1))}' | sort -k1,1) | \
-    awk '{print \$2"\t"\$3"\t"\$1"\t"\$4"\t"\$5"\t"\$6}' | \
-    sort -k1,1 -k2,2n > TSD_annotation
-  HDR_FILE=header_file
-  echo -e '##INFO=<ID=TSD,Number=1,Type=String,Description="Target site duplication sequence passing filters">' >> \${HDR_FILE}
-  TSD_FILE=TSD_annotation
-  bgzip \${TSD_FILE}
-  tabix -s1 -b2 -e2 \${TSD_FILE}.gz
-  bcftools annotate -a \${TSD_FILE}.gz -h \${HDR_FILE} -c CHROM,POS,~ID,REF,ALT,INFO/TSD genotypes_repmasked_filtered.vcf | \
-    bcftools view > pangenome.vcf
+  tsd_annotate_vcf.sh genotypes_repmasked_filtered.vcf TSD_summary.txt pangenome.vcf
   """
 }
 
