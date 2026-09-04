@@ -18,9 +18,24 @@ HERV-K (HML-2) locus layer.
     first three sit outside truvari's default 500 bp refdist, which is why
     truvari did not collapse them.
 
-`consolidate` (stage 4)
-    Collapse each flagged locus in the graph-genotyped VCF into one
-    multi-allelic record.
+`consolidate` (stages 3 and 4)
+    Collapse each flagged locus into one multi-allelic record, so a reader gets
+    the locus and its alleles rather than a scatter of records to reassemble.
+
+    Runs over either callset, as an additional file each time. The input is
+    never rewritten: the discovery VCF induces the graph, and the graph VCF is
+    the native record of what vg call did.
+
+        pangenome.human.vcf              -> pangenome.human.consolidated.vcf
+        GraffiTE.merged.genotypes.vcf.gz -> ...genotypes.human.vcf.gz
+
+    --source discovery masks nothing. Those genotypes come from
+    haplotype-resolved assembly alignments, which read a tandem array off the
+    alignment directly. --source graph masks copy-number alleles, because an
+    ALT path that repeats reference sequence cannot be distinguished from the
+    reference by a read that traverses it; the other alleles at such a locus
+    are still counted, and the masked one takes its frequency from the
+    assemblies when --discovery-vcf is given.
 
     Genotypes are resolved by *allele dosage* across the member records, not
     by taking each record's call at face value. A locus is one place with one
@@ -46,14 +61,32 @@ HERV-K (HML-2) locus layer.
     (AN=22 of 40). Reporting AF alone would hide that; reporting AC/AN does
     not.
 
+    A locus the --human filter cut in half is annotated rather than merged.
+    Three CaG loci are in that state, and at chr7:4,699,714 the filter keeps
+    one of three members: all three describe the same 8,504 bp unit, and the
+    two it removes carry a third RepeatMasker fragment that the HERV-K clause
+    does not admit. The surviving record carries the locus id, the full allele
+    set, the names of the absent members and HERVK_LOCUS_INCOMPLETE, so its
+    allele frequencies are not read as covering the locus.
+
 Usage:
     hervk_reconcile.py flag --vcf-in in.vcf --vcf-out out.vcf \
         --loci-out hervk_loci.tsv [--ref-state refstate.tsv] [--window 1200]
+
+    hervk_reconcile.py consolidate --source discovery --vcf-in flagged.vcf \
+        --loci hervk_loci.tsv --calls hervk_calls.tsv --reference ref.fa \
+        --out-vcf pangenome.human.consolidated.vcf
+
+    hervk_reconcile.py consolidate --genotyped-vcf graph.vcf.gz \
+        --loci hervk_loci.tsv --calls hervk_calls.tsv --reference ref.fa \
+        --discovery-vcf pangenome.human.vcf --out-vcf consolidated.vcf
 """
 
 import argparse
 import gzip
+import os
 import re
+import subprocess
 import sys
 from collections import defaultdict
 
@@ -64,6 +97,24 @@ INFO_HEADERS = [
     'identifier grouping records that describe the same element.">',
     '##INFO=<ID=HERVK_LOCUS_N,Number=1,Type=Integer,Description="Number of '
     'HERV-K records assigned to this locus.">',
+    '##INFO=<ID=HERVK_MEI,Number=0,Type=Flag,Description="A null allele '
+    'segregates at this locus: the element is absent from some haplotypes, so '
+    'the difference between them came from a transposition. This is what '
+    'separates an insertion polymorphism from structural variation in an '
+    'element that every haplotype carries. Filter on it to get the HERV-K loci '
+    'comparable to an Alu, L1 or SVA insertion.">',
+    '##INFO=<ID=HERVK_SOLO_PROV,Number=0,Type=Flag,Description="A solo LTR and '
+    'a provirus both segregate here: zero proviral units against one. May be '
+    'set alongside HERVK_MEI or HERVK_CNV.">',
+    '##INFO=<ID=HERVK_CNV,Number=0,Type=Flag,Description="Some allele here '
+    'carries two or more proviral units. May be set alongside HERVK_MEI or '
+    'HERVK_SOLO_PROV -- chr6:78,894,316 segregates a solo LTR, a provirus and '
+    'a two-unit allele and is both.">',
+    '##INFO=<ID=HERVK_LOCUS_TYPE,Number=1,Type=String,Description="Single '
+    'summary label, derived from the flags above so it cannot drift from them: '
+    'null_vs_present when a null allele segregates, else copy_number, else '
+    'solo_vs_provirus, else unresolved. The flags are the precise statement; '
+    'this is for readers that want one value.">',
     '##INFO=<ID=HERVK_MERGE_FLAG,Number=0,Type=Flag,Description="This locus '
     'holds more than one record describing the same element. Flagged only -- '
     'records are never merged at this stage, because this VCF must keep its '
@@ -75,8 +126,47 @@ INFO_HEADERS = [
 
 LOCI_COLUMNS = ['locus_id', 'chrom', 'start', 'end', 'n_records', 'record_ids',
                 'n_in_human', 'records_not_in_human', 'ref_state', 'allele_set',
+                'locus_type', 'mei', 'solo_prov', 'cnv',
                 'per_record_class', 'per_record_evidence', 'per_record_k',
                 'arch', 'flags']
+
+UNIT_RE = re.compile(r'^prov_x(\d+)$')
+
+
+def locus_properties(alleles):
+    """What varies at this locus, as independent properties.
+
+    A locus can be more than one of these at once and the old single category
+    could not say so. chr6:78,894,316 segregates a solo LTR, a provirus and a
+    two-unit allele, so it is both a solo/provirus dimorphism and a copy-number
+    locus; calling it one or the other loses half of what is there.
+
+      mei        a null allele segregates, so the element is absent from some
+                 haplotypes and the event behind the difference was a
+                 transposition. This is the property that separates an
+                 insertion polymorphism from structural variation in an element
+                 that is always present, and it is what a user filters on.
+      solo_prov  a solo LTR and a provirus both segregate: zero units against
+                 one.
+      cnv        some allele carries two or more proviral units.
+
+    `locus_type` stays as a single label for readers that want one, derived
+    here so it cannot drift from the flags. It answers "is this an insertion
+    polymorphism" first, because that is the question most analyses ask.
+    """
+    mei = 'null' in alleles
+    solo_prov = {'solo', 'provirus'} <= alleles
+    cnv = any(UNIT_RE.match(a) and int(UNIT_RE.match(a).group(1)) >= 2
+              for a in alleles)
+    if mei:
+        locus_type = 'null_vs_present'
+    elif cnv:
+        locus_type = 'copy_number'
+    elif solo_prov:
+        locus_type = 'solo_vs_provirus'
+    else:
+        locus_type = 'unresolved'
+    return locus_type, mei, solo_prov, cnv
 
 
 def parse_info(info):
@@ -244,8 +334,11 @@ def cluster(recs, ref_tbl, window, human_ids=None):
         if not chrom.startswith(AUTOSOME_PREFIXES):
             flags.append('PLOIDY_UNVERIFIED')
 
+        locus_type, mei, solo_prov, cnv = locus_properties(alleles)
+
         for m in members:
-            assignment[m['id']] = (locus_id, len(members), flags)
+            assignment[m['id']] = (locus_id, len(members), flags,
+                                   locus_type, mei, solo_prov, cnv)
 
         table.append({
             'locus_id': locus_id, 'chrom': chrom,
@@ -256,6 +349,10 @@ def cluster(recs, ref_tbl, window, human_ids=None):
             'records_not_in_human': ','.join(absent) or '.',
             'ref_state': ','.join(sorted(ref_states)) or '.',
             'allele_set': ','.join(sorted(alleles)) or '.',
+            'locus_type': locus_type,
+            'mei': '1' if mei else '0',
+            'solo_prov': '1' if solo_prov else '0',
+            'cnv': '1' if cnv else '0',
             'per_record_class': ','.join(m['cls'] for m in members),
             'per_record_evidence': ','.join(m['evidence'] for m in members),
             'per_record_k': ','.join(m['k'] or '.' for m in members),
@@ -285,10 +382,17 @@ def write_vcf(vcf_in, vcf_out, assignment):
             if len(f) < 8 or f[2] not in assignment:
                 fout.write(line)
                 continue
-            locus_id, n, flags = assignment[f[2]]
+            locus_id, n, flags, locus_type, mei, solo_prov, cnv = assignment[f[2]]
             info = parse_info(f[7])
             info['HERVK_LOCUS'] = locus_id
             info['HERVK_LOCUS_N'] = str(n)
+            info['HERVK_LOCUS_TYPE'] = locus_type
+            if mei:
+                info['HERVK_MEI'] = ''
+            if solo_prov:
+                info['HERVK_SOLO_PROV'] = ''
+            if cnv:
+                info['HERVK_CNV'] = ''
             if 'MERGE_CANDIDATE' in flags:
                 info['HERVK_MERGE_FLAG'] = ''
             if 'POLARITY_CONFLICT' in flags:
@@ -394,7 +498,33 @@ def merge_headers(head, new_lines):
     return keep
 
 
-CONSOLIDATED_HEADERS = [
+# The locus properties are written by both subcommands, so both header lists
+# have to declare them. Without this the graph-consolidated VCF carried
+# HERVK_MEI with no definition, bcftools guessed Type=String, and
+# `-i 'INFO/HERVK_MEI=1'` silently matched nothing. Shared rather than copied
+# so the descriptions cannot drift apart.
+LOCUS_PROPERTY_HEADERS = [h for h in INFO_HEADERS if ID_RE.match(h)
+                          and ID_RE.match(h).group(1) in (
+                              'HERVK_LOCUS', 'HERVK_LOCUS_N', 'HERVK_MEI',
+                              'HERVK_SOLO_PROV', 'HERVK_CNV',
+                              'HERVK_LOCUS_TYPE')]
+assert len(LOCUS_PROPERTY_HEADERS) == 6, LOCUS_PROPERTY_HEADERS
+
+# One definition per ID, whichever list it came from. CONSOLIDATED_HEADERS has
+# its own HERVK_LOCUS line, and two ##INFO lines with one ID is invalid VCF.
+def _dedup(lines):
+    seen, out = set(), []
+    for h in lines:
+        mt = ID_RE.match(h)
+        if mt and mt.group(1) in seen:
+            continue
+        if mt:
+            seen.add(mt.group(1))
+        out.append(h)
+    return out
+
+
+CONSOLIDATED_HEADERS = _dedup([
     '##INFO=<ID=SVTYPE,Number=A,Type=String,Description="Variant type per ALT.">',
     '##INFO=<ID=SVLEN,Number=A,Type=Integer,Description="Variant length per ALT.">',
     '##INFO=<ID=HERVK_LOCUS,Number=1,Type=String,Description="HERV-K locus id.">',
@@ -428,14 +558,35 @@ CONSOLIDATED_HEADERS = [
     'traverse it and non-carriers acquire ALT support. Discovery genotypes are '
     'unaffected and carry the allele frequencies. The call itself is kept in the '
     'HERV-K tables.">',
+    '##INFO=<ID=HERVK_ALLELE_NOGT,Number=.,Type=String,Description="Allele '
+    'states the graph cannot genotype at this locus, so HERVK_AC reports 0 for '
+    'them. A copy-number allele repeats sequence the reference already carries '
+    'at the same locus, so a read from the pre-existing copy traverses the ALT '
+    'path and the allele is not independently identifiable. Their counts are in '
+    'HERVK_AC_DISC; the other alleles here are genotyped normally.">',
+    '##INFO=<ID=HERVK_DISC_PLOIDY_MISMATCH,Number=0,Type=Flag,Description='
+    '"Discovery and graph callsets disagree on ploidy at this locus, so the '
+    'discovery counts are withheld rather than reported on a denominator the '
+    'two callsets do not share. Expected on hemizygous chromosomes and with a '
+    'haploid discovery caller.">',
     '##INFO=<ID=HERVK_MEMBERS_MASKED,Number=.,Type=String,Description="Locus '
     'members whose genotypes were withheld.">',
+    '##INFO=<ID=HERVK_ALLELE_SET,Number=.,Type=String,Description="Every '
+    'proviral-unit allele state segregating at this locus, including states '
+    'carried by member records that are not in this VCF. On an unmerged record '
+    'this is what the locus holds, not what the record describes.">',
+    '##INFO=<ID=HERVK_MEMBERS_ABSENT,Number=.,Type=String,Description="Member '
+    'records of this locus that the --human filter removed, so their alleles '
+    'cannot be counted here. Their states are in HERVK_ALLELE_SET.">',
+    '##INFO=<ID=HERVK_LOCUS_INCOMPLETE,Number=0,Type=Flag,Description="Some '
+    'member of this locus is absent from this VCF, so its allele frequencies '
+    'do not cover every allele that segregates. See HERVK_MEMBERS_ABSENT.">',
     '##INFO=<ID=HERVK_MEMBERS_UNRESOLVED,Number=.,Type=String,Description="Locus '
     'members with no usable allele state.">',
     '##INFO=<ID=HERVK_POLARITY_FLIPPED,Number=.,Type=String,Description="Members '
     'whose own polarity disagreed with the locus REF state; re-expressed '
     'against it.">',
-]
+] + LOCUS_PROPERTY_HEADERS)
 
 
 def parse_gt(gt):
@@ -451,7 +602,14 @@ def parse_gt(gt):
 def structurally_missing(sample_field, fmt):
     """Missing with no depth reported at all -- the record was never evaluated,
     as opposed to evaluated and found ambiguous. Every missing member call at
-    chr6 and chr12 is of this kind."""
+    chr6 and chr12 is of this kind.
+
+    A callset that declares no FORMAT/DP cannot separate the two, so it reports
+    neither. The discovery VCF is that shape: it carries GT alone, and reading
+    the absent DP as evidence would count every missing call as structural.
+    The value feeds a report counter, so under-reporting it costs nothing."""
+    if 'DP' not in fmt:
+        return False
     d = dict(zip(fmt, sample_field.split(':')))
     return d.get('DP', '.') in ('.', '', None)
 
@@ -517,42 +675,87 @@ def read_vcf_records(path, wanted):
     return head, samples, recs
 
 
-def discovery_counts(path, members, samples):
+def discovery_counts(path, members, samples, graph_ploidy=None):
     """Per-member ALT counts from the assembly-based discovery callset.
 
     An independent measurement of the same haplotypes. It is what caught the
-    flattening at chr12, so it is reported beside the graph counts rather than
-    used to correct them.
+    flattening at chr12, and it is what an allele falls back to when the graph
+    cannot genotype it.
+
+    Ploidy comes from the GT rather than being assumed. Assuming 2 is wrong on
+    a hemizygous chromosome and wrong for every record when the discovery
+    caller is haploid, e.g. SVIM-asm run per haplotype, and it would inflate AN
+    silently. When `graph_ploidy` is given, per sample, any disagreement is
+    reported so the caller can refuse a fallback the two callsets cannot
+    support.
+
+    Returns (counts, an, ploidy_ok), where ploidy_ok is None when there was
+    nothing to check -- no discovery VCF, or none of these members in it. That
+    is not the same as a mismatch, and reporting it as one would put
+    HERVK_DISC_PLOIDY_MISMATCH on every record of a consolidation run without
+    --discovery-vcf.
     """
     if not path:
-        return None, None
+        return None, None, None
     _, dsamples, recs = read_vcf_records(path, set(members))
     if not recs:
-        return None, None
+        return None, None, None
     idx = {s: i for i, s in enumerate(dsamples)}
-    counts, an = {}, 0
-    for m in members:
-        counts[m] = 0
+    counts, an, ploidy_ok = {m: 0 for m in members}, 0, True
     for s in samples:
         if s not in idx:
             continue
         j = idx[s]
-        seen = False
+        seen, sample_ploidy = False, 0
         for m in members:
             if m not in recs:
                 continue
-            alleles, _ = parse_gt(recs[m][9 + j])
+            alleles, p = parse_gt(recs[m][9 + j])
             if alleles is None:
                 continue
             seen = True
+            sample_ploidy = max(sample_ploidy, p)
             counts[m] += sum(1 for x in alleles if x > 0)
         if seen:
-            an += 2
-    return counts, an
+            an += sample_ploidy
+            if graph_ploidy is not None and \
+               graph_ploidy.get(s) not in (None, sample_ploidy):
+                ploidy_ok = False
+    return counts, an, ploidy_ok
 
 
 def cmd_consolidate(args):
-    if args.genotyper == 'auto':
+    """Merge the members of each flagged locus into one multi-allelic record.
+
+    Runs over either callset. The loop reads GT and nothing else, so the two
+    differ only in what has to be guarded:
+
+      graph      short reads through vg call. Copy-number alleles are masked,
+                 because an ALT path that repeats reference sequence cannot be
+                 told from the reference by a read that traverses it.
+      discovery  haplotype-resolved assembly alignments. Nothing is masked:
+                 the alignment sees the whole allele, which is exactly why the
+                 graph consolidation falls back to these counts. The genotyper
+                 guard does not apply, and neither does the discovery fallback,
+                 whose source would be this file.
+
+    Both consolidations are additional outputs. The callset they read is
+    written out unchanged, because the discovery VCF induces the graph and the
+    graph VCF is the native record of what was genotyped.
+    """
+    if not args.genotyped_vcf:
+        sys.exit('hervk_reconcile consolidate: pass the input VCF, as '
+                 '--genotyped-vcf or --vcf-in.')
+
+    discovery = getattr(args, 'source', 'graph') == 'discovery'
+    if discovery:
+        if args.discovery_vcf:
+            sys.exit('hervk_reconcile consolidate: --discovery-vcf is for '
+                     'cross-checking graph genotypes against the assemblies. '
+                     'With --source discovery the assemblies are already the '
+                     'input, so there is nothing to check against.')
+        args.genotyper = 'n/a'
+    elif args.genotyper == 'auto':
         detected = detect_genotyper(args.genotyped_vcf)
         if detected is None:
             sys.exit('hervk_reconcile consolidate: --genotyper auto could not '
@@ -563,7 +766,7 @@ def cmd_consolidate(args):
                          f'{detected}\n')
         args.genotyper = detected
 
-    if args.genotyper not in SUPPORTED_GENOTYPERS:
+    if not discovery and args.genotyper not in SUPPORTED_GENOTYPERS:
         sys.exit(f'hervk_reconcile consolidate: --genotyper {args.genotyper} is '
                  f'not supported yet (only {", ".join(SUPPORTED_GENOTYPERS)}). '
                  'The internals are back-end agnostic; the guard is here so an '
@@ -599,19 +802,55 @@ def cmd_consolidate(args):
     # Every copy-number record is masked, not only the ones in a multi-record
     # locus: two of the CaG loci hold a single record and are never reached by
     # the loop below.
-    mask_gt = set() if getattr(args, 'no_mask_cnv_gt', False) else {
-        vid for vid, c in calls.items() if c.get('class') == 'copy_number'}
+    #
+    # Discovery masks nothing. These genotypes come from whole-haplotype
+    # alignments, which resolve a tandem array directly, and masking them would
+    # throw away the only counts the locus has.
+    mask_gt = set() if (discovery or getattr(args, 'no_mask_cnv_gt', False)) \
+        else {vid for vid, c in calls.items() if c.get('class') == 'copy_number'}
     for locus in flagged:
         mem = [m for m in locus['record_ids'].split(',') if m in recs]
+        n_total = len(locus['record_ids'].split(','))
         if len(mem) < 2:
-            report.append((locus['locus_id'], 'skipped',
-                           f'{len(mem)} of {len(locus["record_ids"].split(","))} '
-                           'members present in the genotyped VCF'))
+            # Too few members here to merge anything, but the locus is real and
+            # the surviving record is one of its alleles. Dropping the
+            # annotation would leave it looking like an unrelated insertion.
+            #
+            # This is the common shape at chr7:4,699,714 and chr8:7,552,031,
+            # where the --human filter keeps one member and removes the others:
+            # all three chr7 records describe the same 8,504 bp unit, and the
+            # two that were removed carry a third RepeatMasker fragment, which
+            # the filter's HERV-K clause does not admit. The locus is intact in
+            # the full callset and split here, which is what
+            # LOCUS_SPLIT_BY_HUMAN_FILTER says.
+            if mem:
+                annotate_only[mem[0]] = (locus, [], [])
+            report.append((locus['locus_id'],
+                           'annotated' if mem else 'skipped',
+                           f'{len(mem)} of {n_total} members present in the '
+                           'input VCF'))
             continue
 
         # Locus REF state is authoritative and comes from the masked reference.
         ref_state = (locus['ref_state'].split(',')[0]
                      if locus['ref_state'] not in ('.', '') else '.')
+
+        # Two member sets, and the distinction is the point of this function.
+        #
+        # `present` is every member carrying a usable allele state. All of them
+        # become an ALT of the consolidated record, so the record says what
+        # segregates at the locus whether or not the graph can count it.
+        #
+        # `keep` is the subset the graph can genotype. A copy-number allele is
+        # excluded: its ALT path repeats sequence the REF path already carries,
+        # so a read from the pre-existing copy traverses it and the allele is
+        # not independently identifiable, however deep the data. That is a
+        # property of the sequence, not of one cohort -- which is why the
+        # decision is made from the allele state and not from a depth
+        # threshold. Thresholding the observed ALT fraction was tried and
+        # misclassifies chr11:101,704,640, where the two members describe one
+        # insertion at different breakpoints so every carrier of one shows
+        # support on the other; merging is what resolves that, not masking.
         alt_states, allele_index, flipped, masked, unresolved = [], {}, [], [], []
         for i, m in enumerate(mem):
             c = calls.get(m, {})
@@ -633,31 +872,36 @@ def cmd_consolidate(args):
                 alt_states.append(st)
                 allele_index[i] = len(alt_states)
 
-        keep = [i for i, m in enumerate(mem)
-                if m not in masked and m not in unresolved]
-        if len(keep) < 2:
-            # Nothing to merge, but the locus is still real and the surviving
-            # member should carry its identity rather than look like a lone
-            # unrelated record.
-            why = ('one usable member (others masked or unresolved)'
-                   if keep else 'no member carries a usable allele state')
-            if keep:
-                annotate_only[mem[keep[0]]] = (locus, masked, unresolved)
-            report.append((locus['locus_id'], 'annotated' if keep else 'skipped', why))
+        present = [i for i, m in enumerate(mem) if m not in unresolved]
+        keep = [i for i in present if mem[i] not in masked]
+        if len(present) < 2:
+            why = ('one member carries a usable allele state'
+                   if present else 'no member carries a usable allele state')
+            if present:
+                annotate_only[mem[present[0]]] = (locus, masked, unresolved)
+            report.append((locus['locus_id'],
+                           'annotated' if present else 'skipped', why))
             continue
 
+        # No genotypable member: the locus is real and its alleles are known,
+        # but every count has to come from discovery.
         fmt_list = [recs[mem[i]][8].split(':') for i in keep]
         n_res = n_part = n_viol = 0
         gts, struct_miss = [], 0
         ac = {i: 0 for i in keep}
         an = 0
+        graph_ploidy = {}
         for si in range(len(samples)):
+            if not keep:
+                gts.append('.')
+                continue
             gt_fields = [recs[mem[i]][9 + si] for i in keep]
             for gf, fm in zip(gt_fields, fmt_list):
                 a, _ = parse_gt(gf)
                 if a is None and structurally_missing(gf, fm):
                     struct_miss += 1
             _, ploidy = parse_gt(gt_fields[0])
+            graph_ploidy[samples[si]] = ploidy
             dos, status = resolve_sample(gt_fields, fmt_list, ploidy)
             local = {keep[k]: v for k, v in
                      zip(range(len(keep)), [dos.get(k, 0) for k in range(len(keep))])}
@@ -677,18 +921,28 @@ def cmd_consolidate(args):
                                 {k: allele_index[keep[k]] for k in range(len(keep))},
                                 ploidy, status))
 
-        alt_ac = {}
+        # Graph counts cover the genotypable alleles; an allele with no
+        # genotypable member is reported as 0 here and named in
+        # HERVK_ALLELE_NOGT, so a reader cannot mistake it for absent.
+        alt_ac = {allele_index[i]: 0 for i in present}
         for i in keep:
-            alt_ac.setdefault(allele_index[i], 0)
             alt_ac[allele_index[i]] += ac[i]
+        nogt_alleles = sorted({allele_index[i] for i in present} -
+                              {allele_index[i] for i in keep})
 
-        dcounts, dan = discovery_counts(args.discovery_vcf,
-                                        [mem[i] for i in keep], samples)
+        # Discovery counts cover every present member, so a masked allele still
+        # has a frequency. It is only usable when both callsets agree on ploidy
+        # at this locus.
+        dcounts, dan, dploidy_ok = discovery_counts(
+            args.discovery_vcf, [mem[i] for i in present], samples,
+            graph_ploidy or None)
         disc_ac = {}
-        if dcounts:
-            for i in keep:
+        if dcounts and dploidy_ok:
+            for i in present:
                 disc_ac.setdefault(allele_index[i], 0)
                 disc_ac[allele_index[i]] += dcounts.get(mem[i], 0)
+        elif dcounts:
+            dan = None
 
         consolidated[locus['locus_id']] = {
             'locus': locus, 'mem': mem, 'keep': keep, 'gts': gts,
@@ -696,7 +950,8 @@ def cmd_consolidate(args):
             'ref_state': ref_state, 'ac': alt_ac, 'an': an,
             'n_res': n_res, 'n_part': n_part, 'n_viol': n_viol,
             'struct_miss': struct_miss, 'flipped': flipped, 'masked': masked,
-            'disc_ac': disc_ac, 'disc_an': dan,
+            'disc_ac': disc_ac, 'disc_an': dan, 'present': present,
+            'nogt_alleles': nogt_alleles, 'disc_ploidy_ok': dploidy_ok,
         }
         dropped.update(mem)
         archived.extend(recs[m] for m in mem)
@@ -706,21 +961,61 @@ def cmd_consolidate(args):
                        archived, report, recs, mask_gt, annotate_only)
 
 
-def build_locus_record(mem_recs, keep, alt_states, allele_index):
+def fetch_ref_span(chrom, start, end, reference):
+    """Reference sequence for chrom:start-end, 1-based inclusive, upper case.
+
+    Uses `samtools faidx` rather than a FASTA parser, the same way
+    hervk_ref_state.py cuts its masking windows, so both read the reference
+    through one tool and cannot disagree about it.
+    """
+    region = f'{chrom}:{start}-{end}'
+    try:
+        raw = subprocess.run(['samtools', 'faidx', reference, region],
+                             capture_output=True, text=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError) as e:
+        raise RuntimeError(f'samtools faidx {region} failed: {e}')
+    seq = ''.join(l.strip() for l in raw.splitlines() if not l.startswith('>'))
+    if len(seq) != end - start + 1:
+        raise RuntimeError(
+            f'{region}: got {len(seq)} bp, expected {end - start + 1}')
+    return seq.upper()
+
+
+def splice_allele(rec, ref_seq, base):
+    """One member's allele, written against the locus reference span.
+
+    `rec` is a member record and `base` the 1-based start of `ref_seq`. The
+    member contributes its inserted bases after its own anchor base and takes
+    out the bases its own REF spans, so the result is the locus reference with
+    that one member's edit applied.
+    """
+    off = int(rec[1]) - base
+    ins = rec[4][1:] if len(rec[4]) > len(rec[3]) else ''
+    skip = len(rec[3]) - 1 if len(rec[3]) > len(rec[4]) else 0
+    return ref_seq[:off + 1] + ins + ref_seq[off + 1 + skip:]
+
+
+def build_locus_record(mem_recs, keep, alt_states, allele_index,
+                       reference=None):
     """Build one multi-allelic record with literal REF/ALT sequence.
 
-    Three shapes occur, and only the first two are reachable without the
-    reference FASTA:
+    Three shapes occur:
 
       a) every member describes the same allele (chr1, chr8, chr11) -- emit the
          leftmost member's own REF/ALT unchanged; it already is that allele.
       b) members describe different alleles and one is a deletion spanning the
          locus (chr12) -- its REF field *is* the reference sequence over the
          span, so the other alleles can be spliced into it exactly.
-      c) different alleles with no spanning deletion -- needs the FASTA.
+      c) different alleles with no spanning deletion (chr7:4,699,714, two
+         insertions and a deletion that starts downstream of both) -- the span
+         comes from the FASTA instead. Without `reference` this shape cannot be
+         built and the locus is skipped, which is what used to happen to every
+         locus of this shape.
 
-    Nothing is reconstructed from coordinates alone; every base emitted here
-    comes from a REF or ALT field that the caller already wrote.
+    (b) is preferred over (c) wherever both apply: a member's own REF field is
+    the exact sequence the caller emitted, so nothing fetched can disagree with
+    it. Otherwise every base still comes from either a REF/ALT field or one
+    samtools faidx call over the locus span.
     """
     kept = [mem_recs[i] for i in keep]
     anchor = min(kept, key=lambda r: int(r[1]))
@@ -735,27 +1030,33 @@ def build_locus_record(mem_recs, keep, alt_states, allele_index):
                                          int(o[1]) <= span_end for o in kept):
             spanning = r
             break
-    if spanning is None:
-        return None, None, None, None, (
-            'members describe different alleles and no deletion spans the '
-            'locus, so the reference sequence over the span is not available '
-            'from the records; pass --reference to splice it from the FASTA')
+    if spanning is not None:
+        ref_seq, base, chrom = spanning[3], int(spanning[1]), spanning[0]
+    else:
+        if not reference:
+            return None, None, None, None, (
+                'members describe different alleles and no deletion spans the '
+                'locus, so the reference sequence over the span is not '
+                'available from the records; pass --reference to splice it '
+                'from the FASTA')
+        chrom = kept[0][0]
+        base = min(int(r[1]) for r in kept)
+        end = max(int(r[1]) + len(r[3]) - 1 for r in kept)
+        try:
+            ref_seq = fetch_ref_span(chrom, base, end, reference)
+        except RuntimeError as e:
+            return None, None, None, None, str(e)
 
-    ref_seq = spanning[3]
-    base = int(spanning[1])
     alts = [None] * len(alt_states)
     for i, r in zip(keep, kept):
         ai = allele_index[i] - 1
-        if r is spanning:
-            alts[ai] = r[4]
-        else:
-            off = int(r[1]) - base
-            ins = r[4][1:] if len(r[4]) > len(r[3]) else ''
-            skip = len(r[3]) - 1 if len(r[3]) > len(r[4]) else 0
-            alts[ai] = ref_seq[:off + 1] + ins + ref_seq[off + 1 + skip:]
+        # A member whose own REF *is* the span needs no splice: its ALT already
+        # is the allele written against that reference.
+        alts[ai] = r[4] if (r[3] == ref_seq and int(r[1]) == base) \
+            else splice_allele(r, ref_seq, base)
     if any(a is None for a in alts):
         return None, None, None, None, 'could not build every ALT allele'
-    return spanning[0], spanning[1], ref_seq, ','.join(alts), None
+    return chrom, str(base), ref_seq, ','.join(alts), None
 
 
 def mask_genotypes(fields):
@@ -774,7 +1075,8 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
     for lid, c in consolidated.items():
         mem_recs = [recs[m] for m in c['mem']]
         chrom, pos, ref, alt, err = build_locus_record(
-            mem_recs, c['keep'], c['alt_states'], c['allele_index'])
+            mem_recs, c['present'], c['alt_states'], c['allele_index'],
+            getattr(args, 'reference', None))
         if err:
             skipped.append((lid, err))
             report.append((lid, 'skipped', err))
@@ -792,6 +1094,10 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
                                for a in alt_list),
             'SVLEN': ','.join(str(len(a) - len(ref)) for a in alt_list),
             'HERVK_LOCUS': lid,
+            # Members of the locus, not members merged here. The two differ
+            # whenever the --human filter removed one, and a reader comparing
+            # HERVK_MEMBERS against this count is entitled to see the gap.
+            'HERVK_LOCUS_N': c['locus']['n_records'],
             'HERVK_ALLELE_REF': c['ref_state'] or '.',
             'HERVK_ALLELE': ','.join(c['alt_states']),
             'HERVK_MEMBERS': ','.join(c['mem']),
@@ -802,17 +1108,47 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
             'HERVK_N_PARTIAL': str(c['n_part']),
             'HERVK_N_PLOIDY_EXCEEDED': str(c['n_viol']),
         }
+        # Carry the locus properties onto the consolidated record. They are
+        # computed once, in cluster(), and written to hervk_loci.tsv, so both
+        # VCFs say the same thing about a locus and neither recomputes it.
+        L = c['locus']
+        if L.get('locus_type') not in (None, '', '.'):
+            info['HERVK_LOCUS_TYPE'] = L['locus_type']
+        for col, key in (('mei', 'HERVK_MEI'), ('solo_prov', 'HERVK_SOLO_PROV'),
+                         ('cnv', 'HERVK_CNV')):
+            if L.get(col) == '1':
+                info[key] = ''
+        absent = [x for x in L.get('records_not_in_human', '.').split(',')
+                  if x != '.']
+        if absent:
+            # A merged record can still be missing an allele. chr1:75,219,429
+            # merges two of its three members and the third is not in this
+            # file, so HERVK_AC covers the alleles present and no more.
+            info['HERVK_MEMBERS_ABSENT'] = ','.join(absent)
+            info['HERVK_LOCUS_INCOMPLETE'] = ''
+            if L.get('allele_set') not in (None, '', '.'):
+                info['HERVK_ALLELE_SET'] = L['allele_set']
         if c['flipped']:
             info['HERVK_POLARITY_FLIPPED'] = ','.join(c['flipped'])
         if c['masked']:
             info['HERVK_MEMBERS_MASKED'] = ','.join(c['masked'])
+        if c.get('nogt_alleles'):
+            # Name the alleles HERVK_AC reports as 0 because the graph cannot
+            # count them, so that 0 is not read as "absent". Their frequency is
+            # in HERVK_AC_DISC.
+            info['HERVK_ALLELE_NOGT'] = ','.join(
+                c['alt_states'][i - 1] for i in c['nogt_alleles'])
         if c['disc_an']:
             info['HERVK_AC_DISC'] = ','.join(str(c['disc_ac'].get(i + 1, 0))
                                              for i in range(len(c['alt_states'])))
             info['HERVK_AN_DISC'] = str(c['disc_an'])
-            if all(c['ac'].get(k, 0) == c['disc_ac'].get(k, 0)
+            # Concordance is only meaningful over the alleles the graph counted.
+            if not c.get('nogt_alleles') and \
+               all(c['ac'].get(k, 0) == c['disc_ac'].get(k, 0)
                    for k in set(c['ac']) | set(c['disc_ac'])):
                 info['HERVK_DISC_CONCORDANT'] = ''
+        elif c.get('disc_ploidy_ok') is False:
+            info['HERVK_DISC_PLOIDY_MISMATCH'] = ''
         fields = [chrom, pos, lid, ref, alt, '.', 'PASS', info_to_str(info), 'GT']
         fields.extend(c['gts'])
         out_by_id[c['mem'][0]] = fields
@@ -822,6 +1158,11 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
             fh.write(h + '\n')
         for h in CONSOLIDATED_HEADERS:
             fh.write(h + '\n')
+        # Which genotypes these are. A consolidated discovery VCF and a
+        # consolidated graph VCF hold the same loci and different counts, and
+        # nothing else in the file distinguishes them.
+        fh.write(f'##hervk_consolidation=source:{getattr(args, "source", "graph")},'
+                 f'input:{os.path.basename(args.genotyped_vcf)}\n')
         fh.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t'
                  + '\t'.join(samples) + '\n')
         annotate_only = annotate_only or {}
@@ -847,6 +1188,24 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
                     info = parse_info(f[7])
                     info['HERVK_LOCUS'] = locus['locus_id']
                     info['HERVK_LOCUS_N'] = locus['n_records']
+                    # An unmerged record still has to say what segregates at
+                    # its locus. Without the allele set a reader sees one
+                    # insertion and has no way to know it is one of three
+                    # alleles, two of which are not in this file.
+                    if locus.get('allele_set') not in (None, '', '.'):
+                        info['HERVK_ALLELE_SET'] = locus['allele_set']
+                    if locus.get('locus_type') not in (None, '', '.'):
+                        info['HERVK_LOCUS_TYPE'] = locus['locus_type']
+                    for col, key in (('mei', 'HERVK_MEI'),
+                                     ('solo_prov', 'HERVK_SOLO_PROV'),
+                                     ('cnv', 'HERVK_CNV')):
+                        if locus.get(col) == '1':
+                            info[key] = ''
+                    absent = [x for x in locus.get(
+                        'records_not_in_human', '.').split(',') if x != '.']
+                    if absent:
+                        info['HERVK_MEMBERS_ABSENT'] = ','.join(absent)
+                        info['HERVK_LOCUS_INCOMPLETE'] = ''
                     if masked:
                         info['HERVK_MEMBERS_MASKED'] = ','.join(masked)
                     if unresolved:
@@ -856,7 +1215,12 @@ def write_consolidated(args, head, samples, consolidated, dropped, archived,
 
     if args.out_archive:
         with open(args.out_archive, 'w') as fh:
-            for h in head:
+            # Our definitions here too. These records carry HERVK_* INFO and
+            # the input header does not always declare all of it, which leaves
+            # bcftools guessing Type=String and refusing to sort the file.
+            for h in merge_headers(head, CONSOLIDATED_HEADERS):
+                fh.write(h + '\n')
+            for h in CONSOLIDATED_HEADERS:
                 fh.write(h + '\n')
             fh.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t'
                      + '\t'.join(samples) + '\n')
@@ -947,7 +1311,15 @@ def main():
 
     c = sub.add_parser('consolidate',
                        help='collapse flagged loci in the graph-genotyped VCF')
-    c.add_argument('--genotyped-vcf', required=True)
+    c.add_argument('--genotyped-vcf',
+                   help='the graph-genotyped VCF (--source graph)')
+    c.add_argument('--vcf-in', dest='genotyped_vcf',
+                   help='the flagged discovery VCF (--source discovery); the '
+                        'same option under the name that fits that input')
+    c.add_argument('--source', choices=('graph', 'discovery'), default='graph',
+                   help='which callset the genotypes come from. graph masks '
+                        'copy-number alleles it cannot count; discovery masks '
+                        'nothing (default: graph)')
     c.add_argument('--loci', required=True,
                    help='hervk_loci.tsv from the flag step')
     c.add_argument('--calls',
