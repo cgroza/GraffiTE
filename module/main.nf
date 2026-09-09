@@ -505,7 +505,23 @@ process concat_repeatmask {
   // HML-2 proviral SVs where RepeatMasker splits a small SVA hit off the LTR
   // (SVA/LTR5_Hs homology). OR-ed at the n_hits level so it also bypasses the
   // polyA requirement that "Retroposon" in matching_classes would trigger.
-  def hervk_pair   = "n_hits==2 & matching_classes=\"LTR/ERVK\" & matching_classes=\"Retroposon/SVA\" & repeat_ids~\"^HERVK-int\" & abs(SVLEN)<=${params.hervk_pair_max_svlen}"
+  //
+  // The hit count is a cap, not an equality, because RepeatMasker also splits
+  // the internal region of a degraded or rearranged provirus. On the CaG set
+  // two of the three records at chr7:4,699,714 come back with three hits
+  // (LTR5_Hs,SVA_A,HERVK-int and HERVK-int,SVA_A,HERVK-int) where the third is
+  // that split, not a second element. At n_hits==2 the filter kept one record
+  // of that locus and dropped the two carrying its common allele, so the locus
+  // reported 39/1 for a two-unit against three-unit difference where the truth
+  // is 26/12/2 across three states.
+  //
+  // The cap does the work here, and the rest of the clause is what keeps it
+  // honest: LTR/ERVK beside Retroposon/SVA, an ^HERVK-int id, and a length no
+  // greater than one provirus. Relaxing n_hits on its own instead, anywhere in
+  // human_single, admits 18 more records on this cohort that are an LTR5
+  // fragment beside something else -- COMP-subunit_FAM90A, alpha satellite,
+  // L1PA10, and HERVK9, a lineage human_hervk_ids deliberately excludes.
+  def hervk_pair   = "n_hits<=${params.hervk_pair_max_hits} & matching_classes=\"LTR/ERVK\" & matching_classes=\"Retroposon/SVA\" & repeat_ids~\"^HERVK-int\" & abs(SVLEN)<=${params.hervk_pair_max_svlen}"
   def human_hits   = params.hervk_sva_pair ? "((${human_single}) | (${hervk_pair}))" : "(${human_single})"
   def human_filter_base = "(${human_ids}) & ${human_size} & ${human_hits}"
   def human_filter = params.human_ignore_filter ? human_filter_base : "(${human_filter_base}) & FILTER=\"PASS\""

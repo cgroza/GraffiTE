@@ -138,7 +138,7 @@ done
 
 echo "== pipeline revision =="
 PROJECT="${PROJECT:-cgroza/GraffiTE}"
-REVISION="${REVISION:-feat/hervk-consolidated-vcfs}"
+REVISION="${REVISION:-fix/hervk-pair-rule-n-hits}"
 GT_DIR="${NXF_ASSETS:-$HOME/.nextflow/assets}/$PROJECT"
 if [[ ! -d "$GT_DIR" ]]; then
   bad "$GT_DIR not cached — run ./bootstrap.sh (or: nextflow pull $PROJECT -r $REVISION)"

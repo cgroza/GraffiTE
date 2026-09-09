@@ -388,6 +388,7 @@ AND (always required)
 - `--human_ignore_filter`: if `true`, do not require `FILTER=="PASS"` for the human subset. Default `false`.
 - `--hervk_sva_pair`: if `true`, admit `n_hits==2` records annotated `HERVK-int` + SVA into the human subset. These are HML-2 proviral SVs where RepeatMasker assigns part of the LTR to SVA (`SVA_A`/`LTR5_Hs` homology); they would otherwise be lost to the single-hit rule. Default `true`.
 - `--hervk_pair_max_svlen`: maximum `|SVLEN|` for the above. Default `10500` (a complete proviral element is 9472 bp).
+- `--hervk_pair_max_hits`: maximum `n_hits` for the above. Default `3`. RepeatMasker splits the internal region of a degraded provirus as well as the LTR, so a genuine HML-2 record can arrive with three hits. Set to `2` for the v1.1 behaviour.
 - `--hervk_config`: path to an optional JSON config (template at `utils/HERVK.config.json`) overriding HERV-K classifier defaults (priors, sigmas, H_T window, SVA-mimic window, strict pmap threshold, polyallelic window). Only used when `--human`. Default `null` (use script defaults).
 - `--cores`: global CPU parameter. Will apply the chosen integer to all multi-threaded processes. See [here](#changing-the-number-of-cpus-and-memory-required-by-each-step) for more customization.
 - `--mammal`: **discontinued in v1.1** — accepting the flag is harmless but it no longer gates behavior. The two filters it used to enable (LINE1 5' inversion detection, SVA VNTR-only reclassification) are now always on. See [L1 5' inversion](#l1-5-inversion) for details.
@@ -696,7 +697,7 @@ A variant enters `pangenome.human.vcf` when **all** of the following hold:
 
 3. **A single RepeatMasker hit** (`n_hits == 1`) — more than one hit almost always means an SV that carries TE sequence rather than a bona fide transposition product. L1 5' inversions are merged upstream and remain single-hit, so they are unaffected. The one exception is 4.
 
-4. **or the HERV-K proviral pattern**: `n_hits == 2` with classes `{LTR/ERVK, Retroposon/SVA}` and a `HERVK-int` hit, up to `--hervk_pair_max_svlen` (default 10500 bp). `SVA_A` shares homology with `LTR5_Hs`, so RepeatMasker routinely splits a small SVA hit off the LTR of a HML-2 proviral SV; without this exception those records — the full-length and truncated proviral polymorphisms — are all lost to the single-hit rule. Disable with `--hervk_sva_pair false`.
+4. **or the HERV-K proviral pattern**: `n_hits <= --hervk_pair_max_hits` (default 3) with classes `{LTR/ERVK, Retroposon/SVA}` and a `HERVK-int` hit, up to `--hervk_pair_max_svlen` (default 10500 bp). `SVA_A` shares homology with `LTR5_Hs`, so RepeatMasker routinely splits a small SVA hit off the LTR of a HML-2 proviral SV; it also splits the internal region of a degraded or rearranged one, giving a third hit. Without this exception those records — the full-length and truncated proviral polymorphisms — are all lost to the single-hit rule. The rest of the clause is what keeps the exception narrow: relaxing `n_hits` anywhere in the single-hit rule instead admits records that are an LTR5 fragment beside an unrelated element. Disable with `--hervk_sva_pair false`.
 
 5. **polyA**, for `SINE/Alu`, `LINE/L1` and `Retroposon/SVA` records: `polyA=TRUE` is required as a TPRT signature. HML-2 (no polyA) and SVA-VNTR records are exempt.
 
