@@ -1,0 +1,104 @@
+/* GraffiTE documentation, supplementary styles.
+   Everything else comes from mkdocs-material; keep this file small. */
+
+/* The palette is the sticker's: black letters with yellow, orange, coral,
+   pink, purple, navy and teal layers. Purple carries links, coral the accent;
+   the figures pick the same two up through --gt-purple and --gt-coral. */
+:root {
+  --gt-yellow: #f5e100;
+  --gt-orange: #f5851f;
+  --gt-coral:  #f2523f;
+  --gt-pink:   #f162b3;
+  --gt-purple: #7a1fa2;
+  --gt-navy:   #23459a;
+  --gt-teal:   #2fb3b3;
+  --md-accent-fg-color: var(--gt-coral);
+  --md-accent-fg-color--transparent: rgba(242, 82, 63, .1);
+  --md-accent-bg-color: #fff;
+  --md-accent-bg-color--light: rgba(255, 255, 255, .7);
+  --md-typeset-a-color: var(--gt-purple);
+}
+[data-md-color-scheme="slate"] {
+  --gt-purple: #c77dff;
+  --gt-coral:  #ff7a66;
+  --md-typeset-a-color: var(--gt-purple);
+}
+
+/* The header: white behind the sticker in light mode, black in dark mode with
+   a white plate so the black letters stay readable; a rainbow rule under both. */
+.md-header {
+  border-bottom: 4px solid transparent;
+  border-image: linear-gradient(90deg, var(--gt-yellow), var(--gt-orange), var(--gt-coral),
+                                var(--gt-pink), #b300e6, var(--gt-navy), var(--gt-teal)) 1;
+}
+.md-header__button.md-logo { display: flex; align-items: center; gap: .6rem; padding: .3rem .4rem; }
+.md-header__button.md-logo img { height: 1.9rem; width: auto; }
+/* Same sticker with the black turned white, so it stays transparent on the dark header. */
+[data-md-color-scheme="slate"] .md-header__button.md-logo img { content: url("graffite-logo-dark.png"); }
+
+/* The version, next to the logo on every page. stamp_pages.py --set rewrites the commit. */
+:root { --gt-version: "v1.1dev @ 4c8e385"; }
+.md-header__button.md-logo::after {
+  content: var(--gt-version);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: .12rem .5rem;
+  border-radius: 999px;
+  background: var(--gt-purple);
+  color: #fff;
+  white-space: nowrap;
+}
+[data-md-color-scheme="slate"] .md-header__button.md-logo::after { color: #111; }
+
+/* The sticker says the name; the plain-text site name next to it is hidden.
+   The second topic, the current page title, still slides in on scroll. */
+.md-header__topic:first-child { visibility: hidden; }
+.md-tabs { border-bottom: 1px solid var(--md-default-fg-color--lightest); }
+
+/* Inline SVG figures scale with the content column and follow the theme toggle,
+   because they inherit Material's CSS custom properties. */
+.gt-figure {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+/* Wide reference tables scroll inside their own box rather than the page body. */
+.md-typeset__table {
+  width: 100%;
+}
+.md-typeset table:not([class]) {
+  font-size: 0.72rem;
+}
+.md-typeset table:not([class]) td,
+.md-typeset table:not([class]) th {
+  padding: 0.5em 0.8em;
+}
+
+/* Parameter reference: keep the name column from wrapping mid-flag. */
+.md-typeset table:not([class]) td:first-child code {
+  white-space: nowrap;
+}
+
+/* Source-provenance annotations, e.g. `nextflow.config:52`. */
+.src {
+  font-size: 0.68rem;
+  color: var(--md-default-fg-color--light);
+  white-space: nowrap;
+}
+
+/* Figure captions sit closer to the figure than Material's default. */
+.md-typeset figure figcaption {
+  margin-top: 0.4em;
+  max-width: 46rem;
+  font-style: normal;
+}
+
+/* Home page masthead. */
+.gt-masthead { text-align: center; margin: 0 0 .4rem; }
+.gt-masthead img { max-width: min(560px, 90%); height: auto; }
+.gt-tagline { text-align: center; font-size: 1.05rem; font-weight: 700; margin-bottom: 1.6rem; }
+[data-md-color-scheme="slate"] .gt-masthead img { content: url("graffite-logo-dark.png"); }

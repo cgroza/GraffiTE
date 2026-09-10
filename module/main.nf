@@ -643,7 +643,7 @@ process tsd_search {
   """
   bcftools view -H genotypes_repmasked_filtered.vcf | cut -f1 | uniq > chrom.txt
   cp repeatmasker_dir/repeatmasker_dir/* .
-  TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta ${indels}
+  TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta ${indels} ${params.tsd_win}
   """
 }
 
@@ -697,10 +697,11 @@ process pangenie {
   script:
   """
   PanGenie -t ${task.cpus} -j ${task.cpus} -s ${sample_name} -i <(zcat -f ${sample_reads}) -f ${index}/pangenie_index -o ${sample_name}
-  bgzip ${sample_name}_genotyping.vcf
-  tabix ${sample_name}_genotyping.vcf.gz
-  bcftools norm -f ${ref} -m- -Oz -o ${sample_name}.vcf.gz ${sample_name}_genotyping.vcf.gz
-  tabix -p vcf ${sample_name}.vcf.gz
+  # PanGenie writes ${sample_name}_genotyping.vcf against a graph VCF built with
+  # `bcftools norm -m+`. Split the records back so they match pangenome.vcf one
+  # for one when merge_VCFs transfers INFO, as vg_call does.
+  bcftools norm -f ${ref} -m- -Oz -o ${sample_name}_genotyping.vcf.gz ${sample_name}_genotyping.vcf
+  tabix -p vcf ${sample_name}_genotyping.vcf.gz
   """
 }
 
@@ -729,12 +730,14 @@ process make_graph {
       break
     case "graphaligner":
       prep + """
-      export TMPDIR=$PWD
+      export TMPDIR=\$PWD
       vg construct -a  -r ${fasta} -v unphased.vcf -m 1024 > index/index.vg
       vg convert --vg-algorithm -f index/index.vg > index/index.gfa
       vg snarls index/index.gfa > index/index.pb
       """
       break
+    default:
+      error "make_graph has no recipe for --graph_method ${graph_method}"
   }
 }
 
@@ -789,6 +792,8 @@ process graph_align_reads {
       rm ${sample_name}.gam
       """
       break
+    default:
+      error "graph_align_reads has no recipe for --graph_method ${graph_method}"
   }
 }
 
@@ -811,7 +816,7 @@ process vg_call {
 }
 
 process merge_VCFs {
-  publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
+  publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
   input:
   path(vcfFiles)

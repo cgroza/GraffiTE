@@ -1,0 +1,123 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main, v1.1dev]
+    paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs.yml', 'main.nf', 'module/**', 'bin/**', 'nextflow.config', 'GraffiTE.def']
+  pull_request:
+    paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs.yml', 'main.nf', 'module/**', 'bin/**', 'nextflow.config', 'GraffiTE.def']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (strict)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # stamp_pages.py --check diffs against the stamped commit
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      - name: Install
+        run: pip install -r docs/requirements.txt
+
+      - name: Concatenate the pages for language models
+        run: python docs/scripts/build_llms_full.py
+
+      # --strict turns broken internal links and missing nav entries into failures.
+      - name: Build
+        run: mkdocs build --strict
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: site/
+          retention-days: 7
+
+  # Report only. A parameter or INFO tag that the code has and the reference
+  # pages do not (or the reverse) shows up here; it does not block the merge.
+  drift:
+    name: Docs vs code (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Parameters and VCF fields against the reference pages
+        run: |
+          {
+            echo '## Parameters and VCF fields'
+            echo '```'
+            python docs/scripts/check_params.py || echo 'MISMATCH (advisory)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          python docs/scripts/check_params.py
+
+      - name: Verification stamp against the code
+        if: always()
+        run: |
+          {
+            echo '## Verification stamp'
+            echo '```'
+            python docs/scripts/stamp_pages.py --check || echo 'STALE (advisory)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          python docs/scripts/stamp_pages.py --check
+
+  deploy:
+    name: Deploy to GitHub Pages
+    # Only the documentation branch publishes; PRs build but do not deploy.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/v1.1dev'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      - name: Install
+        run: pip install -r docs/requirements.txt
+
+      - name: Concatenate the pages for language models
+        run: python docs/scripts/build_llms_full.py
+
+      - name: Build
+        run: mkdocs build --strict
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,85 @@
+<svg viewBox="0 0 780 436" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-labelledby="tsd-title tsd-desc" class="gt-figure">
+  <title id="tsd-title">How GraffiTE searches for a target site duplication</title>
+  <desc id="tsd-desc">Two fragments are compared. The L fragment is the 5-prime reference flank
+  followed by the first bases of the variant; the R fragment is the last bases of the variant
+  followed by the 3-prime reference flank. Each fragment is two windows wide and the junction
+  sits at column WIN. An exact match between the two fragments is a candidate duplication. Its
+  score is the smaller of a, the mean distance of the two copies' starts from the junction, and
+  b, the same for their ends. In the snug configuration drawn, one copy ends at the junction
+  inside the flank and the other ends at the junction inside the variant, so b is zero and the
+  candidate passes.</desc>
+  <style>
+    .gt-figure { --fg: var(--md-default-fg-color, #1f2933);
+                 --fg-mute: var(--md-default-fg-color--light, #5b6b7c);
+                 --te: var(--gt-coral, #f2523f);
+                 --tsd: var(--gt-purple, #7a1fa2);
+                 --flank: var(--md-default-fg-color--lightest, #dfe5ea);
+                 --rule: var(--md-default-fg-color--lighter, #b6c2cd);
+                 --panel: var(--md-code-bg-color, rgba(128,140,155,.09)); }
+    .gt-figure text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .ttl   { font-size: 15px; font-weight: 700; fill: var(--fg); }
+    .lbl   { font-size: 12px; font-weight: 600; fill: var(--fg-mute);
+             letter-spacing: .04em; text-transform: uppercase; }
+    .blk   { font-size: 12px; font-weight: 600; fill: var(--fg-mute); }
+    .on    { font-size: 12px; font-weight: 700; fill: #fff; }
+    .mono  { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+             font-size: 12.5px; fill: var(--fg); }
+    .cap   { font-size: 12.5px; fill: var(--fg-mute); }
+    .flank { fill: var(--flank); stroke: var(--rule); stroke-width: 1; }
+    .te    { fill: var(--te); }
+    .tsd   { fill: var(--tsd); }
+    .panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+    .junc  { stroke: var(--fg); stroke-width: 1.5; stroke-dasharray: 3 3; }
+    .meas  { stroke: var(--tsd); stroke-width: 1.5; fill: none; }
+  </style>
+  <!-- ══════════════ panel 1 · the two fragments ══════════════ -->
+  <rect class="panel" x="1" y="1" width="778" height="150" rx="8"/>
+  <text class="ttl" x="20" y="28">What is compared</text>
+  <text class="cap" x="20" y="48">Two fragments, each two windows wide. The junction is column WIN of both.</text>
+  <text class="lbl" x="20" y="82">L fragment</text>
+  <rect class="flank" x="110" y="66" width="150" height="30" rx="4"/>
+  <rect class="te"    x="260" y="66" width="150" height="30" rx="4"/>
+  <text class="blk" x="185" y="86" text-anchor="middle">5′ flank, WIN bp</text>
+  <text class="on"  x="335" y="86" text-anchor="middle">variant, first WIN bp</text>
+  <line class="junc" x1="260" y1="58" x2="260" y2="104"/>
+  <text class="lbl" x="20" y="130">R fragment</text>
+  <rect class="te"    x="110" y="114" width="150" height="30" rx="4"/>
+  <rect class="flank" x="260" y="114" width="150" height="30" rx="4"/>
+  <text class="on"  x="185" y="134" text-anchor="middle">variant, last WIN bp</text>
+  <text class="blk" x="335" y="134" text-anchor="middle">3′ flank, WIN bp</text>
+  <line class="junc" x1="260" y1="106" x2="260" y2="152"/>
+  <text class="cap" x="440" y="82">Column WIN, the last base before the</text>
+  <text class="cap" x="440" y="100">junction, is where a copy should end</text>
+  <text class="cap" x="440" y="118">(or column WIN + 1 where it should</text>
+  <text class="cap" x="440" y="136">start). WIN is <tspan class="mono">--tsd_win</tspan>, default 30.</text>
+  <!-- ══════════════ panel 2 · a snug duplication ══════════════ -->
+  <rect class="panel" x="1" y="166" width="778" height="166" rx="8"/>
+  <text class="ttl" x="20" y="193">A snug duplication</text>
+  <text class="cap" x="20" y="213">One copy is the target site in the 5′ flank; the other was carried at the end of the variant.</text>
+  <!-- start offset, measured above the L fragment -->
+  <path class="meas" d="M200 240 L200 234 L260 234 L260 240"/>
+  <text class="cap" x="230" y="230" text-anchor="middle" fill="var(--tsd)">a = 12</text>
+  <text class="lbl" x="20" y="263">L</text>
+  <rect class="flank" x="110" y="247" width="150" height="30" rx="4"/>
+  <rect class="te"    x="260" y="247" width="150" height="30" rx="4"/>
+  <rect class="tsd"   x="200" y="247" width="60"  height="30" rx="4"/>
+  <text class="on" x="230" y="267" text-anchor="middle">TSD</text>
+  <line class="junc" x1="260" y1="241" x2="260" y2="285"/>
+  <text class="lbl" x="20" y="311">R</text>
+  <rect class="te"    x="110" y="295" width="150" height="30" rx="4"/>
+  <rect class="flank" x="260" y="295" width="150" height="30" rx="4"/>
+  <rect class="tsd"   x="200" y="295" width="60"  height="30" rx="4"/>
+  <text class="on" x="230" y="315" text-anchor="middle">TSD</text>
+  <line class="junc" x1="260" y1="287" x2="260" y2="331"/>
+  <text class="mono" x="440" y="263">a = mean distance of the two starts</text>
+  <text class="mono" x="440" y="281">    from the junction (12 here)</text>
+  <text class="mono" x="440" y="311">b = the same for the two ends (0 here)</text>
+  <!-- ══════════════ panel 3 · the score ══════════════ -->
+  <rect class="panel" x="1" y="347" width="778" height="88" rx="8"/>
+  <text class="ttl" x="20" y="374">The score</text>
+  <text class="mono" x="20" y="398">score = min(a, b)</text>
+  <text class="mono" x="20" y="418">PASS when score ≤ 5 and the copies are 4 to 20 bp long</text>
+  <text class="cap" x="440" y="398">The best candidate is the lowest score, then the</text>
+  <text class="cap" x="440" y="418">longest match. Here score = 0: PASS.</text>
+</svg>

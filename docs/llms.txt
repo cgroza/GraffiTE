@@ -1,0 +1,34 @@
+# GraffiTE
+
+> GraffiTE is a Nextflow pipeline that finds transposable element insertion polymorphisms in genome assemblies and long reads, annotates them with RepeatMasker and ULTRA, and genotypes them in read sets through a pangenome graph. This site documents v1.1 (branch v1.1dev); the 2024 Nature Communications paper describes v1.0.
+
+## Documentation
+
+- [GraffiTE](https://cgroza.github.io/GraffiTE/): what the pipeline does, the three stages, reference versus non-reference insertions, and a glossary.
+- [Installation](https://cgroza.github.io/GraffiTE/getting-started/installation/): prerequisites, the Nextflow parser setting, fetching the code with its submodule, the container image, and updating.
+- [Quickstart](https://cgroza.github.io/GraffiTE/getting-started/quickstart/): the bundled chromosome 22 test set, the command, and the files a run writes.
+- [Choosing your inputs](https://cgroza.github.io/GraffiTE/getting-started/choosing-your-inputs/): which entry flag matches which data, what each runs and skips, and which flags combine.
+- [v1.0 vs v1.1](https://cgroza.github.io/GraffiTE/getting-started/v1.0-vs-v1.1/): every flag, field and behaviour that changed since the paper, with the paper's nine modes in v1.1 syntax.
+- [Stage A: discovery](https://cgroza.github.io/GraffiTE/guides/discovery/): assemblies, PAV, long reads, BAMs and existing SV calls, and the truvari merge.
+- [Stage B: repeat annotation](https://cgroza.github.io/GraffiTE/guides/annotation/): RepeatMasker, ULTRA, the repeat-span filter, TSDs, polyA and the trusted subset.
+- [Stage C: genotyping](https://cgroza.github.io/GraffiTE/guides/genotyping/): PanGenie, Giraffe, GraphAligner and precomputed graphs, read presets and the merged VCF.
+- [Human mobile element insertions](https://cgroza.github.io/GraffiTE/guides/human-mei/): the --human filter, its whitelists and gates, and the HERV-K classifier and consolidation.
+- [Resuming and skipping work](https://cgroza.github.io/GraffiTE/guides/skipping-work/): -resume and the flags that enter the pipeline from an earlier run's outputs.
+- [Resources and scaling](https://cgroza.github.io/GraffiTE/guides/resources/): profiles, --cores, per-process CPU, memory and time parameters, and large genomes.
+- [Methylation](https://cgroza.github.io/GraffiTE/guides/methylation/): lifting base modifications onto the graph with --epigenomes through the panmethyl submodule.
+- [Parameters](https://cgroza.github.io/GraffiTE/reference/parameters/): every parameter, its default with units, what it controls, and the source line.
+- [Samplesheet formats](https://cgroza.github.io/GraffiTE/reference/samplesheets/): the CSV columns each input flag reads.
+- [Output files](https://cgroza.github.io/GraffiTE/reference/outputs/): every published file, directory by directory.
+- [VCF fields](https://cgroza.github.io/GraffiTE/reference/vcf-fields/): every INFO and FORMAT field GraffiTE writes, with the code that writes it, and bcftools caveats.
+- [Pipeline processes](https://cgroza.github.io/GraffiTE/reference/processes/): all Nextflow processes, their inputs, outputs, tools and resource parameters.
+- [Container contents](https://cgroza.github.io/GraffiTE/reference/container/): the image, pinned and unpinned tools, and how the recipe relates to the published image.
+- [Target site duplications](https://cgroza.github.io/GraffiTE/background/tsd/): what a TSD is, how the exact-match search and scoring work, and how to read TSD_summary.txt.
+- [L1 5' inversions](https://cgroza.github.io/GraffiTE/background/l1-5prime-inversion/): twin priming, the strand signature and the L1_5PINV field.
+- [SVA VNTR polymorphisms](https://cgroza.github.io/GraffiTE/background/sva-vntr/): SVA structure, VNTR-only length polymorphisms and their reclassification.
+- [HERV-K (HML-2) biology](https://cgroza.github.io/GraffiTE/background/hervk-hml2/): proviral architecture, the allele states, copy-number loci and library naming.
+- [Troubleshooting](https://cgroza.github.io/GraffiTE/troubleshooting/): messages printed on purpose, reported failures, and what to do.
+- [Changelog](https://cgroza.github.io/GraffiTE/changelog/): release history from beta 0.1 to v1.1.
+
+## Full text
+
+- [llms-full.txt](https://cgroza.github.io/GraffiTE/llms-full.txt): every page above concatenated into one file.

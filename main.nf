@@ -2,7 +2,7 @@
 
 // 1. Read the version from the local file
 def versionFile = file("${baseDir}/version.txt")
-def pipelineVersion = versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : '1.1.0'
+def pipelineVersion = versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : workflow.manifest.version
 
 // Expose version to process scripts (used for stamping VCF headers)
 params.graffite_version = pipelineVersion
@@ -32,6 +32,13 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 """
 
+// panmethyl is a git submodule. A clone without --recurse-submodules leaves the
+// directory empty and the include below fails on a missing module file.
+// `nextflow pull` initialises submodules itself; this is for local clones.
+if(!file("${baseDir}/panmethyl/module/main.nf").exists()) {
+  error "panmethyl/ is empty: the submodule is not initialised. Run `git submodule update --init` in ${baseDir}, or clone with --recurse-submodules."
+}
+
 include { index_graph; bamtags_to_BED; lift_epigenome; annotate_VCF; annotate_BED; merge_BED; BED_to_graph; merge_CSV } from './panmethyl/module/'
 
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
@@ -41,6 +48,28 @@ include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles
          hervk_reconcile } from './module'
 
 workflow {
+  // --vcf is an already-merged callset. Each discovery flag would add a caller
+  // to a merge that never runs, and the run used to die later on an undefined
+  // channel (sv_variants_ch) instead of saying so.
+  def discovery = ['assemblies', 'longreads', 'bams', 'pav', 'svs'].findAll { params[it] }
+  if(params.vcf && discovery) {
+    error "--vcf cannot be combined with --${discovery.join(' --')}. Pass --vcf alone, or drop it and use --svs to add your own per-sample VCFs to the discovery merge."
+  }
+
+  // precomputed has no recipe in make_graph or graph_align_reads (their
+  // switch has no such case, and the process got a null script).
+  if(params.genotype && params.graph_method == "precomputed"
+     && !(params.graph && (params.vcfs || params.graph_alignments))) {
+    error "--graph_method precomputed builds nothing itself: it needs --graph (an index directory holding index.gfa and index.pb, as make_graph writes) and either --vcfs (per-sample vg call VCFs) or --graph_alignments (per-sample gaf,pack)."
+  }
+
+  // hervk_reconcile consumes the loci, calls and human VCF that hervk_annotate
+  // writes during discovery. --graffite_vcf skips discovery, so both reconcile
+  // blocks would read outputs of a process that never ran.
+  if(params.graffite_vcf && params.human && params.hervk_reconcile) {
+    error "--graffite_vcf skips discovery, and HERV-K reconciliation needs the hervk_annotate outputs discovery produces. Pass --hervk_reconcile false, or start from --RM_dir instead of --graffite_vcf."
+  }
+
   // initiate channels that will provide the reference genome to processes
   Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
 
@@ -119,7 +148,7 @@ workflow {
       } else if(params.vcf){
         truvari_merge(Channel.fromPath(params.vcf, checkIfExists : true), ref_asm_ch, true).set{raw_vcf_ch}
       } else {
-        error "No --longreads, --assemblies, --pav, --vcf or --RM_dir parameters passed to GraffiTE."
+        error "No input given. Pass one of --longreads, --bams, --assemblies, --pav, --svs (discovery), --vcf (a merged SV VCF), --RM_dir (RepeatMasker output of an earlier run) or --graffite_vcf (a pangenome.vcf from an earlier run)."
       }
       repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch))
       repeatmask_VCF.out.vcf.set{RM_ch}
@@ -242,7 +271,7 @@ workflow {
         indexed_vg_call_vcfs.set{indexed_vcfs}
       }
     } else {
-      error "Unsupported --graph_method. --graph_method must be pangenie, giraffe or graphaligner."
+      error "Unsupported --graph_method. --graph_method must be pangenie, giraffe, graphaligner or precomputed."
     }
 
     merge_VCFs(indexed_vcfs.map{v -> v[1]}.collect(), vcf_ch)
