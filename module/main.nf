@@ -735,6 +735,8 @@ process make_graph {
       vg snarls index/index.gfa > index/index.pb
       """
       break
+    default:
+      error "make_graph has no recipe for --graph_method ${graph_method}"
   }
 }
 
@@ -789,6 +791,8 @@ process graph_align_reads {
       rm ${sample_name}.gam
       """
       break
+    default:
+      error "graph_align_reads has no recipe for --graph_method ${graph_method}"
   }
 }
 
