@@ -41,6 +41,14 @@ include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles
          hervk_reconcile } from './module'
 
 workflow {
+  // --vcf is an already-merged callset. Each discovery flag would add a caller
+  // to a merge that never runs, and the run used to die later on an undefined
+  // channel (sv_variants_ch) instead of saying so.
+  def discovery = ['assemblies', 'longreads', 'bams', 'pav', 'svs'].findAll { params[it] }
+  if(params.vcf && discovery) {
+    error "--vcf cannot be combined with --${discovery.join(' --')}. Pass --vcf alone, or drop it and use --svs to add your own per-sample VCFs to the discovery merge."
+  }
+
   // initiate channels that will provide the reference genome to processes
   Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
 
