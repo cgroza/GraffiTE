@@ -6,7 +6,6 @@
   with SVTYPE equal to INS. Right: a reference insertion, where the element is present in the
   reference and absent from the sample, producing a VCF record with SVTYPE equal to DEL. In both
   cases the annotated element is the same transposable element.</desc>
-
   <style>
     .gt-figure { --fg: var(--md-default-fg-color, #1f2933);
                  --fg-mute: var(--md-default-fg-color--light, #5b6b7c);
@@ -30,14 +29,11 @@
     .gap   { stroke: var(--rule); stroke-width: 1.5; stroke-dasharray: 4 3; }
     .tick  { stroke: var(--te); stroke-width: 1.5; }
   </style>
-
   <!-- ══════════════ LEFT PANEL · non-reference insertion ══════════════ -->
   <g transform="translate(0,0)">
     <rect class="panel" x="1" y="1" width="372" height="330" rx="8"/>
-
     <text class="ttl" x="20" y="30">Non-reference insertion</text>
     <text class="cap" x="20" y="50">The element is absent from the reference.</text>
-
     <!-- reference track: uninterrupted -->
     <text class="lbl" x="20" y="83">Reference</text>
     <rect class="flank" x="20" y="92" width="150" height="30" rx="4"/>
@@ -45,7 +41,6 @@
     <text class="blk" x="95"  y="112" text-anchor="middle">flank</text>
     <text class="blk" x="245" y="112" text-anchor="middle">flank</text>
     <line class="tick" x1="170" y1="86" x2="170" y2="128"/>
-
     <!-- sample track: element inserted -->
     <text class="lbl" x="20" y="163">Sample</text>
     <rect class="flank" x="20"  y="172" width="105" height="30" rx="4"/>
@@ -54,11 +49,9 @@
     <text class="blk"  x="72"  y="192" text-anchor="middle">flank</text>
     <text class="te-t" x="180" y="192" text-anchor="middle">TE</text>
     <text class="blk"  x="287" y="192" text-anchor="middle">flank</text>
-
     <!-- linkage between the two tracks -->
     <path class="gap" d="M170 128 L125 166"/>
     <path class="gap" d="M170 128 L235 166"/>
-
     <!-- record -->
     <rect class="panel" x="20" y="228" width="333" height="84" rx="6"/>
     <text class="mono" x="34" y="252">REF = <tspan fill="var(--fg-mute)">A</tspan></text>
@@ -66,14 +59,11 @@
     <text class="mono" x="34" y="296">SVTYPE = <tspan font-weight="700">INS</tspan></text>
     <text class="cap"  x="200" y="296">TE present in sample</text>
   </g>
-
   <!-- ══════════════ RIGHT PANEL · reference insertion ══════════════ -->
   <g transform="translate(406,0)">
     <rect class="panel" x="1" y="1" width="372" height="330" rx="8"/>
-
     <text class="ttl" x="20" y="30">Reference insertion</text>
     <text class="cap" x="20" y="50">The element is present in the reference.</text>
-
     <!-- reference track: element present -->
     <text class="lbl" x="20" y="83">Reference</text>
     <rect class="flank" x="20"  y="92" width="105" height="30" rx="4"/>
@@ -82,7 +72,6 @@
     <text class="blk"  x="72"  y="112" text-anchor="middle">flank</text>
     <text class="te-t" x="180" y="112" text-anchor="middle">TE</text>
     <text class="blk"  x="287" y="112" text-anchor="middle">flank</text>
-
     <!-- sample track: uninterrupted -->
     <text class="lbl" x="20" y="163">Sample</text>
     <rect class="flank" x="20"  y="172" width="150" height="30" rx="4"/>
@@ -90,20 +79,17 @@
     <text class="blk" x="95"  y="192" text-anchor="middle">flank</text>
     <text class="blk" x="245" y="192" text-anchor="middle">flank</text>
     <line class="tick" x1="170" y1="166" x2="170" y2="208"/>
-
     <path class="gap" d="M125 128 L170 166"/>
     <path class="gap" d="M235 128 L170 166"/>
-
     <rect class="panel" x="20" y="228" width="333" height="84" rx="6"/>
     <text class="mono" x="34" y="252">REF = <tspan fill="var(--fg-mute)">A</tspan> + <tspan fill="var(--te)" font-weight="700">TE</tspan></text>
     <text class="mono" x="34" y="272">ALT = <tspan fill="var(--fg-mute)">A</tspan></text>
     <text class="mono" x="34" y="296">SVTYPE = <tspan font-weight="700">DEL</tspan></text>
     <text class="cap"  x="200" y="296">TE absent from sample</text>
   </g>
-
   <!-- ══════════════ footer ══════════════ -->
   <text class="cap" x="390" y="356" text-anchor="middle">
-    In both panels GraffiTE annotates the same element — but the ALT allele means
+    In both panels GraffiTE annotates the same element, but the ALT allele means
     <tspan font-weight="700" fill="var(--fg)">“TE present”</tspan> only on the left.
   </text>
 </svg>
