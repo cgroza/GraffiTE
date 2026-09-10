@@ -56,6 +56,13 @@ workflow {
     error "--graph_method precomputed builds nothing itself: it needs --graph (an index directory holding index.gfa and index.pb, as make_graph writes) and either --vcfs (per-sample vg call VCFs) or --graph_alignments (per-sample gaf,pack)."
   }
 
+  // hervk_reconcile consumes the loci, calls and human VCF that hervk_annotate
+  // writes during discovery. --graffite_vcf skips discovery, so both reconcile
+  // blocks would read outputs of a process that never ran.
+  if(params.graffite_vcf && params.human && params.hervk_reconcile) {
+    error "--graffite_vcf skips discovery, and HERV-K reconciliation needs the hervk_annotate outputs discovery produces. Pass --hervk_reconcile false, or start from --RM_dir instead of --graffite_vcf."
+  }
+
   // initiate channels that will provide the reference genome to processes
   Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
 
