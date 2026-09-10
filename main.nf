@@ -32,6 +32,13 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 """
 
+// panmethyl is a git submodule. A clone without --recurse-submodules leaves the
+// directory empty and the include below fails on a missing module file.
+// `nextflow pull` initialises submodules itself; this is for local clones.
+if(!file("${baseDir}/panmethyl/module/main.nf").exists()) {
+  error "panmethyl/ is empty: the submodule is not initialised. Run `git submodule update --init` in ${baseDir}, or clone with --recurse-submodules."
+}
+
 include { index_graph; bamtags_to_BED; lift_epigenome; annotate_VCF; annotate_BED; merge_BED; BED_to_graph; merge_CSV } from './panmethyl/module/'
 
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
