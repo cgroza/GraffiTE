@@ -24,7 +24,7 @@ fi
 OUTDIR="${OUTDIR:-hervk_v2_run}"
 PROFILE="${PROFILE:-cluster}"
 CPUS="${CPUS:-8}"
-REVISION="${REVISION:-feat/hervk-consolidated-vcfs}"
+REVISION="${REVISION:-fix/hervk-pair-rule-n-hits}"
 PROJECT="${PROJECT:-cgroza/GraffiTE}"
 
 # Stage E runs against an existing genotyped VCF rather than re-genotyping.

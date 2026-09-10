@@ -80,7 +80,7 @@ def check_locus_layer(path, label, failures, warnings):
               'incomplete': sum(1 for i in by_locus.values()
                                 if 'HERVK_LOCUS_INCOMPLETE' in i)}
     for key, want in (('loci', 31), ('mei', 21), ('solo_prov', 9), ('cnv', 3),
-                      ('incomplete', 3)):
+                      ('incomplete', 2)):
         if counts[key] != want:
             warnings.append(f'{label}: {key}={counts[key]}, expected {want} '
                             'on the CaG cohort')
@@ -99,9 +99,12 @@ def check_locus_layer(path, label, failures, warnings):
             failures.append(f'{label}: chr6 has no null allele and must not '
                             'carry HERVK_MEI')
 
-    # The two loci the --human filter cuts in half have to say so, or their
-    # allele frequencies read as covering the locus.
-    for lid in ('HERVK_chr7_4699714', 'HERVK_chr8_7552031'):
+    # The loci the --human filter still cuts in half have to say so, or their
+    # allele frequencies read as covering the locus. Two remain, and neither
+    # loses an allele state: chr1's absent member is over the pair rule's
+    # length cap and chr8's is under the 250 bp floor that applies to every
+    # class.
+    for lid in ('HERVK_chr1_75219429', 'HERVK_chr8_7552031'):
         i = by_locus.get(lid)
         if i is None:
             failures.append(f'{label}: {lid} carries no locus id')
@@ -112,6 +115,28 @@ def check_locus_layer(path, label, failures, warnings):
             failures.append(f'{label}: {lid} is incomplete but names no '
                             'HERVK_ALLELE_SET, so a reader cannot see what '
                             'else segregates there')
+
+    # chr7 is whole now. hervk_pair_max_hits admits the two members whose
+    # internal region RepeatMasker split in three, so the locus reports all
+    # three of its allele states instead of two.
+    c7 = by_locus.get('HERVK_chr7_4699714')
+    if c7 is None:
+        failures.append(f'{label}: HERVK_chr7_4699714 carries no locus id')
+    else:
+        if 'HERVK_LOCUS_INCOMPLETE' in c7:
+            failures.append(
+                f'{label}: chr7:4,699,714 is still missing a member. '
+                'hervk_pair_max_hits should admit the two three-hit records '
+                'there; check the --human filter in human_filter_summary.txt')
+        if c7.get('HERVK_LOCUS_N') != '3':
+            failures.append(f"{label}: chr7 HERVK_LOCUS_N = "
+                            f"{c7.get('HERVK_LOCUS_N')}, expected 3")
+        alleles = set(filter(None, (c7.get('HERVK_ALLELE_REF', '') + ',' +
+                                    c7.get('HERVK_ALLELE', '')).split(',')))
+        if alleles != {'prov_x2', 'prov_x3', 'provirus'}:
+            failures.append(
+                f'{label}: chr7 alleles {sorted(alleles)}, expected '
+                'prov_x2, prov_x3 and provirus')
     return counts, n_records
 
 
