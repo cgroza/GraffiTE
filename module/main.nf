@@ -643,7 +643,7 @@ process tsd_search {
   """
   bcftools view -H genotypes_repmasked_filtered.vcf | cut -f1 | uniq > chrom.txt
   cp repeatmasker_dir/repeatmasker_dir/* .
-  TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta ${indels}
+  TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta ${indels} ${params.tsd_win}
   """
 }
 
