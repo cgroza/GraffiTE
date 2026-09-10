@@ -2,7 +2,7 @@
 
 // 1. Read the version from the local file
 def versionFile = file("${baseDir}/version.txt")
-def pipelineVersion = versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : '1.1.0'
+def pipelineVersion = versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : workflow.manifest.version
 
 // Expose version to process scripts (used for stamping VCF headers)
 params.graffite_version = pipelineVersion
