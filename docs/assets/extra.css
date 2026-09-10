@@ -1,6 +1,45 @@
 /* GraffiTE documentation, supplementary styles.
    Everything else comes from mkdocs-material; keep this file small. */
 
+/* The palette is the sticker's: black letters with yellow, orange, coral,
+   pink, purple, navy and teal layers. Purple carries links, coral the accent;
+   the figures pick the same two up through --gt-purple and --gt-coral. */
+:root {
+  --gt-yellow: #f5e100;
+  --gt-orange: #f5851f;
+  --gt-coral:  #f2523f;
+  --gt-pink:   #f162b3;
+  --gt-purple: #7a1fa2;
+  --gt-navy:   #23459a;
+  --gt-teal:   #2fb3b3;
+  --md-accent-fg-color: var(--gt-coral);
+  --md-accent-fg-color--transparent: rgba(242, 82, 63, .1);
+  --md-accent-bg-color: #fff;
+  --md-accent-bg-color--light: rgba(255, 255, 255, .7);
+  --md-typeset-a-color: var(--gt-purple);
+}
+[data-md-color-scheme="slate"] {
+  --gt-purple: #c77dff;
+  --gt-coral:  #ff7a66;
+  --md-typeset-a-color: var(--gt-purple);
+}
+
+/* The header: white behind the sticker in light mode, black in dark mode with
+   a white plate so the black letters stay readable; a rainbow rule under both. */
+.md-header {
+  border-bottom: 4px solid transparent;
+  border-image: linear-gradient(90deg, var(--gt-yellow), var(--gt-orange), var(--gt-coral),
+                                var(--gt-pink), #b300e6, var(--gt-navy), var(--gt-teal)) 1;
+}
+.md-header__button.md-logo { padding: .3rem .4rem; }
+.md-header__button.md-logo img { height: 1.8rem; width: auto; }
+[data-md-color-scheme="slate"] .md-header__button.md-logo img {
+  background: #fff;
+  border-radius: 6px;
+  padding: .1rem .35rem;
+}
+.md-tabs { border-bottom: 1px solid var(--md-default-fg-color--lightest); }
+
 /* Inline SVG figures scale with the content column and follow the theme toggle,
    because they inherit Material's CSS custom properties. */
 .gt-figure {

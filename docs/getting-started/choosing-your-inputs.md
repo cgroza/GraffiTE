@@ -54,9 +54,9 @@ flowchart TD
     Q4 -->|"Annotation<br/>(pangenome.vcf)"| GV["<code>--graffite_vcf</code>"]
     Q4 -->|"Graph, or alignments"| PC["<code>--graph</code><br/><code>--graph_alignments</code> / <code>--vcfs</code>"]
 
-    classDef a fill:#0d7377,stroke:#0d7377,color:#fff;
+    classDef a fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
     classDef b fill:#5c7cfa,stroke:#5c7cfa,color:#fff;
-    classDef c fill:#e8590c,stroke:#e8590c,color:#fff;
+    classDef c fill:#f2523f,stroke:#f2523f,color:#fff;
     class SA,PV,LR,BM,SV a;
     class VC,RM b;
     class GV,PC c;

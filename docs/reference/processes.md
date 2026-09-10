@@ -94,7 +94,7 @@ flowchart TD
     liftIn(["--lifted"]) -.->|"replaces"| le
     bedIn(["--bed"]) --> b2g
 
-    classDef inp fill:#0d7377,stroke:#0d7377,color:#fff;
+    classDef inp fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
     class asmIn,lrIn,bamIn,pavIn,svsIn,vcfIn,rmdIn,gvcfIn,readsIn,graphIn,galnIn,vcfsIn,liftIn,bedIn inp;
 ```
 

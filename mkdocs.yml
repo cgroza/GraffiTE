@@ -18,7 +18,7 @@ site_dir: site
 theme:
   name: material
   logo: assets/graffite-logo.png
-  favicon: assets/graffite-logo.png
+  favicon: assets/favicon.png
   icon:
     repo: fontawesome/brands/github
   palette:
@@ -28,15 +28,15 @@ theme:
         name: Follow system theme
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: teal
-      accent: deep orange
+      primary: white
+      accent: custom
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: teal
-      accent: deep orange
+      primary: black
+      accent: custom
       toggle:
         icon: material/brightness-4
         name: Switch to light mode

@@ -42,7 +42,7 @@ flowchart TD
     T -->|"no (default)"| TR
     T -->|yes| HU --> HK
 
-    classDef out fill:#0d7377,stroke:#0d7377,color:#fff;
+    classDef out fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
     classDef bad fill:none,stroke:#b0b8c0,color:#8b95a1,stroke-dasharray:4 3;
     class PG,TR,HU out;
     class DROP bad;

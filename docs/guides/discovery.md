@@ -45,8 +45,8 @@ flowchart TD
     M --> B["Stage B · annotation"]
     VC --> B
 
-    classDef entry fill:#0d7377,stroke:#0d7377,color:#fff;
-    classDef merge fill:#e8590c,stroke:#e8590c,color:#fff;
+    classDef entry fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
+    classDef merge fill:#f2523f,stroke:#f2523f,color:#fff;
     class SA,PV,LR,BM,SV,VC entry;
     class M merge;
 ```

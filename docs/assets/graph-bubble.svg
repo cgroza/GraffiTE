@@ -9,8 +9,8 @@
   <style>
     .gt-figure { --fg: var(--md-default-fg-color, #1f2933);
                  --fg-mute: var(--md-default-fg-color--light, #5b6b7c);
-                 --te: var(--md-accent-fg-color, #e8590c);
-                 --ref: var(--md-primary-fg-color, #0d7377);
+                 --te: var(--gt-coral, #f2523f);
+                 --ref: var(--gt-purple, #7a1fa2);
                  --flank: var(--md-default-fg-color--lightest, #dfe5ea);
                  --rule: var(--md-default-fg-color--lighter, #b6c2cd);
                  --panel: var(--md-code-bg-color, rgba(128,140,155,.09)); }
