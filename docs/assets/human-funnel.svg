@@ -1,0 +1,83 @@
+<svg viewBox="0 0 780 488" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-labelledby="hf-title hf-desc" class="gt-figure">
+  <title id="hf-title">The --human filter, gate by gate</title>
+  <desc id="hf-desc">A vertical sequence of gates applied to every record of pangenome.vcf: a class
+  gate, a subfamily whitelist, a size and tandem-repeat gate, a structure gate requiring a single
+  RepeatMasker hit, and a FILTER equals PASS gate. A side branch at the structure gate admits
+  HERV-K proviral records with up to three hits when one of them is an SVA fragment. Records that
+  pass every gate are written to pangenome.human.vcf and then annotated by hervk_annotate.</desc>
+  <style>
+    .gt-figure { --fg: var(--md-default-fg-color, #1f2933);
+                 --fg-mute: var(--md-default-fg-color--light, #5b6b7c);
+                 --acc: var(--md-accent-fg-color, #e8590c);
+                 --pri: var(--md-primary-fg-color, #0d7377);
+                 --rule: var(--md-default-fg-color--lighter, #b6c2cd);
+                 --panel: var(--md-code-bg-color, rgba(128,140,155,.09)); }
+    .gt-figure text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .ttl   { font-size: 13px; font-weight: 700; fill: var(--fg); }
+    .cap   { font-size: 11.5px; fill: var(--fg-mute); }
+    .mono  { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+             font-size: 11.5px; fill: var(--fg); }
+    .mono-w{ font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+             font-size: 12.5px; font-weight: 700; fill: #fff; }
+    .gate  { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+    .file  { fill: var(--pri); }
+    .side  { fill: none; stroke: var(--acc); stroke-width: 1.5; stroke-dasharray: 5 3; }
+    .arrow { fill: none; stroke: var(--rule); stroke-width: 2; }
+    .arrow-acc { fill: none; stroke: var(--acc); stroke-width: 1.5; stroke-dasharray: 5 3; }
+    .drop  { font-size: 11px; fill: var(--fg-mute); font-style: italic; }
+    .head  { fill: var(--fg-mute); }
+  </style>
+  <defs>
+    <marker id="hf-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" class="head"/>
+    </marker>
+  </defs>
+  <!-- input -->
+  <rect class="file" x="140" y="10" width="240" height="30" rx="6"/>
+  <text class="mono-w" x="260" y="30" text-anchor="middle">pangenome.vcf</text>
+  <path class="arrow" d="M260 40 L260 58" marker-end="url(#hf-arr)"/>
+  <!-- gate 1: class -->
+  <rect class="gate" x="60" y="60" width="400" height="52" rx="6"/>
+  <text class="ttl" x="75" y="80">1 · class</text>
+  <text class="mono" x="75" y="100">SINE/Alu · LINE/L1 · Retroposon/SVA · Simple_repeat · LTR/ERVK</text>
+  <path class="arrow" d="M260 112 L260 130" marker-end="url(#hf-arr)"/>
+  <text class="drop" x="475" y="90">other classes dropped</text>
+  <!-- gate 2: subfamily -->
+  <rect class="gate" x="60" y="132" width="400" height="84" rx="6"/>
+  <text class="ttl" x="75" y="152">2 · subfamily whitelist (repeat_ids)</text>
+  <text class="mono" x="75" y="171">^AluY · ^L1HS · ^SVA_[DEF]</text>
+  <text class="mono" x="75" y="189">^HERVK-int, ^HERVK$, ^LTR5_Hs, ^LTR5A, ^LTR5B</text>
+  <text class="cap"  x="75" y="207">--human_alu_ids, _l1_ids, _sva_ids, _hervk_ids</text>
+  <path class="arrow" d="M260 216 L260 234" marker-end="url(#hf-arr)"/>
+  <text class="drop" x="475" y="168">AluS, AluJ, L1PA, SVA_A-C,</text>
+  <text class="drop" x="475" y="182">HERVK9 and older lineages dropped</text>
+  <g transform="translate(0,18)">
+  <!-- gate 3: size -->
+  <rect class="gate" x="60" y="218" width="400" height="52" rx="6"/>
+  <text class="ttl" x="75" y="238">3 · length and tandem repeat</text>
+  <text class="mono" x="75" y="258">|SVLEN| ≥ 250 and (ULTRA_TR_span &lt; 0.6 or Simple_repeat)</text>
+  <path class="arrow" d="M260 270 L260 288" marker-end="url(#hf-arr)"/>
+  <text class="drop" x="475" y="248">short or VNTR-dominated dropped</text>
+  <!-- gate 4: structure, with the side branch -->
+  <rect class="gate" x="60" y="290" width="400" height="66" rx="6"/>
+  <text class="ttl" x="75" y="310">4 · one element</text>
+  <text class="mono" x="75" y="329">n_hits = 1 and (LTR/ERVK or Simple_repeat or polyA = TRUE)</text>
+  <text class="cap"  x="75" y="347">Alu, L1 and SVA need a polyA tail; HML-2 and VNTR expansions do not</text>
+  <rect class="side" x="480" y="290" width="290" height="66" rx="6"/>
+  <text class="ttl" x="492" y="310">carve-out · HERVK + SVA</text>
+  <text class="mono" x="492" y="329">n_hits ≤ 3 · LTR/ERVK and Retroposon/SVA</text>
+  <text class="mono" x="492" y="347">^HERVK-int · |SVLEN| ≤ 10,500</text>
+  <path class="arrow-acc" d="M460 323 L480 323"/>
+  <path class="arrow-acc" d="M625 356 L625 372 L260 372" />
+  <path class="arrow" d="M260 356 L260 388" marker-end="url(#hf-arr)"/>
+  <!-- gate 5: FILTER -->
+  <rect class="gate" x="60" y="390" width="400" height="34" rx="6"/>
+  <text class="ttl" x="75" y="412">5 · FILTER = PASS</text>
+  <text class="cap" x="230" y="412">lift with --human_ignore_filter</text>
+  <path class="arrow" d="M260 424 L260 440" marker-end="url(#hf-arr)"/>
+  <!-- output -->
+  <rect class="file" x="110" y="440" width="300" height="28" rx="6"/>
+  <text class="mono-w" x="260" y="459" text-anchor="middle">pangenome.human.vcf → hervk_annotate</text>
+  </g>
+</svg>
