@@ -697,10 +697,11 @@ process pangenie {
   script:
   """
   PanGenie -t ${task.cpus} -j ${task.cpus} -s ${sample_name} -i <(zcat -f ${sample_reads}) -f ${index}/pangenie_index -o ${sample_name}
-  bgzip ${sample_name}_genotyping.vcf
-  tabix ${sample_name}_genotyping.vcf.gz
-  bcftools norm -f ${ref} -m- -Oz -o ${sample_name}.vcf.gz ${sample_name}_genotyping.vcf.gz
-  tabix -p vcf ${sample_name}.vcf.gz
+  # PanGenie writes ${sample_name}_genotyping.vcf against a graph VCF built with
+  # `bcftools norm -m+`. Split the records back so they match pangenome.vcf one
+  # for one when merge_VCFs transfers INFO, as vg_call does.
+  bcftools norm -f ${ref} -m- -Oz -o ${sample_name}_genotyping.vcf.gz ${sample_name}_genotyping.vcf
+  tabix -p vcf ${sample_name}_genotyping.vcf.gz
   """
 }
 
