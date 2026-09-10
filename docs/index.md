@@ -6,9 +6,9 @@ description: >-
   pangenome graph.
 ---
 
-# GraffiTE
+<h1 class="gt-masthead"><img src="assets/graffite-logo.png" alt="GraffiTE" width="560"></h1>
 
-**Pangenomic toolbox for the analysis of transposable element insertion polymorphisms.**
+<p class="gt-tagline">Pangenomic toolbox for the analysis of transposable element insertion polymorphisms.</p>
 
 !!! info "Applies to GraffiTE v1.1"
     Verified against `v1.1dev` at commit `4c8e385`. The
@@ -33,7 +33,7 @@ Every GraffiTE run is some subset of three stages in series, plus an optional fo
 run depends on which inputs you supply.
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph A["Stage A · Discovery"]
         direction TB
         A1["Assemblies<br/><code>--assemblies</code> · <code>--pav</code>"]

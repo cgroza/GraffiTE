@@ -41,7 +41,15 @@ def git(*args):
     return subprocess.run(["git", *args], cwd=ROOT, check=True, capture_output=True, text=True).stdout.strip()
 
 
+CSS = DOCS / "assets" / "extra.css"
+CSS_STAMP = re.compile(r'(--gt-version: "v1\.1dev @ )([0-9a-f]{7,40})(")')
+
+
 def set_stamp(sha):
+    css = CSS.read_text()
+    new, k = CSS_STAMP.subn(lambda m: m.group(1) + sha + m.group(3), css)
+    if k and new != css:
+        CSS.write_text(new)
     n = 0
     for p in pages():
         text = p.read_text()
@@ -64,6 +72,11 @@ def check():
             found.setdefault(m.group(2), []).append(p.relative_to(ROOT))
         else:
             missing.append(p.relative_to(ROOT))
+    m = CSS_STAMP.search(CSS.read_text())
+    if m:
+        found.setdefault(m.group(2), []).append(CSS.relative_to(ROOT))
+    else:
+        missing.append(CSS.relative_to(ROOT))
     ok = True
     for p in missing:
         print(f"no stamp: {p}")

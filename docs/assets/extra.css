@@ -31,13 +31,29 @@
   border-image: linear-gradient(90deg, var(--gt-yellow), var(--gt-orange), var(--gt-coral),
                                 var(--gt-pink), #b300e6, var(--gt-navy), var(--gt-teal)) 1;
 }
-.md-header__button.md-logo { padding: .3rem .4rem; }
-.md-header__button.md-logo img { height: 1.8rem; width: auto; }
-[data-md-color-scheme="slate"] .md-header__button.md-logo img {
-  background: #fff;
-  border-radius: 6px;
-  padding: .1rem .35rem;
+.md-header__button.md-logo { display: flex; align-items: center; gap: .6rem; padding: .3rem .4rem; }
+.md-header__button.md-logo img { height: 1.9rem; width: auto; }
+/* Same sticker with the black turned white, so it stays transparent on the dark header. */
+[data-md-color-scheme="slate"] .md-header__button.md-logo img { content: url("graffite-logo-dark.png"); }
+
+/* The version, next to the logo on every page. stamp_pages.py --set rewrites the commit. */
+:root { --gt-version: "v1.1dev @ 4c8e385"; }
+.md-header__button.md-logo::after {
+  content: var(--gt-version);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: .12rem .5rem;
+  border-radius: 999px;
+  background: var(--gt-purple);
+  color: #fff;
+  white-space: nowrap;
 }
+[data-md-color-scheme="slate"] .md-header__button.md-logo::after { color: #111; }
+
+/* The sticker says the name; the plain-text site name next to it is hidden.
+   The second topic, the current page title, still slides in on scroll. */
+.md-header__topic:first-child { visibility: hidden; }
 .md-tabs { border-bottom: 1px solid var(--md-default-fg-color--lightest); }
 
 /* Inline SVG figures scale with the content column and follow the theme toggle,
@@ -80,3 +96,9 @@
   max-width: 46rem;
   font-style: normal;
 }
+
+/* Home page masthead. */
+.gt-masthead { text-align: center; margin: 0 0 .4rem; }
+.gt-masthead img { max-width: min(560px, 90%); height: auto; }
+.gt-tagline { text-align: center; font-size: 1.05rem; font-weight: 700; margin-bottom: 1.6rem; }
+[data-md-color-scheme="slate"] .gt-masthead img { content: url("graffite-logo-dark.png"); }
