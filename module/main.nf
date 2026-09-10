@@ -729,7 +729,7 @@ process make_graph {
       break
     case "graphaligner":
       prep + """
-      export TMPDIR=$PWD
+      export TMPDIR=\$PWD
       vg construct -a  -r ${fasta} -v unphased.vcf -m 1024 > index/index.vg
       vg convert --vg-algorithm -f index/index.vg > index/index.gfa
       vg snarls index/index.gfa > index/index.pb
