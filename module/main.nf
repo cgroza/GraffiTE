@@ -815,7 +815,7 @@ process vg_call {
 }
 
 process merge_VCFs {
-  publishDir "${params.out}/4_Genotyping", mode: 'copy', glob: 'GraffiTE.merged.genotypes.vcf'
+  publishDir "${params.out}/4_Genotyping", mode: 'copy'
 
   input:
   path(vcfFiles)
