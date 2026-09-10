@@ -6,3 +6,7 @@ bin/test_span.sh
 /site/
 .venv-docs/
 __pycache__/
+
+# Documentation build artefacts
+/site.zip
+/docs/llms-full.txt

@@ -1,0 +1,160 @@
+site_name: GraffiTE
+site_description: >-
+  Pangenomic toolbox for the analysis of transposable element insertion
+  polymorphisms — discovery, repeat annotation and graph-based genotyping.
+site_url: https://cgroza.github.io/GraffiTE/
+site_author: Cristian Groza and Clément Goubert
+
+repo_url: https://github.com/cgroza/GraffiTE
+repo_name: cgroza/GraffiTE
+edit_uri: edit/v1.1dev/docs/
+
+copyright: >-
+  Copyright &copy; 2024 Cristian Groza and Clément Goubert — released under the MIT licence.
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  logo: assets/graffite-logo.png
+  favicon: assets/graffite-logo.png
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Follow system theme
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+    - content.tabs.link
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/cgroza/GraffiTE
+      name: GraffiTE on GitHub
+    - icon: fontawesome/solid/book
+      link: https://www.nature.com/articles/s41467-024-53294-2
+      name: The GraffiTE paper (Nat Commun 2024)
+    - icon: fontawesome/solid/robot
+      link: https://cgroza.github.io/GraffiTE/llms.txt
+      name: llms.txt, the documentation as plain text for language models
+
+extra_css:
+  - assets/extra.css
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.details
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.smartsymbols
+  - pymdownx.inlinehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.snippets:
+      base_path: ["docs"]
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+
+# Design notes stay in the repository and out of the built site: most of them
+# describe proposals that were never implemented, and a reader (or a model)
+# ingesting the site should never mistake them for shipped behaviour.
+exclude_docs: |
+  design-notes/
+
+# A page without a nav entry is a mistake, and --strict turns this into a failure.
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    unrecognized_links: warn
+
+# Plain-text entry points for language models; linked from the footer, not the nav.
+not_in_nav: |
+  /llms.txt
+  /llms-full.txt
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - getting-started/installation.md
+      - getting-started/quickstart.md
+      - getting-started/choosing-your-inputs.md
+      - getting-started/v1.0-vs-v1.1.md
+  - Guides:
+      - guides/discovery.md
+      - guides/annotation.md
+      - guides/genotyping.md
+      - guides/human-mei.md
+      - guides/skipping-work.md
+      - guides/resources.md
+      - guides/methylation.md
+  - Reference:
+      - reference/parameters.md
+      - reference/samplesheets.md
+      - reference/outputs.md
+      - reference/vcf-fields.md
+      - reference/processes.md
+      - reference/container.md
+  - Background:
+      - background/tsd.md
+      - background/l1-5prime-inversion.md
+      - background/sva-vntr.md
+      - background/hervk-hml2.md
+  - Troubleshooting: troubleshooting.md
+  - Changelog: changelog.md
