@@ -184,7 +184,9 @@ workflow {
     indexed_vcfs = channel.empty()
     if(params.graph_method == "pangenie") {
       reads_ch.combine(pangenie_index(vcf_ch.combine(ref_asm_ch))).set{input_ch}
-      pangenie(input_ch, ref_asm_ch).set{indexed_vcfs}
+      // first() makes the reference a value channel. As a queue channel it
+      // held one item, so pangenie ran for one sample and stopped.
+      pangenie(input_ch, ref_asm_ch.first()).set{indexed_vcfs}
     } else if(params.graph_method == "giraffe" || params.graph_method == "graphaligner" || params.graph_method == "precomputed") {
       graph_method = channel.value(params.graph_method)
 
