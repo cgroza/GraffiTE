@@ -227,7 +227,7 @@ process truvari_merge {
     tabix truvari_merged.vcf.gz
     rm unsorted.vcf.gz
 
-    bcftools +setGT truvari_merged.vcf -- -t . -n 0 | bcftools norm -f ${ref} | \
+    bcftools +setGT truvari_merged.vcf.gz -- -t . -n 0 | bcftools norm -f ${ref} | \
     bcftools +fill-tags - -Ov -o truvari_merged_filled.vcf -- -t 'SVLEN=strlen(ALT)-strlen(REF)'
     shorten_ids.py --vcf_in  truvari_merged_filled.vcf --vcf_out SVs.vcf
   fi
