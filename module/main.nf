@@ -92,6 +92,7 @@ process sniffles_population_call {
   output:
   path("sniffles2_individual_VCFs/*.vcf.gz")
 
+  script:
   """
   ls *.snf > snfs.tsv
   sniffles --minsvlen 100  --threads ${task.cpus} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
@@ -489,12 +490,12 @@ process concat_repeatmask {
   // fields, and anchoring with ^ applies per element. Prefixes only: repeat_ids
   // carry "(x)" and "(VNTR_only)" suffixes from bin/annotate_vcf.R.
   def orIds = { csv -> '(' + csv.toString().split(',').collect{ "repeat_ids~\"${it.trim()}\"" }.join(' | ') + ')' }
-  def grp   = { cls, csv -> csv?.toString()?.trim() ? "(matching_classes=\"${cls}\" & ${orIds(csv)})" : "matching_classes=\"${cls}\"" }
-  def human_ids = [grp('SINE/Alu',       params.human_alu_ids),
-                   grp('LINE/L1',        params.human_l1_ids),
-                   grp('Retroposon/SVA', params.human_sva_ids),
-                   grp('Simple_repeat',  params.human_sva_ids),
-                   grp('LTR/ERVK',       params.human_hervk_ids)].join(' | ')
+  def grp   = { cls, csv -> csv?.toString()?.trim() ? "(matching_classes=\"${cls}\" & ${orIds.call(csv)})" : "matching_classes=\"${cls}\"" }
+  def human_ids = [grp.call('SINE/Alu',       params.human_alu_ids),
+                   grp.call('LINE/L1',        params.human_l1_ids),
+                   grp.call('Retroposon/SVA', params.human_sva_ids),
+                   grp.call('Simple_repeat',  params.human_sva_ids),
+                   grp.call('LTR/ERVK',       params.human_hervk_ids)].join(' | ')
   def human_size   = "abs(SVLEN)>=${params.human_min_svlen} & (ULTRA_TR_span<${params.human_max_ultra_span} | matching_classes=\"Simple_repeat\")"
   // polyA (TPRT signature) is required for Alu/L1/SVA but not for HML-2 or for
   // SVA-VNTR expansions. Stated positively: bcftools "!~" does not negate
@@ -589,7 +590,7 @@ process concat_repeatmask {
 }
 
 process repeatmask_VCF {
-  publishDir "${params.out}/2_Repeat_Filtering/${task.index}", mode: 'copy'
+  publishDir path: { "${params.out}/2_Repeat_Filtering/${task.index}" }, mode: 'copy'
 
   input:
   tuple path("genotypes.vcf"), path(TE_library), path(ref_fasta)
@@ -720,26 +721,27 @@ process make_graph {
   path("index")
 
   script:
-  prep = """
+  def prep = """
   mkdir index
   bcftools +setGT ${vcf} -- -t a -n u > unphased.vcf
   """
-  switch(graph_method) {
-    case "giraffe":
-      prep + """
-      vg autoindex --tmp-dir \$PWD  -p index/index -w sr-giraffe -w lr-giraffe -v unphased.vcf -r ${fasta}
-      vg convert --vg-algorithm -f index/index.giraffe.gbz > index/index.gfa
-      vg snarls index/index.giraffe.gbz > index/index.pb
-      """
-      break
-    case "graphaligner":
-      prep + """
-      export TMPDIR=$PWD
-      vg construct -a  -r ${fasta} -v unphased.vcf -m 1024 > index/index.vg
-      vg convert --vg-algorithm -f index/index.vg > index/index.gfa
-      vg snarls index/index.gfa > index/index.pb
-      """
-      break
+  if(graph_method == "giraffe") {
+    prep + """
+    vg autoindex --tmp-dir \$PWD  -p index/index -w sr-giraffe -w lr-giraffe -v unphased.vcf -r ${fasta}
+    vg convert --vg-algorithm -f index/index.giraffe.gbz > index/index.gfa
+    vg snarls index/index.giraffe.gbz > index/index.pb
+    """
+  }
+  else if(graph_method == "graphaligner") {
+    prep + """
+    export TMPDIR=\$PWD
+    vg construct -a  -r ${fasta} -v unphased.vcf -m 1024 > index/index.vg
+    vg convert --vg-algorithm -f index/index.vg > index/index.gfa
+    vg snarls index/index.gfa > index/index.pb
+    """
+  }
+  else {
+    error "make_graph has no recipe for --graph_method ${graph_method}"
   }
 }
 
@@ -772,28 +774,29 @@ process graph_align_reads {
 
   script:
 
-  interleaved = "-i"
+  def interleaved = "-i"
   if(preset != "default") {
     interleaved = ""
   }
 
-  switch(graph_method) {
-    case "giraffe":
-      """
-      vg giraffe --parameter-preset ${preset} -o gam -t ${task.cpus} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
-      vg pack -x index/index.giraffe.gbz -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
-      vg convert -G ${sample_name}.gam index/index.giraffe.gbz | subset_gaf.py | sort -k1b,1 | gzip > ${sample_name}.gaf.gz
-      rm ${sample_name}.gam
-      """
-      break
-    case "graphaligner":
-      """
-      GraphAligner -t ${task.cpus} -x vg -g index/index.gfa -f ${sample_reads} -a ${sample_name}.gam
-      vg pack -x index/index.gfa -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
-      vg convert -G ${sample_name}.gam index/index.gfa | subset_gaf.py | sort -k1b,1 | gzip > ${sample_name}.gaf.gz
-      rm ${sample_name}.gam
-      """
-      break
+  if(graph_method == "giraffe") {
+    """
+    vg giraffe --parameter-preset ${preset} -o gam -t ${task.cpus} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
+    vg pack -x index/index.giraffe.gbz -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
+    vg convert -G ${sample_name}.gam index/index.giraffe.gbz | subset_gaf.py | sort -k1b,1 | gzip > ${sample_name}.gaf.gz
+    rm ${sample_name}.gam
+    """
+  }
+  else if(graph_method == "graphaligner") {
+    """
+    GraphAligner -t ${task.cpus} -x vg -g index/index.gfa -f ${sample_reads} -a ${sample_name}.gam
+    vg pack -x index/index.gfa -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
+    vg convert -G ${sample_name}.gam index/index.gfa | subset_gaf.py | sort -k1b,1 | gzip > ${sample_name}.gaf.gz
+    rm ${sample_name}.gam
+    """
+  }
+  else {
+    error "graph_align_reads has no recipe for --graph_method ${graph_method}"
   }
 }
 

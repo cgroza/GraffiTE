@@ -1,17 +1,25 @@
-// SAY HELLO
+// The version stamped into VCF headers by concat_repeatmask, hervk_annotate
+// and merge_VCFs. Nextflow's strict syntax (the default parser from 26.04)
+// allows no statements outside a workflow, process or function, so the lookup
+// is a function and the workflow prints the banner.
+params.graffite_version = graffiteVersion()
 
-// 1. Read the version from the local file
-def versionFile = file("${baseDir}/version.txt")
-def pipelineVersion = versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : '1.1.0'
+def graffiteVersion() {
+  def versionFile = file("${projectDir}/version.txt")
+  return versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : '1.1.0'
+}
 
-// Expose version to process scripts (used for stamping VCF headers)
-params.graffite_version = pipelineVersion
+include { index_graph; bamtags_to_BED; lift_epigenome; annotate_VCF; annotate_BED; merge_BED; BED_to_graph; merge_CSV } from './panmethyl/module/'
 
-// 2. Define the revision (branch name)
-def pipelineRevision = workflow.revision ?: 'main'
+include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
+         svim_asm; pav_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
+         tsd_search; tsd_report; pangenie_index; pangenie; make_graph; bam_to_fastq;
+         graph_align_reads; vg_call; merge_VCFs; hervk_annotate;
+         hervk_reconcile } from './module'
 
-
-log.info """
+workflow {
+  // SAY HELLO
+  log.info """
 
 ▄████  ██▀███   ▄▄▄        █████▒ █████▒██▓▄▄▄█████▓▓█████
 ██▒ ▀█▒▓██ ▒ ██▒▒████▄    ▓██   ▒▓██           ██▒ ▓▒▓█   ▀
@@ -23,7 +31,7 @@ log.info """
 ░ ░   ░   ░░   ░   ░   ▒    ░ ░    ░ ░    ▒ ░  ░         ░
 ░    ░           ░  ░               ░              ░  ░
 
-V. ${pipelineVersion} - ${pipelineRevision}
+V. ${params.graffite_version} - ${workflow.revision ?: 'main'}
 
 Pangenomic Toolbox for the Analysis of Transposable Element Insertion Polymorphisms
 
@@ -32,15 +40,6 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 """
 
-include { index_graph; bamtags_to_BED; lift_epigenome; annotate_VCF; annotate_BED; merge_BED; BED_to_graph; merge_CSV } from './panmethyl/module/'
-
-include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
-         svim_asm; pav_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
-         tsd_search; tsd_report; pangenie_index; pangenie; make_graph; bam_to_fastq;
-         graph_align_reads; vg_call; merge_VCFs; hervk_annotate;
-         hervk_reconcile } from './module'
-
-workflow {
   // initiate channels that will provide the reference genome to processes
   Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
 
@@ -102,15 +101,15 @@ workflow {
     RM_ch = channel.empty()
     rm_dirs_ch = channel.empty()
     if(params.RM_dir){
-      channel.fromPath("${params.RM_dir}/*", type: "dir").
-      map{p -> [file("${p}/genotypes_repmasked_filtered.vcf", checkIfExists: true), file("${p}/repeatmasker_dir", checkIfExists: true)]}.
-      map{v -> [v[0], v[1]]}.set{RM_ch}
+      channel.fromPath("${params.RM_dir}/*", type: "dir")
+      .map{p -> [file("${p}/genotypes_repmasked_filtered.vcf", checkIfExists: true), file("${p}/repeatmasker_dir", checkIfExists: true)]}
+      .map{v -> [v[0], v[1]]}.set{RM_ch}
       // Built from params rather than by re-reading RM_ch, so the raw
       // RepeatMasker tables reach the HERV-K step without consuming a channel
       // that tsd_prep also needs.
-      channel.fromPath("${params.RM_dir}/*", type: "dir").
-      map{p -> file("${p}/repeatmasker_dir", checkIfExists: true)}.
-      collect().set{rm_dirs_ch}
+      channel.fromPath("${params.RM_dir}/*", type: "dir")
+      .map{p -> file("${p}/repeatmasker_dir", checkIfExists: true)}
+      .collect().set{rm_dirs_ch}
     } else {
       Channel.fromPath(params.TE_library, checkIfExists:true).set{TE_library_ch}
       // we need to set the vcf input depending what was given
@@ -125,11 +124,11 @@ workflow {
       repeatmask_VCF.out.vcf.set{RM_ch}
       repeatmask_VCF.out.vcf.map{v -> v[1]}.collect().set{rm_dirs_ch}
     }
-    tsd_report(tsd_search(tsd_prep(RM_ch.combine(ref_asm_ch)).
-                          splitText(elem: 3, by: params.tsd_batch_size, file: true)).
-               map{it -> [it[0], it[1], it[2], it[3].getText()]}.
-               groupTuple(by: 3).
-               map{v -> tuple(v[0], v[1], v[2][0], v[3])}
+    tsd_report(tsd_search(tsd_prep(RM_ch.combine(ref_asm_ch))
+                          .splitText(elem: 3, by: params.tsd_batch_size, file: true))
+               .map{it -> [it[0], it[1], it[2], it[3].getText()]}
+               .groupTuple(by: 3)
+               .map{v -> tuple(v[0], v[1], v[2][0], v[3])}
     )
     concat_repeatmask(tsd_report.out.vcf_ch.collect(),
                       tsd_report.out.tsd_full_group_ch.collect(),
@@ -158,21 +157,7 @@ workflow {
 
   if(params.genotype) {
     Channel.fromPath(params.genotype_with).splitCsv(header:true).map{ row ->
-      def parameter_preset = null
-      switch(row.type) {
-        case "pb":
-          parameter_preset = "hifi"
-          break
-        case "hifi":
-          parameter_preset = "hifi"
-          break
-        case "ont":
-          parameter_preset = "r10"
-          break
-        default:
-          parameter_preset = "default"
-          break
-      }
+      def parameter_preset = [pb: "hifi", hifi: "hifi", ont: "r10"].get(row.type, "default")
       [row.sample, file(row.path, checkIfExists:true), parameter_preset]
     }.branch{ it ->
         bam: it[1].extension == "bam"
@@ -217,7 +202,7 @@ workflow {
       }
 
       if(params.epigenomes) {
-        index_graph(graph_index_ch.map(p -> p / 'index.gfa'),
+        index_graph(graph_index_ch.map{p -> p / 'index.gfa'},
                     channel.value(params.motif)).set{indexed_graph_ch}
 
         lifted_mods_ch = channel.empty()
