@@ -183,7 +183,8 @@ workflow {
 
     indexed_vcfs = channel.empty()
     if(params.graph_method == "pangenie") {
-      reads_ch.combine(pangenie_index(vcf_ch.combine(ref_asm_ch))).set{input_ch}
+      pangenie_index(vcf_ch.combine(ref_asm_ch))
+      reads_ch.combine(pangenie_index.out.index).set{input_ch}
       // first() makes the reference a value channel. As a queue channel it
       // held one item, so pangenie ran for one sample and stopped.
       pangenie(input_ch, ref_asm_ch.first()).set{indexed_vcfs}

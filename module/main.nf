@@ -664,21 +664,26 @@ process tsd_report {
   """
 }
 
+// pangenie_graph_variants.tsv lists each ALT allele of pangenome.vcf with its
+// ID in the graph and whether merge_vcfs.py kept it. PanGenie writes the graph
+// ID to INFO/ID of the genotyped VCFs.
 process pangenie_index {
+  publishDir "${params.out}/4_Genotyping", mode: 'copy', pattern: 'pangenie_graph_variants.tsv'
+
   input:
   tuple path(vcf), path(ref)
 
   output:
-  path("pangenie_index")
+  path("pangenie_index"), emit: index
+  path("pangenie_graph_variants.tsv"), emit: table
 
   script:
   """
-  bcftools view -G ${vcf} | \
-    awk -v FS='\t' -v OFS='\t' \
-    '{if(\$0 ~ /#CHROM/) {\$9 = "FORMAT"; \$10 = "ref"; print \$0} else if(substr(\$0, 1, 1) == "#") {print \$0} else {\$9 = "GT"; \$10 = "1|0"; print \$0}}' | \
-    awk 'NR==1{print; print "##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">"} NR!=1' | \
-    bcftools norm -m+ -Ov -o graph.vcf
+  bcftools view -G -Ov -o sites.vcf ${vcf}
+  pangenie_graph_vcf.py prepare sites.vcf graph_input.vcf pangenie_graph_variants.tsv
+  bcftools sort graph_input.vcf | bcftools norm -m+ -Ov -o graph.vcf
   merge_vcfs.py merge -r ${ref} -v graph.vcf -ploidy 2 > graph_merged.vcf
+  pangenie_graph_vcf.py report pangenie_graph_variants.tsv graph_merged.vcf
   mkdir pangenie_index
   PanGenie-index -v graph_merged.vcf -r ${ref} -t ${task.cpus} -o pangenie_index/pangenie_index
   """
