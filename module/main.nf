@@ -1,3 +1,12 @@
+// Nextflow's strict parser (the default from 26.04) passes a command-line
+// `--flag false` as the string "false", which Groovy treats as true; the
+// legacy parser and -params-file give a Boolean. Every boolean parameter is
+// read through this so that `--genotype false` still means no.
+def isOn(v) {
+  if(v instanceof String) { return v.trim() != '' && !v.trim().equalsIgnoreCase('false') }
+  return v ? true : false
+}
+
 process break_scaffold {
   input:
   tuple val(asm_name), path(asm)
@@ -275,7 +284,7 @@ process hervk_annotate {
 
   script:
   def cfg_arg = params.hervk_config ? "--config ${params.hervk_config}" : ""
-  def strict_arg = params.hervk_strict ? "--strict" : ""
+  def strict_arg = isOn(params.hervk_strict) ? "--strict" : ""
   """
   REF="${ref_fasta}"
   if [[ "\$REF" == *.gz ]]; then
@@ -393,7 +402,7 @@ process hervk_reconcile {
   // hervk_mask_tandem is the old name for this switch; honour it while
   // anything is still passing it.
   def legacy   = params.hervk_mask_tandem
-  def mask_cnv = (legacy == null) ? params.hervk_mask_graph_gt_at_cnv : legacy
+  def mask_cnv = isOn((legacy == null) ? params.hervk_mask_graph_gt_at_cnv : legacy)
   def mask_arg = mask_cnv ? "" : "--no-mask-cnv-gt"
   """
   # Subset the merged genotypes to the human candidate set, by ID. Records whose
@@ -481,7 +490,7 @@ process concat_repeatmask {
 
   script:
   def trusted_filter = "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & (ULTRA_TR_span<${params.trusted_max_ultra_span} | matching_classes=\"Simple_repeat\") & ((matching_classes!~\"LINE\" & matching_classes!~\"SINE\" & matching_classes!~\"Retroposon\") | polyA=\"TRUE\")"
-  def trusted_filter_full = params.trusted_ignore_filter ? trusted_filter : "(${trusted_filter}) & FILTER=\"PASS\""
+  def trusted_filter_full = isOn(params.trusted_ignore_filter) ? trusted_filter : "(${trusted_filter}) & FILTER=\"PASS\""
 
   // --human pME filter, applied directly to pangenome.vcf (not to the trusted
   // subset, which is a species-agnostic heuristic for non-model organisms).
@@ -523,9 +532,9 @@ process concat_repeatmask {
   // fragment beside something else -- COMP-subunit_FAM90A, alpha satellite,
   // L1PA10, and HERVK9, a lineage human_hervk_ids deliberately excludes.
   def hervk_pair   = "n_hits<=${params.hervk_pair_max_hits} & matching_classes=\"LTR/ERVK\" & matching_classes=\"Retroposon/SVA\" & repeat_ids~\"^HERVK-int\" & abs(SVLEN)<=${params.hervk_pair_max_svlen}"
-  def human_hits   = params.hervk_sva_pair ? "((${human_single}) | (${hervk_pair}))" : "(${human_single})"
+  def human_hits   = isOn(params.hervk_sva_pair) ? "((${human_single}) | (${hervk_pair}))" : "(${human_single})"
   def human_filter_base = "(${human_ids}) & ${human_size} & ${human_hits}"
-  def human_filter = params.human_ignore_filter ? human_filter_base : "(${human_filter_base}) & FILTER=\"PASS\""
+  def human_filter = isOn(params.human_ignore_filter) ? human_filter_base : "(${human_filter_base}) & FILTER=\"PASS\""
   """
   cat TSD_summary_*.txt > TSD_summary.txt
   cat TSD_full_log_*.txt > TSD_full_log.txt
@@ -608,7 +617,7 @@ process repeatmask_VCF {
 
   script:
   def mammal = ""
-  if(params.mammal) {
+  if(isOn(params.mammal)) {
     mammal = "MAM"
   }
   """
