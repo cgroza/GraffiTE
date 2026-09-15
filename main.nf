@@ -15,7 +15,7 @@ include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles
          svim_asm; pav_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
          tsd_search; tsd_report; pangenie_index; pangenie; make_graph; bam_to_fastq;
          graph_align_reads; vg_call; merge_VCFs; hervk_annotate;
-         hervk_reconcile } from './module'
+         hervk_reconcile; isOn } from './module'
 
 workflow {
   // SAY HELLO
@@ -39,6 +39,28 @@ Authors: Cristian Groza and Clément Goubert
 Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
 """
+
+  // --vcf is an already-merged callset. Each discovery flag would add a caller
+  // to a merge that never runs, and the run used to die later on an undefined
+  // channel (sv_variants_ch) instead of saying so.
+  def discovery = ['assemblies', 'longreads', 'bams', 'pav', 'svs'].findAll { params[it] }
+  if(params.vcf && discovery) {
+    error "--vcf cannot be combined with --${discovery.join(' --')}. Pass --vcf alone, or drop it and use --svs to add your own per-sample VCFs to the discovery merge."
+  }
+
+  // precomputed has no recipe in make_graph or graph_align_reads (their
+  // branches have no such case, and the process got a null script).
+  if(isOn(params.genotype) && params.graph_method == "precomputed"
+     && !(params.graph && (params.vcfs || params.graph_alignments))) {
+    error "--graph_method precomputed builds nothing itself: it needs --graph (an index directory holding index.gfa and index.pb, as make_graph writes) and either --vcfs (per-sample vg call VCFs) or --graph_alignments (per-sample gaf,pack)."
+  }
+
+  // hervk_reconcile consumes the loci, calls and human VCF that hervk_annotate
+  // writes during discovery. --graffite_vcf skips discovery, so both reconcile
+  // blocks would read outputs of a process that never ran.
+  if(params.graffite_vcf && isOn(params.human) && isOn(params.hervk_reconcile)) {
+    error "--graffite_vcf skips discovery, and HERV-K reconciliation needs the hervk_annotate outputs discovery produces. Pass --hervk_reconcile false, or start from --RM_dir instead of --graffite_vcf."
+  }
 
   // initiate channels that will provide the reference genome to processes
   Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
@@ -74,7 +96,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
     if(params.assemblies) {
       Channel.fromPath(params.assemblies).splitCsv(header:true).map{row ->
         [row.sample, file(row.path, checkIfExists:true)]}.set{map_asm_in_ch}
-      if(params.break_scaffolds) {
+      if(isOn(params.break_scaffolds)) {
         map_asm_in_ch = break_scaffold(map_asm_in_ch)
       }
 
@@ -118,7 +140,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
       } else if(params.vcf){
         truvari_merge(Channel.fromPath(params.vcf, checkIfExists : true), ref_asm_ch, true).set{raw_vcf_ch}
       } else {
-        error "No --longreads, --assemblies, --pav, --vcf or --RM_dir parameters passed to GraffiTE."
+        error "No input given. Pass one of --longreads, --bams, --assemblies, --pav, --svs (discovery), --vcf (a merged SV VCF), --RM_dir (RepeatMasker output of an earlier run) or --graffite_vcf (a pangenome.vcf from an earlier run)."
       }
       repeatmask_VCF(split_repeatmask(raw_vcf_ch).flatten().combine(TE_library_ch).combine(ref_asm_ch))
       repeatmask_VCF.out.vcf.set{RM_ch}
@@ -138,7 +160,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
     // HERV-K allele states + locus flags. --human only, and deliberately NOT
     // rebinding vcf_ch: pangenome.vcf must reach the graph unmodified.
-    if(params.human) {
+    if(isOn(params.human)) {
       // Own channel rather than reusing TE_library_ch: with --RM_dir the
       // masking step never runs, so TE_library_ch is not defined there. The
       // library is still needed here to mask the reference windows.
@@ -155,7 +177,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
     Channel.fromPath(params.graffite_vcf).set{vcf_ch}
   }
 
-  if(params.genotype) {
+  if(isOn(params.genotype)) {
     Channel.fromPath(params.genotype_with).splitCsv(header:true).map{ row ->
       def parameter_preset = [pb: "hifi", hifi: "hifi", ont: "r10"].get(row.type, "default")
       [row.sample, file(row.path, checkIfExists:true), parameter_preset]
@@ -201,7 +223,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
         vg_call(graph_pack_ch, graph_method).set{indexed_vg_call_vcfs}
       }
 
-      if(params.epigenomes) {
+      if(isOn(params.epigenomes)) {
         index_graph(graph_index_ch.map{p -> p / 'index.gfa'},
                     channel.value(params.motif)).set{indexed_graph_ch}
 
@@ -230,7 +252,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
         indexed_vg_call_vcfs.set{indexed_vcfs}
       }
     } else {
-      error "Unsupported --graph_method. --graph_method must be pangenie, giraffe or graphaligner."
+      error "Unsupported --graph_method. --graph_method must be pangenie, giraffe, graphaligner or precomputed."
     }
 
     merge_VCFs(indexed_vcfs.map{v -> v[1]}.collect(), vcf_ch)
@@ -238,7 +260,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
     // HERV-K locus consolidation on the human subset of the genotyped calls.
     // Only giraffe is validated; the reconciler refuses other back ends rather
     // than producing an unchecked answer.
-    if(params.human && params.hervk_reconcile && !params.hervk_reconcile_vcf) {
+    if(isOn(params.human) && isOn(params.hervk_reconcile) && !params.hervk_reconcile_vcf) {
       hervk_reconcile(merge_VCFs.out.typeref_outputs,
                       hervk_annotate.out.human_vcf_ch,
                       hervk_annotate.out.loci_ch,
@@ -254,7 +276,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
   // so pointing at an existing 4_Genotyping VCF exercises the whole stage-3 and
   // stage-E wiring without paying for genotyping again. Pairs with
   // --genotype false.
-  if(params.human && params.hervk_reconcile && params.hervk_reconcile_vcf) {
+  if(isOn(params.human) && isOn(params.hervk_reconcile) && params.hervk_reconcile_vcf) {
     // 'auto', not params.graph_method: that param describes the genotyping
     // *this* run would do, and this path pairs with --genotype false, so it
     // describes nothing. The back end is a property of the VCF being read, and

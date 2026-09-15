@@ -6,8 +6,13 @@
 SVSEQ=$1 # SV_sequences_L_R_trimmed_WIN.fa
 FLANK=$2 # flanking_sequences.fasta
 indels=$(cat $3)
-VERBOSE=$4 # for debug only
+WIN=${4:-30} # flank width prepTSD.sh used (--tsd_win); the junction is column WIN of each fragment
+VERBOSE=$5   # for debug only
 name=$(cat $3 | head -n 1)
+[[ "${WIN}" =~ ^[1-9][0-9]*$ ]] || { echo "TSD_Match_v2.sh: window must be a positive integer, got '${WIN}'" >&2; exit 1; }
+# rulers for the log, one column per base of a [WIN][WIN] fragment
+RULER_BAR=$(printf '%*s' $((2 * WIN)) '' | tr ' ' '|')
+RULER_NUM=$(awk -v n=$((2 * WIN)) 'BEGIN { s = "1"; for (i = 5; i <= n; i += 5) { pad = i - length(s) - 1; s = s sprintf("%*s%d", pad, "", i) } print s }')
 
 # A missing matcher would otherwise read as "no_hit" on every variant.
 command -v exact_match.py > /dev/null || { echo "TSD_Match_v2.sh: exact_match.py is not on PATH" >&2; exit 1; }
@@ -34,7 +39,7 @@ cat <(echo ">L|5P_end") <(paste -d '\0' <(grep -A 1 "${i}__L" ${FLANK} | tail -n
 cat <(echo ">R|3P_end") <(paste -d '\0' <(grep -A 1 "${i}__L" ${FLANK} | tail -n 1) <(grep -A 1 "${i}__L" ${SVSEQ} | tail -n 1) <(echo " ") <(grep -A 1 "${i}__R" ${SVSEQ} | tail -n 1) <(grep -A 1 "${i}__R" ${FLANK} | tail -n 1) | awk '{print $2}') > R.fasta
 
 # print 5' and 3' fragments to compare with ruler
-cat <(awk 'getline seq {print $0"\n"seq"\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n1   5    10   15   20   25   30   35   40   45   50   55   60"}' L.fasta) <(awk 'getline seq {print $0"\n"seq"\n||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n1   5    10   15   20   25   30   35   40   45   50   55   60"}' R.fasta)
+cat <(awk -v bar="${RULER_BAR}" -v num="${RULER_NUM}" 'getline seq {print $0"\n"seq"\n"bar"\n"num}' L.fasta) <(awk -v bar="${RULER_BAR}" -v num="${RULER_NUM}" 'getline seq {print $0"\n"seq"\n"bar"\n"num}' R.fasta)
 echo ""
 
 # now we "blast" no matter what and I will just save the table for now and apply TSD length filters to avoid longer matches in repetitive regions
@@ -42,7 +47,7 @@ echo ""
 # TSD_MAX: default = 20; min = 4 max = 30
 TSD_MIN=4
 TSD_MAX=20
-exact_match.py -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk -v tsdmin=${TSD_MIN} -v tsdmax=${TSD_MAX} 'function abs(x) { return x < 0 ? -x : x } function min(x,y) { return x < y ? x : y } { a = (abs(30-$7) + abs(30-$9)) / 2; b = (abs(30-$8) + abs(30-$10)) / 2; score = min(a, b);if($4 >= tsdmin && $4 <= tsdmax){print $0"\t"(30-$7)"\t"(30-$9)"\t"(30-$8)"\t"(30-$10)"\t"score} }' > blastout 2>&1
+exact_match.py -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk -v tsdmin=${TSD_MIN} -v tsdmax=${TSD_MAX} -v win=${WIN} 'function abs(x) { return x < 0 ? -x : x } function min(x,y) { return x < y ? x : y } { a = (abs(win-$7) + abs(win-$9)) / 2; b = (abs(win-$8) + abs(win-$10)) / 2; score = min(a, b);if($4 >= tsdmin && $4 <= tsdmax){print $0"\t"(win-$7)"\t"(win-$9)"\t"(win-$8)"\t"(win-$10)"\t"score} }' > blastout 2>&1
 
 
 if ! [[ -s blastout ]]

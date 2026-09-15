@@ -82,10 +82,11 @@ EOF
 # chance 4-mer can still score inside the threshold there, so the search
 # outcome is not deterministic; what the test checks on insB is the clamp and
 # that a FAIL row leaves the record without a TSD.
-run_chain(){                           # $1 workdir, $2 reference basename
+run_chain(){                           # $1 workdir, $2 reference basename, $3 window (default 30)
+  local win=${3:-30}
   ( cd "$1" \
-    && prepTSD.sh "$2" 30 1 > prep.log 2>&1 \
-    && TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta indels.txt > /dev/null 2>&1 \
+    && prepTSD.sh "$2" "$win" 1 > prep.log 2>&1 \
+    && TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta indels.txt "$win" > /dev/null 2>&1 \
     && cat ./*.TSD_summary.txt > TSD_summary.raw.txt \
     && awk -F'\t' -v OFS='\t' '$1 == "insB" { $NF = "FAIL" } 1' TSD_summary.raw.txt > TSD_summary.txt \
     && tsd_annotate_vcf.sh genotypes_repmasked_filtered.vcf TSD_summary.txt pangenome.vcf > annot.log 2>&1 \
@@ -121,6 +122,21 @@ for enc in plain gzip bgzf; do
   chk "$enc: polyA is found once the TSD is trimmed" \
       "$(bcftools query -i 'ID="insA"' -f '%INFO/polyA\n' "$w/pangenome.polyA.vcf")" "TRUE"
 done
+
+# A window other than 30. The matcher scored hit offsets against a literal 30,
+# so at 40 a snug TSD scored 3 instead of 0, and a wider window pushes it past
+# the PASS threshold.
+w="$tmp/win40"; mkdir -p "$w"; cp "$tmp/genotypes_repmasked_filtered.vcf" "$tmp/ref.fa" "$w/"
+rc=0; run_chain "$w" ref.fa 40 || rc=$?
+chk "win40: chain exits 0" "$rc" "0"
+chk "win40: flank is 40 bp" \
+    "$(grep -A1 '^>insA__L$' "$w/flanking_sequences.fasta" | tail -1 | tr -d '\n' | wc -c | tr -d ' ')" "40"
+chk "win40: insA passes with the planted TSD" \
+    "$(awk -F'\t' '$1=="insA"{print $(NF-2)","$(NF-1)","$NF}' "$w/TSD_summary.txt")" "GATTACAG,GATTACAG,PASS"
+chk "win40: del1 passes with the planted TSD" \
+    "$(awk -F'\t' '$1=="del1"{print $(NF-2)","$(NF-1)","$NF}' "$w/TSD_summary.txt")" "GATTACAG,GATTACAG,PASS"
+chk "win40: insA scores 0 against the junction" \
+    "$(awk -F'\t' '$1=="insA"{print $(NF-3)}' "$w/TSD_summary.txt")" "0"
 
 # Wrong reference: the contig is not there. This has to stop the run rather
 # than write an empty flank file.

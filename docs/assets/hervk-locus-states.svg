@@ -1,0 +1,110 @@
+<svg viewBox="0 0 780 412" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-labelledby="hk-title hk-desc" class="gt-figure">
+  <title id="hk-title">The allele states of one HERV-K (HML-2) locus</title>
+  <desc id="hk-desc">Four rows show one genomic locus in four states: null, an empty site; solo, a
+  single long terminal repeat; provirus, two long terminal repeats flanking an internal region;
+  and prov_x2, two proviral units in tandem sharing a central long terminal repeat. Each row is
+  labelled with the value GraffiTE writes in HERVK_ALLELE_REF or HERVK_ALLELE and the length of
+  the element. Below, three pairs of states are named by the locus type they produce: null against
+  any other state is null_vs_present, solo against provirus is solo_vs_provirus, provirus against
+  prov_x2 is copy_number.</desc>
+  <style>
+    .gt-figure { --fg: var(--md-default-fg-color, #1f2933);
+                 --fg-mute: var(--md-default-fg-color--light, #5b6b7c);
+                 --ltr: var(--gt-coral, #f2523f);
+                 --int: var(--gt-purple, #7a1fa2);
+                 --flank: var(--md-default-fg-color--lightest, #dfe5ea);
+                 --rule: var(--md-default-fg-color--lighter, #b6c2cd);
+                 --panel: var(--md-code-bg-color, rgba(128,140,155,.09)); }
+    .gt-figure text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .ttl   { font-size: 15px; font-weight: 700; fill: var(--fg); }
+    .cap   { font-size: 12.5px; fill: var(--fg-mute); }
+    .blk   { font-size: 12px; font-weight: 600; fill: var(--fg-mute); }
+    .w-t   { font-size: 11.5px; font-weight: 700; fill: #fff; }
+    .mono  { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+             font-size: 12.5px; fill: var(--fg); }
+    .mono-m{ font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+             font-size: 11.5px; fill: var(--fg-mute); }
+    .flank { fill: var(--flank); stroke: var(--rule); stroke-width: 1; }
+    .ltr   { fill: var(--ltr); }
+    .int   { fill: var(--int); }
+    .panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+    .brace { fill: none; stroke: var(--rule); stroke-width: 1.5; }
+  </style>
+  <rect class="panel" x="1" y="1" width="778" height="410" rx="8"/>
+  <text class="ttl" x="20" y="30">One locus, four allele states</text>
+  <text class="cap" x="20" y="50">Every HML-2 record compares two of these. HERVK_ALLELE_REF names the reference state, HERVK_ALLELE the sample's.</text>
+  <!-- column headers -->
+  <text class="blk" x="20"  y="82">state</text>
+  <text class="blk" x="130" y="82">reference window at the locus</text>
+  <text class="blk" x="640" y="82">element length</text>
+  <!-- row 1: null -->
+  <g transform="translate(0,96)">
+    <text class="mono" x="20" y="20">null</text>
+    <rect class="flank" x="130" y="6" width="235" height="26" rx="4"/>
+    <rect class="flank" x="365" y="6" width="235" height="26" rx="4"/>
+    <text class="blk" x="247" y="24" text-anchor="middle">flank</text>
+    <text class="blk" x="482" y="24" text-anchor="middle">flank</text>
+    <text class="mono-m" x="640" y="24">0 bp</text>
+  </g>
+  <!-- row 2: solo -->
+  <g transform="translate(0,140)">
+    <text class="mono" x="20" y="20">solo</text>
+    <rect class="flank" x="130" y="6" width="200" height="26" rx="4"/>
+    <rect class="ltr"   x="330" y="6" width="70"  height="26" rx="4"/>
+    <rect class="flank" x="400" y="6" width="200" height="26" rx="4"/>
+    <text class="w-t" x="365" y="24" text-anchor="middle">LTR</text>
+    <text class="mono-m" x="640" y="24">968 bp</text>
+  </g>
+  <!-- row 3: provirus -->
+  <g transform="translate(0,184)">
+    <text class="mono" x="20" y="20">provirus</text>
+    <rect class="flank" x="130" y="6" width="90"  height="26" rx="4"/>
+    <rect class="ltr"   x="220" y="6" width="50"  height="26" rx="4"/>
+    <rect class="int"   x="270" y="6" width="190" height="26" rx="4"/>
+    <rect class="ltr"   x="460" y="6" width="50"  height="26" rx="4"/>
+    <rect class="flank" x="510" y="6" width="90"  height="26" rx="4"/>
+    <text class="w-t" x="245" y="24" text-anchor="middle">LTR</text>
+    <text class="w-t" x="365" y="24" text-anchor="middle">internal region</text>
+    <text class="w-t" x="485" y="24" text-anchor="middle">LTR</text>
+    <text class="mono-m" x="640" y="24">9,472 bp</text>
+  </g>
+  <!-- row 4: prov_x2 -->
+  <g transform="translate(0,228)">
+    <text class="mono" x="20" y="20">prov_x2</text>
+    <rect class="flank" x="130" y="6" width="40"  height="26" rx="4"/>
+    <rect class="ltr"   x="170" y="6" width="40"  height="26" rx="4"/>
+    <rect class="int"   x="210" y="6" width="130" height="26" rx="4"/>
+    <rect class="ltr"   x="340" y="6" width="40"  height="26" rx="4"/>
+    <rect class="int"   x="380" y="6" width="130" height="26" rx="4"/>
+    <rect class="ltr"   x="510" y="6" width="40"  height="26" rx="4"/>
+    <rect class="flank" x="550" y="6" width="50"  height="26" rx="4"/>
+    <text class="w-t" x="190" y="24" text-anchor="middle">LTR</text>
+    <text class="w-t" x="275" y="24" text-anchor="middle">INT</text>
+    <text class="w-t" x="360" y="24" text-anchor="middle">LTR</text>
+    <text class="w-t" x="445" y="24" text-anchor="middle">INT</text>
+    <text class="w-t" x="530" y="24" text-anchor="middle">LTR</text>
+    <text class="mono-m" x="640" y="24">9,472 + 8,504 bp</text>
+    <!-- period brace: one unit = INT + LTR -->
+    <path class="brace" d="M210 40 L210 46 L380 46 L380 40"/>
+    <text class="cap" x="295" y="60" text-anchor="middle">one unit = internal region + one LTR (8,504 bp)</text>
+  </g>
+  <!-- pairs and locus types -->
+  <text class="blk" x="20" y="318">pairs of states and the locus type they produce</text>
+  <g transform="translate(0,330)">
+    <text class="mono" x="20"  y="20">null</text>
+    <text class="cap"  x="60"  y="20">vs any other</text>
+    <text class="mono" x="150" y="20">null_vs_present</text>
+    <text class="cap"  x="275" y="20">the HERVK_MEI flag: an insertion polymorphism</text>
+    <text class="mono" x="20"  y="42">solo</text>
+    <text class="cap"  x="60"  y="42">vs</text>
+    <text class="mono" x="80"  y="42">provirus</text>
+    <text class="mono" x="150" y="42">solo_vs_provirus</text>
+    <text class="cap"  x="275" y="42">the HERVK_SOLO_PROV flag: zero units against one</text>
+    <text class="mono" x="20"  y="64">provirus</text>
+    <text class="cap"  x="90"  y="64">vs</text>
+    <text class="mono" x="108" y="64">prov_x2</text>
+    <text class="mono" x="175" y="64">copy_number</text>
+    <text class="cap"  x="275" y="64">the HERVK_CNV flag: the array gains or loses whole units</text>
+  </g>
+</svg>

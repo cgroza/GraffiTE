@@ -22,7 +22,7 @@ From: ubuntu:20.04
     bedtools \
     ncbi-blast+
 
-    apt-get install --assume-yes tabix libbz2-dev liblzma-dev libgsl-dev libperl-dev 
+    apt-get install --assume-yes tabix libbz2-dev liblzma-dev libgsl-dev libperl-dev bzip2
 
     git clone https://github.com/Dfam-consortium/TETools.git
     bash TETools/getsrc.sh
@@ -218,6 +218,16 @@ From: ubuntu:20.04
     cd $HOME
     rm -rf minimap2
 
+    # ULTRA finds the tandem repeats that go into total_repeat_span
+    # (bin/repmask_vcf.sh calls `ultra`). Check the tag against the published image.
+    git clone --branch v1.0.0 --depth 1 https://github.com/TravisWheelerLab/ULTRA.git
+    cd ULTRA
+    cmake .
+    make
+    cp ultra /usr/local/bin
+    cd $HOME
+    rm -rf ULTRA
+
     mkdir /metadata
     echo `dpkg -l | grep jellyfish | tr -s " " | cut -d " " -f 2,3` > /metadata/jellyfish.lib.version
     mkdir /repos
@@ -236,7 +246,9 @@ From: ubuntu:20.04
     cd ${HOME}
 
     pip3 install numpy==1.21
-    pip3 install pysam pyparsing svim-asm pandas vcfpy sniffles cigar
+    # truvari: the discovery merge (truvari divide, truvari collapse). pyfaidx: merge_vcfs.py on the PanGenie path.
+    pip3 install pysam pyparsing svim-asm pandas vcfpy sniffles cigar truvari pyfaidx
+    pip3 check
     # pip3 install --upgrade numpy
 
     R --slave -e 'install.packages(c("XML", "dplyr", "stringr", "tidyr", "readr", "vcfR", "optparse"), repos="https://cloud.r-project.org/")'
@@ -272,6 +284,13 @@ From: ubuntu:20.04
 
     wget -O  /usr/local/bin/vg https://github.com/vgteam/vg/releases/download/v1.70.0/vg
     chmod +x /usr/local/bin/vg
+
+    # pypy3 at /opt/pypy3: bin/subset_gaf.py filters every alignment line of every
+    # sample and its shebang is /opt/pypy3/bin/pypy3.
+    wget -qO /tmp/pypy3.tar.bz2 https://downloads.python.org/pypy/pypy3.10-v7.3.17-linux64.tar.bz2
+    mkdir -p /opt/pypy3
+    tar -xj -f /tmp/pypy3.tar.bz2 --strip-components=1 -C /opt/pypy3
+    rm /tmp/pypy3.tar.bz2
 
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
     bash ~/miniconda.sh -b -p $HOME/miniconda

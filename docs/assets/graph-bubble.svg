@@ -1,0 +1,87 @@
+<svg viewBox="0 0 780 356" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-labelledby="gb-title gb-desc" class="gt-figure">
+  <title id="gb-title">A transposable element as a bubble in the pangenome graph</title>
+  <desc id="gb-desc">Two panels. Left: a non-reference insertion. The graph has two flank nodes
+  joined directly, which is the reference path, and joined through a TE node, which is the ALT
+  path. Reads that carry the element map through the TE node. Right: a reference insertion. The
+  reference path runs through the TE node and the ALT path skips it. In both panels reads that
+  traverse the TE node come from haplotypes that carry the element.</desc>
+  <style>
+    .gt-figure { --fg: var(--md-default-fg-color, #1f2933);
+                 --fg-mute: var(--md-default-fg-color--light, #5b6b7c);
+                 --te: var(--gt-coral, #f2523f);
+                 --ref: var(--gt-purple, #7a1fa2);
+                 --flank: var(--md-default-fg-color--lightest, #dfe5ea);
+                 --rule: var(--md-default-fg-color--lighter, #b6c2cd);
+                 --panel: var(--md-code-bg-color, rgba(128,140,155,.09)); }
+    .gt-figure text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .ttl   { font-size: 15px; font-weight: 700; fill: var(--fg); }
+    .cap   { font-size: 12.5px; fill: var(--fg-mute); }
+    .blk   { font-size: 12.5px; font-weight: 600; fill: var(--fg-mute); }
+    .te-t  { font-size: 12.5px; font-weight: 700; fill: #fff; }
+    .mono  { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+             font-size: 12px; fill: var(--fg); }
+    .lbl   { font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+    .lref  { fill: var(--ref); }
+    .lalt  { fill: var(--te); }
+    .flank { fill: var(--flank); stroke: var(--rule); stroke-width: 1; }
+    .te    { fill: var(--te); }
+    .panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+    .edge  { fill: none; stroke: var(--rule); stroke-width: 2; }
+    .read-ref { fill: none; stroke: var(--ref); stroke-width: 3; stroke-linecap: round; opacity: .85; }
+    .read-alt { fill: none; stroke: var(--te);  stroke-width: 3; stroke-linecap: round; opacity: .85; }
+  </style>
+  <!-- ══════════ LEFT · non-reference insertion ══════════ -->
+  <g transform="translate(0,0)">
+    <rect class="panel" x="1" y="1" width="372" height="300" rx="8"/>
+    <text class="ttl" x="20" y="30">Non-reference insertion</text>
+    <text class="cap" x="20" y="50">SVTYPE=INS. The reference skips the element.</text>
+    <!-- nodes -->
+    <rect class="flank" x="30"  y="130" width="90" height="34" rx="6"/>
+    <rect class="flank" x="254" y="130" width="90" height="34" rx="6"/>
+    <rect class="te"    x="142" y="196" width="90" height="34" rx="6"/>
+    <text class="blk"  x="75"  y="152" text-anchor="middle">flank</text>
+    <text class="blk"  x="299" y="152" text-anchor="middle">flank</text>
+    <text class="te-t" x="187" y="218" text-anchor="middle">TE</text>
+    <!-- edges: straight (reference) and through TE (alt) -->
+    <path class="edge" d="M120 147 L254 147"/>
+    <path class="edge" d="M120 152 C 135 152, 130 213, 142 213"/>
+    <path class="edge" d="M232 213 C 244 213, 239 152, 254 152"/>
+    <!-- reads along the reference path -->
+    <path class="read-ref" d="M60 104 L300 104"/>
+    <path class="read-ref" d="M90 114 L330 114"/>
+    <!-- reads through the TE -->
+    <path class="read-alt" d="M70 250 C 120 250, 130 250, 150 250 L 225 250 C 250 250, 260 250, 300 250"/>
+    <path class="read-alt" d="M100 262 L 320 262"/>
+    <text class="lbl lref" x="20" y="92">reference path · REF allele · TE absent</text>
+    <text class="lbl lalt" x="20" y="288">ALT path · TE present</text>
+  </g>
+  <!-- ══════════ RIGHT · reference insertion ══════════ -->
+  <g transform="translate(406,0)">
+    <rect class="panel" x="1" y="1" width="372" height="300" rx="8"/>
+    <text class="ttl" x="20" y="30">Reference insertion</text>
+    <text class="cap" x="20" y="50">SVTYPE=DEL. The reference runs through the element.</text>
+    <!-- nodes: TE on the top (reference) path -->
+    <rect class="flank" x="30"  y="130" width="90" height="34" rx="6"/>
+    <rect class="te"    x="142" y="130" width="90" height="34" rx="6"/>
+    <rect class="flank" x="254" y="130" width="90" height="34" rx="6"/>
+    <text class="blk"  x="75"  y="152" text-anchor="middle">flank</text>
+    <text class="te-t" x="187" y="152" text-anchor="middle">TE</text>
+    <text class="blk"  x="299" y="152" text-anchor="middle">flank</text>
+    <!-- edges: through TE (reference) and bypass (alt) -->
+    <path class="edge" d="M120 147 L142 147"/>
+    <path class="edge" d="M232 147 L254 147"/>
+    <path class="edge" d="M120 158 C 150 200, 224 200, 254 158"/>
+    <!-- reads through the TE (reference path) -->
+    <path class="read-ref" d="M60 104 L300 104"/>
+    <path class="read-ref" d="M90 114 L330 114"/>
+    <!-- reads along the bypass -->
+    <path class="read-alt" d="M70 250 L 300 250"/>
+    <path class="read-alt" d="M100 262 L 320 262"/>
+    <text class="lbl lref" x="20" y="92">reference path · REF allele · TE present</text>
+    <text class="lbl lalt" x="20" y="288">ALT path · TE absent</text>
+  </g>
+  <!-- footer -->
+  <text class="cap" x="390" y="324" text-anchor="middle">Reads are assigned to the path they traverse.</text>
+  <text class="cap" x="390" y="342" text-anchor="middle">A read through the TE node supports the haplotype that carries the element, whichever allele that is.</text>
+</svg>
