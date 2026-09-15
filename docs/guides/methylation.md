@@ -8,7 +8,7 @@ description: >-
 # Methylation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `4c8e385`. The
+    Verified against `v1.1dev` at commit `cfaff1e`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -29,9 +29,9 @@ methylation levels in the genotyped VCF. The processes come from
 
 | Requirement | Why | Source |
 |---|---|---|
-| `--graph_method giraffe`, `graphaligner` or `precomputed` | the methylation branch sits inside the vg genotyping block; PanGenie has no graph alignments to lift onto | <span class="src">`main.nf:217, 245`</span> |
+| `--graph_method giraffe`, `graphaligner` or `precomputed` | the methylation branch sits inside the vg genotyping block; PanGenie has no graph alignments to lift onto | <span class="src">`main.nf:198,226`</span> |
 | `--epigenomes` | switches the branch on | <span class="src">`nextflow.config:30`</span> |
-| BAM entries in `--genotype_with` | modifications are read from BAM tags; a FASTQ sample is genotyped but gets no methylation | <span class="src">`main.nf:255`</span> |
+| BAM entries in `--genotype_with` | modifications are read from BAM tags; a FASTQ sample is genotyped but gets no methylation | <span class="src">`main.nf:236`</span> |
 | `MM`/`ML` tags in those BAMs | what `tagtobed` extracts | <span class="src">`panmethyl/module/main.nf:146`</span> |
 
 The reads of a BAM sample are also extracted to FASTQ and aligned to the graph as for any other
@@ -42,7 +42,7 @@ sample ([Stage C](genotyping.md)). The alignment inside the BAM is not used; the
 
 ## How it works
 
-<span class="src">`main.nf:245-268`</span>
+<span class="src">`main.nf:226-249`</span>
 
 1. **`index_graph`** reads `index.gfa` and lists every position of `--motif` (default `CG`) on
    every node, writing `node_sizes.csv`, `nodes_list.csv` and `index.csv.gz` to `out/index/`
@@ -62,7 +62,7 @@ sample ([Stage C](genotyping.md)). The alignment inside the BAM is not used; the
    <span class="src">`panmethyl/module/main.nf:1-15`, `panmethyl/module/resources/usr/bin/annotate_vcf.py:44-46`</span>.
 
 The annotated per-sample VCFs replace the plain `vg call` VCFs going into `merge_VCFs`, so the
-merged genotypes carry the methylation FORMAT fields <span class="src">`main.nf:262`</span>.
+merged genotypes carry the methylation FORMAT fields <span class="src">`main.nf:243`</span>.
 
 ### The FORMAT fields
 
@@ -86,8 +86,8 @@ or one haplotype's copy against the other's.
 | `--epigenomes` | `false` | run the branch | <span class="src">`nextflow.config:30`</span> |
 | `--motif` | `"CG"` | motif indexed on the graph | <span class="src">`nextflow.config:165`</span> |
 | `--code` | `"C+m"` | modification code passed to `tagtobed` (`-T C -B C+m`) | <span class="src">`nextflow.config:164`, `panmethyl/module/main.nf:146`</span> |
-| `--lifted` | `false` | samplesheet (`sample,path`) of already-lifted `<sample>.csv.gz` files; skips steps 2 and 3 | <span class="src">`main.nf:250-253`</span> |
-| `--bed` | `false` | a BED of regions to project onto the graph and annotate with methylation | <span class="src">`main.nf:264-268`</span> |
+| `--lifted` | `false` | samplesheet (`sample,path`) of already-lifted `<sample>.csv.gz` files; skips steps 2 and 3 | <span class="src">`main.nf:231-234`</span> |
+| `--bed` | `false` | a BED of regions to project onto the graph and annotate with methylation | <span class="src">`main.nf:245-249`</span> |
 
 With `--bed`, three more processes run: `BED_to_graph` projects the regions with `vg annotate`,
 `annotate_BED` sums levels over each region per sample into `out/annotation/<sample>.bed`, and

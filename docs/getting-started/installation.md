@@ -8,7 +8,7 @@ description: >-
 # Installation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `4c8e385`. The
+    Verified against `v1.1dev` at commit `cfaff1e`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
@@ -26,17 +26,10 @@ cluster; the `cluster` profile targets SLURM.
 | [Nextflow](https://www.nextflow.io/docs/latest/install.html) | See the note below on the parser. |
 | [Apptainer](https://apptainer.org/docs/admin/main/installation.html) or Singularity | The container engine the config enables by default. Docker works with a config change. |
 
-!!! warning "Nextflow 26 and the strict parser"
-    Nextflow 26.04.6 rejects `main.nf` with its default parser: it stops at a line continuation
-    written with a trailing dot (`Unexpected input: 'splitText'`) and at the `switch` statements.
-    Set the legacy parser before running:
-
-    ```bash
-    export NXF_SYNTAX_PARSER=v1
-    ```
-
-    With that variable set, Nextflow 26.04.6 parses and previews the workflow. Older releases
-    that still default to the legacy parser need nothing.
+!!! note "Nextflow 26"
+    Nextflow 26.04 parses scripts with its strict syntax by default. `main.nf` compiles under it
+    since commit `4605630` (2026-09-14); previewed here with 26.04.6 under both parsers. Checkouts
+    older than that commit need `export NXF_SYNTAX_PARSER=v1`.
 
 !!! note "Apptainer through Conda"
     Users have reported problems with Apptainer installed through Conda. Install it from the
@@ -69,14 +62,15 @@ Two ways, depending on whether you want a local copy of the code.
     ```
 
     `--recurse-submodules` matters. `main.nf` includes the `panmethyl` submodule unconditionally
-    <span class="src">`main.nf:42`</span>, and a plain clone leaves that directory empty. Since
-    commit `959044b` the workflow stops with:
+    <span class="src">`main.nf:12`</span>, and a plain clone leaves that directory empty, so
+    Nextflow stops at compile time with:
 
     ```
-    panmethyl/ is empty: the submodule is not initialised. Run `git submodule update --init` in <dir>, or clone with --recurse-submodules.
+    Error main.nf:12:1: Invalid include source: '<dir>/panmethyl/module.nf'
     ```
 
-    <span class="src">`main.nf:38-40`</span>. Run the command it names and start again.
+    Run `git submodule update --init` in the clone and start again. `nextflow pull` clones
+    fetch the submodule themselves.
 
 ---
 
@@ -132,10 +126,10 @@ The config runs every container with `--contain --bind $(pwd):/tmp`
 ## Verify the installation
 
 Without inputs the workflow prints its banner and stops with the input message, which shows
-that Nextflow, the parser setting and the submodule are in order:
+that Nextflow and the submodule are in order:
 
 ```bash
-NXF_SYNTAX_PARSER=v1 nextflow run cgroza/GraffiTE -r v1.1dev -preview
+nextflow run cgroza/GraffiTE -r v1.1dev -preview
 ```
 
 ```
@@ -144,7 +138,7 @@ V. 1.1.0 - v1.1dev
 No input given. Pass one of --longreads, --bams, --assemblies, --pav, --svs (discovery), --vcf (a merged SV VCF), --RM_dir (RepeatMasker output of an earlier run) or --graffite_vcf (a pangenome.vcf from an earlier run).
 ```
 
-<span class="src">`main.nf:151`</span>. The container is only pulled when a process runs, so
+<span class="src">`main.nf:143`</span>. The container is only pulled when a process runs, so
 the [Quickstart](quickstart.md) is the first check of the image.
 
 ---

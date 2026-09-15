@@ -6,7 +6,7 @@ description: Why VNTR-only SVA variants are reclassified, and the per-subfamily 
 # SVA VNTR polymorphisms
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `4c8e385`. The
+    Verified against `v1.1dev` at commit `cfaff1e`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -77,12 +77,12 @@ That relabelling is what the downstream filters see:
 
 - The **trusted subset** admits a `Simple_repeat` record without testing its `ULTRA_TR_span`,
   so a VNTR expansion (which is all tandem repeat) is not excluded on that ground.
-  <span class="src">`module/main.nf:482`</span>
+  <span class="src">`module/main.nf:492`</span>
 - The **`--human` filter** admits `Simple_repeat` records whose `repeat_ids` match
   `--human_sva_ids` (default `^SVA_[DEF]`), without requiring a polyA tail, so VNTR
   polymorphisms of the young subfamilies are kept in `pangenome.human.vcf`, distinguishable
   from SVA insertions by the suffix.
-  <span class="src">`module/main.nf:496,498,504`, `nextflow.config:67`</span>
+  <span class="src">`module/main.nf:506,508,514`, `nextflow.config:67`</span>
 
 To count SVA insertion polymorphisms alone, exclude them:
 

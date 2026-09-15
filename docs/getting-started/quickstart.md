@@ -8,7 +8,7 @@ description: >-
 # Quickstart
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `4c8e385`. The
+    Verified against `v1.1dev` at commit `cfaff1e`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
@@ -35,7 +35,7 @@ cd GraffiTE_testset
 | `out/` | Output of a run made before v1.1. See the warning below. |
 
 `reads.csv` has no `type` column. The workflow reads `row.type`, finds nothing, and falls to
-the `default` preset <span class="src">`main.nf:190-204`</span>; PanGenie, the default
+the `default` preset <span class="src">`main.nf:182`</span>; PanGenie, the default
 genotyper, does not use the preset.
 
 !!! warning "The bundled `out/` is not a comparison target"
@@ -49,7 +49,6 @@ genotyper, does not use the preset.
 ## Run it
 
 ```bash
-export NXF_SYNTAX_PARSER=v1
 nextflow run cgroza/GraffiTE -r v1.1dev \
   --assemblies assemblies.csv \
   --reference hs37d5.chr22.fa \

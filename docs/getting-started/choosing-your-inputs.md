@@ -8,7 +8,7 @@ description: >-
 # Choosing your inputs
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `4c8e385`. The
+    Verified against `v1.1dev` at commit `cfaff1e`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
@@ -26,7 +26,7 @@ given point. Choose the flag by asking what you already have.
 | **C, genotyping** | Which samples carry each polymorphism? | `--graffite_vcf`, `--graph`, `--graph_alignments`, `--vcfs` | `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz` |
 
 A fourth, optional step lifts methylation onto the graph (`--epigenomes`), only on the
-`giraffe` and `graphaligner` methods <span class="src">`main.nf:245`</span>. See
+`giraffe` and `graphaligner` methods <span class="src">`main.nf:226`</span>. See
 [Methylation](../guides/methylation.md).
 
 ---
@@ -85,10 +85,10 @@ unless you pass `--genotype false`.
 | `--hervk_reconcile_vcf` | a genotyped VCF from an earlier run, with `--human --genotype false` | A, B, then HERV-K consolidation against that VCF | C |
 | `--genotype false` | | A and B | C |
 
-Lines in `main.nf`: the discovery block <span class="src">`main.nf:76-126`</span>, the
-annotation entry points <span class="src">`main.nf:129-156`</span>, `--graffite_vcf`
-<span class="src">`main.nf:183-186`</span>, the genotyping block
-<span class="src">`main.nf:188-290`</span>. Samplesheet columns are on
+Lines in `main.nf`: the discovery block <span class="src">`main.nf:68-118`</span>, the
+annotation entry points <span class="src">`main.nf:121-148`</span>, `--graffite_vcf`
+<span class="src">`main.nf:175-178`</span>, the genotyping block
+<span class="src">`main.nf:180-292`</span>. Samplesheet columns are on
 [Samplesheet formats](../reference/samplesheets.md).
 
 ---
@@ -97,7 +97,7 @@ annotation entry points <span class="src">`main.nf:129-156`</span>, `--graffite_
 
 **Discovery flags add up.** `--assemblies`, `--pav`, `--longreads`, `--bams` and `--svs` can be
 passed together in any combination; every caller's output goes into one truvari merge
-<span class="src">`main.nf:125`</span>. This is how the paper's `GT-svsn` mode is run.
+<span class="src">`main.nf:117`</span>. This is how the paper's `GT-svsn` mode is run.
 
 **`--vcf` stands alone.** It replaces the merge, so pairing it with a discovery flag is refused
 before anything runs:
@@ -106,14 +106,14 @@ before anything runs:
 --vcf cannot be combined with --assemblies. Pass --vcf alone, or drop it and use --svs to add your own per-sample VCFs to the discovery merge.
 ```
 
-<span class="src">`main.nf:54-57`</span>.
+<span class="src">`main.nf:46-49`</span>.
 
 **`--graffite_vcf` skips the HERV-K annotation.** With `--human`, the consolidation step needs
 files that only discovery writes, so `--graffite_vcf --human` needs `--hervk_reconcile false`,
-or start from `--RM_dir` instead <span class="src">`main.nf:69-71`</span>.
+or start from `--RM_dir` instead <span class="src">`main.nf:61-63`</span>.
 
 **`--graph_method precomputed` needs its inputs.** It builds nothing, so it requires `--graph`
-and one of `--vcfs` or `--graph_alignments` <span class="src">`main.nf:61-64`</span>.
+and one of `--vcfs` or `--graph_alignments` <span class="src">`main.nf:53-56`</span>.
 
 **`-resume`** is Nextflow's own restart and covers the common case of a crashed run; the entry
 flags are for runs whose work directory is gone. See [Resuming and skipping work](../guides/skipping-work.md).

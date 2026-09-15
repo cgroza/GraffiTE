@@ -8,14 +8,14 @@ description: >-
 # Stage C: genotyping
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `4c8e385`. The
+    Verified against `v1.1dev` at commit `cfaff1e`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
 Stage C takes `pangenome.vcf` from [Stage B](annotation.md) and the read sets listed in
 `--genotype_with`, builds a graph in which every polymorphism is a bubble, and genotypes each
 sample at each bubble. It runs by default; `--genotype false` stops after Stage B
-<span class="src">`main.nf:188`</span>.
+<span class="src">`main.nf:180`</span>.
 
 ---
 
@@ -40,7 +40,7 @@ ALT allele means *TE present* for `INS` records and *TE absent* for `DEL` record
 
 `--genotype_with` is a samplesheet with `sample`, `path` and `type` columns
 (see [Samplesheets](../reference/samplesheets.md)). The `type` column selects a Giraffe
-parameter preset <span class="src">`main.nf:189-205`</span>:
+parameter preset <span class="src">`main.nf:181-183`</span>:
 
 | `type` | preset | used by |
 |---|---|---|
@@ -51,14 +51,14 @@ parameter preset <span class="src">`main.nf:189-205`</span>:
 Two details follow from that table:
 
 - With the `default` preset, `vg giraffe` is given `-i`, so the FASTQ is read as
-  **interleaved paired-end** <span class="src">`module/main.nf:773-776, 781`</span>. Short-read
+  **interleaved paired-end** <span class="src">`module/main.nf:787-789,794`</span>. Short-read
   samples must be supplied as a single interleaved file, not as two mate files.
 - PanGenie ignores the preset: it counts k-mers and never aligns
-  <span class="src">`module/main.nf:699`</span>.
+  <span class="src">`module/main.nf:714`</span>.
 
 A `path` ending in `.bam` goes through `bam_to_fastq` first: alignment tags are stripped, the
 file is name-sorted and converted back to FASTQ with `samtools fastq`
-<span class="src">`main.nf:206-211`, `module/main.nf:744-760`</span>. The alignments in the BAM
+<span class="src">`main.nf:184-189`, `module/main.nf:758-774`</span>. The alignments in the BAM
 are not used; only the reads are. Methylation tags in such a BAM are read separately, see
 [Methylation](methylation.md).
 
@@ -73,7 +73,7 @@ are not used; only the reads are. Methylation tags in such a BAM are read separa
 | `graphaligner` | `vg construct` (GFA) | aligned with `GraphAligner` | `vg call` | long reads |
 | `precomputed` | supplied with `--graph` | supplied with `--graph_alignments`, or skipped with `--vcfs` | `vg call`, or none | re-genotyping an existing graph |
 
-Source: <span class="src">`main.nf:214-275`</span>, <span class="src">`nextflow.config:35`</span>.
+Source: <span class="src">`main.nf:192-256`</span>, <span class="src">`nextflow.config:35`</span>.
 
 Anything else stops the run:
 
@@ -83,7 +83,7 @@ Unsupported --graph_method. --graph_method must be pangenie, giraffe, graphalign
 
 `precomputed` builds nothing itself. Without `--graph` and one of `--vcfs` or
 `--graph_alignments` the run stops before any process starts
-<span class="src">`main.nf:59-64`</span>:
+<span class="src">`main.nf:51-56`</span>:
 
 ```text
 --graph_method precomputed builds nothing itself: it needs --graph (an index directory holding
@@ -97,22 +97,37 @@ See [Resuming and skipping work](skipping-work.md) for what each of those inputs
 
 ## PanGenie
 
-Two processes <span class="src">`module/main.nf:667-706`</span>.
+Two processes <span class="src">`module/main.nf:680-721`</span>.
 
 **`pangenie_index`**, once per run:
 
-1. `bcftools view -G` drops the genotype columns from `pangenome.vcf`; an `awk` step adds a single
-   pseudo-sample `ref` carrying `1|0` at every record, the shape PanGenie's graph builder expects.
-2. Records at the same position are joined into multi-allelic sites (`bcftools norm -m+`).
-3. `merge_vcfs.py merge -ploidy 2` (PanGenie's own helper, shipped in `bin/`) turns the file into
-   the multi-sample graph VCF PanGenie reads, with an `INFO/ID` field naming the GraffiTE variant
-   behind each ALT allele.
-4. `PanGenie-index` builds the k-mer index.
+1. `bcftools view -G` drops the genotype columns from `pangenome.vcf`.
+2. `pangenie_graph_vcf.py prepare` writes the one-sample VCF the graph is built from (a
+   pseudo-sample `ref` carrying `1|0` at every record) and starts a table with one row per ALT
+   allele. It gives one graph variant to records that share `CHROM`, `POS`, `REF` and `ALT`, and
+   replaces an ID that is missing, already used, or contains a character PanGenie splits on
+   (`;`, `,`, `:`, `=`, `|`, space). Without this, `merge_vcfs.py` stopped on such records
+   ([issue #93](https://github.com/cgroza/GraffiTE/issues/93))
+   <span class="src">`bin/pangenie_graph_vcf.py:8-16`</span>.
+3. Records at the same position are joined into multi-allelic sites (`bcftools sort`,
+   `bcftools norm -m+`).
+4. `merge_vcfs.py merge -ploidy 2` (PanGenie's own helper, shipped in `bin/`) turns the file into
+   the multi-sample graph VCF PanGenie reads, with an `INFO/ID` field naming the graph variant
+   behind each ALT allele. It leaves out alleles that overlap another at the same site.
+5. `pangenie_graph_vcf.py report` fills the table's `in_graph` column from that output.
+6. `PanGenie-index` builds the k-mer index.
+
+The table is published as `4_Genotyping/pangenie_graph_variants.tsv`, columns `record`,
+`CHROM`, `POS`, `pangenome_ID`, `allele`, `graph_ID`, `in_graph`, `note`. PanGenie writes each
+allele's `graph_ID` to `INFO/ID` of the genotyped VCFs, so the table is how a `pangenome.vcf`
+record is found in them <span class="src">`bin/pangenie_graph_vcf.py:18-21,25`</span>.
 
 **`pangenie`**, once per sample: `PanGenie -s <sample> -i <(zcat -f reads) -f pangenie_index`,
 then `bcftools norm -f ref -m-` splits the multi-allelic genotypes back into one record per
 GraffiTE variant, so that they match `pangenome.vcf` one for one when the merge transfers INFO.
-The result is published as `4_Genotyping/<sample>_genotyping.vcf.gz` with its index.
+The result is published as `4_Genotyping/<sample>_genotyping.vcf.gz` with its index. The
+reference is passed as a value channel; as a queue channel it held one item, and PanGenie ran
+for one sample and stopped <span class="src">`main.nf:194-197`</span>.
 
 **Resources:** `--pangenie_threads`, `--pangenie_memory`, `--pangenie_time` for both processes
 <span class="src">`nextflow.config:235-244`</span>.
@@ -125,7 +140,7 @@ Three processes, plus `bam_to_fastq` when needed.
 
 ### `make_graph`
 
-<span class="src">`module/main.nf:708-742`</span>. `bcftools +setGT -- -t a -n u` unphases every genotype
+<span class="src">`module/main.nf:723-756`</span>. `bcftools +setGT -- -t a -n u` unphases every genotype
 in `pangenome.vcf`, then:
 
 | method | commands | `index/` holds |
@@ -135,14 +150,14 @@ in `pangenome.vcf`, then:
 
 `index.gfa` is the graph as GFA, `index.pb` the snarl (bubble) decomposition `vg call` needs.
 The directory is published as `GraffiTE_graph/index/` and is what `--graph` takes on a later
-run. Skipped entirely when `--graph` is given <span class="src">`main.nf:221-225`</span>.
+run. Skipped entirely when `--graph` is given <span class="src">`main.nf:202-206`</span>.
 
 **Resources:** `--make_graph_threads`, `--make_graph_memory` (default `40G`), `--make_graph_time`
 (default `6h`) <span class="src">`nextflow.config:245-249`</span>.
 
 ### `graph_align_reads`
 
-<span class="src">`module/main.nf:762-798`</span>, once per sample:
+<span class="src">`module/main.nf:776-811`</span>, once per sample:
 
 | method | aligner | then |
 |---|---|---|
@@ -164,7 +179,7 @@ complete before the run stops <span class="src">`nextflow.config:255-260`</span>
 
 ### `vg_call`
 
-<span class="src">`module/main.nf:800-816`</span>, once per sample:
+<span class="src">`module/main.nf:813-829`</span>, once per sample:
 
 ```bash
 vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> -k <sample>.pack index/<graph> \
@@ -190,7 +205,7 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
 
 ## The merged genotypes
 
-`merge_VCFs` <span class="src">`module/main.nf:818-844`</span> takes every per-sample VCF and:
+`merge_VCFs` <span class="src">`module/main.nf:831-857`</span> takes every per-sample VCF and:
 
 1. `bcftools merge -m none` joins them into one multi-sample VCF without creating multi-allelic
    records.

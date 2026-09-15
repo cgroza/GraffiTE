@@ -8,7 +8,7 @@ description: >-
 # Container
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `4c8e385`. The
+    Verified against `v1.1dev` at commit `cfaff1e`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -71,7 +71,7 @@ default branch held on the day the image was built. <span class="src">`GraffiTE.
 ## The PAV container
 
 `pav_asm` runs in `library://becklab/pav/pav:latest`, PAV's own image, with 32 CPUs unless
-`--cores` says otherwise. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:321-326`, `module/main.nf:135`</span>
+`--cores` says otherwise. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:321-326`, `module/main.nf:145`</span>
 
 ## The recipe and the published image
 

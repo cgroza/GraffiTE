@@ -6,7 +6,7 @@ description: How candidate SVs are scanned with RepeatMasker and ULTRA, filtered
 # Stage B: repeat annotation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `4c8e385`. The
+    Verified against `v1.1dev` at commit `cfaff1e`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -53,7 +53,7 @@ flowchart TD
     written at all. The human filter is applied to `pangenome.vcf` directly, not on top of the
     trusted subset. This changed in v1.1; earlier versions produced
     `pangenome.trusted.human.vcf` as a subset of the trusted set.
-    <span class="src">`module/main.nf:551-562`</span>
+    <span class="src">`module/main.nf:561-572`</span>
 
 ## The TE library
 
@@ -128,7 +128,7 @@ A variant is kept when `total_repeat_span` is strictly greater than `--repeat_sp
 (default `0.80`, a fraction of the variant length). The test is applied twice with the same
 cutoff: once per contig, which produces `genotypes_repmasked_filtered.vcf`, and once more when
 the contigs are concatenated.
-<span class="src">`module/main.nf:615`, `module/main.nf:533`, `nextflow.config:56`</span>
+<span class="src">`module/main.nf:625`, `module/main.nf:543`, `nextflow.config:56`</span>
 
 Two consequences of using the union rather than the TE span alone. A variant that is a
 polyA-rich Alu with a long tandem stretch passes, because ULTRA covers what RepeatMasker did not.
@@ -146,7 +146,7 @@ looks for an exact duplication of 4 to 20 bp that sits close to the junctions. A
 passes is written as `INFO/TSD`, as its two copies. The search runs on every variant, whatever
 its `n_hits`. The procedure, the scoring and the log format are in
 [Target site duplications](../background/tsd.md).
-<span class="src">`module/main.nf:619-664`, `nextflow.config:49`</span>
+<span class="src">`module/main.nf:629-674`, `nextflow.config:49`</span>
 
 ## polyA annotation
 
@@ -157,13 +157,13 @@ the matching copy of `TSD` from that end. A tail is called when a window of at l
 least 80% A (or T) ends within 5 bp of the trimmed terminus. The result is `polyA=TRUE` or
 `FALSE`; a variant with more than one hit gets `NA` and is not scanned. The three constants are
 fixed in the script.
-<span class="src">`bin/add_polyA.py:21-23,100-118`, `module/main.nf:543`</span>
+<span class="src">`bin/add_polyA.py:21-23,100-118`, `module/main.nf:553`</span>
 
 ## The trusted subset
 
 Without `--human`, `concat_repeatmask` also writes `pangenome.trusted.vcf`, the records that pass
 this `bcftools view -i` expression, with the defaults filled in:
-<span class="src">`module/main.nf:482-483,554`</span>
+<span class="src">`module/main.nf:492-493,564`</span>
 
 ```text
 n_hits==1
@@ -193,7 +193,7 @@ The `FILTER="PASS"` clause is dropped with `--trusted_ignore_filter`, for caller
     is, so the trusted subset does **not** require a polyA tail of non-LTR elements. The
     `--human` filter is written with positive matches to avoid this. See
     [VCF fields](../reference/vcf-fields.md) for the bcftools behaviour.
-    <span class="src">`module/main.nf:499-503`</span>
+    <span class="src">`module/main.nf:509-513`</span>
 
 For human data, `--human` replaces this subset with a filter on recent subfamilies; see
 [Human MEIs](human-mei.md).
@@ -206,12 +206,12 @@ Stage B parallelises twice.
   `repeatmask_VCF` runs on each, with the `repeatmasker_*` resource parameters. A genome with
   thousands of small scaffolds spawns thousands of tasks; `--cores` and
   `--repeatmasker_threads` set what each gets. RepeatMasker's own `-pa` is a quarter of that.
-  <span class="src">`module/main.nf:447-460`, `nextflow.config:215-219`</span>
+  <span class="src">`module/main.nf:457-470`, `nextflow.config:215-219`</span>
 - **By batch of variants for the TSD search.** Each contig's variant list is split into batches
   of `--tsd_batch_size` (default 100 variants) and `tsd_search` runs on each batch with the
   `tsd_*` parameters, so a contig with 5,000 variants is 50 tasks. The batches are gathered
   back per contig by `tsd_report`.
-  <span class="src">`main.nf:157-162`, `nextflow.config:55`</span>
+  <span class="src">`main.nf:149-154`, `nextflow.config:55`</span>
 
 `concat_repeatmask` then joins every contig into `pangenome.vcf`. Everything in this stage is
 recoverable with `-resume`, and a finished Stage B can be re-entered with `--RM_dir` or

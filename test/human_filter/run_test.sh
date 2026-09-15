@@ -16,7 +16,9 @@ CONFIG="${HERE}/../../nextflow.config"
 command -v bcftools >/dev/null || { echo "bcftools not found"; exit 1; }
 
 # --- defaults from nextflow.config -------------------------------------------
-cfg() { sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*\"\{0,1\}\([^\"\/]*\)\"\{0,1\}.*/\1/p" "$CONFIG" | head -1 | sed 's/[[:space:]]*$//'; }
+# Values may be double- or single-quoted (human_hervk_ids is single-quoted
+# because its regex carries a $).
+cfg() { sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*[\"']\{0,1\}\([^\"'\/]*\)[\"']\{0,1\}.*/\1/p" "$CONFIG" | head -1 | sed 's/[[:space:]]*$//'; }
 ALU=$(cfg human_alu_ids);        L1=$(cfg human_l1_ids)
 SVA=$(cfg human_sva_ids);        HERVK=$(cfg human_hervk_ids)
 MINSV=$(cfg human_min_svlen);    MAXTR=$(cfg human_max_ultra_span)

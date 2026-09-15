@@ -6,7 +6,7 @@ description: Release history of GraffiTE, from the first beta to the current v1.
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `4c8e385`. The
+    Verified against `v1.1dev` at commit `cfaff1e`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -84,7 +84,23 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   rather than no hits; `add_polyA.py` trims the two-copy `TSD` value correctly. Test:
   `test/tsd/test_tsd_chain.sh` (commit `884afa8`).
 
+**PanGenie and Nextflow 26** (PR #101, 2026-09-14)
+
+- PanGenie genotyped one sample and stopped: the reference reached the process as a queue
+  channel with one item (`397fe2b`).
+- `merge_vcfs.py` stopped on records that shared a position with different or missing IDs
+  ([issue #93](https://github.com/cgroza/GraffiTE/issues/93)). `pangenie_graph_vcf.py` prepares
+  the graph input and publishes `4_Genotyping/pangenie_graph_variants.tsv`, which maps every
+  `pangenome.vcf` allele to the ID PanGenie writes in `INFO/ID` (`b9b5b5c`).
+- `truvari_merge` failed on a missing file with two or more input VCFs (`29341a3`).
+- `main.nf` and `module/main.nf` compile under Nextflow 26's strict syntax (`4605630`).
+
 **Fixes on the documentation branch**
+
+- A command-line `--flag false` read as true under Nextflow 26's parser; `--genotype false`
+  ran genotyping. Every boolean parameter is read through `isOn()` (`cfaff1e`).
+- `test/human_filter/run_test.sh` did not read the single-quoted `human_hervk_ids` default and
+  failed on every HERV-K record.
 
 - `--tsd_win` reaches the matcher; scores were computed against a fixed 30 bp
   (`4c8e385`).
@@ -94,8 +110,9 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   run (`9b77788`).
 - `--vcf` beside a discovery flag, `--graph_method precomputed` without its inputs, and
   `--graffite_vcf --human` are refused with a message instead of failing on an undefined
-  channel (`159de3f`, `b6a9487`, `9bc505b`); an empty `panmethyl/` submodule is reported
-  (`959044b`).
+  channel (`159de3f`, `b6a9487`, `9bc505b`). A guard for an empty `panmethyl/` submodule
+  (`959044b`) was dropped again when `main.nf` moved to strict syntax, which allows no
+  statement before an include; Nextflow's own message names the missing module file.
 - `svs`, `graph`, `graph_alignments`, `vcfs`, `lifted` and `bed` are declared in
   `nextflow.config` (`4187750`); `hervk_annotate` and `hervk_reconcile` have resource
   parameters (`f0698ec`); `manifest.version` matches `version.txt` (`e9f4f74`);
