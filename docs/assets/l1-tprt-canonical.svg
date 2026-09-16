@@ -1,0 +1,72 @@
+<svg viewBox="0 0 780 300" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-labelledby="l1c-title l1c-desc" class="gt-figure">
+  <title id="l1c-title">Canonical L1 insertions by target-primed reverse transcription</title>
+  <desc id="l1c-desc">Two panels. Top: an L1 inserted on the plus strand, read 5-prime to 3-prime as
+  flank, target site duplication, the L1 body, a polyA tail, the second copy of the duplication and
+  the other flank; RepeatMasker reports one fragment on strand plus. Bottom: the same element on the
+  minus strand, read as flank, duplication, a polyT run, the L1 body, duplication, flank;
+  RepeatMasker reports one fragment on strand C.</desc>
+  <style>
+    .gt-figure { --fg: var(--md-default-fg-color, #1f2933);
+                 --fg-mute: var(--md-default-fg-color--light, #5b6b7c);
+                 --te: var(--gt-coral, #f2523f);
+                 --tsd: var(--gt-purple, #7a1fa2);
+                 --flank: var(--md-default-fg-color--lightest, #dfe5ea);
+                 --rule: var(--md-default-fg-color--lighter, #b6c2cd);
+                 --panel: var(--md-code-bg-color, rgba(128,140,155,.09));
+                 --track: var(--md-default-fg-color--light, #5b6b7c); }
+    .gt-figure text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .ttl   { font-size: 15px; font-weight: 700; fill: var(--fg); }
+    .lbl   { font-size: 11px; font-weight: 600; fill: var(--fg-mute); letter-spacing: .04em; text-transform: uppercase; }
+    .blk   { font-size: 12px; font-weight: 600; fill: var(--fg-mute); }
+    .on    { font-size: 12px; font-weight: 700; fill: #fff; }
+    .mono  { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; fill: var(--fg); }
+    .cap   { font-size: 12px; fill: var(--fg-mute); }
+    .flank { fill: var(--flank); stroke: var(--rule); stroke-width: 1; }
+    .te    { fill: var(--te); }
+    .tsd   { fill: var(--tsd); }
+    .tail  { fill: none; stroke: var(--te); stroke-width: 1; }
+    .track { fill: var(--track); }
+    .panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+  </style>
+  <rect class="panel" x="1" y="1" width="778" height="140" rx="8"/>
+  <text class="ttl" x="20" y="26">Plus-strand L1 insertion</text>
+  <text class="cap" x="20" y="46">What RepeatMasker sees on the variant sequence, read 5′ to 3′.</text>
+  <text class="lbl" x="20" y="72">RepeatMasker</text>
+  <rect class="track" x="205" y="62" width="300" height="12" rx="3"/>
+  <text class="on" x="355" y="72" text-anchor="middle" font-size="10">L1HS · LINE/L1 · +</text>
+  <text class="lbl" x="20" y="108">Sequence</text>
+  <text class="blk" x="118" y="108">5′</text>
+  <rect class="flank" x="135" y="92" width="40" height="26" rx="3"/>
+  <rect class="tsd"   x="175" y="92" width="30" height="26" rx="3"/>
+  <text class="on"    x="190" y="109" text-anchor="middle" font-size="10">TSD</text>
+  <rect class="te"    x="205" y="92" width="300" height="26" rx="3"/>
+  <text class="on"    x="355" y="109" text-anchor="middle">L1, 5′ ▸ 3′</text>
+  <rect class="tail"  x="505" y="92" width="70" height="26" rx="3"/>
+  <text class="mono"  x="540" y="109" text-anchor="middle" font-size="11">(A)n</text>
+  <rect class="tsd"   x="575" y="92" width="30" height="26" rx="3"/>
+  <text class="on"    x="590" y="109" text-anchor="middle" font-size="10">TSD</text>
+  <rect class="flank" x="605" y="92" width="40" height="26" rx="3"/>
+  <text class="blk" x="655" y="108">3′</text>
+  <text class="cap" x="20" y="132">One fragment, strand <tspan class="mono">+</tspan>. The polyA tail is not part of the hit.</text>
+  <rect class="panel" x="1" y="152" width="778" height="146" rx="8"/>
+  <text class="ttl" x="20" y="177">Minus-strand L1 insertion</text>
+  <text class="cap" x="20" y="197">The same element on the other strand of the reference.</text>
+  <text class="lbl" x="20" y="223">RepeatMasker</text>
+  <rect class="track" x="275" y="213" width="300" height="12" rx="3"/>
+  <text class="on" x="425" y="223" text-anchor="middle" font-size="10">L1HS · LINE/L1 · C</text>
+  <text class="lbl" x="20" y="259">Sequence</text>
+  <text class="blk" x="118" y="259">5′</text>
+  <rect class="flank" x="135" y="243" width="40" height="26" rx="3"/>
+  <rect class="tsd"   x="175" y="243" width="30" height="26" rx="3"/>
+  <text class="on"    x="190" y="260" text-anchor="middle" font-size="10">TSD</text>
+  <rect class="tail"  x="205" y="243" width="70" height="26" rx="3"/>
+  <text class="mono"  x="240" y="260" text-anchor="middle" font-size="11">(T)n</text>
+  <rect class="te"    x="275" y="243" width="300" height="26" rx="3"/>
+  <text class="on"    x="425" y="260" text-anchor="middle">L1, 3′ ◂ 5′</text>
+  <rect class="tsd"   x="575" y="243" width="30" height="26" rx="3"/>
+  <text class="on"    x="590" y="260" text-anchor="middle" font-size="10">TSD</text>
+  <rect class="flank" x="605" y="243" width="40" height="26" rx="3"/>
+  <text class="blk" x="655" y="259">3′</text>
+  <text class="cap" x="20" y="286">One fragment, strand <tspan class="mono">C</tspan>. The tail reads as polyT ahead of the element.</text>
+</svg>

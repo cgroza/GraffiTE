@@ -1,0 +1,87 @@
+<svg viewBox="0 0 780 330" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-labelledby="l1t-title l1t-desc" class="gt-figure">
+  <title id="l1t-title">Twin priming: an L1 with an inverted 5-prime segment</title>
+  <desc id="l1t-desc">Two panels. Top: a plus-strand L1 whose 5-prime segment integrated inverted.
+  RepeatMasker reports two fragments of one element: a short one on strand C at the 5-prime end,
+  then the body on strand plus. Bottom: the same kind of element on the minus strand: the body on
+  strand C, then a short fragment on strand plus at the 3-prime end. In query order both read C
+  then plus, so the strand pattern alone does not say which strand the element is on.</desc>
+  <style>
+    .gt-figure { --fg: var(--md-default-fg-color, #1f2933);
+                 --fg-mute: var(--md-default-fg-color--light, #5b6b7c);
+                 --te: var(--gt-coral, #f2523f);
+                 --inv: var(--gt-navy, #23459a);
+                 --inv2: var(--gt-orange, #f5851f);
+                 --tsd: var(--gt-purple, #7a1fa2);
+                 --flank: var(--md-default-fg-color--lightest, #dfe5ea);
+                 --rule: var(--md-default-fg-color--lighter, #b6c2cd);
+                 --panel: var(--md-code-bg-color, rgba(128,140,155,.09));
+                 --track: var(--md-default-fg-color--light, #5b6b7c); }
+    .gt-figure text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .ttl   { font-size: 15px; font-weight: 700; fill: var(--fg); }
+    .lbl   { font-size: 11px; font-weight: 600; fill: var(--fg-mute); letter-spacing: .04em; text-transform: uppercase; }
+    .blk   { font-size: 12px; font-weight: 600; fill: var(--fg-mute); }
+    .on    { font-size: 12px; font-weight: 700; fill: #fff; }
+    .mono  { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; fill: var(--fg); }
+    .cap   { font-size: 12px; fill: var(--fg-mute); }
+    .flank { fill: var(--flank); stroke: var(--rule); stroke-width: 1; }
+    .te    { fill: var(--te); }
+    .inv   { fill: var(--inv); }
+    .inv2  { fill: var(--inv2); }
+    .tsd   { fill: var(--tsd); }
+    .tail  { fill: none; stroke: var(--te); stroke-width: 1; }
+    .track { fill: var(--track); }
+    .trackI { fill: var(--inv); }
+    .trackI2 { fill: var(--inv2); }
+    .panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+  </style>
+  <rect class="panel" x="1" y="1" width="778" height="152" rx="8"/>
+  <text class="ttl" x="20" y="26">Plus-strand L1, 5′ segment inverted</text>
+  <text class="cap" x="20" y="46">The second priming event copied the 5′ end of the RNA in the opposite direction.</text>
+  <text class="lbl" x="20" y="72">RepeatMasker</text>
+  <rect class="trackI" x="205" y="62" width="70" height="12" rx="3"/>
+  <text class="on" x="240" y="72" text-anchor="middle" font-size="10">L1HS · C</text>
+  <rect class="track" x="278" y="62" width="227" height="12" rx="3"/>
+  <text class="on" x="391" y="72" text-anchor="middle" font-size="10">L1HS · LINE/L1 · +</text>
+  <text class="lbl" x="20" y="108">Sequence</text>
+  <text class="blk" x="118" y="108">5′</text>
+  <rect class="flank" x="135" y="92" width="40" height="26" rx="3"/>
+  <rect class="tsd"   x="175" y="92" width="30" height="26" rx="3"/>
+  <text class="on"    x="190" y="109" text-anchor="middle" font-size="10">TSD</text>
+  <rect class="inv"   x="205" y="92" width="70" height="26" rx="3"/>
+  <text class="on"    x="240" y="109" text-anchor="middle" font-size="11">◂ 5′ L1</text>
+  <rect class="te"    x="278" y="92" width="227" height="26" rx="3"/>
+  <text class="on"    x="391" y="109" text-anchor="middle">L1 body, 5′ ▸ 3′</text>
+  <rect class="tail"  x="505" y="92" width="70" height="26" rx="3"/>
+  <text class="mono"  x="540" y="109" text-anchor="middle" font-size="11">(A)n</text>
+  <rect class="tsd"   x="575" y="92" width="30" height="26" rx="3"/>
+  <text class="on"    x="590" y="109" text-anchor="middle" font-size="10">TSD</text>
+  <rect class="flank" x="605" y="92" width="40" height="26" rx="3"/>
+  <text class="blk" x="655" y="108">3′</text>
+  <text class="cap" x="20" y="138">Two fragments of one element, in query order: <tspan class="mono">C</tspan> then <tspan class="mono">+</tspan>. The strand string is <tspan class="mono">C+</tspan>.</text>
+  <rect class="panel" x="1" y="164" width="778" height="164" rx="8"/>
+  <text class="ttl" x="20" y="189">Minus-strand L1, 5′ segment inverted</text>
+  <text class="cap" x="20" y="209">The same event seen from the other strand: the inverted piece now sits at the 3′ end of the query.</text>
+  <text class="lbl" x="20" y="235">RepeatMasker</text>
+  <rect class="track" x="275" y="225" width="227" height="12" rx="3"/>
+  <text class="on" x="388" y="235" text-anchor="middle" font-size="10">L1HS · LINE/L1 · C</text>
+  <rect class="trackI2" x="505" y="225" width="70" height="12" rx="3"/>
+  <text class="on" x="540" y="235" text-anchor="middle" font-size="10">L1HS · +</text>
+  <text class="lbl" x="20" y="271">Sequence</text>
+  <text class="blk" x="118" y="271">5′</text>
+  <rect class="flank" x="135" y="255" width="40" height="26" rx="3"/>
+  <rect class="tsd"   x="175" y="255" width="30" height="26" rx="3"/>
+  <text class="on"    x="190" y="272" text-anchor="middle" font-size="10">TSD</text>
+  <rect class="tail"  x="205" y="255" width="70" height="26" rx="3"/>
+  <text class="mono"  x="240" y="272" text-anchor="middle" font-size="11">(T)n</text>
+  <rect class="te"    x="275" y="255" width="227" height="26" rx="3"/>
+  <text class="on"    x="388" y="272" text-anchor="middle">L1 body, 3′ ◂ 5′</text>
+  <rect class="inv2"  x="505" y="255" width="70" height="26" rx="3"/>
+  <text class="on"    x="540" y="272" text-anchor="middle" font-size="11">5′ L1 ▸</text>
+  <rect class="tsd"   x="575" y="255" width="30" height="26" rx="3"/>
+  <text class="on"    x="590" y="272" text-anchor="middle" font-size="10">TSD</text>
+  <rect class="flank" x="605" y="255" width="40" height="26" rx="3"/>
+  <text class="blk" x="655" y="271">3′</text>
+  <text class="cap" x="20" y="301">Again <tspan class="mono">C</tspan> then <tspan class="mono">+</tspan> in query order: the same <tspan class="mono">C+</tspan> string.</text>
+  <text class="cap" x="20" y="318">Which strand the element is on is read from the consensus coordinates of the two fragments.</text>
+</svg>

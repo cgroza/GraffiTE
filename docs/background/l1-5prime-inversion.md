@@ -21,9 +21,20 @@ opposite direction. The two cDNAs are joined, and the element ends up as an inve
 followed by a normally oriented 3' piece, often with a small deletion or duplication at the
 junction between them.
 
-<figure markdown="span">
-![Twin priming: a second nick primes reverse transcription upstream on the same L1 RNA, in the opposite direction, so the integrated copy carries an inverted 5' segment ahead of the 3' segment](../assets/l1-twin-priming.png)
-<figcaption>Twin priming. The 5′ segment is copied by a second priming event and integrates inverted.</figcaption>
+<figure>
+--8<-- "assets/l1-tprt-canonical.svg"
+<figcaption>
+A canonical insertion first. RepeatMasker reports one fragment, on strand <code>+</code> or
+<code>C</code> depending on which strand of the reference the element went into.
+</figcaption>
+</figure>
+
+<figure>
+--8<-- "assets/l1-twin-priming.svg"
+<figcaption>
+Twin priming. The 5′ segment is copied by a second priming event and integrates inverted, so
+RepeatMasker reports two fragments of one element, on opposite strands.
+</figcaption>
 </figure>
 
 For a variant caller such an insertion is one event. For RepeatMasker it is two fragments of the
@@ -33,15 +44,10 @@ same L1 on opposite strands, and without a rule to join them the element reads a
 
 RepeatMasker reports each fragment's strand as `+` or `C`. An L1 with a 5' inversion appears as
 a `C` fragment followed, along the variant sequence, by a `+` fragment, both belonging to the
-same L1 (RepeatMasker gives them the same link ID). A `+` fragment followed by a `C` one is the
-same element seen from the other strand: it is also a 5' inversion, but only the `C+` order is
-recognised, because RepeatMasker reports the fragments in query order and the inverted piece
-is 5' on the query.
-
-<figure markdown="span">
-![A RepeatMasker .out excerpt in which two fragments share one link ID, the first on strand C and the second on strand +](../assets/l1-strand-pattern.png)
-<figcaption>The <code>C+</code> pattern in RepeatMasker output.</figcaption>
-</figure>
+same L1 (RepeatMasker gives them the same link ID). Both strands give that order. On the plus strand the inverted piece (`C`) comes first in the
+query and the body (`+`) after it; on the minus strand the body (`C`) comes first and the inverted
+piece (`+`) last. Either way RepeatMasker, which reports fragments in query order, writes `C` then
+`+`. A `+C` order is not a twin-priming signature and is not flagged.
 
 ## How GraffiTE detects it
 
@@ -59,9 +65,12 @@ otherwise it is on `C`. That inferred value is what `RM_hit_strands` reports for
 strands as they came.
 <span class="src">`bin/annotate_vcf.R:96-103`, `bin/add_polyA.py:107`</span>
 
-<figure markdown="span">
-![Consensus coordinates of the two fragments for a plus-strand and a minus-strand L1 with a 5' inversion](../assets/l1-consensus-coordinates.png)
-<figcaption>Inferring the strand from where the two fragments sit on the L1 consensus.</figcaption>
+<figure>
+--8<-- "assets/l1-consensus-coordinates.svg"
+<figcaption>
+Two HG002 insertions with the coordinates RepeatMasker reported. The consensus start of the first
+fragment against that of the second decides the strand.
+</figcaption>
 </figure>
 
 The rule runs on every dataset, not only human ones. It needs the library to name the class

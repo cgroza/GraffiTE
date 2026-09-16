@@ -1,0 +1,99 @@
+<svg viewBox="0 0 780 470" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-labelledby="l1k-title l1k-desc" class="gt-figure">
+  <title id="l1k-title">Reading the strand of an inverted L1 from consensus coordinates</title>
+  <desc id="l1k-desc">Two real HG002 insertions drawn against the 6,155 bp L1HS consensus. In
+  HG002_mat.svim_asm.INS.355 the C fragment (query 14 to 103) maps to consensus 4012 down to 3923
+  and the plus fragment (query 102 to 2241) to 4016 up to 6155; the first fragment starts lower on
+  the consensus than the second, so the element is on the plus strand. In HG002_mat.svim_asm.INS.311
+  the C fragment (query 100 to 456) maps to 6155 down to 5799 and the plus fragment (query 457 to
+  914) to 5331 up to 5788; the first starts higher, so the element is on the minus strand. Not to
+  scale.</desc>
+  <style>
+    .gt-figure { --fg: var(--md-default-fg-color, #1f2933);
+                 --fg-mute: var(--md-default-fg-color--light, #5b6b7c);
+                 --te: var(--gt-coral, #f2523f);
+                 --inv: var(--gt-navy, #23459a);
+                 --inv2: var(--gt-orange, #f5851f);
+                 --flank: var(--md-default-fg-color--lightest, #dfe5ea);
+                 --rule: var(--md-default-fg-color--lighter, #b6c2cd);
+                 --panel: var(--md-code-bg-color, rgba(128,140,155,.09)); }
+    .gt-figure text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    .ttl   { font-size: 15px; font-weight: 700; fill: var(--fg); }
+    .lbl   { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; font-weight: 700; fill: var(--fg); }
+    .on    { font-size: 12px; font-weight: 700; fill: #fff; }
+    .mono  { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: var(--fg); }
+    .monoI { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; font-weight: 700; fill: var(--inv); }
+    .monoT { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; font-weight: 700; fill: var(--te); }
+    .monoO { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; font-weight: 700; fill: var(--inv2); }
+    .cap   { font-size: 12px; fill: var(--fg-mute); }
+    .rule-t { font-size: 12px; font-weight: 700; fill: var(--fg); }
+    .cons  { fill: var(--flank); stroke: var(--rule); stroke-width: 1; }
+    .trunc { fill: var(--rule); }
+    .te    { fill: var(--te); }
+    .inv   { fill: var(--inv); }
+    .inv2  { fill: var(--inv2); }
+    .tail  { fill: none; stroke: var(--te); stroke-width: 1; }
+    .mapI  { fill: var(--inv); fill-opacity: .18; stroke: var(--inv); stroke-width: 1; }
+    .mapT  { fill: var(--te); fill-opacity: .14; stroke: var(--te); stroke-width: 1; }
+    .mapO  { fill: var(--inv2); fill-opacity: .2; stroke: var(--inv2); stroke-width: 1; }
+    .tick  { stroke: var(--rule); stroke-width: 1; }
+    .panel { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+  </style>
+  <rect class="panel" x="1" y="1" width="778" height="468" rx="8"/>
+  <text class="ttl" x="20" y="26">Two inverted L1 insertions from HG002, mapped onto the L1HS consensus</text>
+  <text class="cap" x="20" y="46">Columns from RepeatMasker's .out: query start and end, strand, consensus start and end. Not to scale.</text>
+  <text class="lbl" x="20" y="74">HG002_mat.svim_asm.INS.355</text>
+  <text class="mono" x="20" y="92">C   query 14-103   consensus 4012 ▸ 3923</text>
+  <text class="mono" x="20" y="108">+   query 102-2241  consensus 4016 ▸ 6155</text>
+  <text class="cap"  x="240" y="119" text-anchor="middle">5′</text>
+  <rect class="inv" x="255" y="108" width="60" height="22" rx="3"/>
+  <text class="on"  x="285" y="123" text-anchor="middle" font-size="11">C</text>
+  <rect class="te"  x="317" y="108" width="330" height="22" rx="3"/>
+  <text class="on"  x="482" y="123" text-anchor="middle" font-size="11">+</text>
+  <rect class="tail" x="649" y="108" width="40" height="22" rx="3"/>
+  <text class="mono" x="669" y="123" text-anchor="middle" font-size="10">(A)n</text>
+  <text class="cap"  x="705" y="119">3′</text>
+  <text class="monoI" x="255" y="144">14</text>
+  <text class="monoI" x="315" y="144" text-anchor="end">103</text>
+  <text class="monoT" x="320" y="144">102</text>
+  <text class="monoT" x="647" y="144" text-anchor="end">2241</text>
+  <polygon class="mapI" points="255,130 315,130 460,214 445,214"/>
+  <polygon class="mapT" points="317,130 647,130 700,214 462,214"/>
+  <text class="cap"  x="20" y="228">L1HS consensus</text>
+  <rect class="cons"  x="130" y="214" width="570" height="24" rx="3"/>
+  <rect class="trunc" x="130" y="214" width="290" height="24" rx="3"/>
+  <text class="on"   x="275" y="230" text-anchor="middle" font-size="11">5′ end, missing from both insertions</text>
+  <text class="mono" x="560" y="230" text-anchor="middle">1 ▸ 6155</text>
+  <line class="tick" x1="130" y1="238" x2="130" y2="246"/>
+  <text class="mono" x="130" y="258" text-anchor="middle" font-size="10">1</text>
+  <line class="tick" x1="445" y1="238" x2="445" y2="246"/>
+  <text class="monoI" x="443" y="258" text-anchor="end" font-size="10">3923</text>
+  <line class="tick" x1="462" y1="238" x2="462" y2="246"/>
+  <text class="monoT" x="464" y="258" font-size="10">4016</text>
+  <line class="tick" x1="700" y1="238" x2="700" y2="246"/>
+  <text class="mono" x="700" y="258" text-anchor="middle" font-size="10">6155</text>
+  <text class="monoO" x="530" y="258" text-anchor="middle" font-size="10">5331</text>
+  <line class="tick" x1="530" y1="238" x2="530" y2="246"/>
+  <text class="monoO" x="595" y="258" text-anchor="middle" font-size="10">5788</text>
+  <line class="tick" x1="595" y1="238" x2="595" y2="246"/>
+  <polygon class="mapO" points="530,238 595,238 640,322 590,322"/>
+  <polygon class="mapT" points="597,238 700,238 588,322 300,322"/>
+  <text class="lbl" x="20" y="300">HG002_mat.svim_asm.INS.311</text>
+  <text class="cap"  x="240" y="337" text-anchor="middle">5′</text>
+  <rect class="tail" x="255" y="322" width="43" height="22" rx="3"/>
+  <text class="mono" x="276" y="337" text-anchor="middle" font-size="10">(T)n</text>
+  <rect class="te"   x="300" y="322" width="288" height="22" rx="3"/>
+  <text class="on"   x="444" y="337" text-anchor="middle" font-size="11">C</text>
+  <rect class="inv2" x="590" y="322" width="50" height="22" rx="3"/>
+  <text class="on"   x="615" y="337" text-anchor="middle" font-size="11">+</text>
+  <text class="cap"  x="655" y="337">3′</text>
+  <text class="monoT" x="300" y="358">100</text>
+  <text class="monoT" x="586" y="358" text-anchor="end">456</text>
+  <text class="monoO" x="592" y="358">457</text>
+  <text class="monoO" x="640" y="358" text-anchor="end">914</text>
+  <text class="mono" x="20" y="382">C   query 100-456   consensus 6155 ▸ 5799</text>
+  <text class="mono" x="20" y="398">+   query 457-914   consensus 5331 ▸ 5788</text>
+  <text class="rule-t" x="20" y="428">The rule, as coded: compare the consensus start of the first fragment with that of the second.</text>
+  <text class="cap" x="20" y="446">INS.355: 4012 &lt; 4016, so the element is on the <tspan class="monoT">+</tspan> strand. INS.311: 6155 &gt; 5331, so it is on the <tspan class="monoT">C</tspan> strand.</text>
+  <text class="cap" x="20" y="462">Either way the C fragment is the inverted 5′ piece, and the inferred strand is what <tspan class="mono">RM_hit_strands</tspan> reports.</text>
+</svg>
