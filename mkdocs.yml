@@ -10,7 +10,7 @@ repo_name: cgroza/GraffiTE
 edit_uri: edit/v1.1dev/docs/
 
 copyright: >-
-  Copyright &copy; 2024 Cristian Groza and Clément Goubert — released under the MIT licence.
+  <a href="https://github.com/cgroza/GraffiTE/blob/main/LICENSE">MIT licence</a>
 
 docs_dir: docs
 site_dir: site

@@ -4,7 +4,7 @@
 
 ## Documentation
 
-- [GraffiTE](https://cgroza.github.io/GraffiTE/): what the pipeline does, the three stages, reference versus non-reference insertions, and a glossary.
+- [GraffiTE](https://cgroza.github.io/GraffiTE/): what the pipeline does, the four stages, reference versus non-reference insertions, and a glossary.
 - [Installation](https://cgroza.github.io/GraffiTE/getting-started/installation/): prerequisites, the Nextflow parser setting, fetching the code with its submodule, the container image, and updating.
 - [Quickstart](https://cgroza.github.io/GraffiTE/getting-started/quickstart/): the bundled chromosome 22 test set, the command, and the files a run writes.
 - [Choosing your inputs](https://cgroza.github.io/GraffiTE/getting-started/choosing-your-inputs/): which entry flag matches which data, what each runs and skips, and which flags combine.

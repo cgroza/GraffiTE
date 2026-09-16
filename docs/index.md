@@ -27,10 +27,10 @@ you which of them are TEs.
 
 ---
 
-## The three stages
+## The four stages
 
-Every GraffiTE run is some subset of three stages in series, plus an optional fourth. Which stages
-run depends on which inputs you supply.
+Every GraffiTE run is some subset of four stages: discovery, annotation and genotyping in series,
+and methylation beside genotyping. Which stages run depends on which inputs you supply.
 
 ```mermaid
 flowchart TB
@@ -60,10 +60,19 @@ flowchart TB
         C1 --> C2 --> C3
     end
 
+    subgraph D["Stage D · Methylation (optional)"]
+        direction TB
+        D1["Lift base modifications<br/>onto the graph"]
+        D2["Methylation level<br/>per allele"]
+        D1 --> D2
+    end
+
     AM --> B1
     B3 --> C1
+    C2 -.->|"graph alignments"| D1
+    C3 -.-> D2
 
-    A ~~~ B ~~~ C
+    A ~~~ B
 ```
 
 **Stage A, discovery.** Each assembly or read set is aligned to the reference, structural
@@ -78,13 +87,14 @@ polyA tails.
 **Stage C, genotyping.** The annotated polymorphisms are induced into a pangenome graph as
 bubbles, reads are mapped onto it, and each sample is genotyped at every polymorphism.
 
-**Methylation, optional.** With `--epigenomes`, and only on the `giraffe` or `graphaligner`
+**Stage D, methylation.** With `--epigenomes`, and only on the `giraffe` or `graphaligner`
 graph methods, the base modifications carried by the genotyping BAMs are lifted onto the graph
-and summarised per polymorphism. This step lives in the `panmethyl` submodule. See
-[Methylation](guides/methylation.md).
+alignments of Stage C and reported as a methylation level per allele. This stage lives in the
+`panmethyl` submodule. See [Methylation](guides/methylation.md).
 
-Stage C is optional (`--genotype false`). Stages A and B can each be skipped by supplying their
-outputs directly; see [Resuming and skipping work](guides/skipping-work.md).
+Stage C is optional (`--genotype false`) and Stage D runs only when asked. Stages A and B can
+each be skipped by supplying their outputs directly; see
+[Resuming and skipping work](guides/skipping-work.md).
 
 ---
 
@@ -116,14 +126,14 @@ Where the codebase uses a term loosely, this table states the meaning that appli
 
 | Term | Meaning |
 |---|---|
-| **pME** | Polymorphic mobile element. A mobile element insertion that is present in some haplotypes and absent in others. |
+| **MEI** | Mobile element insertion: a transposable element present in some haplotypes and absent from others, whichever way the VCF record points. The literature also says pME (polymorphic mobile element), TIP (transposable element insertion polymorphism) and poly-TE; this documentation says MEI throughout. |
 | **Non-reference insertion** | TE present in the sample, absent from the reference. Appears as `SVTYPE=INS`. |
 | **Reference insertion** | TE present in the reference, absent from the sample. Appears as `SVTYPE=DEL`. |
 | **Hit** | One RepeatMasker match after fragment grouping, a single element. Counted by the `n_hits` INFO field. |
 | **Fragment** | One raw line of RepeatMasker output. Several fragments may be grouped into one hit. Counted by `fragmts`. |
 | **Repeat span** | The fraction of a variant's sequence covered by the non-redundant union of RepeatMasker TE hits and ULTRA tandem repeats. The `total_repeat_span` INFO field; the main quality filter. |
 | **Trusted subset** | A conservative subset of `pangenome.vcf`: single-hit, long enough, not dominated by tandem repeat, and polyA-supported if it is a non-LTR element. Written to `pangenome.trusted.vcf`. |
-| **Human pME subset** | With `--human`, a subset filtered to recent human mobile element subfamilies (AluY, L1HS, SVA_D/E/F, HML-2). Written to `pangenome.human.vcf`, **instead of** the trusted subset. |
+| **Human MEI subset** | With `--human`, a subset filtered to recent human mobile element subfamilies (AluY, L1HS, SVA_D/E/F, HML-2). Written to `pangenome.human.vcf`, **instead of** the trusted subset. |
 | **TSD** | Target site duplication. A short direct repeat flanking a genuine mobile element insertion, created by the integration mechanism. |
 | **Locus** (HERV-K) | With `--human`, the set of records that describe the same HML-2 element, grouped by overlap. Named by the `HERVK_LOCUS` INFO field. |
 | **Consolidated VCF** | With `--human`, a VCF in which each HERV-K locus is one record with per-allele states (`pangenome.human.consolidated.vcf`, and `GraffiTE.merged.genotypes.human.vcf.gz` after genotyping). |
@@ -178,10 +188,8 @@ Where the codebase uses a term loosely, this table states the meaning that appli
 > insertion polymorphisms using graph genomes. *Nature Communications* **15**, 8915 (2024).
 > [doi:10.1038/s41467-024-53294-2](https://doi.org/10.1038/s41467-024-53294-2)
 
-GraffiTE was developed by **Cristian Groza** and **Clément Goubert** in
-[Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the
-[McGill Genome Centre](https://www.mcgillgenomecentre.ca/), Montréal, Canada. It builds on the
-concept described in [Groza et al., 2022](https://link.springer.com/protocol/10.1007/978-1-0716-2883-6_5).
+GraffiTE is developed by **Cristian Groza** (Children's Mercy Hospital, Kansas City, USA) and
+**Clément Goubert** (The University of Arizona, Tucson, USA).
 
 Bugs, comments and suggestions are welcome in the
 [issue tracker](https://github.com/cgroza/GraffiTE/issues).

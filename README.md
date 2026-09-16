@@ -28,7 +28,8 @@ flowchart LR
     A["Stage A · Discovery<br/><small>assemblies · long reads · SV calls</small>"]
     B["Stage B · Annotation<br/><small>RepeatMasker · ULTRA · TSD · polyA</small>"]
     C["Stage C · Genotyping<br/><small>pangenome graph · reads · vg call</small>"]
-    A --> B --> C
+    D["Stage D · Methylation, optional<br/><small>panmethyl · --epigenomes</small>"]
+    A --> B --> C -.-> D
 ```
 
 Each stage can be skipped by handing GraffiTE the output of the previous one, and the pipeline can
@@ -74,10 +75,8 @@ For language models: [llms.txt](https://cgroza.github.io/GraffiTE/llms.txt) and 
 > insertion polymorphisms using graph genomes. *Nature Communications* **15**, 8915 (2024).
 > [doi:10.1038/s41467-024-53294-2](https://doi.org/10.1038/s41467-024-53294-2)
 
-GraffiTE was developed by Cristian Groza and Clément Goubert in
-[Guillaume Bourque's group](https://computationalgenomics.ca/BourqueLab/) at the
-[McGill Genome Centre](https://www.mcgillgenomecentre.ca/), Montréal. It builds on the graph
-genotyping protocol of [Groza et al. 2022](https://link.springer.com/protocol/10.1007/978-1-0716-2883-6_5).
+GraffiTE is developed by Cristian Groza (Children's Mercy Hospital, Kansas City, USA) and
+Clément Goubert (The University of Arizona, Tucson, USA).
 
 ## Licence and support
 

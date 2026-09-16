@@ -30,7 +30,7 @@ flowchart TD
     PG["<b>pangenome.vcf</b><br/><small>every surviving variant</small>"]
     T{"--human ?"}
     TR["<b>pangenome.trusted.vcf</b><br/><small>conservative subset</small>"]
-    HU["<b>pangenome.human.vcf</b><br/><small>recent human pME subset</small>"]
+    HU["<b>pangenome.human.vcf</b><br/><small>recent human MEI subset</small>"]
     HK["HERV-K classifier"]
 
     IN --> RM --> UN

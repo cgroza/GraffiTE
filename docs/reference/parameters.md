@@ -116,7 +116,7 @@ Retroposon classes. See [Stage B: annotation](../guides/annotation.md).
 
 ---
 
-## The `--human` pME subset
+## The `--human` MEI subset
 
 `--human` swaps the trusted subset for one restricted to recent human mobile element subfamilies.
 The output is `pangenome.human.vcf`; `pangenome.trusted.vcf` is not written. It also turns on the

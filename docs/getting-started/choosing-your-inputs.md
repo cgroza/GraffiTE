@@ -12,22 +12,19 @@ description: >-
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
-GraffiTE is three stages in series, and every input flag is a way of entering that series at a
-given point. Choose the flag by asking what you already have.
+GraffiTE is three stages in series plus an optional fourth, and every input flag is a way of
+entering that series at a given point. Choose the flag by asking what you already have.
 
 ---
 
-## The three stages
+## The four stages
 
 | Stage | Question it answers | Enters with | Produces |
 |---|---|---|---|
 | **A, discovery** | Where do the sequence-resolved insertions and deletions sit relative to the reference? | `--assemblies`, `--pav`, `--longreads`, `--bams`, `--svs` | `1_SV_search/SVs.vcf` |
 | **B, annotation** | Which of those SVs are transposable elements, and what are they? | `--vcf`, `--RM_dir` | `3_TSD_search/pangenome.vcf` and its subsets |
 | **C, genotyping** | Which samples carry each polymorphism? | `--graffite_vcf`, `--graph`, `--graph_alignments`, `--vcfs` | `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz` |
-
-A fourth, optional step lifts methylation onto the graph (`--epigenomes`), only on the
-`giraffe` and `graphaligner` methods <span class="src">`main.nf:226`</span>. See
-[Methylation](../guides/methylation.md).
+| **D, methylation** (optional) | How methylated is each allele in each sample? | `--epigenomes`, with BAMs in `--genotype_with`, on the `giraffe` or `graphaligner` method <span class="src">`main.nf:226`</span> | methylation fields in the genotyped VCF; see [Methylation](../guides/methylation.md) |
 
 ---
 
@@ -49,18 +46,18 @@ flowchart TD
     Q3 -->|"Per sample"| SV["<code>--svs</code>"]
     Q3 -->|"One merged VCF"| VC["<code>--vcf</code>"]
 
-    Q0 -->|"A GraffiTE run that stopped"| Q4{"Which stage finished?"}
-    Q4 -->|"RepeatMasker"| RM["<code>--RM_dir</code>"]
-    Q4 -->|"Annotation<br/>(pangenome.vcf)"| GV["<code>--graffite_vcf</code>"]
-    Q4 -->|"Graph, or alignments"| PC["<code>--graph</code><br/><code>--graph_alignments</code> / <code>--vcfs</code>"]
 
     classDef a fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
     classDef b fill:#5c7cfa,stroke:#5c7cfa,color:#fff;
-    classDef c fill:#f2523f,stroke:#f2523f,color:#fff;
     class SA,PV,LR,BM,SV a;
-    class VC,RM b;
-    class GV,PC c;
+    class VC b;
 ```
+
+!!! note "Re-entering a run that stopped"
+    The tree is for new data. Output from an earlier run re-enters further down: `--RM_dir`
+    after RepeatMasker, `--graffite_vcf` after annotation, `--graph`, `--graph_alignments` or
+    `--vcfs` after the graph or the alignments. See
+    [Resuming and skipping work](../guides/skipping-work.md).
 
 Every discovery input needs `--reference` and `--TE_library`. Genotyping needs `--genotype_with`
 unless you pass `--genotype false`.
