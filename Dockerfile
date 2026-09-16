@@ -1,0 +1,359 @@
+# syntax=docker/dockerfile:1
+FROM ubuntu:20.04
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN <<'EOF'
+set -eux
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get -y update
+apt-get install --assume-yes software-properties-common
+add-apt-repository universe
+apt-get update
+apt-get install --assume-yes python3-pip git build-essential zlib1g-dev libcereal-dev libjellyfish-2.0-dev pkg-config cmake r-base-core gawk autoconf pigz rustc cargo
+
+apt-get -y install \
+    libssl-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
+    curl libgomp1 \
+    perl \
+    python3-h5py \
+    libfile-which-perl \
+    libtext-soundex-perl \
+    libjson-perl liburi-perl libwww-perl \
+    libdevel-size-perl \
+    bedtools \
+    ncbi-blast+
+
+apt-get install --assume-yes tabix libbz2-dev liblzma-dev libgsl-dev libperl-dev bzip2
+rm -rf /var/lib/apt/lists/*
+EOF
+
+RUN <<'EOF'
+set -eux
+cd /
+git clone https://github.com/Dfam-consortium/TETools.git
+bash TETools/getsrc.sh
+mv src /opt/src
+cp TETools/sha256sums.txt /opt/src/
+mkdir -p /opt/ucsc_tools
+cp TETools/LICENSE.ucsc /opt/ucsc_tools/LICENSE
+rm -rf TETools
+EOF
+
+RUN <<'EOF'
+set -eux
+# Extract RMBlast
+cd /opt \
+&& mkdir rmblast \
+&& tar --strip-components=1 -x -f src/rmblast-*-x64-linux.tar.gz -C rmblast \
+&& rm src/rmblast-*-x64-linux.tar.gz
+
+# Compile HMMER
+cd /opt
+tar -x -f src/hmmer-*.tar.gz \
+&& cd hmmer-* \
+&& ./configure --prefix=/opt/hmmer && make && make install \
+&& make clean \
+&& cd .. && rm src/hmmer-*.tar.gz
+
+# Compile TRF
+cd /opt
+tar -x -f src/trf-*.tar.gz \
+&& cd TRF-* \
+&& mkdir build && cd build \
+&& ../configure && make && cp ./src/trf /opt/trf \
+&& cd .. && rm -r build \
+&& cd .. && rm src/trf-*.tar.gz
+
+# Compile RepeatScout
+cd /opt
+tar -x -f src/RepeatScout-*.tar.gz \
+&& cd RepeatScout-* \
+&& sed -i 's#^INSTDIR =.*#INSTDIR = /opt/RepeatScout#' Makefile \
+&& make && make install \
+&& cd .. && rm src/RepeatScout-*.tar.gz
+
+# Compile and configure RECON
+cd /opt
+tar -x -f src/RECON-*.tar.gz \
+&& mv RECON-* RECON \
+&& cd RECON \
+&& make -C src && make -C src install \
+&& cp 00README bin/ \
+&& sed -i 's#^\$path =.*#$path = "/opt/RECON/bin";#' scripts/recon.pl \
+&& cd .. && rm src/RECON-*.tar.gz
+EOF
+
+RUN <<'EOF'
+set -eux
+# Compile cd-hit
+cd /opt/src
+tar -x -f cd-hit-v*.tar.gz \
+&& cd cd-hit-v* \
+&& make && mkdir /opt/cd-hit && PREFIX=/opt/cd-hit make install \
+&& cd .. && rm cd-hit-v*.tar.gz
+
+# Compile genometools (for ltrharvest)
+cd /opt/src
+tar -x -f gt-*.tar.gz \
+&& cd genometools-* \
+&& make -j4 cairo=no && make cairo=no prefix=/opt/genometools install \
+&& make cleanup && cd .. && rm gt-*.tar.gz
+
+# Configure LTR_retriever
+cd /opt \
+&& tar -x -f src/LTR_retriever-*.tar.gz \
+&& mv LTR_retriever-* LTR_retriever \
+&& cd LTR_retriever \
+&& sed -i \
+    -e 's#BLAST+=#BLAST+=/opt/rmblast/bin#' \
+    -e 's#RepeatMasker=#RepeatMasker=/opt/RepeatMasker#' \
+    -e 's#HMMER=#HMMER=/opt/hmmer/bin#' \
+    -e 's#CDHIT=#CDHIT=/opt/cd-hit#' \
+    paths && cd .. && rm src/LTR_retriever-*.tar.gz
+
+# Compile MAFFT
+cd /opt/src
+tar -x -f mafft-*-without-extensions-src.tgz \
+&& cd mafft-*-without-extensions/core \
+&& sed -i 's#^PREFIX =.*#PREFIX = /opt/mafft#' Makefile \
+&& make clean && make && make install \
+&& make clean && cd ../.. && rm mafft-*-without-extensions-src.tgz
+
+# Compile NINJA
+cd /opt \
+&& mkdir NINJA \
+&& tar --strip-components=1 -x -f src/NINJA-cluster.tar.gz -C NINJA \
+&& cd NINJA/NINJA \
+&& make clean && make all
+
+# Move UCSC tools
+cd /opt/src
+mkdir -p /opt/ucsc_tools \
+&& mv faToTwoBit twoBitInfo twoBitToFa /opt/ucsc_tools \
+&& chmod +x /opt/ucsc_tools/*
+EOF
+
+RUN <<'EOF'
+set -eux
+# Compile and configure coseg
+cd /opt \
+&& mkdir coseg \
+&& tar -x -f src/coseg-*.tar.gz -C ./coseg \
+&& cd coseg/coseg-coseg-* \
+&& mv * ../ \
+&& cd ../ \
+&& sed -i 's@#!.*perl@#!/usr/bin/perl@' preprocessAlignments.pl runcoseg.pl refineConsSeqs.pl \
+&& sed -i 's#use lib "/usr/local/RepeatMasker";#use lib "/opt/RepeatMasker";#' preprocessAlignments.pl \
+&& make && cd /opt/ && rm -r src/coseg-*.tar.gz
+
+# Configure RepeatMasker
+cd /opt \
+&& tar -x -f src/RepeatMasker-*.tar.gz \
+&& chmod a+w RepeatMasker/Libraries \
+&& chmod a+w RepeatMasker/Libraries/famdb \
+&& cd RepeatMasker \
+&& gunzip src/dfam38_full.0.h5.gz \
+&& mv src/dfam38_full.0.h5 /opt/RepeatMasker/Libraries/famdb/dfam38_full.0.h5 \
+&& perl configure \
+    -hmmer_dir=/opt/hmmer/bin \
+    -rmblast_dir=/opt/rmblast/bin \
+    -libdir=/opt/RepeatMasker/Libraries \
+    -trf_prgm=/opt/trf \
+    -default_search_engine=rmblast \
+&& cd .. && rm src/RepeatMasker-*.tar.gz
+
+# Configure RepeatModeler
+cd /opt \
+&& tar -x -f src/RepeatModeler-*.tar.gz \
+&& mv RepeatModeler-* RepeatModeler \
+&& cd RepeatModeler \
+&& perl configure \
+    -cdhit_dir=/opt/cd-hit -genometools_dir=/opt/genometools/bin \
+    -ltr_retriever_dir=/opt/LTR_retriever -mafft_dir=/opt/mafft/bin \
+    -ninja_dir=/opt/NINJA/NINJA -recon_dir=/opt/RECON/bin \
+    -repeatmasker_dir=/opt/RepeatMasker \
+    -rmblast_dir=/opt/rmblast/bin -rscout_dir=/opt/RepeatScout \
+    -trf_dir=/opt \
+    -ucsctools_dir=/opt/ucsc_tools \
+&& cd .. && rm src/RepeatModeler-*.tar.gz
+
+# Delete unnecessary source files.
+rm -rf /opt/src
+EOF
+
+RUN <<'EOF'
+set -eux
+cd "${HOME}"
+git clone https://github.com/marbl/Winnowmap.git
+cd Winnowmap
+make -j8
+cp bin/* /usr/local/bin/
+cd ..
+rm -r Winnowmap
+EOF
+
+RUN <<'EOF'
+set -eux
+cd "${HOME}"
+git clone --recursive https://github.com/samtools/htslib.git
+cd htslib
+autoreconf -i
+./configure
+make
+make install
+cd "${HOME}"
+
+git clone https://github.com/samtools/samtools.git
+cd samtools
+autoheader
+autoconf -Wno-syntax
+./configure --without-curses
+make
+make install
+cd "${HOME}"
+rm -rf samtools
+
+git clone https://github.com/samtools/bcftools.git
+cd bcftools
+autoheader
+autoconf
+./configure --enable-libgsl --enable-perl-filters
+make
+make install
+
+cd "${HOME}"
+rm -rf htslib
+rm -rf bcftools
+EOF
+
+RUN <<'EOF'
+set -eux
+cd "${HOME}"
+git clone https://github.com/fritzsedlazeck/SURVIVOR.git
+cd SURVIVOR/Debug
+make
+cp SURVIVOR /usr/local/bin
+cd "${HOME}"
+rm -rf SURVIVOR
+
+git clone https://github.com/lh3/minimap2
+cd minimap2
+make
+cp minimap2 /usr/local/bin
+cd "${HOME}"
+rm -rf minimap2
+
+# ULTRA finds the tandem repeats that go into total_repeat_span
+# (bin/repmask_vcf.sh calls `ultra`). Check the tag against the published image.
+git clone --branch v1.0.0 --depth 1 https://github.com/TravisWheelerLab/ULTRA.git
+cd ULTRA
+cmake .
+make
+cp ultra /usr/local/bin
+cd "${HOME}"
+rm -rf ULTRA
+EOF
+
+RUN <<'EOF'
+set -eux
+mkdir /metadata
+dpkg -l | grep jellyfish | tr -s " " | cut -d " " -f 2,3 > /metadata/jellyfish.lib.version
+mkdir /repos
+cd /repos
+git clone https://github.com/eblerjana/pangenie.git
+cd pangenie
+mkdir build
+cd build
+cmake ..
+make -j 4
+cp src/PanGenie /usr/local/bin
+cp src/PanGenie-index /usr/local/bin
+cd ..
+git rev-parse --short HEAD > /metadata/pangenie.git.version
+cd "${HOME}"
+rm -rf /repos/pangenie
+EOF
+
+RUN <<'EOF'
+set -eux
+pip3 install numpy==1.21
+# truvari: the discovery merge (truvari divide, truvari collapse). pyfaidx:
+# merge_vcfs.py on the PanGenie path.
+pip3 install pysam pyparsing svim-asm pandas vcfpy sniffles cigar truvari pyfaidx
+pip3 check
+
+R --slave -e 'install.packages(c("XML", "dplyr", "stringr", "tidyr", "readr", "vcfR", "optparse"), repos="https://cloud.r-project.org/")'
+EOF
+
+RUN <<'EOF'
+set -eux
+export DEBIAN_FRONTEND=noninteractive
+cd "${HOME}"
+# Install dependencies and some basic utilities.
+apt-get -y update
+apt-get -y install \
+    aptitude \
+    libgomp1 \
+    perl \
+    python3-h5py \
+    libfile-which-perl \
+    libtext-soundex-perl \
+    libjson-perl liburi-perl libwww-perl \
+    libdevel-size-perl
+aptitude install -y ~pstandard ~prequired \
+    curl wget \
+    vim nano \
+    procps strace \
+    libpam-systemd-
+
+echo "PS1='(dfam-tetools \$(pwd))\\\$ '" >> /etc/bash.bashrc
+
+apt-get -y install bc
+apt-get remove --assume-yes git software-properties-common cmake make pkg-config build-essential autoconf
+apt-get autoremove --assume-yes
+apt-get clean --assume-yes
+rm -rf /var/lib/apt/lists/*
+EOF
+
+RUN <<'EOF'
+set -eux
+wget -O /usr/local/bin/vg https://github.com/vgteam/vg/releases/download/v1.70.0/vg
+chmod +x /usr/local/bin/vg
+
+# pypy3 at /opt/pypy3: bin/subset_gaf.py filters every alignment line of every
+# sample and its shebang is /opt/pypy3/bin/pypy3.
+wget -qO /tmp/pypy3.tar.bz2 https://downloads.python.org/pypy/pypy3.10-v7.3.17-linux64.tar.bz2
+mkdir -p /opt/pypy3
+tar -xj -f /tmp/pypy3.tar.bz2 --strip-components=1 -C /opt/pypy3
+rm /tmp/pypy3.tar.bz2
+EOF
+
+RUN <<'EOF'
+set -eux
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O "${HOME}/miniconda.sh"
+bash "${HOME}/miniconda.sh" -b -p "${HOME}/miniconda"
+rm -f "${HOME}/miniconda.sh"
+"${HOME}/miniconda/bin/conda" install -y -c bioconda graphaligner
+cp "${HOME}/miniconda/bin/GraphAligner" /usr/local/bin/
+rm -rf "${HOME}/miniconda"
+EOF
+
+RUN <<'EOF'
+set -eux
+cd "${HOME}"
+git clone https://github.com/cgroza/panmethyl
+cd panmethyl/tagtobed
+cargo build --release
+cp target/release/tagtobed /usr/local/bin
+cd "${HOME}"
+rm -rf panmethyl
+EOF
+
+ENV LC_ALL=C \
+    LANG=C \
+    PYTHONIOENCODING=utf8 \
+    PATH=/opt/RepeatMasker:/opt/RepeatMasker/util:/opt/RepeatModeler:/opt/RepeatModeler/util:/opt/coseg:/opt/ucsc_tools:/opt:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
