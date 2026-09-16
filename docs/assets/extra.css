@@ -81,12 +81,22 @@
   white-space: nowrap;
 }
 
-/* Source-provenance annotations, e.g. `nextflow.config:52`. */
+/* Source-provenance annotations, e.g. `nextflow.config:52`. They wrap inside
+   their cell and the cell has a fixed preferred width, so a long path never
+   squeezes the prose column beside it. */
 .src {
   font-size: 0.68rem;
   color: var(--md-default-fg-color--light);
-  white-space: nowrap;
 }
+.src code { overflow-wrap: anywhere; }
+.md-typeset table:not([class]) td:has(> .src:only-child),
+.md-typeset table:not([class]) td:has(> .src:first-child:last-child) {
+  width: 10rem;
+}
+
+/* Reference tables have four or five columns; Material's default 61rem grid
+   leaves a prose column a few words wide. */
+.md-grid { max-width: 76rem; }
 
 /* Figure captions sit closer to the figure than Material's default. */
 .md-typeset figure figcaption {

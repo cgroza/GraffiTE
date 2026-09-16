@@ -55,21 +55,21 @@ file. Simple repeats and low-complexity fragments are removed before grouping, s
 neither as hits nor toward the TE span.
 <span class="src">`bin/annotate_vcf.R:73-90`</span>
 
-| Field | Number | Type | Meaning | Source |
-|---|---|---|---|---|
-| `n_hits` | 1 | Integer | Hits on the variant sequence. `0` when RepeatMasker found nothing. | <span class="src">`bin/repmask_vcf.sh:125`, `bin/annotate_vcf.R:148`</span> |
-| `fragmts` | . | Integer | Fragments grouped into each hit, in hit order. | <span class="src">`bin/repmask_vcf.sh:129`, `bin/annotate_vcf.R:142`</span> |
-| `match_lengths` | . | Integer | Bases of the variant covered by each hit, first to last fragment. | <span class="src">`bin/repmask_vcf.sh:126`, `bin/annotate_vcf.R:136`</span> |
-| `repeat_ids` | . | String | Name of each hit, taken from its highest-scoring fragment. A hit whose fragments carry different names gets an `(x)` suffix. An SVA hit lying entirely inside the VNTR gets a `(VNTR_only)` suffix; see [SVA VNTR polymorphisms](../background/sva-vntr.md). | <span class="src">`bin/repmask_vcf.sh:127`, `bin/annotate_vcf.R:83-87,127-129`</span> |
-| `matching_classes` | . | String | RepeatMasker class of each hit, as `class/family` from the library (`SINE/Alu`, `LINE/L1`, `LTR/ERVK`, ...). A `(VNTR_only)` SVA hit is reported as `Simple_repeat` here. | <span class="src">`bin/repmask_vcf.sh:128`, `bin/annotate_vcf.R:85,130-132`</span> |
-| `RM_hit_strands` | . | String | Strand of each hit: `+` or `C` as RepeatMasker writes them. A hit whose fragments lie on both strands reports the concatenation (`C+`, `+C`), except an L1 with the `C+` twin-priming signature, whose strand is inferred; see [L1 5' inversions](../background/l1-5prime-inversion.md). | <span class="src">`bin/repmask_vcf.sh:130`, `bin/annotate_vcf.R:80,96-103`</span> |
-| `RM_hit_IDs` | . | String | RepeatMasker link ID of each hit, so a hit can be found again in `repeatmasker_dir/indels.fa.out`. | <span class="src">`bin/repmask_vcf.sh:131`, `bin/annotate_vcf.R:146`</span> |
-| `L1_5PINV` | . | String | Link IDs of the hits flagged as an L1 with a 5' inversion, or `None`. | <span class="src">`bin/repmask_vcf.sh:134`, `bin/annotate_vcf.R:95,147`</span> |
-| `total_match_length` | 1 | Integer | Bases of the variant covered by TE hits, overlaps counted once. | <span class="src">`bin/repmask_vcf.sh:132`, `bin/repmask_vcf.sh:61-71`</span> |
-| `total_match_span` | 1 | Float | `total_match_length` divided by the variant length. Written for continuity with v1.0, where it was the filter metric; nothing in v1.1 filters on it. | <span class="src">`bin/repmask_vcf.sh:133,71`</span> |
-| `ULTRA_TR` | 1 | Integer | Bases of the variant that ULTRA annotates as tandem repeat, overlaps counted once. `0` when ULTRA found nothing. | <span class="src">`bin/repmask_vcf.sh:135,49-51`</span> |
-| `ULTRA_TR_span` | 1 | Float | `ULTRA_TR` divided by the variant length, capped at 1. | <span class="src">`bin/repmask_vcf.sh:136,82-84`</span> |
-| `total_repeat_span` | 1 | Float | Fraction of the variant covered by the union of TE hits and ULTRA intervals, capped at 1. This is the Stage B filter metric: records at or below `--repeat_span_cutoff` (default `0.80`) are discarded. | <span class="src">`bin/repmask_vcf.sh:137,86-94`, `module/main.nf:543,625`</span> |
+| Field | Number, Type | Meaning | Source |
+|---|---|---|---|
+| `n_hits` | 1, Integer | Hits on the variant sequence. `0` when RepeatMasker found nothing. | <span class="src">`bin/repmask_vcf.sh:125`, `bin/annotate_vcf.R:148`</span> |
+| `fragmts` | ., Integer | Fragments grouped into each hit, in hit order. | <span class="src">`bin/repmask_vcf.sh:129`, `bin/annotate_vcf.R:142`</span> |
+| `match_lengths` | ., Integer | Bases of the variant covered by each hit, first to last fragment. | <span class="src">`bin/repmask_vcf.sh:126`, `bin/annotate_vcf.R:136`</span> |
+| `repeat_ids` | ., String | Name of each hit, taken from its highest-scoring fragment. A hit whose fragments carry different names gets an `(x)` suffix. An SVA hit lying entirely inside the VNTR gets a `(VNTR_only)` suffix; see [SVA VNTR polymorphisms](../background/sva-vntr.md). | <span class="src">`bin/repmask_vcf.sh:127`, `bin/annotate_vcf.R:83-87,127-129`</span> |
+| `matching_classes` | ., String | RepeatMasker class of each hit, as `class/family` from the library (`SINE/Alu`, `LINE/L1`, `LTR/ERVK`, ...). A `(VNTR_only)` SVA hit is reported as `Simple_repeat` here. | <span class="src">`bin/repmask_vcf.sh:128`, `bin/annotate_vcf.R:85,130-132`</span> |
+| `RM_hit_strands` | ., String | Strand of each hit: `+` or `C` as RepeatMasker writes them. A hit whose fragments lie on both strands reports the concatenation (`C+`, `+C`), except an L1 with the `C+` twin-priming signature, whose strand is inferred; see [L1 5' inversions](../background/l1-5prime-inversion.md). | <span class="src">`bin/repmask_vcf.sh:130`, `bin/annotate_vcf.R:80,96-103`</span> |
+| `RM_hit_IDs` | ., String | RepeatMasker link ID of each hit, so a hit can be found again in `repeatmasker_dir/indels.fa.out`. | <span class="src">`bin/repmask_vcf.sh:131`, `bin/annotate_vcf.R:146`</span> |
+| `L1_5PINV` | ., String | Link IDs of the hits flagged as an L1 with a 5' inversion, or `None`. | <span class="src">`bin/repmask_vcf.sh:134`, `bin/annotate_vcf.R:95,147`</span> |
+| `total_match_length` | 1, Integer | Bases of the variant covered by TE hits, overlaps counted once. | <span class="src">`bin/repmask_vcf.sh:132`, `bin/repmask_vcf.sh:61-71`</span> |
+| `total_match_span` | 1, Float | `total_match_length` divided by the variant length. Written for continuity with v1.0, where it was the filter metric; nothing in v1.1 filters on it. | <span class="src">`bin/repmask_vcf.sh:133,71`</span> |
+| `ULTRA_TR` | 1, Integer | Bases of the variant that ULTRA annotates as tandem repeat, overlaps counted once. `0` when ULTRA found nothing. | <span class="src">`bin/repmask_vcf.sh:135,49-51`</span> |
+| `ULTRA_TR_span` | 1, Float | `ULTRA_TR` divided by the variant length, capped at 1. | <span class="src">`bin/repmask_vcf.sh:136,82-84`</span> |
+| `total_repeat_span` | 1, Float | Fraction of the variant covered by the union of TE hits and ULTRA intervals, capped at 1. This is the Stage B filter metric: records at or below `--repeat_span_cutoff` (default `0.80`) are discarded. | <span class="src">`bin/repmask_vcf.sh:137,86-94`, `module/main.nf:543,625`</span> |
 
 A record without any hit has `n_hits=0`, `repeat_ids=None`, `matching_classes=None`,
 `RM_hit_strands=None`, `RM_hit_IDs=None` and `L1_5PINV=None`; such records fail the span filter
@@ -82,10 +82,10 @@ Added by `tsd_report` and `concat_repeatmask` to `pangenome.vcf`, and carried by
 downstream, including the genotyped VCFs. A consolidated HERV-K record is built from scratch and
 does not carry them.
 
-| Field | Number | Type | Meaning | Source |
-|---|---|---|---|---|
-| `TSD` | 1 | String | The target site duplication as its 5' copy and its 3' copy, comma-separated and upper-cased: `GATTACAG,GATTACAG`. The two copies are exact matches. Absent when the search found no duplication of 4 to 20 bp whose ends sit, on average, within 5 bp of the breakpoints. How the search works is in [Target site duplications](../background/tsd.md). | <span class="src">`bin/tsd_annotate_vcf.sh:18,27`</span> |
-| `polyA` | 1 | String | `TRUE` when a tail of at least 8 bp with at least 80% A ends within 5 bp of the 3' end of a plus-strand hit, or the same with T at the 5' end of a minus-strand hit, after the matching `TSD` copy has been trimmed off. `FALSE` otherwise, including when the single hit has a mixed strand. `NA` when `n_hits` is greater than 1. | <span class="src">`bin/add_polyA.py:21-31,102-112`</span> |
+| Field | Number, Type | Meaning | Source |
+|---|---|---|---|
+| `TSD` | 1, String | The target site duplication as its 5' copy and its 3' copy, comma-separated and upper-cased: `GATTACAG,GATTACAG`. The two copies are exact matches. Absent when the search found no duplication of 4 to 20 bp whose ends sit, on average, within 5 bp of the breakpoints. How the search works is in [Target site duplications](../background/tsd.md). | <span class="src">`bin/tsd_annotate_vcf.sh:18,27`</span> |
+| `polyA` | 1, String | `TRUE` when a tail of at least 8 bp with at least 80% A ends within 5 bp of the 3' end of a plus-strand hit, or the same with T at the 5' end of a minus-strand hit, after the matching `TSD` copy has been trimmed off. `FALSE` otherwise, including when the single hit has a mixed strand. `NA` when `n_hits` is greater than 1. | <span class="src">`bin/add_polyA.py:21-31,102-112`</span> |
 
 ## HERV-K classifier fields
 
@@ -94,23 +94,23 @@ induces the graph, so these fields appear in `pangenome.human.vcf`, in `hervk_ca
 and in the two consolidated VCFs. What the states mean is in
 [HERV-K (HML-2) biology](../background/hervk-hml2.md).
 
-| Field | Number | Type | Meaning | Source |
-|---|---|---|---|---|
-| `HERVK_CLASS` | 1 | String | Polymorphism class: `null_solo`, `solo_prov`, `truncated_prov`, `null_prov`, `copy_number` or `other`. | <span class="src">`bin/hervk_classify.py:425`</span> |
-| `HERVK_ALLELE_REF` | 1 | String | State of the REF allele: `null`, `solo`, `provirus`, `prov_xN` (a tandem array of N proviral units sharing an LTR at each junction), `partial`, or `.` when unresolved. | <span class="src">`bin/hervk_classify.py:428`</span> |
-| `HERVK_ALLELE` | . | String | State of each ALT allele, in ALT order, same vocabulary. | <span class="src">`bin/hervk_classify.py:432`</span> |
-| `HERVK_EVIDENCE` | 1 | String | What resolved the states: `ARCH_2LTR`, `ARCH_PERM`, `ARCH_INT_PERM`, `CNV_PERIOD`, `ARCH_SOLO`, `REF_ANNOT`, `DENOVO_LTR`, `UNRESOLVED` or `NON_HML2`. | <span class="src">`bin/hervk_classify.py:434`</span> |
-| `HERVK_ARCH` | 1 | String | 5' to 3' architecture of the variant allele with consensus intervals, for example `LTR:575-968/INT:1-7536/LTR:1-574`. | <span class="src">`bin/hervk_classify.py:437`</span> |
-| `HERVK_K` | 1 | Integer | Where the aligner broke the reference solo LTR. An alignment property that varies between haplotypes and callers; nothing should key on its value. | <span class="src">`bin/hervk_classify.py:440`</span> |
-| `HERVK_J` | 1 | Integer | The same for the internal region, the `ARCH_INT_PERM` counterpart of `HERVK_K`. | <span class="src">`bin/hervk_classify.py:443`</span> |
-| `HERVK_N_UNITS_REF` | 1 | Integer | Proviral units in the masked reference element, a junction LTR counted once. | <span class="src">`bin/hervk_classify.py:446`</span> |
-| `HERVK_UNIT_BP` | 1 | Integer | Period of the reference array in bp: one internal region plus one LTR. A copy-number change moves a whole number of these. | <span class="src">`bin/hervk_classify.py:448`</span> |
-| `HERVK_REF_STATE` | 1 | String | State of the masked reference window: `null`, `solo`, `provirus`, `partial` or `unknown`. | <span class="src">`bin/hervk_classify.py:451`</span> |
-| `HERVK_LAMBDA` | 1 | Float | bp of HML-2 LTR sequence on the variant allele. | <span class="src">`bin/hervk_classify.py:453`</span> |
-| `HERVK_NU` | 1 | Float | bp of HML-2 internal (`HERVK-int`) sequence on the variant allele. | <span class="src">`bin/hervk_classify.py:455`</span> |
-| `HERVK_COV` | 1 | Float | Fraction of the variant allele that is HML-2 sequence. | <span class="src">`bin/hervk_classify.py:457`</span> |
-| `HERVK_PMAP` | 1 | Float | Confidence in the class under the size model. Reporting only; it does not decide the class. | <span class="src">`bin/hervk_classify.py:459`</span> |
-| `HERVK_NOTE` | . | String | Diagnostics: `REF_ARCH_CONFLICT` (architecture and masked reference imply different REF states), `CNV_UNITS:a->b` (units on REF and ALT), `UNIT_COUNT_ASSUMED` (the count came from the architecture, since the reference did not resolve into counted units). | <span class="src">`bin/hervk_classify.py:462`</span> |
+| Field | Number, Type | Meaning | Source |
+|---|---|---|---|
+| `HERVK_CLASS` | 1, String | Polymorphism class: `null_solo`, `solo_prov`, `truncated_prov`, `null_prov`, `copy_number` or `other`. | <span class="src">`bin/hervk_classify.py:425`</span> |
+| `HERVK_ALLELE_REF` | 1, String | State of the REF allele: `null`, `solo`, `provirus`, `prov_xN` (a tandem array of N proviral units sharing an LTR at each junction), `partial`, or `.` when unresolved. | <span class="src">`bin/hervk_classify.py:428`</span> |
+| `HERVK_ALLELE` | ., String | State of each ALT allele, in ALT order, same vocabulary. | <span class="src">`bin/hervk_classify.py:432`</span> |
+| `HERVK_EVIDENCE` | 1, String | What resolved the states: `ARCH_2LTR`, `ARCH_PERM`, `ARCH_INT_PERM`, `CNV_PERIOD`, `ARCH_SOLO`, `REF_ANNOT`, `DENOVO_LTR`, `UNRESOLVED` or `NON_HML2`. | <span class="src">`bin/hervk_classify.py:434`</span> |
+| `HERVK_ARCH` | 1, String | 5' to 3' architecture of the variant allele with consensus intervals, for example `LTR:575-968/INT:1-7536/LTR:1-574`. | <span class="src">`bin/hervk_classify.py:437`</span> |
+| `HERVK_K` | 1, Integer | Where the aligner broke the reference solo LTR. An alignment property that varies between haplotypes and callers; nothing should key on its value. | <span class="src">`bin/hervk_classify.py:440`</span> |
+| `HERVK_J` | 1, Integer | The same for the internal region, the `ARCH_INT_PERM` counterpart of `HERVK_K`. | <span class="src">`bin/hervk_classify.py:443`</span> |
+| `HERVK_N_UNITS_REF` | 1, Integer | Proviral units in the masked reference element, a junction LTR counted once. | <span class="src">`bin/hervk_classify.py:446`</span> |
+| `HERVK_UNIT_BP` | 1, Integer | Period of the reference array in bp: one internal region plus one LTR. A copy-number change moves a whole number of these. | <span class="src">`bin/hervk_classify.py:448`</span> |
+| `HERVK_REF_STATE` | 1, String | State of the masked reference window: `null`, `solo`, `provirus`, `partial` or `unknown`. | <span class="src">`bin/hervk_classify.py:451`</span> |
+| `HERVK_LAMBDA` | 1, Float | bp of HML-2 LTR sequence on the variant allele. | <span class="src">`bin/hervk_classify.py:453`</span> |
+| `HERVK_NU` | 1, Float | bp of HML-2 internal (`HERVK-int`) sequence on the variant allele. | <span class="src">`bin/hervk_classify.py:455`</span> |
+| `HERVK_COV` | 1, Float | Fraction of the variant allele that is HML-2 sequence. | <span class="src">`bin/hervk_classify.py:457`</span> |
+| `HERVK_PMAP` | 1, Float | Confidence in the class under the size model. Reporting only; it does not decide the class. | <span class="src">`bin/hervk_classify.py:459`</span> |
+| `HERVK_NOTE` | ., String | Diagnostics: `REF_ARCH_CONFLICT` (architecture and masked reference imply different REF states), `CNV_UNITS:a->b` (units on REF and ALT), `UNIT_COUNT_ASSUMED` (the count came from the architecture, since the reference did not resolve into counted units). | <span class="src">`bin/hervk_classify.py:462`</span> |
 
 ## HERV-K locus flags
 
@@ -119,16 +119,16 @@ onto the genotyped human VCF. They group records that describe the same element 
 varies there. Records are never merged at this stage; the graph is induced from this file, so its
 structure has to stay.
 
-| Field | Number | Type | Meaning | Source |
-|---|---|---|---|---|
-| `HERVK_LOCUS` | 1 | String | Locus identifier shared by the records that describe one element. | <span class="src">`bin/hervk_reconcile.py:96`</span> |
-| `HERVK_LOCUS_N` | 1 | Integer | Records assigned to the locus. | <span class="src">`bin/hervk_reconcile.py:98`</span> |
-| `HERVK_MEI` | 0 | Flag | A null allele segregates: the element is absent from some haplotypes, so a transposition produced the difference. This is the flag that separates an insertion polymorphism, comparable to an *Alu*, L1 or SVA insertion, from structural variation in an element every haplotype carries. | <span class="src">`bin/hervk_reconcile.py:100`</span> |
-| `HERVK_SOLO_PROV` | 0 | Flag | A solo LTR and a provirus both segregate. Can be set beside the other two flags. | <span class="src">`bin/hervk_reconcile.py:106`</span> |
-| `HERVK_CNV` | 0 | Flag | Some allele carries two or more proviral units. Can be set beside the other two flags. | <span class="src">`bin/hervk_reconcile.py:109`</span> |
-| `HERVK_LOCUS_TYPE` | 1 | String | One label derived from the flags: `null_vs_present` when `HERVK_MEI` is set, else `copy_number`, else `solo_vs_provirus`, else `unresolved`. A locus that is two things at once keeps only the first in this field; the flags are the precise statement. | <span class="src">`bin/hervk_reconcile.py:113`</span> |
-| `HERVK_MERGE_FLAG` | 0 | Flag | The locus holds more than one record. | <span class="src">`bin/hervk_reconcile.py:118`</span> |
-| `HERVK_POLARITY_CONFLICT` | 0 | Flag | Records at the locus imply different REF states. The masked reference wins, and consolidation resolves it. | <span class="src">`bin/hervk_reconcile.py:122`</span> |
+| Field | Number, Type | Meaning | Source |
+|---|---|---|---|
+| `HERVK_LOCUS` | 1, String | Locus identifier shared by the records that describe one element. | <span class="src">`bin/hervk_reconcile.py:96`</span> |
+| `HERVK_LOCUS_N` | 1, Integer | Records assigned to the locus. | <span class="src">`bin/hervk_reconcile.py:98`</span> |
+| `HERVK_MEI` | 0, Flag | A null allele segregates: the element is absent from some haplotypes, so a transposition produced the difference. This is the flag that separates an insertion polymorphism, comparable to an *Alu*, L1 or SVA insertion, from structural variation in an element every haplotype carries. | <span class="src">`bin/hervk_reconcile.py:100`</span> |
+| `HERVK_SOLO_PROV` | 0, Flag | A solo LTR and a provirus both segregate. Can be set beside the other two flags. | <span class="src">`bin/hervk_reconcile.py:106`</span> |
+| `HERVK_CNV` | 0, Flag | Some allele carries two or more proviral units. Can be set beside the other two flags. | <span class="src">`bin/hervk_reconcile.py:109`</span> |
+| `HERVK_LOCUS_TYPE` | 1, String | One label derived from the flags: `null_vs_present` when `HERVK_MEI` is set, else `copy_number`, else `solo_vs_provirus`, else `unresolved`. A locus that is two things at once keeps only the first in this field; the flags are the precise statement. | <span class="src">`bin/hervk_reconcile.py:113`</span> |
+| `HERVK_MERGE_FLAG` | 0, Flag | The locus holds more than one record. | <span class="src">`bin/hervk_reconcile.py:118`</span> |
+| `HERVK_POLARITY_CONFLICT` | 0, Flag | Records at the locus imply different REF states. The masked reference wins, and consolidation resolves it. | <span class="src">`bin/hervk_reconcile.py:122`</span> |
 
 In the CaG cohort chr6:78,894,316 segregates a solo LTR, a provirus and a two-unit allele. It is
 labelled `copy_number` and carries both `HERVK_SOLO_PROV` and `HERVK_CNV`.
@@ -142,28 +142,28 @@ fields below. A `##hervk_consolidation=source:...` header line says whether the 
 from discovery or from the graph.
 <span class="src">`bin/hervk_reconcile.py:1164`</span>
 
-| Field | Number | Type | Meaning | Source |
-|---|---|---|---|---|
-| `SVTYPE` | A | String | Redefined per ALT, since one consolidated record can hold an insertion and a deletion. | <span class="src">`bin/hervk_reconcile.py:528`</span> |
-| `SVLEN` | A | Integer | Redefined per ALT for the same reason. | <span class="src">`bin/hervk_reconcile.py:529`</span> |
-| `HERVK_MEMBERS` | . | String | Record IDs consolidated into the locus. | <span class="src">`bin/hervk_reconcile.py:535`</span> |
-| `HERVK_AC` | . | Integer | Allele count per ALT after dosage resolution across the members. | <span class="src">`bin/hervk_reconcile.py:537`</span> |
-| `HERVK_AN` | 1 | Integer | Alleles called at the locus. Below `2N` it means members were structurally uncalled for some samples, since the graph can find every carrier and still fail to confirm the non-carriers. | <span class="src">`bin/hervk_reconcile.py:539`</span> |
-| `HERVK_N_RESOLVED` | 1 | Integer | Samples fully resolved by dosage. | <span class="src">`bin/hervk_reconcile.py:542`</span> |
-| `HERVK_N_PARTIAL` | 1 | Integer | Samples with some haplotypes unaccounted for; those haplotypes are reported missing. | <span class="src">`bin/hervk_reconcile.py:544`</span> |
-| `HERVK_N_PLOIDY_EXCEEDED` | 1 | Integer | Samples whose summed ALT dosage exceeds their ploidy, which happens when a third allele was lost to `bcftools norm -m-`. Their genotypes are set missing. | <span class="src">`bin/hervk_reconcile.py:546`</span> |
-| `HERVK_AC_DISC` | . | Integer | Allele count per ALT from the discovery (assembly) callset, an independent check on `HERVK_AC`. | <span class="src">`bin/hervk_reconcile.py:549`</span> |
-| `HERVK_AN_DISC` | 1 | Integer | Alleles in the discovery callset. | <span class="src">`bin/hervk_reconcile.py:551`</span> |
-| `HERVK_DISC_CONCORDANT` | 0 | Flag | Graph and discovery agree on every ALT count. | <span class="src">`bin/hervk_reconcile.py:553`</span> |
-| `HERVK_GT_MASKED` | 0 | Flag | Graph genotypes were withheld at a copy-number locus (see the warning below). | <span class="src">`bin/hervk_reconcile.py:555`</span> |
-| `HERVK_ALLELE_NOGT` | . | String | Alleles the graph cannot genotype, for which `HERVK_AC` reports 0. Their counts are in `HERVK_AC_DISC`. | <span class="src">`bin/hervk_reconcile.py:561`</span> |
-| `HERVK_DISC_PLOIDY_MISMATCH` | 0 | Flag | Discovery and graph disagree on ploidy, so the discovery counts are withheld rather than reported on a denominator the two do not share. Expected on hemizygous chromosomes and with a haploid discovery caller such as svim-asm run per haplotype. | <span class="src">`bin/hervk_reconcile.py:567`</span> |
-| `HERVK_MEMBERS_MASKED` | . | String | Members whose genotypes were withheld. | <span class="src">`bin/hervk_reconcile.py:572`</span> |
-| `HERVK_ALLELE_SET` | . | String | Every allele state segregating at the locus, including states carried by members that are not in this file. | <span class="src">`bin/hervk_reconcile.py:574`</span> |
-| `HERVK_MEMBERS_ABSENT` | . | String | Members the `--human` filter removed, whose alleles cannot be counted here. | <span class="src">`bin/hervk_reconcile.py:578`</span> |
-| `HERVK_LOCUS_INCOMPLETE` | 0 | Flag | Some member is absent from this file, so the frequencies do not cover every allele. | <span class="src">`bin/hervk_reconcile.py:581`</span> |
-| `HERVK_MEMBERS_UNRESOLVED` | . | String | Members with no usable allele state. | <span class="src">`bin/hervk_reconcile.py:584`</span> |
-| `HERVK_POLARITY_FLIPPED` | . | String | Members whose own polarity disagreed with the locus REF state and were re-expressed against it. | <span class="src">`bin/hervk_reconcile.py:586`</span> |
+| Field | Number, Type | Meaning | Source |
+|---|---|---|---|
+| `SVTYPE` | A, String | Redefined per ALT, since one consolidated record can hold an insertion and a deletion. | <span class="src">`bin/hervk_reconcile.py:528`</span> |
+| `SVLEN` | A, Integer | Redefined per ALT for the same reason. | <span class="src">`bin/hervk_reconcile.py:529`</span> |
+| `HERVK_MEMBERS` | ., String | Record IDs consolidated into the locus. | <span class="src">`bin/hervk_reconcile.py:535`</span> |
+| `HERVK_AC` | ., Integer | Allele count per ALT after dosage resolution across the members. | <span class="src">`bin/hervk_reconcile.py:537`</span> |
+| `HERVK_AN` | 1, Integer | Alleles called at the locus. Below `2N` it means members were structurally uncalled for some samples, since the graph can find every carrier and still fail to confirm the non-carriers. | <span class="src">`bin/hervk_reconcile.py:539`</span> |
+| `HERVK_N_RESOLVED` | 1, Integer | Samples fully resolved by dosage. | <span class="src">`bin/hervk_reconcile.py:542`</span> |
+| `HERVK_N_PARTIAL` | 1, Integer | Samples with some haplotypes unaccounted for; those haplotypes are reported missing. | <span class="src">`bin/hervk_reconcile.py:544`</span> |
+| `HERVK_N_PLOIDY_EXCEEDED` | 1, Integer | Samples whose summed ALT dosage exceeds their ploidy, which happens when a third allele was lost to `bcftools norm -m-`. Their genotypes are set missing. | <span class="src">`bin/hervk_reconcile.py:546`</span> |
+| `HERVK_AC_DISC` | ., Integer | Allele count per ALT from the discovery (assembly) callset, an independent check on `HERVK_AC`. | <span class="src">`bin/hervk_reconcile.py:549`</span> |
+| `HERVK_AN_DISC` | 1, Integer | Alleles in the discovery callset. | <span class="src">`bin/hervk_reconcile.py:551`</span> |
+| `HERVK_DISC_CONCORDANT` | 0, Flag | Graph and discovery agree on every ALT count. | <span class="src">`bin/hervk_reconcile.py:553`</span> |
+| `HERVK_GT_MASKED` | 0, Flag | Graph genotypes were withheld at a copy-number locus (see the warning below). | <span class="src">`bin/hervk_reconcile.py:555`</span> |
+| `HERVK_ALLELE_NOGT` | ., String | Alleles the graph cannot genotype, for which `HERVK_AC` reports 0. Their counts are in `HERVK_AC_DISC`. | <span class="src">`bin/hervk_reconcile.py:561`</span> |
+| `HERVK_DISC_PLOIDY_MISMATCH` | 0, Flag | Discovery and graph disagree on ploidy, so the discovery counts are withheld rather than reported on a denominator the two do not share. Expected on hemizygous chromosomes and with a haploid discovery caller such as svim-asm run per haplotype. | <span class="src">`bin/hervk_reconcile.py:567`</span> |
+| `HERVK_MEMBERS_MASKED` | ., String | Members whose genotypes were withheld. | <span class="src">`bin/hervk_reconcile.py:572`</span> |
+| `HERVK_ALLELE_SET` | ., String | Every allele state segregating at the locus, including states carried by members that are not in this file. | <span class="src">`bin/hervk_reconcile.py:574`</span> |
+| `HERVK_MEMBERS_ABSENT` | ., String | Members the `--human` filter removed, whose alleles cannot be counted here. | <span class="src">`bin/hervk_reconcile.py:578`</span> |
+| `HERVK_LOCUS_INCOMPLETE` | 0, Flag | Some member is absent from this file, so the frequencies do not cover every allele. | <span class="src">`bin/hervk_reconcile.py:581`</span> |
+| `HERVK_MEMBERS_UNRESOLVED` | ., String | Members with no usable allele state. | <span class="src">`bin/hervk_reconcile.py:584`</span> |
+| `HERVK_POLARITY_FLIPPED` | ., String | Members whose own polarity disagreed with the locus REF state and were re-expressed against it. | <span class="src">`bin/hervk_reconcile.py:586`</span> |
 
 `HERVK_LOCUS`, `HERVK_ALLELE_REF`, `HERVK_ALLELE` and the four locus flags are written again on
 consolidated records with the same meaning.
@@ -192,9 +192,9 @@ frequency alone, because `AN` below `2N` deflates the denominator without touchi
 
 ## FORMAT fields
 
-| Field | Number | Type | Meaning | Source |
-|---|---|---|---|---|
-| `GT` | 1 | String | Genotype. In `pangenome.vcf` it is the discovery genotype: `1` or `0` per haploid assembly, or the diploid call from Sniffles2. In the genotyped VCFs it is what PanGenie or `vg call` wrote for each read set. | <span class="src">`bin/repmask_vcf.sh:138`, `bin/merge_vcfs.py:521`</span> |
+| Field | Number, Type | Meaning | Source |
+|---|---|---|---|
+| `GT` | 1, String | Genotype. In `pangenome.vcf` it is the discovery genotype: `1` or `0` per haploid assembly, or the diploid call from Sniffles2. In the genotyped VCFs it is what PanGenie or `vg call` wrote for each read set. | <span class="src">`bin/repmask_vcf.sh:138`, `bin/merge_vcfs.py:521`</span> |
 
 PanGenie and `vg call` add their own FORMAT fields (genotype quality, depth, likelihoods) with
 their own header lines; GraffiTE passes them through unchanged. Which ones appear depends on the
@@ -218,9 +218,9 @@ value the caller wrote, and the caller's `##FILTER` definitions (PAV's `TRIM`, `
 
 One field is defined for the PanGenie graph and comes back in the genotyped VCFs:
 
-| Field | Number | Type | Meaning | Source |
-|---|---|---|---|---|
-| `ID` | A | String | Graph variant IDs per ALT allele, in the multi-allelic graph VCF `pangenie_index` builds. PanGenie writes them into `INFO/ID` of `<sample>_genotyping.vcf.gz`; `4_Genotyping/pangenie_graph_variants.tsv` maps them back to `pangenome.vcf` records. | <span class="src">`bin/merge_vcfs.py:520`</span> |
+| Field | Number, Type | Meaning | Source |
+|---|---|---|---|
+| `ID` | A, String | Graph variant IDs per ALT allele, in the multi-allelic graph VCF `pangenie_index` builds. PanGenie writes them into `INFO/ID` of `<sample>_genotyping.vcf.gz`; `4_Genotyping/pangenie_graph_variants.tsv` maps them back to `pangenome.vcf` records. | <span class="src">`bin/merge_vcfs.py:520`</span> |
 
 ## Retired fields
 
