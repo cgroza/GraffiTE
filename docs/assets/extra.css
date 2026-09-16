@@ -24,8 +24,8 @@
   --md-typeset-a-color: var(--gt-purple);
 }
 
-/* The header: white behind the sticker in light mode, black in dark mode with
-   a white plate so the black letters stay readable; a rainbow rule under both. */
+/* The header: white in light mode, black in dark mode; the sticker carries its
+   own white outline, so the same file works on both. A rainbow rule under both. */
 .md-header {
   border-bottom: 4px solid transparent;
   border-image: linear-gradient(90deg, var(--gt-yellow), var(--gt-orange), var(--gt-coral),
@@ -33,8 +33,6 @@
 }
 .md-header__button.md-logo { display: flex; align-items: center; gap: .6rem; padding: .3rem .4rem; }
 .md-header__button.md-logo img { height: 1.9rem; width: auto; }
-/* Same sticker with the black turned white, so it stays transparent on the dark header. */
-[data-md-color-scheme="slate"] .md-header__button.md-logo img { content: url("graffite-logo-dark.png"); }
 
 /* The version, next to the logo on every page. stamp_pages.py --set rewrites the commit. */
 :root { --gt-version: "v1.1dev @ cfaff1e"; }
@@ -101,4 +99,3 @@
 .gt-masthead { text-align: center; margin: 0 0 .4rem; }
 .gt-masthead img { max-width: min(560px, 90%); height: auto; }
 .gt-tagline { text-align: center; font-size: 1.05rem; font-weight: 700; margin-bottom: 1.6rem; }
-[data-md-color-scheme="slate"] .gt-masthead img { content: url("graffite-logo-dark.png"); }

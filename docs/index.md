@@ -29,12 +29,13 @@ you which of them are TEs.
 
 ## The four stages
 
-Every GraffiTE run is some subset of four stages: discovery, annotation and genotyping in series,
-and methylation beside genotyping. Which stages run depends on which inputs you supply.
+Every GraffiTE run is some subset of four stages: SV search, TE annotation, and graph mapping,
+where genotyping (C) and epigenetic mapping (D) sit side by side. Which stages run depends on
+which inputs you supply.
 
 ```mermaid
 flowchart TB
-    subgraph A["Stage A · Discovery"]
+    subgraph A["Stage A · SV search"]
         direction TB
         A1["Assemblies<br/><code>--assemblies</code> · <code>--pav</code>"]
         A2["Long reads<br/><code>--longreads</code> · <code>--bams</code>"]
@@ -44,7 +45,7 @@ flowchart TB
         A3 --> AM
     end
 
-    subgraph B["Stage B · Annotation"]
+    subgraph B["Stage B · TE annotation"]
         direction TB
         B1["RepeatMasker + ULTRA<br/><small>what repeat is it?</small>"]
         B2["Repeat-span filter<br/><small>is it mostly repeat?</small>"]
@@ -52,44 +53,46 @@ flowchart TB
         B1 --> B2 --> B3
     end
 
-    subgraph C["Stage C · Genotyping"]
+    subgraph G["Stage C/D · Graph mapping"]
         direction TB
-        C1["Build pangenome graph"]
-        C2["Map reads to graph"]
-        C3["Call genotypes"]
-        C1 --> C2 --> C3
-    end
-
-    subgraph D["Stage D · Methylation (optional)"]
-        direction TB
-        D1["Lift base modifications<br/>onto the graph"]
-        D2["Methylation level<br/>per allele"]
-        D1 --> D2
+        G0["Build the pangenome graph<br/><small>every MEI is a bubble</small>"]
+        subgraph D["D · Epigenetic mapping, optional"]
+            direction TB
+            D1["Lift methylation calls onto the graph<br/><small>through the read alignments of C</small>"]
+            D2["Methylation level<br/>per allele and sample"]
+            D1 --> D2
+        end
+        subgraph C["C · Genotyping"]
+            direction TB
+            C1["Map reads to the graph"]
+            C2["Call presence / absence<br/>per sample"]
+            C1 --> C2
+        end
+        G0 --> C1
+        G0 -.->|"--epigenomes"| D1
     end
 
     AM --> B1
-    B3 --> C1
-    C2 -.->|"graph alignments"| D1
-    C3 -.-> D2
-
-    A ~~~ B
+    B3 --> G0
 ```
 
-**Stage A, discovery.** Each assembly or read set is aligned to the reference, structural
+**Stage A, SV search.** Each assembly or read set is aligned to the reference, structural
 variants are called, and only insertions and deletions are kept. Multiple callers and multiple
 input types can be mixed in one run; everything is merged into a single non-redundant SV set.
 
-**Stage B, annotation.** Every candidate SV allele is scanned against your TE library with
+**Stage B, TE annotation.** Every candidate SV allele is scanned against your TE library with
 RepeatMasker and against itself with ULTRA (tandem repeats). Variants that are not mostly repeat
 are discarded. Survivors are annotated with their repeat identity, target site duplications and
 polyA tails.
 
 **Stage C, genotyping.** The annotated polymorphisms are induced into a pangenome graph as
-bubbles, reads are mapped onto it, and each sample is genotyped at every polymorphism.
+bubbles, each sample's reads are mapped onto it, and every sample is genotyped at every
+polymorphism.
 
-**Stage D, methylation.** With `--epigenomes`, and only on the `giraffe` or `graphaligner`
-graph methods, the base modifications carried by the genotyping BAMs are lifted onto the graph
-alignments of Stage C and reported as a methylation level per allele. This stage lives in the
+**Stage D, epigenetic mapping.** With `--epigenomes`, and only on the `giraffe` or
+`graphaligner` graph methods, the base modifications carried by the genotyping BAMs are lifted
+through the graph alignments of Stage C onto the graph and reported as a methylation level per
+allele and sample. This stage lives in the
 `panmethyl` submodule. See [Methylation](guides/methylation.md).
 
 Stage C is optional (`--genotype false`) and Stage D runs only when asked. Stages A and B can
