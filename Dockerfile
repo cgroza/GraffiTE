@@ -247,6 +247,13 @@ cp minimap2 /usr/local/bin
 cd "${HOME}"
 rm -rf minimap2
 
+git clone https://github.com/lh3/minigraph
+cd minigraph
+make
+cp minigraph /usr/local/bin
+cd "${HOME}"
+rm -rf minigraph
+
 # ULTRA finds the tandem repeats that go into total_repeat_span
 # (bin/repmask_vcf.sh calls `ultra`). Check the tag against the published image.
 git clone --branch v1.0.0 --depth 1 https://github.com/TravisWheelerLab/ULTRA.git
@@ -283,7 +290,7 @@ set -eux
 pip3 install numpy==1.21
 # truvari: the discovery merge (truvari divide, truvari collapse). pyfaidx:
 # merge_vcfs.py on the PanGenie path.
-pip3 install pysam pyparsing svim-asm pandas vcfpy sniffles cigar truvari pyfaidx
+pip3 install pysam pyparsing svim-asm pandas polars vcfpy sniffles cigar truvari pyfaidx
 pip3 check
 
 R --slave -e 'install.packages(c("XML", "dplyr", "stringr", "tidyr", "readr", "vcfR", "optparse"), repos="https://cloud.r-project.org/")'
@@ -313,8 +320,6 @@ aptitude install -y ~pstandard ~prequired \
 echo "PS1='(dfam-tetools \$(pwd))\\\$ '" >> /etc/bash.bashrc
 
 apt-get -y install bc
-apt-get remove --assume-yes git software-properties-common cmake make pkg-config build-essential autoconf
-apt-get autoremove --assume-yes
 apt-get clean --assume-yes
 rm -rf /var/lib/apt/lists/*
 EOF
@@ -348,9 +353,29 @@ cd "${HOME}"
 git clone https://github.com/cgroza/panmethyl
 cd panmethyl/tagtobed
 cargo build --release
-cp target/release/tagtobed /usr/local/bin
+cp \
+    target/release/lift_mods \
+    target/release/lift_offsets \
+    target/release/lift_edges \
+    target/release/tagtobed \
+    /usr/local/bin/
 cd "${HOME}"
 rm -rf panmethyl
+EOF
+
+RUN <<'EOF'
+set -eux
+export DEBIAN_FRONTEND=noninteractive
+apt-get remove --assume-yes git software-properties-common cmake make pkg-config build-essential autoconf
+apt-get autoremove --assume-yes
+apt-get clean --assume-yes
+rm -rf /var/lib/apt/lists/*
+
+command -v minigraph
+command -v lift_mods
+command -v lift_offsets
+command -v lift_edges
+python3 -c 'import polars'
 EOF
 
 ENV LC_ALL=C \
