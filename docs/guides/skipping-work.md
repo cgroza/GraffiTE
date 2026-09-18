@@ -44,7 +44,7 @@ machines, or with different downstream parameters.
 | `--graph` | a `GraffiTE_graph/index/` directory | `make_graph` | <span class="src">`main.nf:202-206`</span> |
 | `--graph_alignments` | per-sample GAF and pack files | `graph_align_reads` | <span class="src">`main.nf:215-221`</span> |
 | `--vcfs` | per-sample `vg call` VCFs | alignment and `vg_call` | <span class="src">`main.nf:210-212`</span> |
-| `--hervk_reconcile_vcf` | a genotyped VCF | genotyping, with `--genotype false` | <span class="src">`main.nf:273-291`</span> |
+| `--hervk_reconcile_vcf` | a genotyped VCF | genotyping, with `--genotype false` | <span class="src">`main.nf:288-306`</span> |
 | `--genotype false` | nothing | all of Stage C | <span class="src">`main.nf:180`</span> |
 
 Each rung is described below with what must exist on disk and what still runs.
@@ -65,7 +65,7 @@ filter what you supply by size or type, so restrict to `INS` and `DEL` yourself
 Multi-allelic records should be split first (`bcftools norm -m-`).
 
 **Runs:** `truvari_merge` in pass-through mode (decompress only, IDs preserved), then all of
-Stage B and C <span class="src">`module/main.nf:181-188`</span>.
+Stage B and C <span class="src">`module/main.nf:196-203`</span>.
 
 **Cannot be combined** with any discovery flag; the run stops with a message naming the flag it
 saw <span class="src">`main.nf:46-49`</span>. Use `--svs` when you want your VCF merged with
@@ -76,7 +76,7 @@ GraffiTE's own calls.
 **On disk:** a directory holding one subdirectory per Stage B batch, each with
 `genotypes_repmasked_filtered.vcf` and a `repeatmasker_dir/`. That is exactly the layout of
 `out/2_Repeat_Filtering/`, where the subdirectories are numbered by task
-<span class="src">`main.nf:126-128`, `module/main.nf:602-608`</span>.
+<span class="src">`main.nf:126-128`, `module/main.nf:616-622`</span>.
 
 ```text
 out/2_Repeat_Filtering/
@@ -112,7 +112,7 @@ instead.
 
 **On disk:** the `GraffiTE_graph/index/` directory of an earlier run, or any directory holding
 what `make_graph` writes: `index.gfa` and `index.pb`, plus `index.giraffe.gbz` and its
-companions for the `giraffe` method <span class="src">`module/main.nf:738-751`</span>.
+companions for the `giraffe` method <span class="src">`module/main.nf:758-771`</span>.
 
 **Runs:** alignment and calling for every sample in `--genotype_with`. Requires
 `--graph_method giraffe`, `graphaligner` or `precomputed`; the PanGenie path has its own index
@@ -144,7 +144,7 @@ called, though `--genotype_with` is still read and its paths must exist; `--grap
 
 **Runs:** Stage B from the RepeatMasker output, `hervk_annotate`, then `hervk_reconcile`
 against the supplied VCF, whose back end is read from its header
-<span class="src">`main.nf:279-291`</span>. See [Human MEIs](human-mei.md) for the command
+<span class="src">`main.nf:294-306`</span>. See [Human MEIs](human-mei.md) for the command
 line.
 
 ### `--genotype false`

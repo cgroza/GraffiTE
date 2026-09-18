@@ -59,7 +59,7 @@ nextflow run cgroza/GraffiTE -r v1.1dev \
 
 Pass the four data arguments as shown; the defaults for `--reference` and `--TE_library` are
 placeholder filenames that do not exist <span class="src">`nextflow.config:46-47`</span>.
-`--genotype_with` is the parameter name as declared <span class="src">`nextflow.config:40`</span>.
+`--genotype_with` is the parameter name as declared <span class="src">`nextflow.config:39`</span>.
 The README on `main` writes it with a hyphen, and that form does nothing: Nextflow turns
 `--genotype-with` into a parameter named `genotypeWith`, and the pipeline reads the default
 `reads.csv` instead (checked with Nextflow 26.04.6). Add `-profile cluster` on SLURM, and

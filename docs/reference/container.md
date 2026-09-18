@@ -16,7 +16,7 @@ description: >-
 
 Every process runs in `docker://cgroza/graffite:latest`, pulled from Docker Hub, except
 `pav_asm`. All three profiles name the same image; they differ only in the executor.
-<span class="src">`nextflow.config:8-24`</span>
+<span class="src">`nextflow.config:7-23`</span>
 
 The image is `linux/amd64` only, single-layer, and about 2.5 GB compressed. Apptainer converts
 it to a SIF on first use. On an arm64 host it runs under emulation.
@@ -74,7 +74,7 @@ default branch held on the day the image was built. <span class="src">`GraffiTE.
 ## The PAV container
 
 `pav_asm` runs in `library://becklab/pav/pav:latest`, PAV's own image, with 32 CPUs unless
-`--cores` says otherwise. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:321-326`, `module/main.nf:145`</span>
+`--cores` says otherwise. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:338-343`, `module/main.nf:160`</span>
 
 ## The recipe and the published image
 

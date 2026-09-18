@@ -77,7 +77,7 @@ Two ways, depending on whether you want a local copy of the code.
 ## Get the container image
 
 The config points every process at `docker://cgroza/graffite:latest`
-<span class="src">`nextflow.config:10,15,21`</span>, and Nextflow pulls it on first use.
+<span class="src">`nextflow.config:9,14,20`</span>, and Nextflow pulls it on first use.
 Apptainer converts the Docker image to a SIF itself, so nothing else has to be registered.
 
 The image is `linux/amd64` only. On an arm64 machine it runs under emulation, slowly.
@@ -93,13 +93,13 @@ nextflow run cgroza/GraffiTE -r v1.1dev -with-singularity /abs/path/graffite_lat
 `-with-singularity` overrides the image path in `nextflow.config`.
 
 The PAV entry point (`--pav`) uses a second image, `library://becklab/pav/pav:latest`
-<span class="src">`nextflow.config:322`</span>, pulled the same way. What the image contains,
+<span class="src">`nextflow.config:339`</span>, pulled the same way. What the image contains,
 and how the recipe in `GraffiTE.def` relates to it, is on [Container contents](../reference/container.md).
 
 ### Paths and `/tmp`
 
 The config runs every container with `--contain --bind <dir>:/tmp`
-<span class="src">`nextflow.config:172`</span>. Two consequences:
+<span class="src">`nextflow.config:175`</span>. Two consequences:
 
 - The host filesystem is hidden from the container except for what Nextflow mounts: the work
   directory and the files it stages (`singularity.autoMounts = true`
@@ -176,5 +176,5 @@ the image again as well; the [Changelog](../changelog.md) says when that is need
 
 `-profile standard` runs everything on the local machine, `-profile cluster` submits each
 process to SLURM with the per-process CPU, memory and time parameters, and `-profile cloud`
-targets AWS Batch <span class="src">`nextflow.config:8-25`</span>. All three use the same
+targets AWS Batch <span class="src">`nextflow.config:7-24`</span>. All three use the same
 image. How to size the requests is on [Resources and scaling](../guides/resources.md).

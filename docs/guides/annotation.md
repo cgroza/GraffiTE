@@ -53,7 +53,7 @@ flowchart TD
     written at all. The human filter is applied to `pangenome.vcf` directly, not on top of the
     trusted subset. This changed in v1.1; earlier versions produced
     `pangenome.trusted.human.vcf` as a subset of the trusted set.
-    <span class="src">`module/main.nf:561-572`</span>
+    <span class="src">`module/main.nf:575-586`</span>
 
 ## The TE library
 
@@ -67,12 +67,12 @@ to the annotation:
   filters test it literally, so a library that says `SINE/Alu` works with `--human` and one that
   says `Alu` does not. Sequences whose class is `Simple_repeat` or `Low_complexity` are ignored
   by the annotation, and do not count toward the TE span.
-  <span class="src">`bin/annotate_vcf.R:74`, `bin/repmask_vcf.sh:61`</span>
+  <span class="src">`bin/annotate_vcf.R:98`, `bin/repmask_vcf.sh:114`</span>
 - **The names.** `--human` matches its whitelists against `repeat_ids` with anchored prefixes
   (`^AluY`, `^L1HS`, `^SVA_[DEF]`, `^HERVK-int`), and the L1 and SVA rules key on the classes
   `LINE/L1` and `Retroposon/SVA` and on the subfamily names `SVA_A` to `SVA_F`. A library with
   other conventions still annotates, but those rules will not fire.
-  <span class="src">`nextflow.config:65-76`, `bin/annotate_vcf.R:95,108-116`</span>
+  <span class="src">`nextflow.config:65-76`, `bin/annotate_vcf.R:119,132-140`</span>
 
 The Dfam human library the test set ships (`human_DFAM3.6.fasta`) follows these conventions. For
 another species, a RepeatModeler or Dfam library in RepeatMasker format is what the pipeline
@@ -83,11 +83,11 @@ expects; see [Choosing your inputs](../getting-started/choosing-your-inputs.md).
 `repeatmask_VCF` runs once per contig of the merged VCF. It writes every variant's inserted
 sequence (the ALT of an insertion, the REF of a deletion) to `indels.fa`, named by variant ID, and
 runs two tools on that file.
-<span class="src">`bin/repmask_vcf.sh:9-10`</span>
+<span class="src">`bin/repmask_vcf.sh:38-39`</span>
 
 **RepeatMasker**, in sensitive mode against your library, with a quarter of the task's cores as
 parallel jobs (RepeatMasker uses four threads per job):
-<span class="src">`bin/repmask_vcf.sh:22-30`</span>
+<span class="src">`bin/repmask_vcf.sh:67-75`</span>
 
 ```bash
 RepeatMasker -lib ${TE_library} -s -dir repeatmasker_dir -pa $(( $(nproc) / 4 )) indels.fa
@@ -98,7 +98,7 @@ low-complexity hits; simple repeats are still masked, then set aside by the anno
 
 **ULTRA**, on every core, to find tandem repeats whether or not RepeatMasker called them
 something:
-<span class="src">`bin/repmask_vcf.sh:39`</span>
+<span class="src">`bin/repmask_vcf.sh:92`</span>
 
 ```bash
 ultra --bed -t $(nproc) -o ultra_temp/ultra_out indels.fa
@@ -109,7 +109,7 @@ RepeatMasker link ID are grouped into one **hit**, named after the highest-scori
 that is where `n_hits`, `fragmts`, `repeat_ids`, `matching_classes`, `RM_hit_strands` and
 `RM_hit_IDs` come from. v1.0 used OneCodeToFindThemAll for this grouping; v1.1 reads the `.out`
 file directly.
-<span class="src">`bin/repmask_vcf.sh:55`, `bin/annotate_vcf.R:73-90`</span>
+<span class="src">`bin/repmask_vcf.sh:108`, `bin/annotate_vcf.R:97-114`</span>
 
 Two rules run on the grouped hits before they are written out: the L1 twin-priming signature that
 sets `L1_5PINV`, and the SVA VNTR rule that renames a hit lying inside the VNTR and moves it to
@@ -122,13 +122,13 @@ sets `L1_5PINV`, and the SVA VNTR rule that renames a hit lying inside the VNTR 
 Each variant gets one number, `total_repeat_span`: the fraction of its sequence covered by the
 union of RepeatMasker TE intervals (simple repeats and low complexity excluded) and ULTRA
 tandem-repeat intervals, overlaps counted once, capped at 1.
-<span class="src">`bin/repmask_vcf.sh:86-94`</span>
+<span class="src">`bin/repmask_vcf.sh:139-147`</span>
 
 A variant is kept when `total_repeat_span` is strictly greater than `--repeat_span_cutoff`
 (default `0.80`, a fraction of the variant length). The test is applied twice with the same
 cutoff: once per contig, which produces `genotypes_repmasked_filtered.vcf`, and once more when
 the contigs are concatenated.
-<span class="src">`module/main.nf:625`, `module/main.nf:543`, `nextflow.config:56`</span>
+<span class="src">`module/main.nf:639`, `module/main.nf:557`, `nextflow.config:56`</span>
 
 Two consequences of using the union rather than the TE span alone. A variant that is a
 polyA-rich Alu with a long tandem stretch passes, because ULTRA covers what RepeatMasker did not.
@@ -157,7 +157,7 @@ the matching copy of `TSD` from that end. A tail is called when a window of at l
 least 80% A (or T) ends within 5 bp of the trimmed terminus. The result is `polyA=TRUE` or
 `FALSE`; a variant with more than one hit gets `NA` and is not scanned. The three constants are
 fixed in the script.
-<span class="src">`bin/add_polyA.py:21-23,100-118`, `module/main.nf:553`</span>
+<span class="src">`bin/add_polyA.py:21-23,100-118`, `module/main.nf:567`</span>
 
 ## The trusted subset
 
@@ -193,7 +193,7 @@ The `FILTER="PASS"` clause is dropped with `--trusted_ignore_filter`, for caller
     is, so the trusted subset does **not** require a polyA tail of non-LTR elements. The
     `--human` filter is written with positive matches to avoid this. See
     [VCF fields](../reference/vcf-fields.md) for the bcftools behaviour.
-    <span class="src">`module/main.nf:509-513`</span>
+    <span class="src">`module/main.nf:523-527`</span>
 
 For human data, `--human` replaces this subset with a filter on recent subfamilies; see
 [Human MEIs](human-mei.md).
@@ -206,7 +206,7 @@ Stage B parallelises twice.
   `repeatmask_VCF` runs on each, with the `repeatmasker_*` resource parameters. A genome with
   thousands of small scaffolds spawns thousands of tasks; `--cores` and
   `--repeatmasker_threads` set what each gets. RepeatMasker's own `-pa` is a quarter of that.
-  <span class="src">`module/main.nf:457-470`, `nextflow.config:215-219`</span>
+  <span class="src">`module/main.nf:472-485`, `nextflow.config:222-226`</span>
 - **By batch of variants for the TSD search.** Each contig's variant list is split into batches
   of `--tsd_batch_size` (default 100 variants) and `tsd_search` runs on each batch with the
   `tsd_*` parameters, so a contig with 5,000 variants is 50 tasks. The batches are gathered

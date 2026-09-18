@@ -47,7 +47,7 @@ The VNTR interval on each subfamily consensus, as fixed in `annotate_vcf.R`:
 | `SVA_E` | 428 | 864 |
 | `SVA_F` | 435 | 857 |
 
-<span class="src">`bin/annotate_vcf.R:108-110`</span>
+<span class="src">`bin/annotate_vcf.R:132-134`</span>
 
 The coordinates are those of the Dfam human consensus sequences with those names, so the rule
 only fires for a library that uses them. A hit named otherwise (`SVA_F1`, or a species-specific
@@ -56,7 +56,7 @@ name) is left as is.
 ## How GraffiTE reclassifies them
 
 A hit is a VNTR-only polymorphism when all of these hold:
-<span class="src">`bin/annotate_vcf.R:112-125`</span>
+<span class="src">`bin/annotate_vcf.R:136-149`</span>
 
 - its class is `Retroposon/SVA`;
 - it is a single RepeatMasker fragment;
@@ -67,7 +67,7 @@ A hit is a VNTR-only polymorphism when all of these hold:
 Such a hit is then written with a `(VNTR_only)` suffix on its name in `repeat_ids`, and its
 entry in `matching_classes` becomes `Simple_repeat` instead of `Retroposon/SVA`. The hit is
 still counted in `n_hits` and still contributes to `total_repeat_span`.
-<span class="src">`bin/annotate_vcf.R:127-132`</span>
+<span class="src">`bin/annotate_vcf.R:151-156`</span>
 
 ```text
 repeat_ids=SVA_F(VNTR_only);matching_classes=Simple_repeat
@@ -82,7 +82,7 @@ That relabelling is what the downstream filters see:
   `--human_sva_ids` (default `^SVA_[DEF]`), without requiring a polyA tail, so VNTR
   polymorphisms of the young subfamilies are kept in `pangenome.human.vcf`, distinguishable
   from SVA insertions by the suffix.
-  <span class="src">`module/main.nf:506,508,514`, `nextflow.config:67`</span>
+  <span class="src">`module/main.nf:520,522,528`, `nextflow.config:67`</span>
 
 To count SVA insertion polymorphisms alone, exclude them:
 

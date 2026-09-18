@@ -87,17 +87,17 @@ and its own sample name.
 
 1. *(optional)* `break_scaffold`: if `--break_scaffolds` is set, scaffolds are split into contigs
    at runs of `N` with `breakgaps.py`. Use this when your input is scaffolded rather than a contig
-   assembly. <span class="src">`module/main.nf:10-23`</span>
+   assembly. <span class="src">`module/main.nf:25-38`</span>
 2. `map_asm`: aligns to the reference with `minimap2 -a -x asm5 --cs -r2k -K 500M`, piped into
    `samtools sort -m 4G -@ 4`. The `-x` preset is `--asm_divergence`; raise it to `asm10` or
    `asm20` for assemblies more divergent from the reference. `-K` is `--mini_K`, and the sort
    memory and threads are `--stSort_m` and `--stSort_t`. With `--aligner winnowmap`, winnowmap is
    used instead, with a `meryl` k=19 repetitive-kmer set built at `distinct=0.9998`.
-   <span class="src">`module/main.nf:33-46`</span>
+   <span class="src">`module/main.nf:48-61`</span>
 3. `svim_asm`: `svim-asm haploid --min_sv_size 100 --types INS,DEL`. **Only insertions and
    deletions of at least 100 bp are kept**; inversions, duplications and translocations are
    discarded here and never reach the rest of the pipeline. Variant IDs are prefixed with the
-   sample name. <span class="src">`module/main.nf:163-164`</span>
+   sample name. <span class="src">`module/main.nf:178-179`</span>
 
 **Published:** `out/1_SV_search/svim-asm_individual_VCFs/<sample>.vcf.gz`
 
@@ -122,13 +122,13 @@ HG005,/data/HG005.hap1.fa.gz,/data/HG005.hap2.fa.gz
 
 **What runs:** `pav_asm` writes a `config.json` and a tab-delimited `assemblies.tsv` with
 `NAME`/`HAP1`…`HAPn` columns, invokes PAV's own run script, then filters to
-\|SVLEN\| > 50 bp. <span class="src">`module/main.nf:126-147`</span>
+\|SVLEN\| > 50 bp. <span class="src">`module/main.nf:141-162`</span>
 
 **Published:** `out/1_SV_search/pav_individual_VCFs/sv_<sample>.vcf.gz`
 
 **Resources:** `pav_asm` defaults to **32 CPUs, 120 GB and 12 h**, considerably more than any
 other process. Only `--cores` overrides the CPU count; there is no `--pav_threads`.
-<span class="src">`nextflow.config:321-326`</span>
+<span class="src">`nextflow.config:338-343`</span>
 
 ---
 
@@ -154,13 +154,13 @@ unchanged rather than being prefixed.
 **What runs:**
 
 1. `map_longreads`: `minimap2 -ax <preset>` into `samtools sort`. With `--aligner winnowmap`,
-   winnowmap with a `meryl` k=15 set. <span class="src">`module/main.nf:57-76`</span>
+   winnowmap with a `meryl` k=15 set. <span class="src">`module/main.nf:72-91`</span>
 2. `sniffles_sample_call`: per sample, `sniffles --minsvlen 100`, producing both a `.vcf` and a
-   `.snf`. <span class="src">`module/main.nf:89-90`</span>
+   `.snf`. <span class="src">`module/main.nf:104-105`</span>
 3. `sniffles_population_call`: the `.snf` files from **all** samples are called jointly, then
    filtered to `SVTYPE` of `INS` or `DEL`, symbolic `<INS>`/`<DEL>` alleles are dropped, and the
    result is split back into one VCF per sample with `bcftools +split`.
-   <span class="src">`module/main.nf:106-111`</span>
+   <span class="src">`module/main.nf:121-126`</span>
 
 **Published:** `out/1_SV_search/sniffles2_individual_VCFs/*.vcf.gz`
 
@@ -217,9 +217,9 @@ Whatever the sources, all calls converge on `truvari_merge`, which behaves in on
 
 | Situation | Behaviour | Source |
 |---|---|---|
-| `--vcf` was used | Pass-through. Decompress only; original IDs preserved. | <span class="src">`module/main.nf:181-188`</span> |
-| Exactly one VCF reached the merge | No collapse. Original IDs preserved. | <span class="src">`module/main.nf:196-199`</span> |
-| Two or more VCFs | Full merge and collapse, described below. | <span class="src">`module/main.nf:202-242`</span> |
+| `--vcf` was used | Pass-through. Decompress only; original IDs preserved. | <span class="src">`module/main.nf:196-203`</span> |
+| Exactly one VCF reached the merge | No collapse. Original IDs preserved. | <span class="src">`module/main.nf:211-214`</span> |
+| Two or more VCFs | Full merge and collapse, described below. | <span class="src">`module/main.nf:217-257`</span> |
 
 For the multi-sample case:
 
@@ -246,7 +246,7 @@ For the multi-sample case:
 
 !!! note "Merging borrows the svim-asm resource knobs"
     `truvari_merge` has no parameters of its own; it uses `--svim_asm_threads`, `--svim_asm_memory`
-    and `--svim_asm_time` <span class="src">`nextflow.config:200-204`</span>. Since the collapse
+    and `--svim_asm_time` <span class="src">`nextflow.config:207-211`</span>. Since the collapse
     is internally parallel, raising the svim-asm thread count speeds up the merge as well.
 
 ---

@@ -30,7 +30,7 @@ methylation levels in the genotyped VCF. The processes come from
 | Requirement | Why | Source |
 |---|---|---|
 | `--graph_method giraffe`, `graphaligner` or `precomputed` | the methylation branch sits inside the vg genotyping block; PanGenie has no graph alignments to lift onto | <span class="src">`main.nf:198,226`</span> |
-| `--epigenomes` | switches the branch on | <span class="src">`nextflow.config:30`</span> |
+| `--epigenomes` | switches the branch on | <span class="src">`nextflow.config:29`</span> |
 | BAM entries in `--genotype_with` | modifications are read from BAM tags; a FASTQ sample is genotyped but gets no methylation | <span class="src">`main.nf:236`</span> |
 | `MM`/`ML` tags in those BAMs | what `tagtobed` extracts | <span class="src">`panmethyl/module/main.nf:146`</span> |
 
@@ -83,7 +83,7 @@ or one haplotype's copy against the other's.
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--epigenomes` | `false` | run the branch | <span class="src">`nextflow.config:30`</span> |
+| `--epigenomes` | `false` | run the branch | <span class="src">`nextflow.config:29`</span> |
 | `--motif` | `"CG"` | motif indexed on the graph | <span class="src">`nextflow.config:165`</span> |
 | `--code` | `"C+m"` | modification code passed to `tagtobed` (`-T C -B C+m`) | <span class="src">`nextflow.config:164`, `panmethyl/module/main.nf:146`</span> |
 | `--lifted` | `false` | samplesheet (`sample,path`) of already-lifted `<sample>.csv.gz` files; skips steps 2 and 3 | <span class="src">`main.nf:231-234`</span> |
@@ -114,7 +114,7 @@ All relative to `--out`, and beside GraffiTE's numbered directories:
 ## Resources
 
 The panmethyl processes have fixed allocations in `nextflow.config` rather than parameters
-<span class="src">`nextflow.config:281-320`</span>:
+<span class="src">`nextflow.config:298-337`</span>:
 
 | Process | CPUs | Memory | Time |
 |---|---|---|---|

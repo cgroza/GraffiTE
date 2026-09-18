@@ -32,14 +32,14 @@ chr1  18081  chr1-18082-INS-315_10  t  tAGAAGGAATAAGACGGGCCGGGT...  .  PASS
 
 | Column | What GraffiTE puts there | Source |
 |---|---|---|
-| `ID` column | The caller's ID, with `_<n>` appended after the truvari merge (`n` is the record's rank in `SVs.vcf`): `chr1-18082-INS-315_10` above is PAV's `chr1-18082-INS-315`, tenth in the merge. svim-asm IDs are prefixed with the assembly name (`HG002_mat.svim_asm.INS.12`). With `--vcf` the IDs pass through unchanged. An ID longer than 50 characters stops Stage B. | <span class="src">`module/main.nf:164,242`, `bin/shorten_ids.py:21`, `bin/repmask_vcf.sh:13-16`</span> |
-| `REF` and `ALT` columns | Sequence-resolved. For an insertion `REF` is the anchor base and `ALT` is that base plus the inserted sequence; for a deletion `REF` is the anchor base plus the deleted reference interval, re-read from the reference FASTA, and `ALT` is the anchor base. Symbolic `<INS>` and `<DEL>` records from Sniffles2 are dropped in Stage A. | <span class="src">`bin/fix_vcf.py:33-44`, `module/main.nf:108`</span> |
-| `FILTER` column | Whatever the SV caller wrote. GraffiTE defines no FILTER of its own; see [Fields inherited from upstream callers](#fields-inherited-from-upstream-callers). | <span class="src">`module/main.nf:555`</span> |
-| Sample columns | In `pangenome.vcf`, one column per Stage A sample, holding the genotype its caller wrote (PAV writes phased diploid calls, as above). A genotype missing after the merge is set to `0`. In `GraffiTE.merged.genotypes.vcf.gz`, one column per read set from `--genotype_with`. | <span class="src">`module/main.nf:240`, `module/main.nf:844`</span> |
+| `ID` column | The caller's ID, with `_<n>` appended after the truvari merge (`n` is the record's rank in `SVs.vcf`): `chr1-18082-INS-315_10` above is PAV's `chr1-18082-INS-315`, tenth in the merge. svim-asm IDs are prefixed with the assembly name (`HG002_mat.svim_asm.INS.12`). With `--vcf` the IDs pass through unchanged. An ID longer than 50 characters stops Stage B. | <span class="src">`module/main.nf:179,257`, `bin/shorten_ids.py:21`, `bin/repmask_vcf.sh:42-45`</span> |
+| `REF` and `ALT` columns | Sequence-resolved. For an insertion `REF` is the anchor base and `ALT` is that base plus the inserted sequence; for a deletion `REF` is the anchor base plus the deleted reference interval, re-read from the reference FASTA, and `ALT` is the anchor base. Symbolic `<INS>` and `<DEL>` records from Sniffles2 are dropped in Stage A. | <span class="src">`bin/fix_vcf.py:33-44`, `module/main.nf:123`</span> |
+| `FILTER` column | Whatever the SV caller wrote. GraffiTE defines no FILTER of its own; see [Fields inherited from upstream callers](#fields-inherited-from-upstream-callers). | <span class="src">`module/main.nf:569`</span> |
+| Sample columns | In `pangenome.vcf`, one column per Stage A sample, holding the genotype its caller wrote (PAV writes phased diploid calls, as above). A genotype missing after the merge is set to `0`. In `GraffiTE.merged.genotypes.vcf.gz`, one column per read set from `--genotype_with`. | <span class="src">`module/main.nf:255`, `module/main.nf:864`</span> |
 
 Every VCF GraffiTE publishes carries a `##GraffiTE_version=` line right after `##fileformat`, with
 the content of `version.txt` (`1.1.0`).
-<span class="src">`module/main.nf:372,596,853`</span>
+<span class="src">`module/main.nf:387,610,873`</span>
 
 !!! warning "The ALT allele is not the element"
     For a `DEL` record the transposable element is in the reference and an `ALT` genotype means
@@ -53,28 +53,28 @@ deleted sequence. A **hit** is one RepeatMasker element after its fragments have
 RepeatMasker's own link ID (column 15 of the `.out` file); a **fragment** is one line of that
 file. Simple repeats and low-complexity fragments are removed before grouping, so they count
 neither as hits nor toward the TE span.
-<span class="src">`bin/annotate_vcf.R:73-90`</span>
+<span class="src">`bin/annotate_vcf.R:97-114`</span>
 
 | Field | Number | Type | Meaning | Source |
 |---|---|---|---|---|
-| `n_hits` | 1 | Integer | Hits on the variant sequence. `0` when RepeatMasker found nothing. | <span class="src">`bin/repmask_vcf.sh:125`, `bin/annotate_vcf.R:148`</span> |
-| `fragmts` | . | Integer | Fragments grouped into each hit, in hit order. | <span class="src">`bin/repmask_vcf.sh:129`, `bin/annotate_vcf.R:142`</span> |
-| `match_lengths` | . | Integer | Bases of the variant covered by each hit, first to last fragment. | <span class="src">`bin/repmask_vcf.sh:126`, `bin/annotate_vcf.R:136`</span> |
-| `repeat_ids` | . | String | Name of each hit, taken from its highest-scoring fragment. A hit whose fragments carry different names gets an `(x)` suffix. An SVA hit lying entirely inside the VNTR gets a `(VNTR_only)` suffix; see [SVA VNTR polymorphisms](../background/sva-vntr.md). | <span class="src">`bin/repmask_vcf.sh:127`, `bin/annotate_vcf.R:83-87,127-129`</span> |
-| `matching_classes` | . | String | RepeatMasker class of each hit, as `class/family` from the library (`SINE/Alu`, `LINE/L1`, `LTR/ERVK`, ...). A `(VNTR_only)` SVA hit is reported as `Simple_repeat` here. | <span class="src">`bin/repmask_vcf.sh:128`, `bin/annotate_vcf.R:85,130-132`</span> |
-| `RM_hit_strands` | . | String | Strand of each hit: `+` or `C` as RepeatMasker writes them. A hit whose fragments lie on both strands reports the concatenation (`C+`, `+C`), except an L1 with the `C+` twin-priming signature, whose strand is inferred; see [L1 5' inversions](../background/l1-5prime-inversion.md). | <span class="src">`bin/repmask_vcf.sh:130`, `bin/annotate_vcf.R:80,96-103`</span> |
-| `RM_hit_IDs` | . | String | RepeatMasker link ID of each hit, so a hit can be found again in `repeatmasker_dir/indels.fa.out`. | <span class="src">`bin/repmask_vcf.sh:131`, `bin/annotate_vcf.R:146`</span> |
-| `L1_5PINV` | . | String | Link IDs of the hits flagged as an L1 with a 5' inversion, or `None`. | <span class="src">`bin/repmask_vcf.sh:134`, `bin/annotate_vcf.R:95,147`</span> |
-| `total_match_length` | 1 | Integer | Bases of the variant covered by TE hits, overlaps counted once. | <span class="src">`bin/repmask_vcf.sh:132`, `bin/repmask_vcf.sh:61-71`</span> |
+| `n_hits` | 1 | Integer | Hits on the variant sequence. `0` when RepeatMasker found nothing. | <span class="src">`bin/repmask_vcf.sh:125`, `bin/annotate_vcf.R:172`</span> |
+| `fragmts` | . | Integer | Fragments grouped into each hit, in hit order. | <span class="src">`bin/repmask_vcf.sh:129`, `bin/annotate_vcf.R:166`</span> |
+| `match_lengths` | . | Integer | Bases of the variant covered by each hit, first to last fragment. | <span class="src">`bin/repmask_vcf.sh:126`, `bin/annotate_vcf.R:160`</span> |
+| `repeat_ids` | . | String | Name of each hit, taken from its highest-scoring fragment. A hit whose fragments carry different names gets an `(x)` suffix. An SVA hit lying entirely inside the VNTR gets a `(VNTR_only)` suffix; see [SVA VNTR polymorphisms](../background/sva-vntr.md). | <span class="src">`bin/repmask_vcf.sh:127`, `bin/annotate_vcf.R:107-111,151-153`</span> |
+| `matching_classes` | . | String | RepeatMasker class of each hit, as `class/family` from the library (`SINE/Alu`, `LINE/L1`, `LTR/ERVK`, ...). A `(VNTR_only)` SVA hit is reported as `Simple_repeat` here. | <span class="src">`bin/repmask_vcf.sh:128`, `bin/annotate_vcf.R:109,154-156`</span> |
+| `RM_hit_strands` | . | String | Strand of each hit: `+` or `C` as RepeatMasker writes them. A hit whose fragments lie on both strands reports the concatenation (`C+`, `+C`), except an L1 with the `C+` twin-priming signature, whose strand is inferred; see [L1 5' inversions](../background/l1-5prime-inversion.md). | <span class="src">`bin/repmask_vcf.sh:130`, `bin/annotate_vcf.R:104,120-127`</span> |
+| `RM_hit_IDs` | . | String | RepeatMasker link ID of each hit, so a hit can be found again in `repeatmasker_dir/indels.fa.out`. | <span class="src">`bin/repmask_vcf.sh:131`, `bin/annotate_vcf.R:170`</span> |
+| `L1_5PINV` | . | String | Link IDs of the hits flagged as an L1 with a 5' inversion, or `None`. | <span class="src">`bin/repmask_vcf.sh:134`, `bin/annotate_vcf.R:119,171`</span> |
+| `total_match_length` | 1 | Integer | Bases of the variant covered by TE hits, overlaps counted once. | <span class="src">`bin/repmask_vcf.sh:132`, `bin/repmask_vcf.sh:114-124`</span> |
 | `total_match_span` | 1 | Float | `total_match_length` divided by the variant length. Written for continuity with v1.0, where it was the filter metric; nothing in v1.1 filters on it. | <span class="src">`bin/repmask_vcf.sh:133,71`</span> |
 | `ULTRA_TR` | 1 | Integer | Bases of the variant that ULTRA annotates as tandem repeat, overlaps counted once. `0` when ULTRA found nothing. | <span class="src">`bin/repmask_vcf.sh:135,49-51`</span> |
 | `ULTRA_TR_span` | 1 | Float | `ULTRA_TR` divided by the variant length, capped at 1. | <span class="src">`bin/repmask_vcf.sh:136,82-84`</span> |
-| `total_repeat_span` | 1 | Float | Fraction of the variant covered by the union of TE hits and ULTRA intervals, capped at 1. This is the Stage B filter metric: records at or below `--repeat_span_cutoff` (default `0.80`) are discarded. | <span class="src">`bin/repmask_vcf.sh:137,86-94`, `module/main.nf:543,625`</span> |
+| `total_repeat_span` | 1 | Float | Fraction of the variant covered by the union of TE hits and ULTRA intervals, capped at 1. This is the Stage B filter metric: records at or below `--repeat_span_cutoff` (default `0.80`) are discarded. | <span class="src">`bin/repmask_vcf.sh:137,86-94`, `module/main.nf:557,639`</span> |
 
 A record without any hit has `n_hits=0`, `repeat_ids=None`, `matching_classes=None`,
 `RM_hit_strands=None`, `RM_hit_IDs=None` and `L1_5PINV=None`; such records fail the span filter
 unless ULTRA covers them.
-<span class="src">`bin/annotate_vcf.R:164-171`</span>
+<span class="src">`bin/annotate_vcf.R:188-195`</span>
 
 ## TSD and polyA fields
 
@@ -230,7 +230,7 @@ One field is defined for the PanGenie graph and comes back in the genotyped VCFs
 | `mam_filter_2` (`VNTR_ONLY:...`) | The `(VNTR_only)` suffix on `repeat_ids` and `Simple_repeat` in `matching_classes`. |
 | `total_match_span` as the filter metric | `total_repeat_span` with `--repeat_span_cutoff`. `total_match_span` is still written. |
 
-<span class="src">`bin/repmask_vcf.sh:111-116`, `bin/annotate_vcf.R:127-132`</span>
+<span class="src">`bin/repmask_vcf.sh:164-169`, `bin/annotate_vcf.R:151-156`</span>
 
 ## Filtering GraffiTE VCFs with bcftools
 
@@ -242,7 +242,7 @@ whose value is `SVA_A,LTR5_Hs`. And `!~` does not negate reliably on these field
 `--human` expression is written with positive matches only for that reason. bcftools regular
 expressions also have no alternation, which is why the whitelist parameters are comma-separated
 lists rather than `A|B`.
-<span class="src">`module/main.nf:496-513`</span>
+<span class="src">`module/main.nf:510-527`</span>
 
 Single-hit *Alu* insertions with a polyA tail and a TSD:
 
