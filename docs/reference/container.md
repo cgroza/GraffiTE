@@ -8,15 +8,18 @@ description: >-
 # Container
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `9b3dbcd`. The
+    Verified against `v1.1dev` at commit `1a050f9`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
 ## The image
 
-Every process runs in `library://cgroza/collection/graffite:latest`, pulled from the Sylabs
-library, except `pav_asm`. All three profiles name the same image; they differ only in the
-executor. <span class="src">`nextflow.config:8-25`</span>
+Every process runs in `docker://cgroza/graffite:latest`, pulled from Docker Hub, except
+`pav_asm`. All three profiles name the same image; they differ only in the executor.
+<span class="src">`nextflow.config:8-24`</span>
+
+The image is `linux/amd64` only, single-layer, and about 2.5 GB compressed. Apptainer converts
+it to a SIF on first use. On an arm64 host it runs under emulation.
 
 | Profile | Executor | Extra |
 |---|---|---|
@@ -40,8 +43,8 @@ task directory. Two consequences:
 - Tools that write to `/tmp` write into the task directory, which sits on whatever filesystem
   Nextflow's `work/` is on. Put `work/` on fast, roomy storage.
 
-The image is also on Docker Hub as `cgroza/graffite`. Nextflow can use it with
-`-with-docker cgroza/graffite` once `singularity.enabled` is turned off in your own config.
+To run it under Docker rather than Apptainer, turn `singularity.enabled` off in a config of
+your own and pass `-with-docker cgroza/graffite:latest`.
 
 ## What is inside
 

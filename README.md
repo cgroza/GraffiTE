@@ -44,7 +44,7 @@ nextflow run ../GraffiTE/main.nf \
   --TE_library human_DFAM3.6.fasta --genotype_with reads.csv
 ```
 
-Nextflow pulls the container image from `library://cgroza/collection/graffite:latest` on first
+Nextflow pulls the container image from `docker://cgroza/graffite:latest` on first
 use. Installation, execution profiles and the walk-through are in the documentation.
 
 ## Documentation
