@@ -80,7 +80,7 @@ and wait for confirmation before launching.**
 ```bash
 git clone -b v1.1dev-human-filter https://github.com/cgroza/GraffiTE.git
 # reuse the cached image if $NXF_SINGULARITY_CACHEDIR already has it, otherwise:
-singularity pull graffite.sif library://cgroza/collection/graffite:latest
+singularity pull graffite.sif docker://cgroza/graffite:latest
 singularity exec --bind "$PWD" graffite.sif bash GraffiTE/test/human_filter/run_test.sh
 ```
 
