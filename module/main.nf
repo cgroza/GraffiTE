@@ -876,6 +876,28 @@ process merge_VCFs {
   """
 }
 
+process genotyping_audit {
+  publishDir "${params.out}/4_Genotyping", mode: 'copy'
+
+  input:
+  path(merged_vcf)
+  path(pangenome_vcf)
+  path(graph_table)
+
+  output:
+  path("genotyping_record_audit.tsv")
+
+  script:
+  // NO_GRAPH_TABLE is the placeholder main.nf sends on the vg back ends, which
+  // have no equivalent of pangenie_graph_variants.tsv.
+  def table_arg = graph_table.name == 'NO_GRAPH_TABLE' ? '' : "--graph-table ${graph_table}"
+  """
+  bcftools view -H -i '${trustedFilterFull()}' ${pangenome_vcf} 2>/dev/null | cut -f3 | sort -u > trusted.ids
+  genotyping_audit.py --pangenome ${pangenome_vcf} --merged ${merged_vcf} \
+    --trusted-ids trusted.ids ${table_arg} -o genotyping_record_audit.tsv
+  """
+}
+
 process trusted_genotypes {
   publishDir "${params.out}/4_Genotyping", mode: 'copy'
 

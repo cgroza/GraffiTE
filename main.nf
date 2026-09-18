@@ -14,7 +14,7 @@ include { index_graph; bamtags_to_BED; lift_epigenome; annotate_VCF; annotate_BE
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
          svim_asm; pav_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
          tsd_search; tsd_report; pangenie_index; pangenie; make_graph; bam_to_fastq;
-         graph_align_reads; vg_call; merge_VCFs; trusted_genotypes; hervk_annotate;
+         graph_align_reads; vg_call; merge_VCFs; trusted_genotypes; genotyping_audit; hervk_annotate;
          hervk_reconcile; isOn } from './module'
 
 workflow {
@@ -256,6 +256,13 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
     }
 
     merge_VCFs(indexed_vcfs.map{v -> v[1]}.collect(), vcf_ch)
+
+    // What became of every pangenome.vcf allele. The PanGenie path can say
+    // which ones never entered the graph; the vg path has no equivalent table,
+    // so it gets a placeholder and the report says what it cannot separate.
+    audit_table_ch = params.graph_method == "pangenie" ?
+      pangenie_index.out.table : Channel.fromPath("${projectDir}/assets/NO_GRAPH_TABLE")
+    genotyping_audit(merge_VCFs.out.typeref_outputs, vcf_ch, audit_table_ch)
 
     // The trusted subset of the genotyped calls, the counterpart of
     // pangenome.trusted.vcf. Skipped under --human for the same reason the
