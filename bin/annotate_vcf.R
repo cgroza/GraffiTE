@@ -7,17 +7,41 @@ library(tidyr)
 library(readr)
 library(vcfR)
 
+RM_OUT_COLUMNS <- c("sw_score", "perc_div", "perc_del",
+                    "perc_insert", "qry_id", "qry_start", "qry_end", "qry_left", "strand",
+                    "repeat_id", "matching_class", "in_repeat_start", "in_repeat_end",
+                    "in_repeat_left", "ID")
+
+# A .out with nothing after its three header lines: RepeatMasker found no repeat
+# anywhere in the chunk. rbind() over an empty list is NULL and naming the
+# columns of that aborted the script. The caller left-joins this table onto the
+# VCF and fills n_hits = 0 for whatever is missing, so an empty table is the
+# right answer here, not an error.
+empty_rm_table <- function() {
+  out <- as.data.frame(matrix(character(0), nrow = 0, ncol = length(RM_OUT_COLUMNS)),
+                       stringsAsFactors = FALSE)
+  colnames(out) <- RM_OUT_COLUMNS
+  out <- tibble::as_tibble(out)
+  for (col in c("in_repeat_start", "in_repeat_end", "in_repeat_left",
+                "target_start", "target_end")) {
+    out[[col]] <- integer(0)
+  }
+  return(out)
+}
+
 read_rm_custom <- function(file) {
   rm_file <- readr::read_lines(file = file, skip = 3)
+  rm_file <- rm_file[stringr::str_trim(rm_file) != ""]
+  if (length(rm_file) == 0) {
+    return(empty_rm_table())
+  }
   rm_file <- lapply(rm_file, function(x) {
     str.res <- unlist(stringr::str_split(stringr::str_trim(x), "\\s+"))#[-1]
     str.res <- str.res[1:15]
     return(str.res)
   })
   rm_file <- tibble::as_tibble(do.call(rbind, rm_file))
-  colnames(rm_file) <- c("sw_score", "perc_div", "perc_del",
-                         "perc_insert", "qry_id", "qry_start", "qry_end", "qry_left", "strand",
-                         "repeat_id", "matching_class", "in_repeat_start", "in_repeat_end", "in_repeat_left", "ID")
+  colnames(rm_file) <- RM_OUT_COLUMNS
   # fix the cross_match confusing columns for the target
   rm_file$in_repeat_start <- as.integer(stringr::str_remove_all(rm_file$in_repeat_start, "\\(|\\)"))
   rm_file$in_repeat_end <- as.integer(stringr::str_remove_all(rm_file$in_repeat_end, "\\(|\\)"))

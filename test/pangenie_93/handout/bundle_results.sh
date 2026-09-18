@@ -9,6 +9,9 @@ BUNDLE="pangenie_93_results_$(date +%Y%m%d)"
 rm -rf "$BUNDLE" && mkdir -p "$BUNDLE"
 
 for f in "$OUTDIR"/4_Genotyping/pangenie_graph_variants.tsv \
+         "$OUTDIR"/4_Genotyping/genotyping_record_audit.tsv \
+         "$OUTDIR"/4_Genotyping/GraffiTE.merged.genotypes.trusted.vcf.gz \
+         "$OUTDIR"/4_Genotyping/GraffiTE.merged.genotypes.presence-absence_trusted.tsv \
          "$OUTDIR"/4_Genotyping/GraffiTE.merged.genotypes.vcf.gz \
          "$OUTDIR"/4_Genotyping/*_genotyping.vcf.gz \
          "$OUTDIR"/pangenie_93_assertions.log \
@@ -35,6 +38,22 @@ if [[ -f "$OUTDIR/nextflow_trace.txt" ]]; then
     done
   done < "$BUNDLE/pangenie_tasks.tsv"
 fi
+
+# The FORMAT block PanGenie writes. Nothing in the repository records it, and
+# PanGenie is unpinned in the container, so a run is the only way to find out
+# which quality fields exist on this path and what they are called. Needed
+# before any genotype-quality filter can be written for both back ends.
+{
+  for v in "$OUTDIR"/4_Genotyping/*_genotyping.vcf.gz \
+           "$OUTDIR"/4_Genotyping/GraffiTE.merged.genotypes.vcf.gz; do
+    [[ -f "$v" ]] || continue
+    echo "== $(basename "$v")"
+    bcftools view -h "$v" 2>/dev/null | grep -E '^##(FORMAT|source|commandline|PanGenie)' || true
+    echo "-- FORMAT column and the first record's sample fields"
+    bcftools view -H "$v" 2>/dev/null | head -1 | cut -f9,10 || true
+    echo
+  done
+} > "$BUNDLE/FORMAT_fields.txt" 2>/dev/null || true
 
 GT_DIR="${NXF_ASSETS:-$HOME/.nextflow/assets}/${PROJECT:-cgroza/GraffiTE}"
 {

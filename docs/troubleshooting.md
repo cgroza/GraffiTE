@@ -8,7 +8,7 @@ description: >-
 # Troubleshooting
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `cfaff1e`. The
+    Verified against `v1.1dev` at commit `9b3dbcd`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -94,10 +94,28 @@ process, with long-read alignment the most demanding step. See
 
 ---
 
+## The run finishes but there is no `3_TSD_search/pangenome.vcf`
+
+Check whether `tsd_search` and `tsd_report` ran. When the container cannot write to `/tmp` the
+pipeline skips them and still reports success. `/tmp` inside the container is the launch
+directory by default; point `--container_tmp` at a writable directory instead, see
+[Paths and `/tmp`](getting-started/installation.md#paths-and-tmp).
+
+The other way to get here is a run where no chunk survived annotation. Stage B is split one piece
+per contig <span class="src">`module/main.nf:457-470`</span>, and a chunk whose records all fail
+`--repeat_span_cutoff` drops out by design. If every chunk drops out, `concat_repeatmask` never
+runs and nothing says so. `2_Repeat_Filtering/*/genotypes_repmasked_filtered.vcf` holds the
+per-chunk record counts.
+
+---
+
 ## `cgroza/GraffiTE contains uncommitted changes -- cannot pull from repository`
 
 The pipeline cached under `~/.nextflow/assets/cgroza/GraffiTE/` was edited in place. Delete it
 and pull again; see [Installation](getting-started/installation.md#updating).
+
+Usually the edit was to `nextflow.config`, to bind a scratch directory to `/tmp`. That is what
+`--container_tmp` is for; use it and leave the cached copy alone.
 
 ---
 
