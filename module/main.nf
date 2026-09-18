@@ -713,7 +713,15 @@ process pangenie {
   # PanGenie writes ${sample_name}_genotyping.vcf against a graph VCF built with
   # `bcftools norm -m+`. Split the records back so they match pangenome.vcf one
   # for one when merge_VCFs transfers INFO, as vg_call does.
-  bcftools norm -f ${ref} -m- -Oz -o ${sample_name}_genotyping.vcf.gz ${sample_name}_genotyping.vcf
+  #
+  # -N because -f turns on left-alignment as well as splitting, and merge_VCFs
+  # matches on CHROM/POS/REF/ALT. pangenome.vcf is only left-aligned when two or
+  # more caller VCFs went through the truvari merge, so on a --vcf, single-caller
+  # or --graffite_vcf run every insertion sitting in a homopolymer or a short
+  # tandem repeat -- which is most polyA-tailed TE insertions -- came back
+  # realigned to a different POS and lost its whole annotation at the merge.
+  # -f stays: it still checks REF against the reference.
+  bcftools norm -f ${ref} -N -m- -Oz -o ${sample_name}_genotyping.vcf.gz ${sample_name}_genotyping.vcf
   tabix -p vcf ${sample_name}_genotyping.vcf.gz
   """
 }
