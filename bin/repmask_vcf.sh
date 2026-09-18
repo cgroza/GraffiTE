@@ -1,9 +1,38 @@
 #!/bin/bash
 
+# set -e, but not -u or pipefail. MAM is unset on every run without --mammal,
+# and the merge.bed pipeline below opens with a `grep -v` that returns 1 when
+# every hit is a simple repeat.
+set -e
+
 VCF=$1
 OUT_VCF=$2
 FASTA_LIB=$3
-MAM=$4
+MAM=${4:-}
+
+HDR_FILE=hdr_file
+
+# The INFO definitions every record needs, whether or not RepeatMasker found
+# anything: repeatmask_VCF filters on INFO/total_repeat_span straight after this
+# script, and bcftools rejects an expression naming a tag the header does not
+# declare. Written by both the annotated path and the no-indel early exit.
+write_info_headers() {
+  : > "$1"
+  echo -e '##INFO=<ID=n_hits,Number=1,Type=Integer,Description="Number of repeats found in insertion">' >> "$1"
+  echo -e '##INFO=<ID=match_lengths,Number=.,Type=Integer,Description="Insertion lengths spanned by each repeat">' >> "$1"
+  echo -e '##INFO=<ID=repeat_ids,Number=.,Type=String,Description="Repeat family IDs">' >> "$1"
+  echo -e '##INFO=<ID=matching_classes,Number=.,Type=String,Description="Repeat class names">' >> "$1"
+  echo -e '##INFO=<ID=fragmts,Number=.,Type=Integer,Description="Number of fragments merged into one by one code">' >> "$1"
+  echo -e '##INFO=<ID=RM_hit_strands,Number=.,Type=String,Description="RepeatMasker hit strands">' >> "$1"
+  echo -e '##INFO=<ID=RM_hit_IDs,Number=.,Type=String,Description="RepeatMasker hit IDs">' >> "$1"
+  echo -e '##INFO=<ID=total_match_length,Number=1,Type=Integer,Description="Insertion length spanned by repeats">' >> "$1"
+  echo -e '##INFO=<ID=total_match_span,Number=1,Type=Float,Description="Insertion span spanned by repeats">' >> "$1"
+  echo -e '##INFO=<ID=L1_5PINV,Number=.,Type=String,Description="RM hit ID in this SV flagged as LINE1 with 5-prime inversion">' >> "$1"
+  echo -e '##INFO=<ID=ULTRA_TR,Number=1,Type=Integer,Description="Non-redundant bases of tandem repeats annotated by ULTRA within the insertion (bedtools-merged)">' >> "$1"
+  echo -e '##INFO=<ID=ULTRA_TR_span,Number=1,Type=Float,Description="Fraction of the variant sequence spanned by ULTRA tandem repeats (ULTRA_TR / variant length, capped at 1)">' >> "$1"
+  echo -e '##INFO=<ID=total_repeat_span,Number=1,Type=Float,Description="Fraction of the variant sequence spanned by the union of RepeatMasker TE hits and ULTRA tandem repeats (non-redundant, capped at 1)">' >> "$1"
+  echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> "$1"
+}
 
 FASTA_FILE=indels.fa
 bcftools view -H --types indels --include 'ILEN>0' ${VCF} | awk '{print(sprintf(">%s\n%s", $3, $5))}' >> ${FASTA_FILE}
@@ -18,6 +47,22 @@ fi
 mkdir repeatmasker_dir
 REPMASK_DIR=repeatmasker_dir
 
+# split_repeatmask cuts the VCF one chunk per contig, so a contig whose records
+# are all non-indel leaves nothing to mask. RepeatMasker exits non-zero on an
+# empty FASTA and used to leave repeatmasker_dir empty, which crashed tsd_prep
+# two processes later. Emit the outputs repeatmask_VCF declares, with the INFO
+# definitions in place so its total_repeat_span filter still parses, and stop.
+if [[ ! -s ${FASTA_FILE} ]]; then
+    echo "repmask_vcf.sh: ${VCF} holds no indel, nothing to annotate"
+    for f in ultra_out.bed ultra_out.span ultra_out.stats union.bp \
+             total_repeat_span.tsv combined.stats vcf_annotation.bak.txt; do
+        : > ${f}
+    done
+    write_info_headers "${HDR_FILE}"
+    bcftools annotate -h ${HDR_FILE} -Oz -o ${OUT_VCF} ${VCF}
+    exit 0
+fi
+
 # detect number of cores allocated to this nextflow process
 repmask_cores="$(($(nproc)/4))"
 
@@ -30,6 +75,14 @@ fi
 RepeatMasker -lib ${FASTA_LIB} -s -dir ${REPMASK_DIR} -pa ${repmask_cores} ${FASTA_FILE}
 
 REPMASK_OUT=${REPMASK_DIR}/$(basename ${FASTA_FILE}).out
+
+# RepeatMasker writes no .out when it finds nothing. Zero hits is an answer --
+# annotate_vcf.R fills n_hits = 0 from an empty table -- so synthesise the three
+# header lines it skips rather than failing under set -e.
+if [[ ! -f ${REPMASK_OUT} ]]; then
+    echo "repmask_vcf.sh: RepeatMasker found no repeat in ${FASTA_FILE}"
+    printf '   SW   perc perc perc  query\nscore   div. del. ins.  sequence\n\n' > ${REPMASK_OUT}
+fi
 
 # run ULTRA to detect tandem repeat the RM may have annotated as TE
 
@@ -120,22 +173,8 @@ echo "writing vcf..."
 bgzip vcf_annotation #${ANNOT_FILE}
 tabix -s1 -b2 -e2 vcf_annotation.gz #${ANNOT_FILE}.gz
 
-HDR_FILE=hdr_file
+write_info_headers "${HDR_FILE}"
 
-echo -e '##INFO=<ID=n_hits,Number=1,Type=Integer,Description="Number of repeats found in insertion">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=match_lengths,Number=.,Type=Integer,Description="Insertion lengths spanned by each repeat">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=repeat_ids,Number=.,Type=String,Description="Repeat family IDs">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=matching_classes,Number=.,Type=String,Description="Repeat class names">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=fragmts,Number=.,Type=Integer,Description="Number of fragments merged into one by one code">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=RM_hit_strands,Number=.,Type=String,Description="RepeatMasker hit strands">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=RM_hit_IDs,Number=.,Type=String,Description="RepeatMasker hit IDs">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=total_match_length,Number=1,Type=Integer,Description="Insertion length spanned by repeats">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=total_match_span,Number=1,Type=Float,Description="Insertion span spanned by repeats">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=L1_5PINV,Number=.,Type=String,Description="RM hit ID in this SV flagged as LINE1 with 5-prime inversion">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=ULTRA_TR,Number=1,Type=Integer,Description="Non-redundant bases of tandem repeats annotated by ULTRA within the insertion (bedtools-merged)">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=ULTRA_TR_span,Number=1,Type=Float,Description="Fraction of the variant sequence spanned by ULTRA tandem repeats (ULTRA_TR / variant length, capped at 1)">' >> ${HDR_FILE}
-echo -e '##INFO=<ID=total_repeat_span,Number=1,Type=Float,Description="Fraction of the variant sequence spanned by the union of RepeatMasker TE hits and ULTRA tandem repeats (non-redundant, capped at 1)">' >> ${HDR_FILE}
-echo -e '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">' >> ${HDR_FILE}
 
 cat <(bcftools view -h ${VCF}) <(bcftools view -H ${VCF} | sort -k1,1 -k2,2n) > genotypes.sorted.vcf
 bcftools annotate -a ${ANNOT_FILE}.gz -h ${HDR_FILE} \

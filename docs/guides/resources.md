@@ -8,7 +8,7 @@ description: >-
 # Resources and scaling
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `cfaff1e`. The
+    Verified against `v1.1dev` at commit `9b3dbcd`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -28,7 +28,39 @@ nextflow run cgroza/GraffiTE -r v1.1dev -profile cluster ...
 ```
 
 Site-specific settings (a partition, an account, a container cache) go in a config file of your
-own, passed with `-c site.config`. See the
+own, passed with `-c site.config`. The `cluster` profile sets the executor, the container and
+`process.scratch`, and nothing else. It sets no queue and no retry policy, and most SLURM sites
+need at least a queue, plus an account where the site bills one.
+
+```groovy title="site.config"
+process {
+    queue          = 'nocona'                  // your partition
+    clusterOptions = '--nodes=1 --ntasks=1'    // add --account=... if your site bills one
+    errorStrategy  = { task.exitStatus in [137, 140, 143] ? 'retry' : 'terminate' }
+    maxRetries     = 3
+}
+```
+
+```bash
+nextflow run cgroza/GraffiTE -r v1.1dev -profile cluster -c site.config ...
+```
+
+137 and 143 are SIGKILL and SIGTERM, which is how SLURM ends a job that ran past its time or
+memory limit, and some sites report the time limit as 140. Retrying anything else spends an
+allocation on a failure that will repeat.
+
+Two defaults to check against your site:
+
+- `process.scratch = '$SLURM_TMPDIR'` <span class="src">`nextflow.config:17`</span> assumes the
+  scheduler defines that variable, and many sites do not. Where it is unset, set `process.scratch`
+  to a path of your own or to `false`.
+- Several `*_memory` parameters default to `null`, so the pipeline requests no `--mem`. On a
+  scheduler that needs one, set them; see [Per-process allocation](#per-process-allocation).
+
+If the container cannot write to `/tmp` on your nodes, point `--container_tmp` at a directory it
+can; see [Paths and `/tmp`](../getting-started/installation.md#paths-and-tmp).
+
+See also the
 [Nextflow executor documentation](https://www.nextflow.io/docs/latest/executor.html).
 
 ## The `--cores` shortcut

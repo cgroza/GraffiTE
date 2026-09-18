@@ -8,7 +8,7 @@ description: >-
 # Stage C: genotyping
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `cfaff1e`. The
+    Verified against `v1.1dev` at commit `9b3dbcd`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -211,8 +211,12 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
    records.
 2. `bcftools annotate -a pangenome.vcf -c CHROM,POS,ID,REF,ALT,INFO` copies every INFO field of
    the matching `pangenome.vcf` record, so the repeat annotation, TSD and polyA fields travel
-   with the genotypes. A genotyped record matches only when `CHROM`, `POS`, `ID`, `REF` and `ALT`
-   all agree.
+   with the genotypes. The match is on `CHROM`, `POS`, `REF` and at least one shared `ALT`; `ID`
+   is one of the columns being *copied*, not part of the key (matching on it would need `~ID`).
+   Allele comparison ignores case, which matters because `pangenome.vcf` carries soft-masked
+   lowercase bases and the graph upper-cases them. A record that matches nothing keeps whatever
+   the genotyper gave it and arrives with no annotation
+   <span class="src">`module/main.nf:405-411`</span>.
 3. The `##GraffiTE_version` header line is added.
 
 Published as `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz`. No `.tbi` is published for it: the
@@ -222,13 +226,53 @@ index written earlier in the script belongs to the pre-annotation file, which is
 **Resources:** `--merge_vcf_memory` (default `10G`), `--merge_vcf_time` (default `1h`)
 <span class="src">`nextflow.config:266-270`</span>.
 
-!!! note "No presence-absence TSV for the genotyped calls"
-    The presence-absence TSVs in `3_TSD_search/` are built from the discovery genotypes in
-    `pangenome.vcf`. Nothing converts `GraffiTE.merged.genotypes.vcf.gz` the same way; apply the
-    `INS`/`DEL` polarity rule above yourself, or start from the TSV's column schema in
-    [Output files](../reference/outputs.md).
+## The trusted subset of the genotypes
 
-With `--human`, the human subset of this file goes through one more step,
+`trusted_genotypes` <span class="src">`module/main.nf:879-909`</span> writes the counterpart of
+`pangenome.trusted.vcf` for the genotyped calls:
+
+- `4_Genotyping/GraffiTE.merged.genotypes.trusted.vcf.gz` and its `.tbi`
+- `4_Genotyping/GraffiTE.merged.genotypes.presence-absence_trusted.tsv`, the same schema as the
+  discovery tables in `3_TSD_search/`
+
+Every record in it has `n_hits=1`, so every record has one repeat class. See
+[The trusted subset](annotation.md) for the full expression and the parameters
+(`--trusted_min_svlen`, `--trusted_max_ultra_span`, `--trusted_ignore_filter`), which govern both
+files.
+
+The expression is evaluated on `pangenome.vcf` and the genotyped calls are subset by the IDs it
+returns. It tests `FILTER`, and step 2 above copies `INFO` without `FILTER`, so the `FILTER`
+column of the merged VCF is the genotyper's; running the expression against that file would
+answer a different question.
+
+Not written under `--human`. There the subset of interest is the pME one, and
+[`hervk_reconcile`](human-mei.md) writes `GraffiTE.merged.genotypes.human.vcf.gz` instead.
+
+---
+
+## What happened to each record
+
+`genotyping_audit` writes `4_Genotyping/genotyping_record_audit.tsv`, one row per ALT allele of
+`pangenome.vcf`, with a `lost_at` column naming the first stage that dropped it and the counts
+summarised at the top of the file.
+
+| `lost_at` | meaning |
+|---|---|
+| `genotyped` | in the merged VCF under its own ID, with its annotation |
+| `not_in_graph` | the allele never entered the graph; see [PanGenie](#pangenie) |
+| `duplicate_of_record_N` | it shared `CHROM`, `POS`, `REF` and `ALT` with record `N`, which carries the call |
+| `no_match_in_merge` | the graph genotyped it, and the annotate step in `merge_VCFs` could not find it |
+| `not_genotyped` | absent from the merged VCF |
+
+`genotyped` and `annotated` are separate columns because they answer different questions. On the
+PanGenie path `INFO/ID` names the graph variant behind each record, so a record that was
+genotyped and then missed by the annotate step is visible as `genotyped=yes, annotated=no`. The
+vg back ends carry no such field, the audit joins on the ID column instead, and the report says
+which key it used.
+
+---
+
+With `--human`, the human subset of the merged genotypes goes through one more step,
 [`hervk_reconcile`](human-mei.md), which writes `GraffiTE.merged.genotypes.human.vcf.gz`.
 
 ---

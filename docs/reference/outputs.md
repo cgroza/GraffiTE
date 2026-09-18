@@ -6,7 +6,7 @@ description: Every file GraffiTE publishes, which process produces it, and what 
 # Output files
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `cfaff1e`. The
+    Verified against `v1.1dev` at commit `9b3dbcd`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -49,7 +49,10 @@ out/
 ├── 4_Genotyping/
 │   ├── pangenie_graph_variants.tsv              ← pangenie_index, pangenie method only
 │   ├── <sample>_genotyping.vcf.gz(.tbi)         ← pangenie, pangenie method only
+│   ├── genotyping_record_audit.tsv              ← genotyping_audit
 │   ├── GraffiTE.merged.genotypes.vcf.gz         ← merge_VCFs
+│   ├── GraffiTE.merged.genotypes.trusted.vcf.gz(.tbi)   (not with --human)  ← trusted_genotypes
+│   ├── GraffiTE.merged.genotypes.presence-absence_trusted.tsv  (not with --human)
 │   ├── GraffiTE.merged.genotypes.human.vcf.gz(.tbi)  (--human only)  ← hervk_reconcile
 │   ├── hervk_unconsolidated_records.vcf         (--human only)
 │   └── hervk_reconciliation_report.md           (--human only)
@@ -167,6 +170,9 @@ Stage C's deliverables, present when `--genotype` is true (the default).
 | `pangenie_graph_variants.tsv` | PanGenie method only. One row per ALT allele of `pangenome.vcf`: `record`, `CHROM`, `POS`, `pangenome_ID`, `allele`, `graph_ID`, `in_graph`, `note`. `graph_ID` is what PanGenie writes to `INFO/ID` of the genotyped VCFs; `in_graph=no` marks alleles `merge_vcfs.py` left out of the graph. | <span class="src">`module/main.nf:681,689,693-696`, `bin/pangenie_graph_vcf.py:25`</span> |
 | `<sample>_genotyping.vcf.gz`, `.tbi` | PanGenie method only. Each read set's genotypes, split to one ALT per record so they match `pangenome.vcf` one for one. | <span class="src">`module/main.nf:703,710-719`</span> |
 | `GraffiTE.merged.genotypes.vcf.gz` | All read sets merged into one VCF, one column per sample, with every INFO field of `pangenome.vcf` copied onto the matching record by position and alleles. The headline genotyped file. No `.tbi` is published for it; run `tabix -p vcf` on it before random access. | <span class="src">`module/main.nf:832-854`</span> |
+| `GraffiTE.merged.genotypes.trusted.vcf.gz`, `.tbi` | Not written under `--human`. The records of the merged genotypes whose `pangenome.vcf` counterpart passes the trusted-subset expression, so every record has one repeat class. Subset by ID, because the expression tests `FILTER` and `merge_VCFs` does not transfer it. | <span class="src">`module/main.nf:879-909`</span> |
+| `GraffiTE.merged.genotypes.presence-absence_trusted.tsv` | Not written under `--human`. Flat table of the file above, same schema as the discovery TSVs; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:879-909`</span> |
+| `genotyping_record_audit.tsv` | One row per ALT allele of `pangenome.vcf`, saying whether the graph genotyped it, whether the annotation reached it, and which stage dropped it (`lost_at`). Counts summarised in `#` lines at the top. | <span class="src">`module/main.nf:855-877`</span> |
 | `GraffiTE.merged.genotypes.human.vcf.gz`, `.tbi` | `--human` only. The human subset of the merged genotypes, HERV-K annotation carried over from `pangenome.human.vcf`, and each HERV-K locus consolidated onto one record. Graph genotypes at copy-number loci are withheld unless `--hervk_mask_graph_gt_at_cnv false`. | <span class="src">`module/main.nf:385,396-397,411-453`</span> |
 | `hervk_unconsolidated_records.vcf` | `--human` only. The member records each consolidated record was built from, as they were before consolidation. | <span class="src">`module/main.nf:398,449`</span> |
 | `hervk_reconciliation_report.md` | `--human` only. Per locus, alleles, `AC`, `AN` against `2N`, resolved and partial samples; then the loci with ploidy exceeded, with `AN` below `2N`, and skipped. | <span class="src">`bin/hervk_reconcile.py:1246`</span> |

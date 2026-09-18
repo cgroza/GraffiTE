@@ -7,6 +7,21 @@ def isOn(v) {
   return v ? true : false
 }
 
+// The trusted subset: one RepeatMasker hit, long enough, and not mostly tandem
+// repeat. Shared so that pangenome.trusted.vcf and the trusted subset of the
+// genotyped calls cannot drift apart.
+def trustedFilter() {
+  return "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & (ULTRA_TR_span<${params.trusted_max_ultra_span} | matching_classes=\"Simple_repeat\") & ((matching_classes!~\"LINE\" & matching_classes!~\"SINE\" & matching_classes!~\"Retroposon\") | polyA=\"TRUE\")"
+}
+
+// FILTER is the caller's, so this expression only means anything on
+// pangenome.vcf. merge_VCFs transfers INFO and not FILTER, so the genotyped
+// calls are subset by ID off this, never by re-running it.
+def trustedFilterFull() {
+  def f = trustedFilter()
+  return isOn(params.trusted_ignore_filter) ? f : "(${f}) & FILTER=\"PASS\""
+}
+
 process break_scaffold {
   input:
   tuple val(asm_name), path(asm)
@@ -489,8 +504,7 @@ process concat_repeatmask {
   path("TSD_full_log.txt")
 
   script:
-  def trusted_filter = "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & (ULTRA_TR_span<${params.trusted_max_ultra_span} | matching_classes=\"Simple_repeat\") & ((matching_classes!~\"LINE\" & matching_classes!~\"SINE\" & matching_classes!~\"Retroposon\") | polyA=\"TRUE\")"
-  def trusted_filter_full = isOn(params.trusted_ignore_filter) ? trusted_filter : "(${trusted_filter}) & FILTER=\"PASS\""
+  def trusted_filter_full = trustedFilterFull()
 
   // --human pME filter, applied directly to pangenome.vcf (not to the trusted
   // subset, which is a species-agnostic heuristic for non-model organisms).
@@ -636,7 +650,6 @@ process tsd_prep {
 
   script:
   """
-  cp repeatmasker_dir/repeatmasker_dir/* .
   prepTSD.sh ${ref_fasta} ${params.tsd_win} ${task.cpus}
   """
 }
@@ -652,7 +665,6 @@ process tsd_search {
   script:
   """
   bcftools view -H genotypes_repmasked_filtered.vcf | cut -f1 | uniq > chrom.txt
-  cp repeatmasker_dir/repeatmasker_dir/* .
   TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta ${indels} ${params.tsd_win}
   """
 }
@@ -715,7 +727,15 @@ process pangenie {
   # PanGenie writes ${sample_name}_genotyping.vcf against a graph VCF built with
   # `bcftools norm -m+`. Split the records back so they match pangenome.vcf one
   # for one when merge_VCFs transfers INFO, as vg_call does.
-  bcftools norm -f ${ref} -m- -Oz -o ${sample_name}_genotyping.vcf.gz ${sample_name}_genotyping.vcf
+  #
+  # -N because -f turns on left-alignment as well as splitting, and merge_VCFs
+  # matches on CHROM/POS/REF/ALT. pangenome.vcf is only left-aligned when two or
+  # more caller VCFs went through the truvari merge, so on a --vcf, single-caller
+  # or --graffite_vcf run every insertion sitting in a homopolymer or a short
+  # tandem repeat -- which is most polyA-tailed TE insertions -- came back
+  # realigned to a different POS and lost its whole annotation at the merge.
+  # -f stays: it still checks REF against the reference.
+  bcftools norm -f ${ref} -N -m- -Oz -o ${sample_name}_genotyping.vcf.gz ${sample_name}_genotyping.vcf
   tabix -p vcf ${sample_name}_genotyping.vcf.gz
   """
 }
@@ -853,5 +873,59 @@ process merge_VCFs {
   awk -v v="${params.graffite_version}" 'NR==1 && /^##fileformat/ {print; print "##GraffiTE_version="v; next} {print}' GraffiTE.merged.genotypes.vcf > GraffiTE.merged.genotypes.vcf.tmp && mv GraffiTE.merged.genotypes.vcf.tmp GraffiTE.merged.genotypes.vcf
   rm -f GraffiTE.merged.genotypes.vcf.gz
   bgzip GraffiTE.merged.genotypes.vcf
+  """
+}
+
+process genotyping_audit {
+  publishDir "${params.out}/4_Genotyping", mode: 'copy'
+
+  input:
+  path(merged_vcf)
+  path(pangenome_vcf)
+  path(graph_table)
+
+  output:
+  path("genotyping_record_audit.tsv")
+
+  script:
+  // NO_GRAPH_TABLE is the placeholder main.nf sends on the vg back ends, which
+  // have no equivalent of pangenie_graph_variants.tsv.
+  def table_arg = graph_table.name == 'NO_GRAPH_TABLE' ? '' : "--graph-table ${graph_table}"
+  """
+  bcftools view -H -i '${trustedFilterFull()}' ${pangenome_vcf} 2>/dev/null | cut -f3 | sort -u > trusted.ids
+  genotyping_audit.py --pangenome ${pangenome_vcf} --merged ${merged_vcf} \
+    --trusted-ids trusted.ids ${table_arg} -o genotyping_record_audit.tsv
+  """
+}
+
+process trusted_genotypes {
+  publishDir "${params.out}/4_Genotyping", mode: 'copy'
+
+  input:
+  path(merged_vcf)
+  path(pangenome_vcf)
+
+  output:
+  path("GraffiTE.merged.genotypes.trusted.vcf.gz"), emit: vcf
+  path("GraffiTE.merged.genotypes.trusted.vcf.gz.tbi")
+  path("GraffiTE.merged.genotypes.presence-absence_trusted.tsv")
+
+  script:
+  """
+  # The filter reads FILTER, which merge_VCFs does not transfer (-c names INFO
+  # and not FILTER), so it is evaluated on pangenome.vcf and the genotyped calls
+  # are subset by the IDs it returns. Running it on the merged VCF instead would
+  # test whatever vg call or PanGenie put in FILTER.
+  bcftools view -H -i '${trustedFilterFull()}' ${pangenome_vcf} | cut -f3 | sort -u > trusted.ids
+  bcftools view -i 'ID=@trusted.ids' -Oz -o GraffiTE.merged.genotypes.trusted.vcf.gz ${merged_vcf}
+  tabix -p vcf GraffiTE.merged.genotypes.trusted.vcf.gz
+
+  # vcf_to_pa_tsv.py reads plain text, so it is fed through bcftools rather than
+  # handed the .gz.
+  bcftools view GraffiTE.merged.genotypes.trusted.vcf.gz \
+    | vcf_to_pa_tsv.py -o GraffiTE.merged.genotypes.presence-absence_trusted.tsv
+
+  printf 'trusted records in %s: %s\\n' "${pangenome_vcf}" "\$(wc -l < trusted.ids | tr -d ' ')" >&2
+  printf 'of those, genotyped: %s\\n' "\$(bcftools view -H GraffiTE.merged.genotypes.trusted.vcf.gz | wc -l | tr -d ' ')" >&2
   """
 }

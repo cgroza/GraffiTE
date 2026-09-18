@@ -6,7 +6,7 @@ description: Release history of GraffiTE, from the first beta to the current v1.
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `cfaff1e`. The
+    Verified against `v1.1dev` at commit `9b3dbcd`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -41,6 +41,33 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 - `concat_repeatmask` accepts a gzip-compressed `--reference` and re-compresses it to BGZF.
 - Satellite and RNA hits are filtered out of `pangenome.vcf`; the repeat-class filter in the
   annotation step was removed.
+
+**Genotyping**
+
+- `GraffiTE.merged.genotypes.trusted.vcf.gz` and
+  `GraffiTE.merged.genotypes.presence-absence_trusted.tsv`, the counterpart of
+  `pangenome.trusted.vcf` for the genotyped calls: every record has one repeat class. Governed by
+  the same `--trusted_*` parameters, and not written under `--human` (PR #103, issue #93).
+- `genotyping_record_audit.tsv`, one row per `pangenome.vcf` ALT allele, saying whether the graph
+  genotyped it, whether the annotation reached it, and which stage dropped it.
+- The pangenie back end split PanGenie's records with `bcftools norm -f <ref> -m-`, and `-f` also
+  left-aligns. `pangenome.vcf` is left-aligned only when two or more caller VCFs went through the
+  truvari merge, so on `--vcf`, single-caller and `--graffite_vcf` runs an insertion inside a
+  homopolymer came back at a shifted position and lost its whole annotation at the merge. `-N`
+  keeps the position.
+
+**Repeat annotation robustness**
+
+- A contig whose records are all non-indel no longer kills the run. `tsd_prep` and `tsd_search`
+  dropped a `cp` of the RepeatMasker directory that nothing had read since v1.0, and
+  `repmask_vcf.sh` now runs under `set -e` with an explicit path for a chunk with nothing to mask
+  (issue #93).
+
+**Execution**
+
+- `--container_tmp` binds a directory of your choice to `/tmp` inside the container, in place of
+  editing `singularity.runOptions` in the cached copy of `nextflow.config` (which then breaks
+  `nextflow pull` and `-latest`).
 
 **Subsets**
 

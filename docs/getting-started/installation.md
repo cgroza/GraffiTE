@@ -8,7 +8,7 @@ description: >-
 # Installation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `cfaff1e`. The
+    Verified against `v1.1dev` at commit `9b3dbcd`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
@@ -106,20 +106,33 @@ and how the recipe in `GraffiTE.def` relates to it, is on [Container contents](.
 
 ### Paths and `/tmp`
 
-The config runs every container with `--contain --bind $(pwd):/tmp`
-<span class="src">`nextflow.config:5`</span>. Two consequences:
+The config runs every container with `--contain --bind <dir>:/tmp`
+<span class="src">`nextflow.config:172`</span>. Two consequences:
 
 - The host filesystem is hidden from the container except for what Nextflow mounts: the work
   directory and the files it stages (`singularity.autoMounts = true`
   <span class="src">`nextflow.config:4`</span>). Give input files, including the paths inside
   samplesheets, as absolute paths.
-- `/tmp` inside the container is the launch directory. If that filesystem is small or slow,
-  edit `singularity.runOptions` in your copy of `nextflow.config` (or in
-  `~/.nextflow/assets/cgroza/GraffiTE/nextflow.config`) to bind a larger writable directory:
+- `/tmp` inside the container is the launch directory unless you say otherwise. Where that
+  filesystem is small, slow, or not writable from inside the container, point `--container_tmp`
+  at one that is:
 
-  ```groovy
-  singularity.runOptions = '--contain -B /scratch/you/tmp:/tmp'
+  ```bash
+  nextflow run cgroza/GraffiTE -r v1.1dev --container_tmp /scratch/you/tmp ...
   ```
+
+  The directory must exist before the run starts. On SLURM sites that set a per-job scratch
+  variable, `--container_tmp $SLURM_TMPDIR` works too.
+
+!!! warning "Do not edit the cached config to do this"
+    Before v1.1 the only route was to edit `singularity.runOptions` in
+    `~/.nextflow/assets/cgroza/GraffiTE/nextflow.config`. That works once and then makes
+    `nextflow pull` and `-latest` fail with `contains uncommitted changes`
+    <span class="src">[#93](https://github.com/cgroza/GraffiTE/issues/93)</span>. Use
+    `--container_tmp`, or `-c` with a config file of your own.
+
+A container that cannot write `/tmp` does not always fail. The run can finish having skipped
+`tsd_search` and `tsd_report`, leaving no `3_TSD_search/pangenome.vcf`.
 
 ---
 
