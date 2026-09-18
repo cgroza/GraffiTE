@@ -10,3 +10,7 @@ __pycache__/
 # Documentation build artefacts
 /site.zip
 /docs/llms-full.txt
+
+# Nextflow run state
+.nextflow/
+.nextflow.log*
