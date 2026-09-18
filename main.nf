@@ -14,7 +14,7 @@ include { index_graph; bamtags_to_BED; lift_epigenome; annotate_VCF; annotate_BE
 include { break_scaffold; map_asm; map_longreads; sniffles_sample_call; sniffles_population_call;
          svim_asm; pav_asm; truvari_merge; split_repeatmask; concat_repeatmask; repeatmask_VCF; tsd_prep;
          tsd_search; tsd_report; pangenie_index; pangenie; make_graph; bam_to_fastq;
-         graph_align_reads; vg_call; merge_VCFs; hervk_annotate;
+         graph_align_reads; vg_call; merge_VCFs; trusted_genotypes; hervk_annotate;
          hervk_reconcile; isOn } from './module'
 
 workflow {
@@ -256,6 +256,14 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
     }
 
     merge_VCFs(indexed_vcfs.map{v -> v[1]}.collect(), vcf_ch)
+
+    // The trusted subset of the genotyped calls, the counterpart of
+    // pangenome.trusted.vcf. Skipped under --human for the same reason the
+    // discovery one is: there the subset of interest is the pME one, and
+    // hervk_reconcile writes GraffiTE.merged.genotypes.human.vcf.gz.
+    if(!isOn(params.human)) {
+      trusted_genotypes(merge_VCFs.out.typeref_outputs, vcf_ch)
+    }
 
     // HERV-K locus consolidation on the human subset of the genotyped calls.
     // Only giraffe is validated; the reconciler refuses other back ends rather
