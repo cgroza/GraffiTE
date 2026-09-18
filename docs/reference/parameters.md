@@ -8,7 +8,7 @@ description: >-
 # Parameters
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `cfaff1e`. The
+    Verified against `v1.1dev` at commit `9b3dbcd`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -227,6 +227,7 @@ See [Methylation](../guides/methylation.md).
 |---|---|---|---|
 | `--cores` | `false` | An integer here overrides the `cpus` of every process that reads a `*_threads` parameter, and the `32` of `pav_asm`. The processes fixed at one CPU are unaffected. | <span class="src">`nextflow.config:50,176-326`</span> |
 | `--out` | `"out"` | Root of the published output tree. | <span class="src">`nextflow.config:48`</span> |
+| `--container_tmp` | `false` | Directory bound to `/tmp` inside the container. The launch directory when unset. Set it when the launch filesystem is small, slow, or unwritable from the container. | <span class="src">`nextflow.config:49,172`</span> |
 
 ### Per-process allocation
 

@@ -8,7 +8,7 @@ description: >-
 # Pipeline processes
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `cfaff1e`. The
+    Verified against `v1.1dev` at commit `9b3dbcd`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -61,6 +61,8 @@ flowchart TD
         mg["make_graph"] --> gar["graph_align_reads"] --> vc["vg_call"]
         pg --> mv["merge_VCFs"]
         vc --> mv
+        mv --> ga["genotyping_audit"]
+        mv -.->|"default"| tg["trusted_genotypes"]
         mv -.->|"--human"| hr["hervk_reconcile"]
     end
 
@@ -142,7 +144,9 @@ Dashed edges are taken only when the labelled parameter is set. `--graph`, `--gr
 | `make_graph` <span class="src">`module/main.nf:723`</span> | `bcftools +setGT` unphases the VCF. giraffe: `vg autoindex -w sr-giraffe -w lr-giraffe`, `vg convert` to GFA, `vg snarls`. graphaligner: `vg construct -a -m 1024`, `vg convert`, `vg snarls`. Skipped with `--graph`. | `index/` (`index.gfa`, `index.pb`, and `index.giraffe.gbz` for giraffe) | `GraffiTE_graph/` | `make_graph_*` <span class="src">`nextflow.config:245-249`</span> |
 | `graph_align_reads` <span class="src">`module/main.nf:776`</span> | giraffe: `vg giraffe --parameter-preset <preset>` (with `-i` for short reads), `vg pack -Q <min_mapq>`, `vg convert` to GAF through `subset_gaf.py`. graphaligner: `GraphAligner -x vg`, then the same. Skipped with `--graph_alignments`. A failed sample lets the tasks already running finish before the run stops (`errorStrategy 'finish'`). | `<sample>.gaf.gz`, `<sample>.pack` | `GraffiTE_alignments/` | `graph_align_*` <span class="src">`nextflow.config:255-260`</span> |
 | `vg_call` <span class="src">`module/main.nf:813`</span> | `vg call -a -A -R chrX:1,chrY:1 -m <min_support>` against the snarls, `bcftools norm -m-`, `bcftools sort`, `tabix`. Skipped with `--vcfs`. | `<sample>.vcf.gz`, `.tbi` | not published | `vg_call_*` <span class="src">`nextflow.config:261-265`</span> |
-| `merge_VCFs` <span class="src">`module/main.nf:831`</span> | `bcftools merge -m none` of every per-sample VCF, then `bcftools annotate` copies INFO from `pangenome.vcf` by `CHROM,POS,ID,REF,ALT`, and stamps `##GraffiTE_version`. | `GraffiTE.merged.genotypes.vcf.gz` | `4_Genotyping/` | `cpus 1`, `merge_vcf_*` <span class="src">`nextflow.config:266-270`</span> |
+| `merge_VCFs` <span class="src">`module/main.nf:831`</span> | `bcftools merge -m none` of every per-sample VCF, then `bcftools annotate` copies ID and INFO from `pangenome.vcf`, matching on `CHROM`, `POS`, `REF` and a shared `ALT`, and stamps `##GraffiTE_version`. | `GraffiTE.merged.genotypes.vcf.gz` | `4_Genotyping/` | `cpus 1`, `merge_vcf_*` <span class="src">`nextflow.config:266-270`</span> |
+| `genotyping_audit` <span class="src">`module/main.nf:855`</span> | `genotyping_audit.py` against `pangenome.vcf` and the merged genotypes, plus `pangenie_graph_variants.tsv` on the pangenie path. One row per ALT allele saying which stage dropped it. | `genotyping_record_audit.tsv` | `4_Genotyping/` | `cpus 1`, `merge_vcf_*` <span class="src">`nextflow.config:271-275`</span> |
+| `trusted_genotypes` <span class="src">`module/main.nf:879`</span> | Not under `--human`. Evaluates the trusted expression on `pangenome.vcf` and subsets the merged genotypes by the IDs it returns, then `vcf_to_pa_tsv.py`. | `GraffiTE.merged.genotypes.trusted.vcf.gz`, `.tbi`, `GraffiTE.merged.genotypes.presence-absence_trusted.tsv` | `4_Genotyping/` | `cpus 1`, `merge_vcf_*` <span class="src">`nextflow.config:271-275`</span> |
 | `hervk_reconcile` <span class="src">`module/main.nf:384`</span> | `--human` only. Subsets the merged genotypes to the human IDs, copies every `HERVK_*` INFO tag across from the discovery VCF, and runs `hervk_reconcile.py consolidate`, which masks graph genotypes at copy-number loci unless `--hervk_mask_graph_gt_at_cnv false`. With `--hervk_reconcile_vcf` the merged VCF comes from that file instead. | `GraffiTE.merged.genotypes.human.vcf.gz`, `.tbi`, `hervk_unconsolidated_records.vcf`, `hervk_reconciliation_report.md` | `4_Genotyping/` (`overwrite: true`) | `cpus 1`, `hervk_reconcile_*` <span class="src">`nextflow.config:276-280`</span> |
 
 `vg_call` passes `-R chrX:1,chrY:1`, so contigs named exactly `chrX` and `chrY` are called at ploidy
