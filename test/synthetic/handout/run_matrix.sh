@@ -93,8 +93,23 @@ for cell in "${SEL[@]}"; do
     nf graphaligner --graffite_vcf "$SPINE/3_TSD_search/pangenome.vcf" \
        --genotype_with "$B/reads_long.csv" --graph_method graphaligner || fail=1 ;;
   precomputed)
+    # main.nf:54 requires --graph AND one of --vcfs / --graph_alignments. The cell
+    # as shipped passed only --graph, so it stopped at the launch guard every time
+    # (measured: rc=1 in 6 s). run_matrix.sh -l already describes this cell as
+    # "--graph and --graph_alignments from the spine"; the CSV is built here from
+    # what the spine published, since the generator does not write one.
+    GA="$RUNS_DIR/precomputed_alignments.csv"
+    { echo "sample,gaf,pack"
+      for g in "$SPINE"/GraffiTE_alignments/*.gaf.gz; do
+        [ -e "$g" ] || continue
+        s=$(basename "$g" .gaf.gz)
+        [ -f "$SPINE/GraffiTE_alignments/$s.pack" ] && \
+          echo "$s,$g,$SPINE/GraffiTE_alignments/$s.pack"
+      done
+    } > "$GA"
     nf precomputed --graffite_vcf "$SPINE/3_TSD_search/pangenome.vcf" \
        --graph_method precomputed --graph "$SPINE/GraffiTE_graph/index" \
+       --graph_alignments "$GA" \
        --genotype_with "$B/reads.csv" || fail=1 ;;
   longreads)
     nf longreads --longreads "$B/longreads.csv" --genotype false || fail=1 ;;

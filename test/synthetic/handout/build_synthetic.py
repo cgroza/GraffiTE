@@ -112,10 +112,18 @@ def tsd(rng, n=8):
 # One row per planted variant. `kind` is what the site is for; the assertions
 # on the cluster are written against these names, and truth.tsv carries them.
 #
-#   contig, name, kind, builder(rng, cons, const) -> inserted sequence
+#   contig, name, kind, builder(rng, cons, const) -> inserted sequence, tsd_len
+#   [, place]
 #
-# Everything here is a NON-REFERENCE insertion unless kind starts with 'del_',
-# in which case the element is in the reference and absent from the haplotype.
+# `place` is optional and overrides the fixed pitch:
+#   ('after', n)  n bp past the previous site on this contig, taking no pitch slot
+#   ('abs', f)    at f(scale), for a site that has to sit next to something in
+#                 the reference rather than on the grid
+#
+# Everything here is a NON-REFERENCE insertion. The 'del_' kind the earlier
+# comment here described was never implemented: build() only ever splices
+# sequence in, so no deletion reaches svim-asm's DEL branch or the ILEN<0 arm of
+# bin/repmask_vcf.sh from this generator.
 
 def plan_sites(cons, const):
     INT_LEN, LTR_LEN = const
@@ -126,6 +134,16 @@ def plan_sites(cons, const):
                  "too short for the twin-priming slices")
     aluY, aluSx, sva_e, l1hs = cons['AluY'], cons['AluSx'], cons['SVA_E'], cons['L1HS']
     ltr5, hervk = cons['LTR5_Hs'], cons['HERVK']
+    # The Dfam consensus of a non-LTR element ends in its own poly-A: AluY and
+    # AluSx 30 bp, SVA_E 20, L1HS_3end 13. The polyA probes below decide what
+    # INFO/polyA should say, so they plant a body with that tail removed and add
+    # back exactly the tail each case is meant to have. Planted on the bare
+    # consensus, A02, A03 and A04 all carried a 30 bp tail of their own and came
+    # back polyA=TRUE, which is the right answer for the sequence and the wrong
+    # answer for the test. Nothing caught it while INFO/polyA was FALSE for every
+    # record on this path.
+    aluY_body = aluY.rstrip('A')
+    aluSx_body = aluSx.rstrip('A')
 
     def ins(seq):
         return lambda r: seq(r) if callable(seq) else seq
@@ -134,27 +152,39 @@ def plan_sites(cons, const):
     # -- chr1: the annotation zone -------------------------------------------
     S += [
         ('chr1', 'A01_alu_tsd_polyA', 'canonical',
-         lambda r: mutate(r, aluY, 5) + 'A' * 40, 8),
+         lambda r: mutate(r, aluY_body, 5) + 'A' * 40, 8),
         ('chr1', 'A02_alu_no_polyA_no_tsd', 'trusted_noop_probe',
-         lambda r: mutate(r, aluY, 5), 0),
+         lambda r: mutate(r, aluY_body, 5), 0),
         ('chr1', 'A03_alu_polyA_too_short', 'polyA_below_min',
-         lambda r: mutate(r, aluY, 5) + 'A' * 6, 8),
+         lambda r: mutate(r, aluY_body, 5) + 'A' * 6, 8),
+        # A fixed A-free spacer, not background(): the Markov background is
+        # AT-rich and a run of A's at its start would pull the tail back inside
+        # MAX_SLACK and turn this into a positive.
         ('chr1', 'A04_alu_polyA_beyond_slack', 'polyA_beyond_slack',
-         lambda r: mutate(r, aluY, 5) + 'A' * 15 + background(r, 10), 8),
+         lambda r: mutate(r, aluY_body, 5) + 'A' * 15 + 'CGTCGTCGTC', 8),
         ('chr1', 'A05_alu_revcomp', 'strand_C_polyT',
-         lambda r: rc(mutate(r, aluY, 5) + 'A' * 40), 8),
+         lambda r: rc(mutate(r, aluY_body, 5) + 'A' * 40), 8),
         ('chr1', 'A06_alusx_trusted_not_human', 'subfamily_gate',
-         lambda r: mutate(r, aluSx, 8) + 'A' * 40, 8),
+         lambda r: mutate(r, aluSx_body, 8) + 'A' * 40, 8),
         ('chr1', 'A07_alu_full_length_clean', 'canonical_low_div',
-         lambda r: mutate(r, aluY, 1) + 'A' * 30, 8),
+         lambda r: mutate(r, aluY_body, 1) + 'A' * 30, 8),
         ('chr1', 'A08_alu_no_tsd', 'tsd_fail',
-         lambda r: mutate(r, aluY, 5) + 'A' * 40, 0),
+         lambda r: mutate(r, aluY_body, 5) + 'A' * 40, 0),
         # L1 twin priming: an inverted 5' piece then a forward 3' piece, both
         # from one consensus so ProcessRepeats can link them into one C+ group.
+        #
+        # The 3' piece starts at 1500, not 2200. INFO/L1_5PINV keys on one link
+        # ID carrying both fragments (annotate_vcf.R:98,118), and ProcessRepeats
+        # decides that. Measured against the RepeatMasker invocation in
+        # bin/repmask_vcf.sh, over six constructs: a 800 bp gap in consensus
+        # coordinates gets two IDs at 1 % and at 3 % divergence, a 100 bp gap and
+        # no gap both get one ID at 0 %, 1 % and 3 %. The gap decides it and the
+        # divergence does not. 1500 leaves a 100 bp gap, which is a junction a
+        # twin-primed insertion can plausibly have, rather than none at all.
         ('chr1', 'A09_l1_twin_primed_Cplus', 'L1_5PINV_positive',
-         lambda r: rc(mutate(r, l1hs[200:1400], 3)) + mutate(r, l1hs[2200:3038], 3) + 'A' * 30, 8),
+         lambda r: rc(mutate(r, l1hs[200:1400], 3)) + mutate(r, l1hs[1500:3038], 3) + 'A' * 30, 8),
         ('chr1', 'A10_l1_plusC_negative', 'L1_5PINV_negative',
-         lambda r: mutate(r, l1hs[2200:3038], 3) + rc(mutate(r, l1hs[200:1400], 3)) + 'A' * 30, 8),
+         lambda r: mutate(r, l1hs[1500:3038], 3) + rc(mutate(r, l1hs[200:1400], 3)) + 'A' * 30, 8),
         ('chr1', 'A11_l1_full', 'L1_full',
          lambda r: mutate(r, l1hs[:3000], 4) + 'A' * 40, 8),
         # SVA_E VNTR-only. The window is 429..863 (435 bp wide) and the test in
@@ -189,6 +219,27 @@ def plan_sites(cons, const):
          lambda r: mutate(r, cons['HERVK9'], 6), 8),
         ('chr2', 'H06_ltr5_sva_pair', 'hervk_sva_pair',
          lambda r: mutate(r, ltr5, 2) + mutate(r, hervk, 3) + mutate(r, sva_e[:400], 6) + mutate(r, ltr5, 2), 8),
+        # Two HERV-K records 900 bp apart, which is inside hervk_locus_window
+        # (1200, nextflow.config:108), so hervk_reconcile groups them into one
+        # locus with n_records == 2. Nothing else in this test set produces a
+        # multi-record locus: the six sites above sit on a 2500 bp pitch and land
+        # in a locus each, and truvari collapses each site's svim-asm call with
+        # its --svs twin into a single record. The consolidation layer has no
+        # other cover, so this pair is what guards it.
+        ('chr2', 'H07_locus_pair_a', 'hervk_locus_pair',
+         lambda r: mutate(r, ltr5, 2), 8),
+        ('chr2', 'H07_locus_pair_b', 'hervk_locus_pair',
+         lambda r: mutate(r, ltr5, 3), 8, ('after', 900)),
+        # Beside the reference solo LTR, so that hervk_ref_state has a
+        # non-empty reference window to report. Every locus above comes back
+        # ref_state=null because the planted sites are at chr2:2500..15000 and
+        # the reference copy is at 50000*scale.
+        # 600 bp clear of the reference copy: enough unique flank for minimap2 to
+        # anchor against (H01 showed what too little costs), and still inside the
+        # 1500 bp hervk_ref_flank window that the masking reads back.
+        ('chr2', 'H08_beside_ref_solo', 'hervk_ref_state_probe',
+         lambda r: mutate(r, ltr5, 2) + mutate(r, hervk, 3) + mutate(r, ltr5, 2), 8,
+         ('abs', lambda sc: 50000 * sc + 968 + 600)),
     ]
     # -- the ploidy probes ---------------------------------------------------
     # Same element, same offset, different divergence so the alignments stay
@@ -204,12 +255,19 @@ def plan_sites(cons, const):
 CONTIGS = [
     # name, background length. ASCII-lexicographic order is what vg autoindex
     # wants, and it is also the order bcftools sorts into.
-    ('X', 4000), ('chr1', 60000), ('chr2', 60000), ('chr3_quiet', 20000),
-    ('chr4_narrow', 20000), ('chrX', 4000), ('chrX_alt', 4000), ('chrY', 4000),
+    # The four ploidy contigs are 8000 rather than 4000 so that MARGIN below
+    # still leaves PITCH of room after the single site each one carries.
+    ('X', 8000), ('chr1', 60000), ('chr2', 60000), ('chr3_quiet', 20000),
+    ('chr4_narrow', 20000), ('chrX', 8000), ('chrX_alt', 8000), ('chrY', 8000),
 ]
 PITCH = 2500      # spacing between planted sites on chr1/chr2
-MARGIN = 900      # keep every site clear of a contig end; tsd_win is 30 but
-                  # the TSD flank extraction clamps near the start
+MARGIN = 2500     # left flank for the first site on a contig. At 900 svim-asm
+                  # called 16 of h3's 17 sites: H01_solo_ltr is a 984 bp insert
+                  # at chr2:900, longer than the flank anchoring it, and
+                  # minimap2 placed no insertion there. Measured on this test
+                  # set, rerunning module/main.nf:50 and :178 over rebuilds at
+                  # MARGIN 900/1500/2500 and SCALE 1/2/4: 900 misses it, 1500
+                  # and 2500 call all 17 at every scale. 2500 keeps a margin.
 
 
 def build(args):
@@ -259,21 +317,40 @@ def build(args):
     ref['chr1'] = ref['chr1'][:npos] + 'N' * 120 + ref['chr1'][npos + 120:]
 
     sites = plan_sites(cons, const)
-    # Assign a position per site, per contig, on a fixed pitch.
+    # Assign a position per site, per contig, on a fixed pitch unless the site
+    # says otherwise. See `place` in plan_sites().
     used = {}
+    last = {}
     placed = []
-    for contig, name, kind, builder, tsd_len in sites:
-        idx = used.get(contig, 0)
-        used[contig] = idx + 1
-        pos = MARGIN + idx * PITCH * scale
+    for site in sites:
+        contig, name, kind, builder, tsd_len = site[:5]
+        place = site[5] if len(site) > 5 else None
+        if place is None:
+            idx = used.get(contig, 0)
+            used[contig] = idx + 1
+            pos = MARGIN + idx * PITCH * scale
+        elif place[0] == 'after':
+            if contig not in last:
+                sys.exit(f'build_synthetic.py: {name} is placed after nothing on {contig}')
+            pos = last[contig] + place[1]
+        elif place[0] == 'abs':
+            pos = int(place[1](scale))
+        else:
+            sys.exit(f'build_synthetic.py: {name} has an unknown placement {place!r}')
         if pos + PITCH > len(ref[contig]):
-            sys.exit(f'build_synthetic.py: {contig} too short for site {name}')
+            sys.exit(f'build_synthetic.py: {contig} too short for site {name} at {pos}')
+        last[contig] = pos
         placed.append((contig, pos, name, kind, builder, tsd_len))
+    # the splice and the fixtures both index the reference by position
+    dupes = [p for p in placed if sum(1 for q in placed if q[0] == p[0] and q[1] == p[1]) > 1]
+    if dupes:
+        sys.exit(f'build_synthetic.py: two sites share a position: {[d[2] for d in dupes]}')
 
     # Haplotypes. h1 and h2 carry the odd-indexed sites, h3 and h4 the even
     # ones, so every site is polymorphic across the four and none is fixed.
     haps = {h: {c: s for c, s in ref.items()} for h in ['h1', 'h2', 'h3', 'h4']}
     truth = []
+    pending = []
     for i, (contig, pos, name, kind, builder, tsd_len) in enumerate(placed):
         carriers = ['h1', 'h2'] if i % 2 == 0 else ['h3', 'h4']
         if kind == 'ploidy_probe':
@@ -281,12 +358,28 @@ def build(args):
         seq = builder(rng)
         dup = tsd(rng, tsd_len) if tsd_len else ''
         insert = dup + seq + dup if dup else seq
-        for h in carriers:
-            s = haps[h][contig]
-            haps[h][contig] = s[:pos] + insert + s[pos:]
+        pending.append((contig, pos, insert, carriers))
         truth.append({'contig': contig, 'pos': pos, 'name': name, 'kind': kind,
                       'svlen': len(insert), 'tsd': dup or 'NONE',
                       'carriers': '|'.join(carriers), 'seq': insert})
+
+    # Splice highest position first. `pos` is a REFERENCE coordinate: truth.tsv
+    # records it, write_vcf_fixtures() reads the anchor base as ref[contig][pos-1]
+    # and writes POS=pos, and svim-asm reports the breakpoint it finds by aligning
+    # the haplotype back to the reference. Splicing in ascending order made every
+    # site after the first on a contig land `sum(len(earlier inserts))` too far
+    # right in the haplotype, so svim-asm called chr1's last h1 site at 41722 where
+    # truth.tsv and svs_h1.vcf.gz both said 50900: the assemblies and the --svs
+    # fixtures described the same insertion 9178 bp apart and truvari had no reason
+    # to collapse them. Descending order leaves the coordinates of the sites not yet
+    # spliced untouched. The sequences are drawn above, in placement order, so the
+    # RNG stream and every inserted base are unchanged.
+    for h in ['h1', 'h2', 'h3', 'h4']:
+        for contig, pos, insert, carriers in sorted(pending, key=lambda r: -r[1]):
+            if h not in carriers:
+                continue
+            s = haps[h][contig]
+            haps[h][contig] = s[:pos] + insert + s[pos:]
 
     # ---- write ----------------------------------------------------------
     def write_fa(path, d):
@@ -398,14 +491,20 @@ def write_reads(rng, ref, haps, out, args):
 def make_bams(out, args):
     """--bams needs coordinate-sorted BAMs. sniffles takes the sample name from
     @RG SM when it is there, so set it: the sample column of the output depends
-    on it."""
+    on it.
+
+    The three candidate names are deliberately different. The CSV says csvB1, the
+    file is bam/fileB1.bam and the read group says SM:B1, so whichever one reaches
+    the output names itself. With all three set to B1, as they were, no artefact of
+    the run could say which rule applied and the claim at
+    README_HPC_CLAUDE.md:199 was unfalsifiable."""
     if not (shutil.which('minimap2') and shutil.which('samtools')):
         print('  [skip] minimap2/samtools not on PATH: no BAMs, --bams entry unavailable')
         return
     ab = out.resolve()
     rows = []
     for sample, fq in [('B1', 'L1.long.fq.gz'), ('B2', 'L2.long.fq.gz')]:
-        bam = out / 'bam' / f'{sample}.bam'
+        bam = out / 'bam' / f'file{sample}.bam'
         sam = subprocess.run(
             ['minimap2', '-ax', 'map-hifi', '-t', '2',
              '-R', f'@RG\\tID:{sample}\\tSM:{sample}',
@@ -420,7 +519,7 @@ def make_bams(out, args):
             print('  [warn] samtools sort failed:', p.stderr.strip()[-200:])
             return
         subprocess.run(['samtools', 'index', str(bam)], check=True)
-        rows.append(f'{sample},{ab}/bam/{sample}.bam\n')
+        rows.append(f'csv{sample},{ab}/bam/file{sample}.bam\n')
     (out / 'bams.csv').write_text('sample,path\n' + ''.join(rows))
 
 
@@ -454,8 +553,17 @@ def write_vcf_fixtures(out, ref, placed, truth):
 
     # --svs: one VCF per haplotype, bgzipped, since the multi-VCF path tabixes
     # every staged input and then globs *.vcf.gz.
+    #
+    # The sample column is sv_h1..sv_h4, not h1..h4. The spine gives truvari_merge
+    # both --assemblies and --svs for the same four haplotypes, svim-asm names its
+    # output sample after the assembly (module/main.nf:178, `--sample ${asm_name}`),
+    # and module/main.nf:223 merges every staged VCF with `bcftools merge` and no
+    # --force-samples. Identical names on both sides stop the spine at
+    # "Duplicate sample names (h1)" before a single record is annotated. Same
+    # haplotypes, two callers, distinct sample names, which is what gives the
+    # truvari collapse redundant records to work on.
     for hap in ['h1', 'h2', 'h3', 'h4']:
-        lines = [VCF_HDR + contigs + f'#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{hap}']
+        lines = [VCF_HDR + contigs + f'#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsv_{hap}']
         for (contig, pos, name, kind, _b, _t), tr in zip(placed, truth):
             if hap not in tr['carriers'].split('|'):
                 continue
@@ -484,26 +592,44 @@ def write_vcf_fixtures(out, ref, placed, truth):
 
     ab = out.resolve()
     (out / 'svs.csv').write_text(
-        'sample,path\n' + ''.join(f'{h},{ab}/vcf/svs_{h}.vcf.gz\n' for h in ['h1', 'h2', 'h3', 'h4']))
+        'sample,path\n' + ''.join(f'sv_{h},{ab}/vcf/svs_{h}.vcf.gz\n' for h in ['h1', 'h2', 'h3', 'h4']))
     # One-VCF sheet: truvari_merge's num_files==1 branch with from_vcf=false,
     # which is the single-input path that DOES tabix its input. The --vcf entry
     # takes the other single-input branch, so both need covering.
-    (out / 'svs_one.csv').write_text(f'sample,path\nh1,{ab}/vcf/svs_h1.vcf.gz\n')
+    (out / 'svs_one.csv').write_text(f'sample,path\nsv_h1,{ab}/vcf/svs_h1.vcf.gz\n')
 
     # --epigenomes with --lifted: the CSV of already-lifted methylation calls.
-    # --lifted short-circuits bamtags_to_BED and lift_epigenome, so this needs
-    # no MM/ML BAM and no methylation simulator. Columns follow the graph node
-    # schema annotate_vcf.py reads; two rows per sample is enough to show the
-    # fields reach the merged VCF.
+    # --lifted short-circuits bamtags_to_BED and lift_epigenome (main.nf:231-233),
+    # so this needs no MM/ML BAM and no methylation simulator.
+    #
+    # The schema is lift_epigenome's output, not anything annotate_vcf.py reads
+    # directly: merge_CSV hands the file to nodes_levels.py, which gzip.opens it
+    # and unpacks exactly four comma-separated fields per line with no header --
+    # node, offset, depth, summed score. The previous fixture was plain text with
+    # a header and three columns named node,levels,coverage, which raises
+    # BadGzipFile on the first read. The task does not fail there: the wrapper is
+    # `bash -ue` without pipefail and the pipe into gzip exits 0, so an empty
+    # index is written and the run dies later in merge_csvs.py, or worse, reports
+    # zero methylation with no error at all.
+    #
+    # vg mints node ids and offsets at run time, so cover the range rather than
+    # guess: ids 1..METH_NODES over offsets 0..METH_NODE_LEN-1. nodes_levels.py
+    # keeps only the pairs that are CpGs in the graph index, so the surplus costs
+    # memory and nothing else. depth 10 with score 8 gives every covered CpG a
+    # level of 0.8, which is what PML should read back.
+    METH_NODES, METH_NODE_LEN = 12000, 32
     (out / 'lifted.csv').write_text(
-        'sample,path\n' + ''.join(f'{s},{ab}/meth/{s}.methylation.csv\n' for s in ['S1', 'S2']))
+        'sample,path\n' + ''.join(f'{s},{ab}/meth/{s}.lifted.csv.gz\n' for s in ['S1', 'S2']))
     (out / 'epigenomes.csv').write_text(
-        'sample,path\n' + ''.join(f'{s},{ab}/bam/B1.bam\n' for s in ['S1', 'S2']))
+        'sample,path\n' + ''.join(f'{s},{ab}/bam/fileB1.bam\n' for s in ['S1', 'S2']))
     meth = out / 'meth'
     meth.mkdir(exist_ok=True)
-    for smp in ['S1', 'S2']:
-        (meth / f'{smp}.methylation.csv').write_text(
-            'node,levels,coverage\n1,0.8,10\n2,0.2,12\n')
+    for smp, score in [('S1', 8), ('S2', 3)]:
+        with open(meth / f'{smp}.lifted.csv.gz', 'wb') as raw:
+            with gzip.GzipFile(filename='', mode='wb', fileobj=raw, mtime=0) as gz:
+                for node in range(1, METH_NODES + 1):
+                    for off in range(METH_NODE_LEN):
+                        gz.write(f'{node},{off},10,{score}\n'.encode())
 
 
 # ---------------------------------------------------------------- manifest
