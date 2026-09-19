@@ -107,7 +107,7 @@ Without `--human`, GraffiTE writes `pangenome.trusted.vcf`, a conservative subse
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--trusted_min_svlen` | `250` (bp) | Minimum \|SVLEN\|. | <span class="src">`nextflow.config:57`, `module/main.nf:492`</span> |
+| `--trusted_min_svlen` | `250` (bp) | Minimum \|SVLEN\|. Sized for insertions; it truncates the `SVA_*(VNTR_only)` records, whose unit is about 49 bp. See [SVA VNTR polymorphisms](../background/sva-vntr.md#the-subsets-truncate-this-set). | <span class="src">`nextflow.config:57`, `module/main.nf:492`</span> |
 | `--trusted_max_ultra_span` | `0.6` (fraction of variant length) | Maximum `ULTRA_TR_span`; rejects variants that are mostly tandem repeat. Records whose class is `Simple_repeat` bypass it. | <span class="src">`nextflow.config:58`, `module/main.nf:492`</span> |
 | `--trusted_ignore_filter` | `false` | When true, the record no longer needs `FILTER=PASS` from the upstream caller. | <span class="src">`nextflow.config:59`, `module/main.nf:493`</span> |
 
@@ -127,9 +127,9 @@ HERV-K steps below.
 | `--human` | `false` | Write `pangenome.human.vcf` instead of `pangenome.trusted.vcf`, run `hervk_annotate`, and run `hervk_reconcile` after genotyping. | <span class="src">`nextflow.config:60`, `main.nf:163,263`</span> |
 | `--human_alu_ids` | `"^AluY"` | Alu subfamilies to keep. The default keeps every `AluY*` and drops `AluS*` and `AluJ*`. | <span class="src">`nextflow.config:65`</span> |
 | `--human_l1_ids` | `"^L1HS"` | L1 subfamilies. Add `^L1PA2` to widen by one subfamily. | <span class="src">`nextflow.config:66`</span> |
-| `--human_sva_ids` | `"^SVA_[DEF]"` | SVA subfamilies. The same list gates the `Simple_repeat` records that come from VNTR-only SVA variants. | <span class="src">`nextflow.config:67`, `module/main.nf:505-506`</span> |
+| `--human_sva_ids` | `"^SVA_[DEF]"` | SVA subfamilies. The same list gates the `Simple_repeat` records that come from VNTR-only SVA variants, where it matches the consensus the VNTR sequence scored against rather than the host element's subfamily. See [SVA VNTR polymorphisms](../background/sva-vntr.md#the-subsets-truncate-this-set). | <span class="src">`nextflow.config:67`, `module/main.nf:505-506`</span> |
 | `--human_hervk_ids` | `'^HERVK-int,^HERVK$,^LTR5_Hs,^LTR5A,^LTR5B'` | HML-2 lineage names. Both `HERVK-int` and a bare `HERVK` are listed because libraries differ; `^HERVK$` is anchored at both ends so that HERVK9, HERVK11 and HERVK14 stay out. Single-quoted in the config because `$` inside double quotes is a Groovy interpolation. | <span class="src">`nextflow.config:68-76`</span> |
-| `--human_min_svlen` | `250` (bp) | Minimum \|SVLEN\|. | <span class="src">`nextflow.config:77`, `module/main.nf:508`</span> |
+| `--human_min_svlen` | `250` (bp) | Minimum \|SVLEN\|. Sized for insertions; it truncates the `SVA_*(VNTR_only)` records, whose unit is about 49 bp. See [SVA VNTR polymorphisms](../background/sva-vntr.md#the-subsets-truncate-this-set). | <span class="src">`nextflow.config:77`, `module/main.nf:508`</span> |
 | `--human_max_ultra_span` | `0.6` (fraction of variant length) | Maximum `ULTRA_TR_span`; `Simple_repeat` records bypass it. | <span class="src">`nextflow.config:78`, `module/main.nf:508`</span> |
 | `--human_ignore_filter` | `false` | When true, drop the `FILTER=PASS` requirement. | <span class="src">`nextflow.config:79`, `module/main.nf:537`</span> |
 | `--hervk_sva_pair` | `true` | Also admit multi-hit records that pair `HERVK-int` with an SVA hit. RepeatMasker assigns part of the LTR5_Hs sequence to SVA, so a provirus arrives as two or three hits. | <span class="src">`nextflow.config:80`, `module/main.nf:534-535`</span> |

@@ -84,6 +84,12 @@ abs(SVLEN) >= 250  and  (ULTRA_TR_span < 0.6  or  matching_classes = "Simple_rep
 
 Source: <span class="src">`nextflow.config:77-78`</span>.
 
+The 250 bp threshold is sized for insertions and is wrong for the `SVA_*(VNTR_only)` records,
+whose unit is about 49 bp. On the 20-genome HPRC set it keeps 102 of 1,141, and
+`--human_sva_ids` removes most of the rest, so do not read the VNTR content of
+`pangenome.human.vcf` as a catalogue. See
+[SVA VNTR polymorphisms](../background/sva-vntr.md#the-subsets-truncate-this-set).
+
 ---
 
 ## One element, or the HERVK + SVA carve-out

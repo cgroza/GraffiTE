@@ -80,6 +80,21 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   `HERVK-int`+`SVA` proviral pattern up to `--hervk_pair_max_hits` hits (PR #98). Whitelists
   and thresholds are parameters; `human_filter_summary.txt` reports what was kept and dropped.
 
+**Known limitation: the subsets truncate SVA VNTR polymorphisms**
+
+- `--trusted_min_svlen` and `--human_min_svlen` default to 250 bp, a threshold sized for
+  insertions. The SVA VNTR unit is about 49 bp, so the default asks a VNTR length change to
+  span five units. On the 20-genome HPRC set it keeps 102 of 1,141 `SVA_*(VNTR_only)` records;
+  the median change is 126 bp.
+- `--human_sva_ids` (`^SVA_[DEF]`) is matched against `repeat_ids`, which for a VNTR-only
+  record names the consensus its sequence scored against. That agrees with the host element's
+  subfamily for 35% of records, so the default drops VNTR changes inside old SVAs and makes the
+  subfamilies look more different than they are.
+- Neither filter touches `pangenome.vcf` or the merged genotyped VCF, so the full set is
+  available; see [SVA VNTR polymorphisms](background/sva-vntr.md#the-subsets-truncate-this-set).
+- A later release will size the VNTR-only records in VNTR units and stop `--human_sva_ids`
+  from gating them.
+
 **HERV-K (HML-2) classifier, `--human` only** (PRs #94 to #97)
 
 - Evidence-first allele-state classifier from the element's architecture and from masking the
