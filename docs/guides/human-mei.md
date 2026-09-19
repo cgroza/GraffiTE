@@ -8,7 +8,7 @@ description: >-
 # Human mobile element insertions
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `9b3dbcd`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -215,7 +215,7 @@ Outputs: `4_Genotyping/GraffiTE.merged.genotypes.human.vcf.gz` (indexed),
 
 !!! warning "Giraffe is the only validated back end"
     The reconciler refuses any other genotyper rather than produce an unchecked answer
-    <span class="src">`bin/hervk_reconcile.py:431, 769-773`</span>. With `--graph_method
+    <span class="src">`bin/hervk_reconcile.py:431,769-773`</span>. With `--graph_method
     pangenie` or `graphaligner`, `hervk_reconcile` exits with an error at the end of an otherwise
     complete run; pass `--hervk_reconcile false` to skip it. When the VCF comes in through
     `--hervk_reconcile_vcf`, the back end is detected from the header, and any `vg call` header is
