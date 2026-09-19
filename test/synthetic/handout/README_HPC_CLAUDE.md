@@ -23,12 +23,32 @@ are what lets those pages be corrected against evidence.
 The full plan is `docs/design-notes/synthetic-test-set.md` in the repo. This
 handout is Tier 1 and Tier 2 of it.
 
-## The one thing not to do
+## What this suite is for, and the line that matters
 
-**Do not tune anything to make an assertion pass.** If a number disagrees, that
-is the result. Several expectations here are deliberately *not* frozen yet,
-because they depend on tool heuristics nobody controls — see
-[Calibration](#calibration-comes-first).
+The goal is a test set that **goes red when anything the pipeline depends on
+moves** — the code, a parameter default, or the container. That is why
+`GRAFFITE_SIF` is left empty and the mutable `docker://cgroza/graffite:latest`
+tag is used on purpose. A pinned image would hide the class of change this
+exists to catch.
+
+Getting there means two different activities, and keeping them apart is the
+whole discipline:
+
+**Improving the instrument — expected, keep going until it works.** If a stage
+cannot do its job on this test set, the test set is wrong and you fix it. Grow
+the genome, deepen the reads, move a planted element, change a divergence. Then
+rebuild and re-calibrate. A stage that silently does nothing is a useless
+tripwire, so iterate until every stage genuinely runs. See
+[When a stage cannot work](#when-a-stage-cannot-work).
+
+**Masking a defect — never.** Do not change a *pipeline* parameter to make an
+assertion pass. Loosening `--repeat_span_cutoff` so a record survives, or
+lowering `--trusted_min_svlen` so a locus reaches a subset, turns a real finding
+into a green tick.
+
+The test: are you changing the **inputs** so the pipeline can be exercised, or
+the **pipeline's own settings** so it stops complaining? The first is the job.
+The second is the thing this suite exists to prevent.
 
 ## What gets built
 
@@ -56,10 +76,11 @@ Everything is driven by **`INPUTS.env`**. The fields that matter:
 |---|---|
 | `WORKDIR` | absolute, on `/xdisk`. `work/` will outgrow a home quota. |
 | `CONTAINER_TMP` | absolute, on scratch. See the warning below. |
-| `GRAFFITE_SIF` | optional. Worth setting: the image tag is mutable. |
+| `GRAFFITE_SIF` | leave empty. Unpinned on purpose, so a container rebuild shows up as a red suite. |
 | `PROFILE` | `standard`. Not `cluster`. See below. |
 | `CPUS`, `MEM_GB` | must match `--cpus-per-task` and `--mem` in `submit_driver.sh`. |
 | `RUNS` | which matrix cells to run by default. |
+| `SCALE` | contig length multiplier. The lever when a stage has too little sequence to work with. |
 
 All paths absolute: `nextflow.config` runs the container with `--contain`, so a
 relative path resolves to nothing inside it and the run fails late, after the
@@ -140,8 +161,31 @@ message, not a pipeline regression:
   consolidation layer depends on truvari *not* merging the designed multi-record
   locus, and nothing else guards that
 
-If calibration fails, say so and stop. Regenerating the genome with different
-divergences is the fix, and it has to happen before 31 loci are committed to.
+If calibration fails, **fix the test set and go round again.** Regenerating with
+different divergences, a larger `SCALE` or deeper reads is the fix, and it has
+to happen before 31 loci are committed to. Record what you changed and why; the
+sequence of attempts is worth as much as the final numbers.
+
+Only once every designed element fires do the expectations get frozen. From
+then on, a red suite means something moved.
+
+## When a stage cannot work
+
+A stage that runs green while doing nothing is worse than one that fails. When
+a stage cannot work on this test set, the test set is what changes:
+
+| stage | symptom | lever |
+|---|---|---|
+| PanGenie | no genotypes, or every call `./.` | `SCALE` first (k-mer uniqueness), then `SHORT_DEPTH` |
+| `vg giraffe` | `Falling back on single-end mapping` | `SCALE`; the fragment-length distribution needs enough genome to estimate |
+| RepeatMasker | a planted element gets no hit | lower that site's divergence in `plan_sites()`, or lengthen the copy |
+| `svim-asm` / `sniffles` | a planted insertion is not called | check it is ≥100 bp (both callers' floor) and that `LONG_DEPTH` covers it |
+| `hervk_ref_state` | the rescue pass fires on loci that should not need it | more flank around the chr2 loci |
+| the span ladder | no clean cut point, or two | adjust the rung fractions so they bracket 0.80 with room |
+
+Rebuild with `./preflight.sh` after any of these — it re-runs the generator —
+and re-calibrate. Changing `SCALE`, `SEED` or a depth invalidates every frozen
+expectation, which is why calibration comes before freezing.
 
 ## What the matrix is for
 
@@ -184,7 +228,7 @@ failure. Report it either way.
 | `cp: cannot stat 'repeatmasker_dir/repeatmasker_dir/*'` | the issue #93 crash is back; `6864e30` should have removed that line |
 | Nextflow exits in ~3 s with a config error | usually `-latest` against a dirty cached checkout. `preflight.sh` warns about this. |
 | scheduler kills the driver | `CPUS`/`MEM_GB` in `INPUTS.env` disagree with `submit_driver.sh`, so the local executor oversubscribed the allocation |
-| PanGenie runs but genotypes nothing | the most likely real failure here. It is written for gigabase genomes and GraffiTE exposes no `k`. Report the genotype counts; do not tune. |
+| PanGenie runs but genotypes nothing | the most likely one. It counts k-mers, is written for gigabase genomes, and GraffiTE exposes no `k`. This is a test-set problem, not a pipeline problem: raise `SCALE`, then `SHORT_DEPTH`, rebuild and re-run the cell until it genotypes. Record what it took. |
 | `vg autoindex` refuses the VCF | contig order. The generator writes them in ASCII-lexicographic order for this reason; if you edited the contig list, that is why. |
 | `hervk_reconcile` refuses the back end | expected on anything but giraffe. It is a guard, not a bug. |
 
@@ -203,6 +247,11 @@ failure. Report it either way.
   versions and this is what replaces the guesses
 - `published.txt` per cell; these become the outputs-documentation check
 - wall time and peak memory per stage from `nextflow_trace.txt`
+
+- **what you had to change to make it work**, and why. If `SCALE` went to 4 and
+  the reads to 60x before PanGenie genotyped anything, that is a finding about
+  the smallest genome this pipeline can be tested on, and it belongs in the
+  design note.
 
 Anything that disagrees with `docs/reference/outputs.md` or
 `docs/reference/vcf-fields.md` is the point of the exercise, not a problem with

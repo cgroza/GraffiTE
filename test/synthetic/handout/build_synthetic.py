@@ -233,25 +233,29 @@ def build(args):
                  f"bin/hervk_arch.py expects {const[1]}")
 
     rng = random.Random(args.seed)
-    ref = {name: background(rng, n) for name, n in CONTIGS}
+    scale = max(1, args.scale)
+    # Sites keep their pitch; scaling adds unique background around them. That
+    # is the knob for k-mer uniqueness, which is what decides whether PanGenie
+    # can genotype at all.
+    ref = {name: background(rng, n * scale) for name, n in CONTIGS}
 
     # Reference-resident copies. These are what hervk_ref_state.py masks and
     # what makes a deletion polymorphism possible at all.
     ref_copies = []
     for i, (elem, div) in enumerate([('AluY', 6), ('AluSx', 10), ('L1HS', 8), ('SVA_E', 6)]):
-        pos = 3000 + i * 4000
+        pos = (3000 + i * 4000) * scale
         seq = mutate(rng, cons[elem][:600], div)
         ref['chr3_quiet'] = ref['chr3_quiet'][:pos] + seq + ref['chr3_quiet'][pos:]
         ref_copies.append(('chr3_quiet', pos, elem))
     # A reference solo LTR on chr2, so at least one HERV-K locus has a
     # non-empty reference state.
-    solo_pos = 50000
+    solo_pos = 50000 * scale
     ref['chr2'] = (ref['chr2'][:solo_pos] + mutate(rng, cons['LTR5_Hs'], 3)
                    + ref['chr2'][solo_pos:])
     ref_copies.append(('chr2', solo_pos, 'LTR5_Hs'))
 
     # Plant a run of N in chr1 for --break_scaffolds.
-    npos = 58000
+    npos = 58000 * scale
     ref['chr1'] = ref['chr1'][:npos] + 'N' * 120 + ref['chr1'][npos + 120:]
 
     sites = plan_sites(cons, const)
@@ -261,7 +265,7 @@ def build(args):
     for contig, name, kind, builder, tsd_len in sites:
         idx = used.get(contig, 0)
         used[contig] = idx + 1
-        pos = MARGIN + idx * PITCH
+        pos = MARGIN + idx * PITCH * scale
         if pos + PITCH > len(ref[contig]):
             sys.exit(f'build_synthetic.py: {contig} too short for site {name}')
         placed.append((contig, pos, name, kind, builder, tsd_len))
@@ -537,6 +541,10 @@ def main():
     ap.add_argument('--seed', type=int, default=20260918)
     ap.add_argument('--short-depth', type=int, default=30)
     ap.add_argument('--long-depth', type=int, default=15)
+    ap.add_argument('--scale', type=int, default=1,
+                    help='multiply every contig length. Raise it when a k-mer '
+                         'or alignment-based stage has too little unique '
+                         'sequence to work with; the planted sites do not move.')
     sys.exit(build(ap.parse_args()))
 
 

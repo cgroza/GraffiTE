@@ -77,7 +77,8 @@ if [[ -f "$DFAM_TAR" && -n "${WORKDIR:-}" ]]; then
   fi
   if [[ -f "$DF" ]]; then
     python3 ./build_synthetic.py --dfam "$DF" --repo "$GT_DIR" --out "$WORKDIR/build" \
-      --seed "${SEED:-20260918}" --short-depth "${SHORT_DEPTH:-30}" --long-depth "${LONG_DEPTH:-15}" \
+      --seed "${SEED:-20260918}" --short-depth "${SHORT_DEPTH:-30}" \
+      --long-depth "${LONG_DEPTH:-15}" --scale "${SCALE:-1}" \
       && ok "inputs built in $WORKDIR/build" || bad "build_synthetic.py failed"
   fi
 else

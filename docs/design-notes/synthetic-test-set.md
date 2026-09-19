@@ -254,15 +254,32 @@ Each step is independently checkable; nothing later depends on an unverified ear
 
 ---
 
-## Known risks
+## Acceptance
 
-Things the plan depends on that nobody has verified. Each is a reason a green run might
-mean less than it appears to.
+The suite is finished when it **goes red on any change to what the pipeline depends on** —
+the code, a parameter default, or the container. That is the reason the image is left on
+the mutable `docker://cgroza/graffite:latest` tag rather than pinned to a `.sif`: a
+container rebuild is one of the changes it must catch, and pinning would hide it.
+
+This makes the list below a work list rather than a caveat list. A stage that cannot do
+its job on a 272 kb genome is a defect **in the test set**, and the fix is to grow the
+genome, deepen the reads, or move an element until the stage runs. A stage that runs green
+while doing nothing is worse than one that fails.
+
+The line that matters: changing the **inputs** so a stage can be exercised is the work;
+changing the **pipeline's own parameters** so it stops complaining is the thing the suite
+exists to prevent. `build_synthetic.py --scale` exists for the first and should be turned
+freely.
+
+## Things to engineer around
+
+None of these is verified, and each is a reason a stage might not work on the first
+build. The response to every one of them is to improve the test set until it does.
 
 - **PanGenie's k-mer model on a small genome.** Written for gigabases; GraffiTE exposes no
-  `k` or coverage parameter; the container builds it from git master with no tag. If it
-  genotypes nothing, every audit number the matrix quotes is meaningless. Check the
-  genotype counts before trusting anything downstream.
+  `k` or coverage parameter. The likeliest first failure. Raise `--scale` until there is
+  enough unique sequence, then coverage. How far it has to go is itself a finding: it is
+  the smallest genome this pipeline can be tested on.
 - **Truvari collapse and the multi-record HERV-K locus.** Run with `--chain -P 0.5 -p 0.5
   -S -1 -k common`. Nobody checked its `refdist` against the installed binary. Guarded by
   the fixture assertion above, not by design.
@@ -271,9 +288,11 @@ mean less than it appears to.
 - **RepeatMasker's default reporting threshold.** No `-cutoff`, `-div` or `-species` is
   passed, so whether a planted divergence is reported is a tool default nothing here pins.
 - **`vg` under emulation** on arm64. If the release binary does not run, Tier 1 has no home
-  on this machine at all.
+  on this machine at all, and Tier 1 lives on the cluster regardless.
 - **The mutable `:latest` tag.** Only ULTRA, vg, pypy and Dfam are version-pinned inside
-  the image.
+  the image, so a rebuild can change the rest without a commit here. Kept unpinned on
+  purpose: that is a change the suite should report, and `VERSIONS.txt` from each run is
+  what says which build produced a result.
 - **`ARCH_PERM` may be unreachable.** It arises only when minimap2 and svim-asm place a
   provirus insertion inside a reference solo LTR, which no design can force.
 - **Python's PRNG stability** across versions and platforms, which a committed manifest
