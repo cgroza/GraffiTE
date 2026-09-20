@@ -173,8 +173,8 @@ Pass `--hervk_reconcile false`, or enter from `--RM_dir`. <span class="src">`mai
 |---|---|---|---|
 | `--genotype` | `true` | Run Stage C. Set `false` to stop after annotation. | <span class="src">`nextflow.config:33`, `main.nf:180`</span> |
 | `--graph_method` | `"pangenie"` | One of `pangenie`, `giraffe`, `graphaligner`, `precomputed`. See below. | <span class="src">`nextflow.config:34`, `main.nf:192-198,255`</span> |
-| `--min_mapq` | `0` | `vg pack -Q`, the lowest mapping quality a read needs to contribute coverage. Ignored by `pangenie`. | <span class="src">`nextflow.config:120`, `module/main.nf:815,823`</span> |
-| `--min_support` | `"2,4"` | `vg call -m`, minimum support to call an allele, as `ref,alt`. Ignored by `pangenie`. | <span class="src">`nextflow.config:121`, `module/main.nf:844`</span> |
+| `--min_mapq` | `0` | `vg pack -Q`, the lowest mapping quality a read needs to contribute coverage. Ignored by `pangenie`. | <span class="src">`nextflow.config:120`, `module/main.nf:823,831`</span> |
+| `--min_support` | `"2,4"` | `vg call -m`, minimum support to call an allele, as `ref,alt`. Ignored by `pangenie`. | <span class="src">`nextflow.config:121`, `module/main.nf:852`</span> |
 
 | `--graph_method` | Graph | Read mapping | Notes |
 |---|---|---|---|
@@ -183,7 +183,7 @@ Pass `--hervk_reconcile false`, or enter from `--RM_dir`. <span class="src">`mai
 | `graphaligner` | `vg construct` | `GraphAligner` | Long reads. |
 | `precomputed` | supplied with `--graph` | supplied with `--graph_alignments`, or skipped with `--vcfs` | Builds nothing. Without `--graph` and one of the two, the run stops at launch. |
 
-<span class="src">`main.nf:53-56,192-224`, `module/main.nf:758-771,812-830`</span>
+<span class="src">`main.nf:53-56,192-224`, `module/main.nf:766-779,820-838`</span>
 
 ### Reusing existing intermediates
 

@@ -112,7 +112,7 @@ instead.
 
 **On disk:** the `GraffiTE_graph/index/` directory of an earlier run, or any directory holding
 what `make_graph` writes: `index.gfa` and `index.pb`, plus `index.giraffe.gbz` and its
-companions for the `giraffe` method <span class="src">`module/main.nf:758-771`</span>.
+companions for the `giraffe` method <span class="src">`module/main.nf:766-779`</span>.
 
 **Runs:** alignment and calling for every sample in `--genotype_with`. Requires
 `--graph_method giraffe`, `graphaligner` or `precomputed`; the PanGenie path has its own index

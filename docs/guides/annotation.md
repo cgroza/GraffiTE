@@ -157,7 +157,7 @@ the matching copy of `TSD` from that end. A tail is called when a window of at l
 least 80% A (or T) ends within 5 bp of the trimmed terminus. The result is `polyA=TRUE` or
 `FALSE`; a variant with more than one hit gets `NA` and is not scanned. The three constants are
 fixed in the script.
-<span class="src">`bin/add_polyA.py:21-23,100-118`, `module/main.nf:567`</span>
+<span class="src">`bin/add_polyA.py:21-23,100-133`, `module/main.nf:567`</span>
 
 ## The trusted subset
 

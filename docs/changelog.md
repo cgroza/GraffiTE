@@ -137,6 +137,19 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 - `truvari_merge` failed on a missing file with two or more input VCFs (`29341a3`).
 - `main.nf` and `module/main.nf` compile under Nextflow 26's strict syntax (`4605630`).
 
+**polyA and PanGenie contig headers** (PR #107, 2026-09-19)
+
+- `INFO/polyA` read `FALSE` on every record whenever two or more caller VCFs went through the
+  truvari merge. `truvari_merge` strips the upstream INFO fields and puts only `SVLEN` back, so
+  `SVTYPE` had gone by the time `add_polyA.py` ran and it scanned an empty string. The `--human`
+  filter selects Alu, L1 and SVA on `polyA="TRUE"`, so `pangenome.human.vcf` lost those records
+  (`module/main.nf:523-527`). `add_polyA.py` now takes the insertion polarity from
+  `len(ALT) - len(REF)` when `SVTYPE` is absent (`97a6d01`).
+- `--graph_method pangenie`, the default, produced no genotypes. PanGenie writes its output
+  with no `##contig` lines, and the `bcftools norm -Oz` on the next line cannot BCF-encode a
+  record whose CHROM is not in the header. `samtools faidx` and `bcftools reheader -f` now run
+  first (`5ad9bea`).
+
 **Fixes on the documentation branch**
 
 - A command-line `--flag false` read as true under Nextflow 26's parser; `--genotype false`

@@ -35,11 +35,11 @@ chr1  18081  chr1-18082-INS-315_10  t  tAGAAGGAATAAGACGGGCCGGGT...  .  PASS
 | `ID` column | The caller's ID, with `_<n>` appended after the truvari merge (`n` is the record's rank in `SVs.vcf`): `chr1-18082-INS-315_10` above is PAV's `chr1-18082-INS-315`, tenth in the merge. svim-asm IDs are prefixed with the assembly name (`HG002_mat.svim_asm.INS.12`). With `--vcf` the IDs pass through unchanged. An ID longer than 50 characters stops Stage B. | <span class="src">`module/main.nf:179,257`, `bin/shorten_ids.py:21`, `bin/repmask_vcf.sh:42-45`</span> |
 | `REF` and `ALT` columns | Sequence-resolved. For an insertion `REF` is the anchor base and `ALT` is that base plus the inserted sequence; for a deletion `REF` is the anchor base plus the deleted reference interval, re-read from the reference FASTA, and `ALT` is the anchor base. Symbolic `<INS>` and `<DEL>` records from Sniffles2 are dropped in Stage A. | <span class="src">`bin/fix_vcf.py:33-44`, `module/main.nf:123`</span> |
 | `FILTER` column | Whatever the SV caller wrote. GraffiTE defines no FILTER of its own; see [Fields inherited from upstream callers](#fields-inherited-from-upstream-callers). | <span class="src">`module/main.nf:569`</span> |
-| Sample columns | In `pangenome.vcf`, one column per Stage A sample, holding the genotype its caller wrote (PAV writes phased diploid calls, as above). A genotype missing after the merge is set to `0`. In `GraffiTE.merged.genotypes.vcf.gz`, one column per read set from `--genotype_with`. | <span class="src">`module/main.nf:255`, `module/main.nf:864`</span> |
+| Sample columns | In `pangenome.vcf`, one column per Stage A sample, holding the genotype its caller wrote (PAV writes phased diploid calls, as above). A genotype missing after the merge is set to `0`. In `GraffiTE.merged.genotypes.vcf.gz`, one column per read set from `--genotype_with`. | <span class="src">`module/main.nf:255`, `module/main.nf:872`</span> |
 
 Every VCF GraffiTE publishes carries a `##GraffiTE_version=` line right after `##fileformat`, with
 the content of `version.txt` (`1.1.0`).
-<span class="src">`module/main.nf:387,610,873`</span>
+<span class="src">`module/main.nf:387,610,881`</span>
 
 !!! warning "The ALT allele is not the element"
     For a `DEL` record the transposable element is in the reference and an `ALT` genotype means
@@ -85,7 +85,7 @@ does not carry them.
 | Field | Number | Type | Meaning | Source |
 |---|---|---|---|---|
 | `TSD` | 1 | String | The target site duplication as its 5' copy and its 3' copy, comma-separated and upper-cased: `GATTACAG,GATTACAG`. The two copies are exact matches. Absent when the search found no duplication of 4 to 20 bp whose ends sit, on average, within 5 bp of the breakpoints. How the search works is in [Target site duplications](../background/tsd.md). | <span class="src">`bin/tsd_annotate_vcf.sh:18,27`</span> |
-| `polyA` | 1 | String | `TRUE` when a tail of at least 8 bp with at least 80% A ends within 5 bp of the 3' end of a plus-strand hit, or the same with T at the 5' end of a minus-strand hit, after the matching `TSD` copy has been trimmed off. `FALSE` otherwise, including when the single hit has a mixed strand. `NA` when `n_hits` is greater than 1. | <span class="src">`bin/add_polyA.py:21-31,102-112`</span> |
+| `polyA` | 1 | String | `TRUE` when a tail of at least 8 bp with at least 80% A ends within 5 bp of the 3' end of a plus-strand hit, or the same with T at the 5' end of a minus-strand hit, after the matching `TSD` copy has been trimmed off. `FALSE` otherwise, including when the single hit has a mixed strand. `NA` when `n_hits` is greater than 1. | <span class="src">`bin/add_polyA.py:21-31,102-121`</span> |
 
 ## HERV-K classifier fields
 

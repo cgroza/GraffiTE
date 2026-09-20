@@ -169,10 +169,10 @@ Stage C's deliverables, present when `--genotype` is true (the default).
 |---|---|---|
 | `pangenie_graph_variants.tsv` | PanGenie method only. One row per ALT allele of `pangenome.vcf`: `record`, `CHROM`, `POS`, `pangenome_ID`, `allele`, `graph_ID`, `in_graph`, `note`. `graph_ID` is what PanGenie writes to `INFO/ID` of the genotyped VCFs; `in_graph=no` marks alleles `merge_vcfs.py` left out of the graph. | <span class="src">`module/main.nf:693,701,705-708`, `bin/pangenie_graph_vcf.py:25`</span> |
 | `<sample>_genotyping.vcf.gz`, `.tbi` | PanGenie method only. Each read set's genotypes, split to one ALT per record so they match `pangenome.vcf` one for one. | <span class="src">`module/main.nf:703,710-719`</span> |
-| `GraffiTE.merged.genotypes.vcf.gz` | All read sets merged into one VCF, one column per sample, with every INFO field of `pangenome.vcf` copied onto the matching record by position and alleles. The headline genotyped file. No `.tbi` is published for it; run `tabix -p vcf` on it before random access. | <span class="src">`module/main.nf:852-874`</span> |
-| `GraffiTE.merged.genotypes.trusted.vcf.gz`, `.tbi` | Not written under `--human`. The records of the merged genotypes whose `pangenome.vcf` counterpart passes the trusted-subset expression, so every record has one repeat class. Subset by ID, because the expression tests `FILTER` and `merge_VCFs` does not transfer it. | <span class="src">`module/main.nf:901-931`</span> |
-| `GraffiTE.merged.genotypes.presence-absence_trusted.tsv` | Not written under `--human`. Flat table of the file above, same schema as the discovery TSVs; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:901-931`</span> |
-| `genotyping_record_audit.tsv` | One row per ALT allele of `pangenome.vcf`, saying whether the graph genotyped it, whether the annotation reached it, and which stage dropped it (`lost_at`). Counts summarised in `#` lines at the top. | <span class="src">`module/main.nf:879-899`</span> |
+| `GraffiTE.merged.genotypes.vcf.gz` | All read sets merged into one VCF, one column per sample, with every INFO field of `pangenome.vcf` copied onto the matching record by position and alleles. The headline genotyped file. No `.tbi` is published for it; run `tabix -p vcf` on it before random access. | <span class="src">`module/main.nf:860-882`</span> |
+| `GraffiTE.merged.genotypes.trusted.vcf.gz`, `.tbi` | Not written under `--human`. The records of the merged genotypes whose `pangenome.vcf` counterpart passes the trusted-subset expression, so every record has one repeat class. Subset by ID, because the expression tests `FILTER` and `merge_VCFs` does not transfer it. | <span class="src">`module/main.nf:909-939`</span> |
+| `GraffiTE.merged.genotypes.presence-absence_trusted.tsv` | Not written under `--human`. Flat table of the file above, same schema as the discovery TSVs; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:909-939`</span> |
+| `genotyping_record_audit.tsv` | One row per ALT allele of `pangenome.vcf`, saying whether the graph genotyped it, whether the annotation reached it, and which stage dropped it (`lost_at`). Counts summarised in `#` lines at the top. | <span class="src">`module/main.nf:887-907`</span> |
 | `GraffiTE.merged.genotypes.human.vcf.gz`, `.tbi` | `--human` only. The human subset of the merged genotypes, HERV-K annotation carried over from `pangenome.human.vcf`, and each HERV-K locus consolidated onto one record. Graph genotypes at copy-number loci are withheld unless `--hervk_mask_graph_gt_at_cnv false`. | <span class="src">`module/main.nf:400,411-412,426-468`</span> |
 | `hervk_unconsolidated_records.vcf` | `--human` only. The member records each consolidated record was built from, as they were before consolidation. | <span class="src">`module/main.nf:413,464`</span> |
 | `hervk_reconciliation_report.md` | `--human` only. Per locus, alleles, `AC`, `AN` against `2N`, resolved and partial samples; then the loci with ploidy exceeded, with `AN` below `2N`, and skipped. | <span class="src">`bin/hervk_reconcile.py:1246`</span> |
@@ -184,25 +184,25 @@ be supplied back with `--vcfs` only if you keep them from `work/`.
 
 Giraffe and graphaligner methods only, unless `--graph` pointed at an existing directory. The
 `index/` directory is what `--graph` takes.
-<span class="src">`module/main.nf:743-776`, `main.nf:202-204`</span>
+<span class="src">`module/main.nf:751-784`, `main.nf:202-204`</span>
 
 | File | Method | Contents | Source |
 |---|---|---|---|
-| `index/index.giraffe.gbz` | giraffe | The GBZ graph and indexes from `vg autoindex`. | <span class="src">`module/main.nf:760-762`</span> |
-| `index/index.gfa` | both | The graph in GFA. `vg call` reads it on the graphaligner path, and the methylation module indexes it. | <span class="src">`module/main.nf:761,769`</span> |
-| `index/index.pb` | both | The snarl decomposition `vg call` needs. | <span class="src">`module/main.nf:762,770`</span> |
-| `index/index.vg` | graphaligner | The `vg construct` graph the GFA was converted from. | <span class="src">`module/main.nf:768`</span> |
+| `index/index.giraffe.gbz` | giraffe | The GBZ graph and indexes from `vg autoindex`. | <span class="src">`module/main.nf:768-770`</span> |
+| `index/index.gfa` | both | The graph in GFA. `vg call` reads it on the graphaligner path, and the methylation module indexes it. | <span class="src">`module/main.nf:769,777`</span> |
+| `index/index.pb` | both | The snarl decomposition `vg call` needs. | <span class="src">`module/main.nf:770,778`</span> |
+| `index/index.vg` | graphaligner | The `vg construct` graph the GFA was converted from. | <span class="src">`module/main.nf:776`</span> |
 
 ## GraffiTE_alignments
 
 Giraffe and graphaligner methods only, unless `--graph_alignments` supplied them. One pair per
 read set, and exactly what `--graph_alignments` takes back.
-<span class="src">`module/main.nf:797-805`, `main.nf:215-217`</span>
+<span class="src">`module/main.nf:805-813`, `main.nf:215-217`</span>
 
 | File | Contents | Source |
 |---|---|---|
-| `<sample>.gaf.gz` | The alignments in GAF, reduced to the twelve standard columns plus the `cs` or `cg` tag, sorted by read name. | <span class="src">`module/main.nf:816,824`, `bin/subset_gaf.py`</span> |
-| `<sample>.pack` | The `vg pack` coverage over the graph, alignments below `--min_mapq` excluded, which `vg call` genotypes from. | <span class="src">`module/main.nf:815,823`</span> |
+| `<sample>.gaf.gz` | The alignments in GAF, reduced to the twelve standard columns plus the `cs` or `cg` tag, sorted by read name. | <span class="src">`module/main.nf:824,832`, `bin/subset_gaf.py`</span> |
+| `<sample>.pack` | The `vg pack` coverage over the graph, alignments below `--min_mapq` excluded, which `vg call` genotypes from. | <span class="src">`module/main.nf:823,831`</span> |
 
 ## Presence-absence TSVs
 
