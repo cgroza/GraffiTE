@@ -102,7 +102,7 @@ if [[ -n "${GRAFFITE_SIF:-}" ]]; then
     bad "neither apptainer nor singularity on PATH"
   fi
 elif [[ "$PROFILE" == "cluster" || "$PROFILE" == "aws" || "$PROFILE" == "standard" ]]; then
-  # Tools live in library://cgroza/collection/graffite:latest, which Nextflow
+  # Tools live in docker://cgroza/graffite:latest, which Nextflow
   # pulls on first use. Nothing to check on the host.
   # Every profile in nextflow.config sets process.container, and
   # singularity.enabled is set outside the profiles block -- so `standard`

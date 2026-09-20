@@ -8,7 +8,7 @@ description: >-
 # HERV-K (HML-2) biology
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `9b3dbcd`. The
+    Verified against `v1.1dev` at commit `1a050f9`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
     HERV-K classification runs only under `--human`; the procedure is in
@@ -96,7 +96,7 @@ candidate with fewer than 50 bp of HML-2 sequence) <span class="src">`bin/hervk_
 
 An HML-2 locus is not always one provirus. In the CaG cohort, the locus at chr7:4.70 Mb carries
 two units in tandem sharing a central LTR, and one, two and three units all segregate
-<span class="src">`module/main.nf:519-526`</span>. The reference step counts the units of a
+<span class="src">`module/main.nf:533-540`</span>. The reference step counts the units of a
 proviral reference element and measures their period, one internal region plus one LTR
 (`HERVK_N_UNITS_REF`, `HERVK_UNIT_BP`) <span class="src">`bin/hervk_ref_state.py:238-270`</span>.
 

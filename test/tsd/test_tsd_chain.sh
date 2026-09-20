@@ -153,4 +153,26 @@ rc=0; ( cd "$w" && prepTSD.sh ref.fa 30 1 > prep.log 2>&1 ) || rc=$?
 chk "empty VCF: prepTSD.sh exits 0" "$rc" "0"
 chk "empty VCF: no indel listed" "$(wc -c < "$w/indels.txt" | tr -d ' ')" "0"
 
+# No INFO/SVTYPE, which is what the multi-VCF path produces. truvari_merge
+# strips every upstream INFO field before the collapse (module/main.nf:216) and
+# puts only SVLEN back, so a run with two or more caller VCFs reaches add_polyA.py
+# with no SVTYPE at all. Keyed on SVTYPE alone it scanned an empty string and
+# answered FALSE for every record, and the polyA="TRUE" clause of the --human
+# filter then dropped every Alu, L1 and SVA. insA is the same record as above and
+# still carries a 15 bp A tail behind its TSD.
+w="$tmp/nosvtype"; mkdir -p "$w"; cp "$tmp/ref.fa" "$w/"
+grep -v '^##INFO=<ID=SVTYPE' "$tmp/genotypes_repmasked_filtered.vcf" \
+  | awk -F'\t' -v OFS='\t' '/^#/ {print; next} {sub(/SVTYPE=[^;]*;/, "", $8); print}' \
+  > "$w/genotypes_repmasked_filtered.vcf"
+chk "no-SVTYPE fixture really has none" \
+    "$(grep -c 'SVTYPE' "$w/genotypes_repmasked_filtered.vcf")" "0"
+rc=0; run_chain "$w" ref.fa || rc=$?
+chk "no SVTYPE: chain exits 0" "$rc" "0"
+chk "no SVTYPE: polyA still found on insA" \
+    "$(bcftools query -i 'ID="insA"' -f '%INFO/polyA\n' "$w/pangenome.polyA.vcf")" "TRUE"
+chk "no SVTYPE: insB has no tail and stays FALSE" \
+    "$(bcftools query -i 'ID="insB"' -f '%INFO/polyA\n' "$w/pangenome.polyA.vcf")" "FALSE"
+chk "no SVTYPE: the deletion is still read from REF" \
+    "$(bcftools query -i 'ID="del1"' -f '%INFO/polyA\n' "$w/pangenome.polyA.vcf")" "FALSE"
+
 if [[ $fail -eq 0 ]]; then echo PASS; else echo FAIL; exit 1; fi

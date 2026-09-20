@@ -37,7 +37,7 @@
 [data-md-color-scheme="slate"] .md-header__button.md-logo img { content: url("graffite-logo-dark.png"); }
 
 /* The version, next to the logo on every page. stamp_pages.py --set rewrites the commit. */
-:root { --gt-version: "v1.1dev @ 9b3dbcd"; }
+:root { --gt-version: "v1.1dev @ 1a050f9"; }
 .md-header__button.md-logo::after {
   content: var(--gt-version);
   font-size: .6rem;

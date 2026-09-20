@@ -47,7 +47,7 @@ The VNTR interval on each subfamily consensus, as fixed in `annotate_vcf.R`:
 | `SVA_E` | 428 | 864 |
 | `SVA_F` | 435 | 857 |
 
-<span class="src">`bin/annotate_vcf.R:108-110`</span>
+<span class="src">`bin/annotate_vcf.R:132-134`</span>
 
 The coordinates are those of the Dfam human consensus sequences with those names, so the rule
 only fires for a library that uses them. A hit named otherwise (`SVA_F1`, or a species-specific
@@ -56,7 +56,7 @@ name) is left as is.
 ## How GraffiTE reclassifies them
 
 A hit is a VNTR-only polymorphism when all of these hold:
-<span class="src">`bin/annotate_vcf.R:112-125`</span>
+<span class="src">`bin/annotate_vcf.R:136-149`</span>
 
 - its class is `Retroposon/SVA`;
 - it is a single RepeatMasker fragment;
@@ -67,7 +67,7 @@ A hit is a VNTR-only polymorphism when all of these hold:
 Such a hit is then written with a `(VNTR_only)` suffix on its name in `repeat_ids`, and its
 entry in `matching_classes` becomes `Simple_repeat` instead of `Retroposon/SVA`. The hit is
 still counted in `n_hits` and still contributes to `total_repeat_span`.
-<span class="src">`bin/annotate_vcf.R:127-132`</span>
+<span class="src">`bin/annotate_vcf.R:151-156`</span>
 
 ```text
 repeat_ids=SVA_F(VNTR_only);matching_classes=Simple_repeat
@@ -77,12 +77,12 @@ That relabelling is what the downstream filters see:
 
 - The **trusted subset** admits a `Simple_repeat` record without testing its `ULTRA_TR_span`,
   so a VNTR expansion (which is all tandem repeat) is not excluded on that ground.
-  <span class="src">`module/main.nf:492`</span>
+  <span class="src">`module/main.nf:14`</span>
 - The **`--human` filter** admits `Simple_repeat` records whose `repeat_ids` match
   `--human_sva_ids` (default `^SVA_[DEF]`), without requiring a polyA tail, so VNTR
   polymorphisms of the young subfamilies reach `pangenome.human.vcf`, distinguishable from
   SVA insertions by the suffix.
-  <span class="src">`module/main.nf:506,508,514`, `nextflow.config:67`</span>
+  <span class="src">`module/main.nf:520,522,528`, `nextflow.config:67`</span>
 
 To count SVA insertion polymorphisms alone, exclude them:
 
@@ -128,8 +128,8 @@ variable VNTR across the 20 samples, and 54% of SVA_F elements do. With both fil
 10%.
 
 A floor remains below that, from the SV caller. The PAV path keeps `|SVLEN| > 50`
-<span class="src">`module/main.nf:161`</span>, and the sniffles and svim-asm paths ask for 100 bp
-<span class="src">`module/main.nf:105,122,178`</span>. On the run above the smallest annotated
+<span class="src">`module/main.nf:176`</span>, and the sniffles and svim-asm paths ask for 100 bp
+<span class="src">`module/main.nf:120,137,193`</span>. On the run above the smallest annotated
 VNTR record is 50 bp, about one unit, so single-unit changes sit at the edge of what the
 callset records.
 

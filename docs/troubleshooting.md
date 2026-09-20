@@ -8,7 +8,7 @@ description: >-
 # Troubleshooting
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `9b3dbcd`. The
+    Verified against `v1.1dev` at commit `1a050f9`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -74,16 +74,16 @@ checks the chain.
 ## `variant IDs must be no greater than 50 characters`
 
 The annotation script stops on any variant ID longer than 50 characters
-<span class="src">`bin/repmask_vcf.sh:12-16`</span>, the length RepeatMasker keeps intact in
+<span class="src">`bin/repmask_vcf.sh:41-45`</span>, the length RepeatMasker keeps intact in
 its output. IDs written by the pipeline's own callers are short. The message appears with
-`--vcf`, whose IDs pass through unchanged <span class="src">`module/main.nf:181-183`</span>,
+`--vcf`, whose IDs pass through unchanged <span class="src">`module/main.nf:196-198`</span>,
 or with `--svs`: rename them before the run.
 
 ---
 
 ## RepeatMasker runs out of memory or time
 
-Stage B is split by contig <span class="src">`module/main.nf:457-470`</span> and each piece runs
+Stage B is split by contig <span class="src">`module/main.nf:472-485`</span> and each piece runs
 with `--repeatmasker_memory` (default `10G`) and `--repeatmasker_time` (default `12h`)
 <span class="src">`nextflow.config:146-148`</span>. Raise them, and raise
 `--repeatmasker_threads`, for large contigs or large libraries. Nextflow's message when a job is
@@ -102,7 +102,7 @@ directory by default; point `--container_tmp` at a writable directory instead, s
 [Paths and `/tmp`](getting-started/installation.md#paths-and-tmp).
 
 The other way to get here is a run where no chunk survived annotation. Stage B is split one piece
-per contig <span class="src">`module/main.nf:457-470`</span>, and a chunk whose records all fail
+per contig <span class="src">`module/main.nf:472-485`</span>, and a chunk whose records all fail
 `--repeat_span_cutoff` drops out by design. If every chunk drops out, `concat_repeatmask` never
 runs and nothing says so. `2_Repeat_Filtering/*/genotypes_repmasked_filtered.vcf` holds the
 per-chunk record counts.

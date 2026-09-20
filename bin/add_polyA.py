@@ -107,9 +107,24 @@ def annotate_record(fields):
     if n_hits_i == 1 and strands in ('+', 'C'):
         ref = fields[3]
         alt = fields[4]
+        # Polarity comes from len(ALT) - len(REF) when SVTYPE is absent, the same
+        # convention bin/hervk_ref_state.py:78-80 and bin/tsd_flanks.py:50-53
+        # already use. truvari_merge strips every upstream INFO field before the
+        # collapse and puts only SVLEN back, so SVTYPE reaches this script on the
+        # single-input paths and not on the multi-VCF one. Keyed on SVTYPE alone,
+        # every record from a run with two or more caller VCFs scanned an empty
+        # string and came back polyA=FALSE whatever it held, which emptied
+        # pangenome.human.vcf of Alu, L1 and SVA through the polyA="TRUE" clause
+        # of the --human filter.
         if svtype == 'INS':
             variant_seq = alt[1:]
         elif svtype == 'DEL':
+            variant_seq = ref[1:]
+        elif alt.startswith('<') or ',' in alt:
+            variant_seq = ''          # symbolic or multi-allelic: no sequence to scan
+        elif len(alt) > len(ref):
+            variant_seq = alt[1:]
+        elif len(ref) > len(alt):
             variant_seq = ref[1:]
         else:
             variant_seq = ''

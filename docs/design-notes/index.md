@@ -22,3 +22,4 @@ description: >-
 | [3′ transduction module — v1](transduction-module-v1.md) | **Proposed, superseded.** Never implemented. |
 | [3′ transduction module — v2](transduction-module-v2.md) | **Proposed.** Never implemented. |
 | [HERV-K classification plan](hervk-classification/HERVK_FILTER_PLAN.md) | **Implemented.** Shipped as `bin/hervk_classify.py`. |
+| [Synthetic end-to-end test set](synthetic-test-set.md) | **Proposed.** Nothing built. Blocks the v1.1 merge into `main`. |

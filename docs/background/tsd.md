@@ -6,7 +6,7 @@ description: Why TSDs matter for mobile element insertions and how GraffiTE find
 # Target site duplications
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `9b3dbcd`. The
+    Verified against `v1.1dev` at commit `1a050f9`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -61,7 +61,7 @@ no `TSD` field.
 The search runs in batches of `--tsd_batch_size` variants per contig, and the per-batch
 summaries and logs are concatenated into `3_TSD_search/TSD_summary.txt` and
 `TSD_full_log.txt`.
-<span class="src">`main.nf:149-154`, `module/main.nf:539-540`</span>
+<span class="src">`main.nf:149-154`, `module/main.nf:553-554`</span>
 
 ## Scoring and the PASS rule
 

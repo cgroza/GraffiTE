@@ -8,7 +8,7 @@ description: >-
 # Stage C: genotyping
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `9b3dbcd`. The
+    Verified against `v1.1dev` at commit `1a050f9`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -51,14 +51,14 @@ parameter preset <span class="src">`main.nf:181-183`</span>:
 Two details follow from that table:
 
 - With the `default` preset, `vg giraffe` is given `-i`, so the FASTQ is read as
-  **interleaved paired-end** <span class="src">`module/main.nf:787-789,794`</span>. Short-read
+  **interleaved paired-end** <span class="src">`module/main.nf:815-817,822`</span>. Short-read
   samples must be supplied as a single interleaved file, not as two mate files.
 - PanGenie ignores the preset: it counts k-mers and never aligns
-  <span class="src">`module/main.nf:714`</span>.
+  <span class="src">`module/main.nf:726`</span>.
 
 A `path` ending in `.bam` goes through `bam_to_fastq` first: alignment tags are stripped, the
 file is name-sorted and converted back to FASTQ with `samtools fastq`
-<span class="src">`main.nf:184-189`, `module/main.nf:758-774`</span>. The alignments in the BAM
+<span class="src">`main.nf:184-189`, `module/main.nf:786-802`</span>. The alignments in the BAM
 are not used; only the reads are. Methylation tags in such a BAM are read separately, see
 [Methylation](methylation.md).
 
@@ -73,7 +73,7 @@ are not used; only the reads are. Methylation tags in such a BAM are read separa
 | `graphaligner` | `vg construct` (GFA) | aligned with `GraphAligner` | `vg call` | long reads |
 | `precomputed` | supplied with `--graph` | supplied with `--graph_alignments`, or skipped with `--vcfs` | `vg call`, or none | re-genotyping an existing graph |
 
-Source: <span class="src">`main.nf:192-256`</span>, <span class="src">`nextflow.config:35`</span>.
+Source: <span class="src">`main.nf:192-256`</span>, <span class="src">`nextflow.config:34`</span>.
 
 Anything else stops the run:
 
@@ -130,7 +130,7 @@ reference is passed as a value channel; as a queue channel it held one item, and
 for one sample and stopped <span class="src">`main.nf:194-197`</span>.
 
 **Resources:** `--pangenie_threads`, `--pangenie_memory`, `--pangenie_time` for both processes
-<span class="src">`nextflow.config:235-244`</span>.
+<span class="src">`nextflow.config:242-251`</span>.
 
 ---
 
@@ -140,7 +140,7 @@ Three processes, plus `bam_to_fastq` when needed.
 
 ### `make_graph`
 
-<span class="src">`module/main.nf:723-756`</span>. `bcftools +setGT -- -t a -n u` unphases every genotype
+<span class="src">`module/main.nf:751-784`</span>. `bcftools +setGT -- -t a -n u` unphases every genotype
 in `pangenome.vcf`, then:
 
 | method | commands | `index/` holds |
@@ -153,11 +153,11 @@ The directory is published as `GraffiTE_graph/index/` and is what `--graph` take
 run. Skipped entirely when `--graph` is given <span class="src">`main.nf:202-206`</span>.
 
 **Resources:** `--make_graph_threads`, `--make_graph_memory` (default `40G`), `--make_graph_time`
-(default `6h`) <span class="src">`nextflow.config:245-249`</span>.
+(default `6h`) <span class="src">`nextflow.config:252-256`</span>.
 
 ### `graph_align_reads`
 
-<span class="src">`module/main.nf:776-811`</span>, once per sample:
+<span class="src">`module/main.nf:804-839`</span>, once per sample:
 
 | method | aligner | then |
 |---|---|---|
@@ -172,14 +172,14 @@ string, then sorted by read name and gzipped. The GAM is deleted. Published as
 `--graph_alignments` takes on a later run.
 
 This process runs with `errorStrategy = 'finish'`: a failed sample lets the other samples
-complete before the run stops <span class="src">`nextflow.config:255-260`</span>.
+complete before the run stops <span class="src">`nextflow.config:262-267`</span>.
 
 **Resources:** `--graph_align_threads`, `--graph_align_memory`, `--graph_align_time` (default
 `12h`); `bam_to_fastq` uses the same three.
 
 ### `vg_call`
 
-<span class="src">`module/main.nf:813-829`</span>, once per sample:
+<span class="src">`module/main.nf:841-857`</span>, once per sample:
 
 ```bash
 vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> -k <sample>.pack index/<graph> \
@@ -199,13 +199,13 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
 - `bcftools norm -m-` splits multi-allelic calls into one record per ALT.
 
 **Resources:** `--vg_call_threads`, `--vg_call_memory`, `--vg_call_time` (default `2h`)
-<span class="src">`nextflow.config:261-265`</span>.
+<span class="src">`nextflow.config:268-272`</span>.
 
 ---
 
 ## The merged genotypes
 
-`merge_VCFs` <span class="src">`module/main.nf:831-857`</span> takes every per-sample VCF and:
+`merge_VCFs` <span class="src">`module/main.nf:859-885`</span> takes every per-sample VCF and:
 
 1. `bcftools merge -m none` joins them into one multi-sample VCF without creating multi-allelic
    records.
@@ -216,7 +216,7 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
    Allele comparison ignores case, which matters because `pangenome.vcf` carries soft-masked
    lowercase bases and the graph upper-cases them. A record that matches nothing keeps whatever
    the genotyper gave it and arrives with no annotation
-   <span class="src">`module/main.nf:405-411`</span>.
+   <span class="src">`module/main.nf:420-426`</span>.
 3. The `##GraffiTE_version` header line is added.
 
 Published as `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz`. No `.tbi` is published for it: the
@@ -224,11 +224,11 @@ index written earlier in the script belongs to the pre-annotation file, which is
 `tabix -p vcf` on it yourself.
 
 **Resources:** `--merge_vcf_memory` (default `10G`), `--merge_vcf_time` (default `1h`)
-<span class="src">`nextflow.config:266-270`</span>.
+<span class="src">`nextflow.config:273-277`</span>.
 
 ## The trusted subset of the genotypes
 
-`trusted_genotypes` <span class="src">`module/main.nf:879-909`</span> writes the counterpart of
+`trusted_genotypes` <span class="src">`module/main.nf:909-939`</span> writes the counterpart of
 `pangenome.trusted.vcf` for the genotyped calls:
 
 - `4_Genotyping/GraffiTE.merged.genotypes.trusted.vcf.gz` and its `.tbi`

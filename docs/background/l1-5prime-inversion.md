@@ -6,7 +6,7 @@ description: Twin priming, the C/+ strand signature, and the L1_5PINV annotation
 # L1 5' inversions
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `9b3dbcd`. The
+    Verified against `v1.1dev` at commit `1a050f9`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -49,7 +49,7 @@ is 5' on the query.
 strands of its fragments, in query order, as one string (`C+`, `+`, `C`, `+C`). A hit is flagged
 as an L1 5' inversion when its class is `LINE/L1` and that string is exactly `C+`. The rule does
 not count the fragments: a `C` piece followed by two `+` pieces also qualifies.
-<span class="src">`bin/annotate_vcf.R:80,95`</span>
+<span class="src">`bin/annotate_vcf.R:104,119`</span>
 
 The strand of the element as a whole is then inferred, because neither fragment's strand is the
 answer. The consensus coordinate where each fragment begins is compared: if the `C` fragment
@@ -57,7 +57,7 @@ begins at a lower consensus position than the `+` fragment, the element is on th
 otherwise it is on `C`. That inferred value is what `RM_hit_strands` reports for the hit, and
 `polyA` is scanned on the end that strand implies. Every other hit reports its fragments'
 strands as they came.
-<span class="src">`bin/annotate_vcf.R:96-103`, `bin/add_polyA.py:107`</span>
+<span class="src">`bin/annotate_vcf.R:120-127`, `bin/add_polyA.py:107`</span>
 
 <figure markdown="span">
 ![Consensus coordinates of the two fragments for a plus-strand and a minus-strand L1 with a 5' inversion](../assets/l1-consensus-coordinates.png)
@@ -74,7 +74,7 @@ The rule runs on every dataset, not only human ones. It needs the library to nam
 | `None` | No hit on the variant matched the rule (this is also the value for variants with no hit at all). |
 | `<link ID>` | The RepeatMasker link ID of the hit flagged as inverted, the same number that appears in `RM_hit_IDs`, so the fragments can be found in `repeatmasker_dir/indels.fa.out`. Several IDs are comma-separated. |
 
-<span class="src">`bin/annotate_vcf.R:147,171`, `bin/repmask_vcf.sh:134`</span>
+<span class="src">`bin/annotate_vcf.R:171,195`, `bin/repmask_vcf.sh:134`</span>
 
 Such a variant still has `n_hits=1` when the inverted L1 is its only element, so it is eligible
 for the trusted and human subsets like any other single-hit L1. In v1.0 the same information was
