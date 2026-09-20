@@ -8,7 +8,7 @@ description: >-
 # Installation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
@@ -28,8 +28,9 @@ cluster; the `cluster` profile targets SLURM.
 
 !!! note "Nextflow 26"
     Nextflow 26.04 parses scripts with its strict syntax by default. `main.nf` compiles under it
-    since commit `4605630` (2026-09-14); previewed here with 26.04.6 under both parsers. Checkouts
-    older than that commit need `export NXF_SYNTAX_PARSER=v1`.
+    since commit `4605630` (2026-09-10, merged into `v1.1dev` on 2026-09-15 in PR #101); previewed
+    here with 26.04.6 under both parsers. Checkouts older than that commit need
+    `export NXF_SYNTAX_PARSER=v1`.
 
 !!! note "Apptainer through Conda"
     Users have reported problems with Apptainer installed through Conda. Install it from the
@@ -77,7 +78,7 @@ Two ways, depending on whether you want a local copy of the code.
 ## Get the container image
 
 The config points every process at `docker://cgroza/graffite:latest`
-<span class="src">`nextflow.config:9,14,20`</span>, and Nextflow pulls it on first use.
+<span class="src">`nextflow.config:10,15,21`</span>, and Nextflow pulls it on first use.
 Apptainer converts the Docker image to a SIF itself, so nothing else has to be registered.
 
 The image is `linux/amd64` only. On an arm64 machine it runs under emulation, slowly.
@@ -174,7 +175,10 @@ the image again as well; the [Changelog](../changelog.md) says when that is need
 
 ## Execution profiles
 
-`-profile standard` runs everything on the local machine, `-profile cluster` submits each
-process to SLURM with the per-process CPU, memory and time parameters, and `-profile cloud`
-targets AWS Batch <span class="src">`nextflow.config:7-24`</span>. All three use the same
-image. How to size the requests is on [Resources and scaling](../guides/resources.md).
+`-profile standard` runs everything on the local machine and `-profile cluster` submits each
+process to SLURM with the per-process CPU, memory and time parameters. `-profile cloud` sets
+`process.executor = 'aws'` <span class="src">`nextflow.config:7-24`</span>, which Nextflow does
+not recognise, so the run stops with `Unknown executor name: aws`. The AWS Batch executor is
+called `awsbatch`, and needs your own AWS settings in a config passed with `-c`. All three
+profiles name the same image. How to size the requests is on
+[Resources and scaling](../guides/resources.md).

@@ -8,7 +8,7 @@ description: >-
 # HERV-K (HML-2) biology
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
     HERV-K classification runs only under `--human`; the procedure is in
@@ -46,9 +46,12 @@ therefore does not classify on size. It reads the **architecture** of the varian
 the raw RepeatMasker fragments, and where that is ambiguous it **masks the reference** at the
 locus and reads off what is there.
 
-Two architectures settle it outright <span class="src">`bin/hervk_arch.py:254-356`</span>:
+Two architectures name the allele pair directly <span class="src">`bin/hervk_arch.py:254-356`</span>:
 
-- **Two full terminal LTRs**, both covering consensus 1 to 968. Nothing was consumed by the
+- **Two full terminal LTRs**, each running the length of its family's consensus, to within
+  `perm_tol` (50 bp) at either end, with internal sequence between them. The consensus length is
+  the family's: 968 bp for `LTR5_Hs`, `LTR5B` and `LTR5`, 1,033 bp for `LTR5A`
+  <span class="src">`bin/hervk_arch.py:56,75,328-338`</span>. Nothing was consumed by the
   alignment, so the variant carries a whole provirus. Reported as `ARCH_2LTR`.
 - **One LTR split across the termini**: the 5′ fragment covering consensus `k+1..L` and the 3′
   fragment `1..k`, complementary and summing to one LTR. The aligner broke a reference LTR at
@@ -57,8 +60,11 @@ Two architectures settle it outright <span class="src">`bin/hervk_arch.py:254-35
 
 Which side of the pair the variant carries depends on its polarity. For an insertion the
 architecture describes the allele being added; for a deletion it describes reference sequence
-being removed, so `ARCH_2LTR` reads `null -> provirus` on an `INS` and `provirus -> null` on a
-`DEL` <span class="src">`bin/hervk_classify.py:322-363`</span>.
+being removed, so `ARCH_2LTR` reads `provirus -> null` on a `DEL` and `null -> provirus` on an
+`INS`. Where the masked reference already holds a provirus, the classifier overrides that `INS`
+reading and calls one unit gained, `provirus -> prov_x2`, keeping `HERVK_EVIDENCE` at `ARCH_2LTR`
+and adding `CNV_UNITS:1->2,UNIT_COUNT_ASSUMED` to `HERVK_NOTE`. `ARCH_PERM` does the same
+<span class="src">`bin/hervk_classify.py:322-363`</span>.
 
 `HERVK_K` records `k`. It is a property of the **alignment**, not of the biology: the inserted
 length is the same for every `k`, so the gap penalty cancels and the handful of substitutions

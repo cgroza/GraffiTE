@@ -8,11 +8,11 @@ description: >-
 # Pipeline processes
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
-`module/main.nf` defines 23 processes. The methylation branch imports eight more from the
+`module/main.nf` defines 25 processes. The methylation branch imports eight more from the
 `panmethyl` submodule. The inputs you pass decide which ones run; a process with nothing on its
 input channel is never scheduled. <span class="src">`main.nf:12-18`</span>
 
@@ -140,13 +140,13 @@ Dashed edges are taken only when the labelled parameter is set. `--graph`, `--gr
 |---|---|---|---|---|
 | `bam_to_fastq` <span class="src">`module/main.nf:786`</span> | For `.bam` rows of `--genotype_with`: strips tags, name-sorts, `samtools fastq`, `pigz`. | `<reads>.fq.gz` | not published | `graph_align_*` <span class="src">`nextflow.config:257-261`</span> |
 | `pangenie_index` <span class="src">`module/main.nf:692`</span> | Drops genotypes from the annotated VCF, `pangenie_graph_vcf.py prepare` (a `ref` sample, one graph variant per site and safe IDs), `bcftools sort`, `bcftools norm -m+`, `merge_vcfs.py merge` at ploidy 2, `pangenie_graph_vcf.py report`, `PanGenie-index`. | `pangenie_index/`, `pangenie_graph_variants.tsv` | `4_Genotyping/pangenie_graph_variants.tsv` | `pangenie_*` <span class="src">`nextflow.config:242-246`</span> |
-| `pangenie` <span class="src">`module/main.nf:714`</span> | `PanGenie` per read set, then `bcftools norm -m-` so records match `pangenome.vcf` one for one, and `tabix`. | `<sample>_genotyping.vcf.gz`, `.tbi` | `4_Genotyping/` | `pangenie_*` <span class="src">`nextflow.config:247-251`</span> |
+| `pangenie` <span class="src">`module/main.nf:714`</span> | `PanGenie` per read set, then `samtools faidx` and `bcftools reheader -f` put the reference contigs in the header (PanGenie writes no `##contig` lines and `bcftools norm` stops without them), `bcftools norm -N -m-` so records match `pangenome.vcf` one for one, and `tabix`. | `<sample>_genotyping.vcf.gz`, `.tbi` | `4_Genotyping/` | `pangenie_*` <span class="src">`nextflow.config:247-251`</span> |
 | `make_graph` <span class="src">`module/main.nf:751`</span> | `bcftools +setGT` unphases the VCF. giraffe: `vg autoindex -w sr-giraffe -w lr-giraffe`, `vg convert` to GFA, `vg snarls`. graphaligner: `vg construct -a -m 1024`, `vg convert`, `vg snarls`. Skipped with `--graph`. | `index/` (`index.gfa`, `index.pb`, and `index.giraffe.gbz` for giraffe) | `GraffiTE_graph/` | `make_graph_*` <span class="src">`nextflow.config:252-256`</span> |
 | `graph_align_reads` <span class="src">`module/main.nf:804`</span> | giraffe: `vg giraffe --parameter-preset <preset>` (with `-i` for short reads), `vg pack -Q <min_mapq>`, `vg convert` to GAF through `subset_gaf.py`. graphaligner: `GraphAligner -x vg`, then the same. Skipped with `--graph_alignments`. A failed sample lets the tasks already running finish before the run stops (`errorStrategy 'finish'`). | `<sample>.gaf.gz`, `<sample>.pack` | `GraffiTE_alignments/` | `graph_align_*` <span class="src">`nextflow.config:262-267`</span> |
 | `vg_call` <span class="src">`module/main.nf:841`</span> | `vg call -a -A -R chrX:1,chrY:1 -m <min_support>` against the snarls, `bcftools norm -m-`, `bcftools sort`, `tabix`. Skipped with `--vcfs`. | `<sample>.vcf.gz`, `.tbi` | not published | `vg_call_*` <span class="src">`nextflow.config:268-272`</span> |
 | `merge_VCFs` <span class="src">`module/main.nf:859`</span> | `bcftools merge -m none` of every per-sample VCF, then `bcftools annotate` copies ID and INFO from `pangenome.vcf`, matching on `CHROM`, `POS`, `REF` and a shared `ALT`, and stamps `##GraffiTE_version`. | `GraffiTE.merged.genotypes.vcf.gz` | `4_Genotyping/` | `cpus 1`, `merge_vcf_*` <span class="src">`nextflow.config:273-277`</span> |
-| `genotyping_audit` <span class="src">`module/main.nf:887`</span> | `genotyping_audit.py` against `pangenome.vcf` and the merged genotypes, plus `pangenie_graph_variants.tsv` on the pangenie path. One row per ALT allele saying which stage dropped it. | `genotyping_record_audit.tsv` | `4_Genotyping/` | `cpus 1`, `merge_vcf_*` <span class="src">`nextflow.config:288-292`</span> |
-| `trusted_genotypes` <span class="src">`module/main.nf:909`</span> | Not under `--human`. Evaluates the trusted expression on `pangenome.vcf` and subsets the merged genotypes by the IDs it returns, then `vcf_to_pa_tsv.py`. | `GraffiTE.merged.genotypes.trusted.vcf.gz`, `.tbi`, `GraffiTE.merged.genotypes.presence-absence_trusted.tsv` | `4_Genotyping/` | `cpus 1`, `merge_vcf_*` <span class="src">`nextflow.config:288-292`</span> |
+| `genotyping_audit` <span class="src">`module/main.nf:887`</span> | `genotyping_audit.py` against `pangenome.vcf` and the merged genotypes, plus `pangenie_graph_variants.tsv` on the pangenie path. One row per ALT allele saying which stage dropped it. | `genotyping_record_audit.tsv` | `4_Genotyping/` | `cpus 1`, `merge_vcf_*` <span class="src">`nextflow.config:283-287`</span> |
+| `trusted_genotypes` <span class="src">`module/main.nf:909`</span> | Not under `--human`. Evaluates the trusted expression on `pangenome.vcf` and subsets the merged genotypes by the IDs it returns, then `vcf_to_pa_tsv.py`. | `GraffiTE.merged.genotypes.trusted.vcf.gz`, `.tbi`, `GraffiTE.merged.genotypes.presence-absence_trusted.tsv` | `4_Genotyping/` | `cpus 1`, `merge_vcf_*` <span class="src">`nextflow.config:278-282`</span> |
 | `hervk_reconcile` <span class="src">`module/main.nf:399`</span> | `--human` only. Subsets the merged genotypes to the human IDs, copies every `HERVK_*` INFO tag across from the discovery VCF, and runs `hervk_reconcile.py consolidate`, which masks graph genotypes at copy-number loci unless `--hervk_mask_graph_gt_at_cnv false`. With `--hervk_reconcile_vcf` the merged VCF comes from that file instead. | `GraffiTE.merged.genotypes.human.vcf.gz`, `.tbi`, `hervk_unconsolidated_records.vcf`, `hervk_reconciliation_report.md` | `4_Genotyping/` (`overwrite: true`) | `cpus 1`, `hervk_reconcile_*` <span class="src">`nextflow.config:293-297`</span> |
 
 `vg_call` passes `-R chrX:1,chrY:1`, so contigs named exactly `chrX` and `chrY` are called at ploidy
@@ -182,8 +182,9 @@ directories. See [Methylation](../guides/methylation.md) and
 Each process is matched by a `withName` block in `nextflow.config`. The `cpus` line of most blocks
 reads `params.cores ? params.cores : params.<process>_threads`, so `--cores` overrides every
 configurable thread count at once. The processes fixed at one CPU (`break_scaffold`, the three
-`tsd_*`, `merge_VCFs`, `hervk_reconcile`) and the methylation processes ignore it.
-<span class="src">`nextflow.config:171-327`</span>
+`tsd_*`, `merge_VCFs`, `trusted_genotypes`, `genotyping_audit`, `hervk_reconcile`) and the
+methylation processes ignore it.
+<span class="src">`nextflow.config:178-344`</span>
 
 The full table of parameters is in [Parameters](parameters.md); the same table grouped by process is
 in [Resources and scaling](../guides/resources.md).

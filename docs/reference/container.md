@@ -8,14 +8,15 @@ description: >-
 # Container
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
 ## The image
 
 Every process runs in `docker://cgroza/graffite:latest`, pulled from Docker Hub, except
-`pav_asm`. All three profiles name the same image; they differ only in the executor.
+`pav_asm`. All three profiles name the same image. `standard` and `cloud` differ
+only in the executor; `cluster` also sets `process.scratch = '$SLURM_TMPDIR'`.
 <span class="src">`nextflow.config:7-23`</span>
 
 The image is `linux/amd64` only, single-layer, and about 2.5 GB compressed. Apptainer converts
@@ -27,21 +28,29 @@ it to a SIF on first use. On an arm64 host it runs under emulation.
 | `cluster` | `slurm` | `process.scratch = '$SLURM_TMPDIR'` |
 | `cloud` | `aws` | `aws` is not a Nextflow executor name; the profile stops at launch. See [Resources and scaling](../guides/resources.md). |
 
-Singularity (or Apptainer) is enabled globally, with automatic mounts and these run options:
-<span class="src">`nextflow.config:3-5`</span>
+Singularity (or Apptainer) is enabled globally, with automatic mounts. The run options are built
+after the params block, so that `--container_tmp` can be read:
+<span class="src">`nextflow.config:3-4,175`</span>
 
 ```
---contain --bind $(pwd):/tmp
+--contain --bind <--container_tmp, or $(pwd)>:/tmp
 ```
+
+`--container_tmp` is unset by default, and the bind source is then `$(pwd)`. Pass
+`--container_tmp /scratch/you/tmp` and that directory is bound to `/tmp` instead.
+<span class="src">`nextflow.config:46`</span> See
+[`--container_tmp`](parameters.md#global-switches) and
+[Paths and `/tmp`](../getting-started/installation.md#paths-and-tmp).
 
 `--contain` hides the host filesystem from the task except for what is bound in: the task
 directory, the input files Nextflow mounts on its own, and `/tmp`, which the bind points at the
-task directory. Two consequences:
+task directory or at `--container_tmp`. Two consequences:
 
 - A tool inside a task can only reach files the pipeline staged. Anything a script opens by an
   absolute host path that was not an input is invisible.
-- Tools that write to `/tmp` write into the task directory, which sits on whatever filesystem
-  Nextflow's `work/` is on. Put `work/` on fast, roomy storage.
+- With `--container_tmp` unset, tools that write to `/tmp` write into the task directory, which
+  sits on whatever filesystem Nextflow's `work/` is on. Put `work/` on fast, roomy storage, or
+  point `--container_tmp` at storage that suits the traffic.
 
 To run it under Docker rather than Apptainer, turn `singularity.enabled` off in a config of
 your own and pass `-with-docker cgroza/graffite:latest`.
@@ -54,22 +63,22 @@ default branch held on the day the image was built. <span class="src">`GraffiTE.
 
 | Tool | Used by | Installed from | Version |
 |---|---|---|---|
-| RepeatMasker, RMBlast, HMMER, TRF, RepeatModeler and the rest of the Dfam TETools bundle | `repmask_vcf.sh`, `hervk_ref_state.py` | `TETools/getsrc.sh` at build time | whatever TETools fetched; not recorded <span class="src">`GraffiTE.def:27-165`</span> |
-| Dfam library | RepeatMasker | `dfam38_full.0.h5` from the TETools sources | Dfam 3.8 <span class="src">`GraffiTE.def:143-144`</span> |
-| Winnowmap, meryl | `map_asm`, `map_longreads` with `--aligner winnowmap` | git, default branch | unpinned <span class="src">`GraffiTE.def:170-175`</span> |
-| htslib, samtools, bcftools | nearly every process | git, default branch; bcftools with `--enable-libgsl --enable-perl-filters` | unpinned <span class="src">`GraffiTE.def:177-205`</span> |
-| SURVIVOR | nothing in v1.1 | git | unpinned <span class="src">`GraffiTE.def:207-212`</span> |
-| minimap2 | `map_asm`, `map_longreads` | git, default branch | unpinned <span class="src">`GraffiTE.def:214-219`</span> |
-| ULTRA | `repmask_vcf.sh` | git tag | `v1.0.0` <span class="src">`GraffiTE.def:221-229`</span> |
-| PanGenie, PanGenie-index | `pangenie_index`, `pangenie` | git, default branch; the commit is written to `/metadata/pangenie.git.version` in the image | unpinned <span class="src">`GraffiTE.def:233-246`</span> |
-| numpy | Python scripts | pip | `1.21` <span class="src">`GraffiTE.def:248`</span> |
-| pysam, pyparsing, svim-asm, pandas, vcfpy, sniffles, cigar, truvari, pyfaidx | `svim_asm`, `sniffles_*`, `truvari_merge`, `bin/*.py` | pip | unpinned <span class="src">`GraffiTE.def:250`</span> |
-| R with XML, dplyr, stringr, tidyr, readr, vcfR, optparse | `annotate_vcf.R` | CRAN | unpinned <span class="src">`GraffiTE.def:254`</span> |
-| vg | `make_graph`, `graph_align_reads`, `vg_call`, `BED_to_graph` | GitHub release binary | `v1.70.0` <span class="src">`GraffiTE.def:285-286`</span> |
-| pypy3 | `subset_gaf.py` (its shebang is `/opt/pypy3/bin/pypy3`) | tarball to `/opt/pypy3` | `7.3.17` (Python 3.10) <span class="src">`GraffiTE.def:288-293`</span> |
-| GraphAligner | `graph_align_reads` with `--graph_method graphaligner` | bioconda through a throwaway Miniconda | unpinned <span class="src">`GraffiTE.def:295-300`</span> |
-| tagtobed | `bamtags_to_BED` | built from the panmethyl repository, default branch | unpinned <span class="src">`GraffiTE.def:303-308`</span> |
-| bedtools, ncbi-blast+, tabix, pigz, bc, python3-h5py, r-base-core | various | Ubuntu 20.04 apt | distribution versions <span class="src">`GraffiTE.def:9-25,280`</span> |
+| RepeatMasker, RMBlast, HMMER, TRF, RepeatModeler and the rest of the Dfam TETools bundle | `repmask_vcf.sh`, `hervk_ref_state.py` | `TETools/getsrc.sh` at build time | whatever TETools fetched; not recorded <span class="src">`GraffiTE.def:27-164`</span> |
+| Dfam library | RepeatMasker | `dfam38_full.0.h5` from the TETools sources | Dfam 3.8 <span class="src">`GraffiTE.def:142-143`</span> |
+| Winnowmap, meryl | `map_asm`, `map_longreads` with `--aligner winnowmap` | git, default branch | unpinned <span class="src">`GraffiTE.def:169-174`</span> |
+| htslib, samtools, bcftools | nearly every process | git, default branch; bcftools with `--enable-libgsl --enable-perl-filters` | unpinned <span class="src">`GraffiTE.def:176-204`</span> |
+| SURVIVOR | nothing in v1.1 | git | unpinned <span class="src">`GraffiTE.def:206-211`</span> |
+| minimap2 | `map_asm`, `map_longreads` | git, default branch | unpinned <span class="src">`GraffiTE.def:213-218`</span> |
+| ULTRA | `repmask_vcf.sh` | git tag | `v1.0.0` <span class="src">`GraffiTE.def:220-228`</span> |
+| PanGenie, PanGenie-index | `pangenie_index`, `pangenie` | git, default branch; the commit is written to `/metadata/pangenie.git.version` in the image | unpinned <span class="src">`GraffiTE.def:232-245`</span> |
+| numpy | Python scripts | pip | `1.21` <span class="src">`GraffiTE.def:247`</span> |
+| pysam, pyparsing, svim-asm, pandas, vcfpy, sniffles, cigar, truvari, pyfaidx | `svim_asm`, `sniffles_*`, `truvari_merge`, `bin/*.py` | pip | unpinned <span class="src">`GraffiTE.def:249`</span> |
+| R with XML, dplyr, stringr, tidyr, readr, vcfR, optparse | `annotate_vcf.R` | CRAN | unpinned <span class="src">`GraffiTE.def:253`</span> |
+| vg | `make_graph`, `graph_align_reads`, `vg_call`, `BED_to_graph` | GitHub release binary | `v1.70.0` <span class="src">`GraffiTE.def:284-285`</span> |
+| pypy3 | `subset_gaf.py` (its shebang is `/opt/pypy3/bin/pypy3`) | tarball to `/opt/pypy3` | `7.3.17` (Python 3.10) <span class="src">`GraffiTE.def:287-292`</span> |
+| GraphAligner | `graph_align_reads` with `--graph_method graphaligner` | bioconda through a throwaway Miniconda | unpinned <span class="src">`GraffiTE.def:294-299`</span> |
+| tagtobed | `bamtags_to_BED` | built from the panmethyl repository, default branch | unpinned <span class="src">`GraffiTE.def:302-307`</span> |
+| bedtools, ncbi-blast+, tabix, pigz, bc, python3-h5py, r-base-core | various | Ubuntu 20.04 apt | distribution versions <span class="src">`GraffiTE.def:9-25,279`</span> |
 
 ## The PAV container
 
@@ -96,7 +105,7 @@ Two more things follow from the unpinned installs:
   different records without an error. See [VCF fields](vcf-fields.md).
 - `pip3 install` without pins can move numpy off `1.21` when truvari asks for a newer one. The
   recipe now runs `pip3 check` after the install so a conflict fails the build instead of the run.
-  <span class="src">`GraffiTE.def:248-251`</span>
+  <span class="src">`GraffiTE.def:247-250`</span>
 
 ## Building it yourself
 

@@ -6,7 +6,7 @@ description: Why TSDs matter for mobile element insertions and how GraffiTE find
 # Target site duplications
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -112,7 +112,8 @@ column number, as `tsd_annotate_vcf.sh` does.
 `TSD_full_log.txt` shows, for each variant, both fragments over a base ruler, every candidate
 match with its offsets, the chosen one, and the two fragments again with the copies underlined.
 The column header printed there names 16 columns for rows that have 17, because it omits the bit
-score; from the e-value on, read the header one column to the left.
+score. The header lines up through the e-value in column 11; column 12 of a row is the unnamed
+bit score; from column 13 on, the right name is one header column to the left.
 <span class="src">`bin/TSD_Match_v2.sh:42,88-105`</span>
 
 ## Limitations

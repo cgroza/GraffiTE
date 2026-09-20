@@ -8,7 +8,7 @@ description: >-
 # Troubleshooting
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -20,9 +20,9 @@ description: >-
 Error main.nf:158:27: Unexpected input: 'splitText'
 ```
 
-You are running a checkout older than commit `4605630` (2026-09-14) on Nextflow 26, whose
-default parser is the strict one. Update to a newer commit, or select the legacy parser for that
-checkout:
+You are running a checkout older than commit `4605630` (2026-09-10, on `v1.1dev` since
+2026-09-15) on Nextflow 26, whose default parser is the strict one. Update to a newer commit, or
+select the legacy parser for that checkout:
 
 ```bash
 export NXF_SYNTAX_PARSER=v1
@@ -52,7 +52,7 @@ Each of these stops the run before any process starts. The fix is in the message
 
 ## A process cannot see an input file
 
-Every container runs with `--contain --bind $(pwd):/tmp` <span class="src">`nextflow.config:5`</span>.
+Every container runs with `--contain --bind $(pwd):/tmp` <span class="src">`nextflow.config:175`</span>.
 Files outside the launch directory are only visible if given by absolute path, and `/tmp`
 inside the container is the launch directory. Symptoms are `No such file` inside a process for
 a file that exists on the host, or a full filesystem when the launch directory is small. Use
@@ -125,7 +125,7 @@ RepeatMasker annotates the LTR and the internal region of an LTR retrotransposon
 hits when they are separate entries in the library, and the pipeline reports what RepeatMasker
 finds. Such an element has `n_hits=2` or `3` and is left out of the subsets that require a
 single hit (`pangenome.trusted.vcf`, and `pangenome.human.vcf` apart from the HERV-K pair rule
-<span class="src">`module/main.nf:492,514`</span>). It stays in `pangenome.vcf` with all its
+<span class="src">`module/main.nf:14,528,548-549`</span>). It stays in `pangenome.vcf` with all its
 hits listed. A library entry that holds the full element as one consensus gives one hit.
 
 ---
