@@ -735,7 +735,15 @@ process pangenie {
   # tandem repeat -- which is most polyA-tailed TE insertions -- came back
   # realigned to a different POS and lost its whole annotation at the merge.
   # -f stays: it still checks REF against the reference.
-  bcftools norm -f ${ref} -N -m- -Oz -o ${sample_name}_genotyping.vcf.gz ${sample_name}_genotyping.vcf
+  #
+  # The reheader comes first because PanGenie writes no ##contig lines at all.
+  # bcftools resolves CHROM against the header to BCF-encode a record, so norm
+  # stops on the first one -- "Invalid BCF, CONTIG id=0 not present in the
+  # header" -- and leaves a zero-byte .vcf.gz behind. The contigs come from the
+  # reference, which is the same set PanGenie-index built the graph over.
+  samtools faidx ${ref}
+  bcftools reheader -f ${ref}.fai ${sample_name}_genotyping.vcf > ${sample_name}_genotyping.contigs.vcf
+  bcftools norm -f ${ref} -N -m- -Oz -o ${sample_name}_genotyping.vcf.gz ${sample_name}_genotyping.contigs.vcf
   tabix -p vcf ${sample_name}_genotyping.vcf.gz
   """
 }
