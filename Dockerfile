@@ -73,6 +73,7 @@ cd /opt
 tar -x -f src/RepeatScout-*.tar.gz \
 && cd RepeatScout-* \
 && sed -i 's#^INSTDIR =.*#INSTDIR = /opt/RepeatScout#' Makefile \
+&& touch README \
 && make && make install \
 && cd .. && rm src/RepeatScout-*.tar.gz
 
@@ -81,9 +82,7 @@ cd /opt
 tar -x -f src/RECON-*.tar.gz \
 && mv RECON-* RECON \
 && cd RECON \
-&& make -C src && make -C src install \
-&& cp 00README bin/ \
-&& sed -i 's#^\$path =.*#$path = "/opt/RECON/bin";#' scripts/recon.pl \
+&& make  && make install \
 && cd .. && rm src/RECON-*.tar.gz
 EOF
 
@@ -166,20 +165,20 @@ cd /opt \
     -default_search_engine=rmblast \
 && cd .. && rm src/RepeatMasker-*.tar.gz
 
-# Configure RepeatModeler
-cd /opt \
-&& tar -x -f src/RepeatModeler-*.tar.gz \
-&& mv RepeatModeler-* RepeatModeler \
-&& cd RepeatModeler \
-&& perl configure \
-    -cdhit_dir=/opt/cd-hit -genometools_dir=/opt/genometools/bin \
-    -ltr_retriever_dir=/opt/LTR_retriever -mafft_dir=/opt/mafft/bin \
-    -ninja_dir=/opt/NINJA/NINJA -recon_dir=/opt/RECON/bin \
-    -repeatmasker_dir=/opt/RepeatMasker \
-    -rmblast_dir=/opt/rmblast/bin -rscout_dir=/opt/RepeatScout \
-    -trf_dir=/opt \
-    -ucsctools_dir=/opt/ucsc_tools \
-&& cd .. && rm src/RepeatModeler-*.tar.gz
+## Configure RepeatModeler
+#cd /opt \
+#&& tar -x -f src/RepeatModeler-*.tar.gz \
+#&& mv RepeatModeler-* RepeatModeler \
+#&& cd RepeatModeler \
+#&& perl configure \
+#    -cdhit_dir=/opt/cd-hit -genometools_dir=/opt/genometools/bin \
+#    -ltr_retriever_dir=/opt/LTR_retriever -mafft_dir=/opt/mafft/bin \
+#    -ninja_dir=/opt/NINJA/NINJA -recon_dir=/opt/RECON/bin \
+#    -repeatmasker_dir=/opt/RepeatMasker \
+#    -rmblast_dir=/opt/rmblast/bin -rscout_dir=/opt/RepeatScout \
+#    -trf_dir=/opt \
+#    -ucsctools_dir=/opt/ucsc_tools \
+#&& cd .. && rm src/RepeatModeler-*.tar.gz
 
 # Delete unnecessary source files.
 rm -rf /opt/src
@@ -267,6 +266,15 @@ EOF
 
 RUN <<'EOF'
 set -eux
+
+cd /tmp
+git clone --branch v1.3.2 --depth 1 https://github.com/USCiLab/cereal.git
+cd cereal
+mkdir build && cd build
+cmake -DJUST_INSTALL_CEREAL=ON ..
+make install
+cd /tmp && rm -rf cereal
+
 mkdir /metadata
 dpkg -l | grep jellyfish | tr -s " " | cut -d " " -f 2,3 > /metadata/jellyfish.lib.version
 mkdir /repos
@@ -287,11 +295,11 @@ EOF
 
 RUN <<'EOF'
 set -eux
-pip3 install numpy==1.21
+pip3 install numpy==1.24.4
+pip3 install 'pyabpoa==1.5.3'
 # truvari: the discovery merge (truvari divide, truvari collapse). pyfaidx:
 # merge_vcfs.py on the PanGenie path.
 pip3 install pysam pyparsing svim-asm pandas polars vcfpy sniffles cigar truvari pyfaidx
-pip3 check
 
 R --slave -e 'install.packages(c("XML", "dplyr", "stringr", "tidyr", "readr", "vcfR", "optparse"), repos="https://cloud.r-project.org/")'
 EOF
@@ -337,18 +345,22 @@ tar -xj -f /tmp/pypy3.tar.bz2 --strip-components=1 -C /opt/pypy3
 rm /tmp/pypy3.tar.bz2
 EOF
 
+
 RUN <<'EOF'
 set -eux
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O "${HOME}/miniconda.sh"
-bash "${HOME}/miniconda.sh" -b -p "${HOME}/miniconda"
-rm -f "${HOME}/miniconda.sh"
-"${HOME}/miniconda/bin/conda" install -y -c bioconda graphaligner
-cp "${HOME}/miniconda/bin/GraphAligner" /usr/local/bin/
-rm -rf "${HOME}/miniconda"
+wget -q https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O "${HOME}/miniforge.sh"
+bash "${HOME}/miniforge.sh" -b -p "${HOME}/miniforge"
+rm -f "${HOME}/miniforge.sh"
+"${HOME}/miniforge/bin/conda" create -y -n ga -c conda-forge -c bioconda graphaligner
+cp "${HOME}/miniforge/envs/ga/bin/GraphAligner" /usr/local/bin/
+"${HOME}/miniforge/envs/ga/bin/GraphAligner" --version
+rm -rf "${HOME}/miniforge"
 EOF
 
 RUN <<'EOF'
 set -eux
+curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.85.0
+export PATH="${HOME}/.cargo/bin:${PATH}"
 cd "${HOME}"
 git clone https://github.com/cgroza/panmethyl
 cd panmethyl/tagtobed

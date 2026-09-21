@@ -70,7 +70,6 @@ From: ubuntu:20.04
     && mv RECON-* RECON \
     && cd RECON \
     && make -C src && make -C src install \
-    && cp 00README bin/ \
     && sed -i 's#^\$path =.*#$path = "/opt/RECON/bin";#' scripts/recon.pl \
     && cd .. && rm src/RECON-*.tar.gz
 
