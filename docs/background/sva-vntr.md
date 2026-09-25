@@ -6,7 +6,7 @@ description: Why VNTR-only SVA variants are reclassified, and the per-subfamily 
 # SVA VNTR polymorphisms
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ee7da10`. The
+    Verified against `v1.1dev` at commit `3b8fd03`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
