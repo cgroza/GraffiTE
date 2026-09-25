@@ -6,7 +6,7 @@ description: Twin priming, the C/+ strand signature, and the L1_5PINV annotation
 # L1 5' inversions
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ee7da10`. The
+    Verified against `v1.1dev` at commit `3b8fd03`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -74,7 +74,7 @@ The rule runs on every dataset, not only human ones. It needs the library to nam
 | `None` | No hit on the variant matched the rule (this is also the value for variants with no hit at all). |
 | `<link ID>` | The RepeatMasker link ID of the hit flagged as inverted, the same number that appears in `RM_hit_IDs`, so the fragments can be found in `repeatmasker_dir/indels.fa.out`. Several IDs are comma-separated. |
 
-<span class="src">`bin/annotate_vcf.R:171,195`, `bin/repmask_vcf.sh:30,181`</span>
+<span class="src">`bin/annotate_vcf.R:177,213`, `bin/repmask_vcf.sh:30,181`</span>
 
 Such a variant still has `n_hits=1` when the inverted L1 is its only element, so it is eligible
 for the trusted and human subsets like any other single-hit L1. In v1.0 the field was

@@ -6,7 +6,7 @@ description: Every INFO and FORMAT tag GraffiTE writes, its meaning, and the cod
 # VCF fields
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ee7da10`. The
+    Verified against `v1.1dev` at commit `3b8fd03`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -65,14 +65,14 @@ neither as hits nor toward the TE span.
 
 | Field | Number | Type | Meaning | Source |
 |---|---|---|---|---|
-| `n_hits` | 1 | Integer | Hits on the variant sequence. `0` when RepeatMasker found nothing. | <span class="src">`bin/repmask_vcf.sh:21`, `bin/annotate_vcf.R:172`</span> |
+| `n_hits` | 1 | Integer | Hits on the variant sequence. `0` when RepeatMasker found nothing. | <span class="src">`bin/repmask_vcf.sh:21`, `bin/annotate_vcf.R:178`</span> |
 | `fragmts` | . | Integer | Fragments grouped into each hit, in hit order. | <span class="src">`bin/repmask_vcf.sh:25`, `bin/annotate_vcf.R:166`</span> |
 | `match_lengths` | . | Integer | Bases of the variant covered by each hit, first to last fragment. | <span class="src">`bin/repmask_vcf.sh:22`, `bin/annotate_vcf.R:160`</span> |
 | `repeat_ids` | . | String | Name of each hit, taken from its highest-scoring fragment. A hit whose fragments carry different names gets an `(x)` suffix. An SVA hit lying entirely inside the VNTR gets a `(VNTR_only)` suffix; see [SVA VNTR polymorphisms](../background/sva-vntr.md). | <span class="src">`bin/repmask_vcf.sh:23`, `bin/annotate_vcf.R:107-111,151-153`</span> |
 | `matching_classes` | . | String | RepeatMasker class of each hit, as `class/family` from the library (`SINE/Alu`, `LINE/L1`, `LTR/ERVK`, ...). A `(VNTR_only)` SVA hit is reported as `Simple_repeat` here. | <span class="src">`bin/repmask_vcf.sh:24`, `bin/annotate_vcf.R:109,154-156`</span> |
 | `RM_hit_strands` | . | String | Strand of each hit: `+` or `C` as RepeatMasker writes them. A hit whose fragments lie on both strands reports the concatenation (`C+`, `+C`), except an L1 with the `C+` twin-priming signature, whose strand is inferred; see [L1 5' inversions](../background/l1-5prime-inversion.md). | <span class="src">`bin/repmask_vcf.sh:26`, `bin/annotate_vcf.R:104,120-127`</span> |
 | `RM_hit_IDs` | . | String | RepeatMasker link ID of each hit, so a hit can be found again in `repeatmasker_dir/indels.fa.out`. | <span class="src">`bin/repmask_vcf.sh:27`, `bin/annotate_vcf.R:170`</span> |
-| `L1_5PINV` | . | String | Link IDs of the hits flagged as an L1 with a 5' inversion, or `None`. | <span class="src">`bin/repmask_vcf.sh:30`, `bin/annotate_vcf.R:119,171`</span> |
+| `L1_5PINV` | . | String | Link IDs of the hits flagged as an L1 with a 5' inversion, or `None`. | <span class="src">`bin/repmask_vcf.sh:30`, `bin/annotate_vcf.R:119,177`</span> |
 | `total_match_length` | 1 | Integer | Bases of the variant covered by TE hits, overlaps counted once. | <span class="src">`bin/repmask_vcf.sh:28`, `bin/repmask_vcf.sh:114-124`</span> |
 | `total_match_span` | 1 | Float | `total_match_length` divided by the variant length. Written for continuity with v1.0, where it was the filter metric; nothing in v1.1 filters on it. | <span class="src">`bin/repmask_vcf.sh:29,121-124`</span> |
 | `ULTRA_TR` | 1 | Integer | Bases of the variant that ULTRA annotates as tandem repeat, overlaps counted once. `0` when ULTRA found nothing. | <span class="src">`bin/repmask_vcf.sh:31,102-104`</span> |
@@ -82,7 +82,7 @@ neither as hits nor toward the TE span.
 A record without any hit has `n_hits=0`, `repeat_ids=None`, `matching_classes=None`,
 `RM_hit_strands=None`, `RM_hit_IDs=None` and `L1_5PINV=None`; such records fail the span filter
 unless ULTRA covers them.
-<span class="src">`bin/annotate_vcf.R:188-195`</span>
+<span class="src">`bin/annotate_vcf.R:205-213`</span>
 
 ## TSD and polyA fields
 
