@@ -197,6 +197,7 @@ wget -q https://github.com/conda-forge/miniforge/releases/latest/download/Minifo
 bash "${HOME}/miniforge.sh" -b -p "${HOME}/miniforge"
 rm -f "${HOME}/miniforge.sh"
 "${HOME}/miniforge/bin/conda" create -y -n ga -c conda-forge -c bioconda graphaligner
+cp -r ${HOME}/miniforge/envs/ga/lib/* /usr/local/lib/
 cp "${HOME}/miniforge/envs/ga/bin/GraphAligner" /usr/local/bin/
 "${HOME}/miniforge/envs/ga/bin/GraphAligner" --version
 rm -rf "${HOME}/miniforge"
