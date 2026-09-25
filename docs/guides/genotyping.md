@@ -8,7 +8,7 @@ description: >-
 # Stage C: genotyping
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -97,7 +97,7 @@ See [Resuming and skipping work](skipping-work.md) for what each of those inputs
 
 ## PanGenie
 
-Two processes <span class="src">`module/main.nf:680-721`</span>.
+Two processes <span class="src">`module/main.nf:692-749`</span>.
 
 **`pangenie_index`**, once per run:
 
@@ -122,9 +122,14 @@ The table is published as `4_Genotyping/pangenie_graph_variants.tsv`, columns `r
 allele's `graph_ID` to `INFO/ID` of the genotyped VCFs, so the table is how a `pangenome.vcf`
 record is found in them <span class="src">`bin/pangenie_graph_vcf.py:18-21,25`</span>.
 
-**`pangenie`**, once per sample: `PanGenie -s <sample> -i <(zcat -f reads) -f pangenie_index`,
-then `bcftools norm -f ref -m-` splits the multi-allelic genotypes back into one record per
-GraffiTE variant, so that they match `pangenome.vcf` one for one when the merge transfers INFO.
+**`pangenie`**, once per sample: `PanGenie -s <sample> -i <(zcat -f reads) -f pangenie_index`.
+PanGenie writes no `##contig` lines, so `samtools faidx <ref>` and `bcftools reheader -f
+<ref>.fai` add the reference contigs to its header first. Without them, `bcftools norm` stops on
+the first record and leaves a zero-byte `.vcf.gz`. Then `bcftools norm -f ref -N -m-` splits the
+multi-allelic genotypes back into one record per GraffiTE variant, so that they match
+`pangenome.vcf` one for one when the merge transfers INFO. `-N` keeps the position, since `-f`
+turns on left-alignment as well as splitting and a realigned insertion matches nothing at the
+merge <span class="src">`module/main.nf:726-747`</span>.
 The result is published as `4_Genotyping/<sample>_genotyping.vcf.gz` with its index. The
 reference is passed as a value channel; as a queue channel it held one item, and PanGenie ran
 for one sample and stopped <span class="src">`main.nf:194-197`</span>.
@@ -216,7 +221,7 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
    Allele comparison ignores case, which matters because `pangenome.vcf` carries soft-masked
    lowercase bases and the graph upper-cases them. A record that matches nothing keeps whatever
    the genotyper gave it and arrives with no annotation
-   <span class="src">`module/main.nf:420-426`</span>.
+   <span class="src">`module/main.nf:880`</span>.
 3. The `##GraffiTE_version` header line is added.
 
 Published as `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz`. No `.tbi` is published for it: the

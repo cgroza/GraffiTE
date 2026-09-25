@@ -6,7 +6,7 @@ description: How candidate SVs are scanned with RepeatMasker and ULTRA, filtered
 # Stage B: repeat annotation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -93,7 +93,7 @@ parallel jobs (RepeatMasker uses four threads per job):
 RepeatMasker -lib ${TE_library} -s -dir repeatmasker_dir -pa $(( $(nproc) / 4 )) indels.fa
 ```
 
-v1.0 passed `-nolow` here. It was removed on 2025-01-01 because it produced spurious
+v1.0 passed `-nolow` here. It was removed on 2025-10-01 because it produced spurious
 low-complexity hits; simple repeats are still masked, then set aside by the annotation.
 
 **ULTRA**, on every core, to find tandem repeats whether or not RepeatMasker called them
@@ -146,7 +146,7 @@ looks for an exact duplication of 4 to 20 bp that sits close to the junctions. A
 passes is written as `INFO/TSD`, as its two copies. The search runs on every variant, whatever
 its `n_hits`. The procedure, the scoring and the log format are in
 [Target site duplications](../background/tsd.md).
-<span class="src">`module/main.nf:629-674`, `nextflow.config:49`</span>
+<span class="src">`module/main.nf:643-687`, `nextflow.config:49`</span>
 
 ## polyA annotation
 
@@ -163,7 +163,7 @@ fixed in the script.
 
 Without `--human`, `concat_repeatmask` also writes `pangenome.trusted.vcf`, the records that pass
 this `bcftools view -i` expression, with the defaults filled in:
-<span class="src">`module/main.nf:492-493,564`</span>
+<span class="src">`module/main.nf:13-15,20-23,578`</span>
 
 ```text
 n_hits==1

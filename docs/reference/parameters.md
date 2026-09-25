@@ -8,7 +8,7 @@ description: >-
 # Parameters
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -102,14 +102,16 @@ See [Stage A: discovery](../guides/discovery.md) for what each backend does.
 ### The trusted subset
 
 Without `--human`, GraffiTE writes `pangenome.trusted.vcf`, a conservative subset of
-`pangenome.vcf`. These parameters define it. They do nothing when `--human` is set, because
-`--human` replaces the trusted subset instead of narrowing it.
+`pangenome.vcf`. These parameters define it. With `--human`, GraffiTE writes neither
+`pangenome.trusted.vcf` nor `GraffiTE.merged.genotypes.trusted.vcf.gz`, because `--human` replaces
+the trusted subset instead of narrowing it. `genotyping_audit` still reads all three on every
+genotyping run to fill the `trusted` column of `genotyping_record_audit.tsv`.
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--trusted_min_svlen` | `250` (bp) | Minimum \|SVLEN\|. Sized for insertions; it truncates the `SVA_*(VNTR_only)` records, whose unit is about 49 bp. See [SVA VNTR polymorphisms](../background/sva-vntr.md#the-subsets-truncate-this-set). | <span class="src">`nextflow.config:57`, `module/main.nf:492`</span> |
-| `--trusted_max_ultra_span` | `0.6` (fraction of variant length) | Maximum `ULTRA_TR_span`; rejects variants that are mostly tandem repeat. Records whose class is `Simple_repeat` bypass it. | <span class="src">`nextflow.config:58`, `module/main.nf:492`</span> |
-| `--trusted_ignore_filter` | `false` | When true, the record no longer needs `FILTER=PASS` from the upstream caller. | <span class="src">`nextflow.config:59`, `module/main.nf:493`</span> |
+| `--trusted_min_svlen` | `250` (bp) | Minimum \|SVLEN\|. Sized for insertions; it truncates the `SVA_*(VNTR_only)` records, whose unit is about 49 bp. See [SVA VNTR polymorphisms](../background/sva-vntr.md#the-subsets-truncate-this-set). | <span class="src">`nextflow.config:57`, `module/main.nf:14`</span> |
+| `--trusted_max_ultra_span` | `0.6` (fraction of variant length) | Maximum `ULTRA_TR_span`; rejects variants that are mostly tandem repeat. Records whose class is `Simple_repeat` bypass it. | <span class="src">`nextflow.config:58`, `module/main.nf:14`</span> |
+| `--trusted_ignore_filter` | `false` | When true, the record no longer needs `FILTER=PASS` from the upstream caller. | <span class="src">`nextflow.config:59`, `module/main.nf:22`</span> |
 
 The full expression also requires `n_hits==1`, and requires `polyA="TRUE"` for the LINE, SINE and
 Retroposon classes. See [Stage B: annotation](../guides/annotation.md).
@@ -225,7 +227,7 @@ See [Methylation](../guides/methylation.md).
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--cores` | `false` | An integer here overrides the `cpus` of every process that reads a `*_threads` parameter, and the `32` of `pav_asm`. The processes fixed at one CPU are unaffected. | <span class="src">`nextflow.config:50,176-326`</span> |
+| `--cores` | `false` | An integer here overrides the `cpus` of every process that reads a `*_threads` parameter, and the `32` of `pav_asm`. The processes fixed at one CPU are unaffected. | <span class="src">`nextflow.config:50,178-344`</span> |
 | `--out` | `"out"` | Root of the published output tree. | <span class="src">`nextflow.config:48`</span> |
 | `--container_tmp` | `false` | Directory bound to `/tmp` inside the container. The launch directory when unset. Set it when the launch filesystem is small, slow, or unwritable from the container. | <span class="src">`nextflow.config:46,175`</span> |
 
@@ -275,8 +277,8 @@ Memory and time values are Nextflow strings (`"10G"`, `"12h"`). Where one parame
 | `--vg_call_threads` | `1` | `vg_call` | <span class="src">`nextflow.config:160,269`</span> |
 | `--vg_call_memory` | `null` | `vg_call` | <span class="src">`nextflow.config:159,270`</span> |
 | `--vg_call_time` | `"2h"` | `vg_call` | <span class="src">`nextflow.config:161,271`</span> |
-| `--merge_vcf_memory` | `"10G"` | `merge_VCFs` (one CPU) | <span class="src">`nextflow.config:141,275`</span> |
-| `--merge_vcf_time` | `"1h"` | `merge_VCFs` | <span class="src">`nextflow.config:142,276`</span> |
+| `--merge_vcf_memory` | `"10G"` | `merge_VCFs`, `trusted_genotypes`, `genotyping_audit` (one CPU each) | <span class="src">`nextflow.config:141,275,280,285`</span> |
+| `--merge_vcf_time` | `"1h"` | same | <span class="src">`nextflow.config:142,276,281,286`</span> |
 
 `break_scaffold` runs on one CPU with no memory or time directive. The eight methylation processes
 have fixed allocations of 40 to 60 GB and 6 h that no parameter changes. See

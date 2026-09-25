@@ -8,7 +8,7 @@ description: >-
 # Resources and scaling
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -68,18 +68,19 @@ See also the
 `--cores N` sets `cpus` to `N` for every process whose CPU count is configurable, in place of all
 the `*_threads` parameters, and replaces the `32` that `pav_asm` asks for. Set it for a quick run
 on one machine; set the individual parameters for a cluster, where a lone `bcftools` step does
-not need the 40 CPUs an alignment does. <span class="src">`nextflow.config:50,176-326`</span>
+not need the 40 CPUs an alignment does. <span class="src">`nextflow.config:50,178-344`</span>
 
-Processes pinned to one CPU ignore it: `break_scaffold`, `tsd_prep`, `tsd_search`, `tsd_report`,
-`merge_VCFs`, `hervk_reconcile`, and the eight methylation processes.
-<span class="src">`nextflow.config:179-181,227-241,273-277,293-337`</span>
+Processes with a hardcoded `cpus` ignore it: `break_scaffold`, `tsd_prep`, `tsd_search`,
+`tsd_report`, `merge_VCFs`, `trusted_genotypes`, `genotyping_audit`, `hervk_reconcile`, and the
+eight methylation processes. All are pinned to one CPU except `bamtags_to_BED`, which asks for two.
+<span class="src">`nextflow.config:179-181,227-241,273-287,293-337`</span>
 
 ## Per-process allocation
 
 Each `withName` block in `nextflow.config` reads a `*_threads`, `*_memory` and `*_time`
 parameter. Memory and time are Nextflow strings such as `"40G"` and `"12h"`. A memory default of
 `null` means the process declares no memory requirement at all; on a scheduler that needs one, set
-it. <span class="src">`nextflow.config:123-161,171-327`</span>
+it. <span class="src">`nextflow.config:123-161,178-344`</span>
 
 | Process | CPUs | Memory | Time | Source |
 |---|---|---|---|---|

@@ -6,7 +6,7 @@ description: The exact CSV columns each GraffiTE samplesheet parameter reads, wi
 # Samplesheet formats
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -80,8 +80,10 @@ HG002,/data/HG002.sv.vcf.gz
 ```
 
 Nothing on this path filters by `SVTYPE`, so anything other than insertions and deletions
-reaches RepeatMasker. The other discovery backends keep `INS` and `DEL` only.
-<span class="src">`module/main.nf:123,178`</span>
+reaches RepeatMasker. Of the other discovery backends, Sniffles2 and svim-asm keep `INS` and `DEL`
+only; `pav_asm` filters on `|SVLEN| > 50` alone, so PAV records of any other type above that size
+reach the merge as well.
+<span class="src">`module/main.nf:123,161,178`</span>
 
 ## `--genotype_with`
 

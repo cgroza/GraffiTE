@@ -8,7 +8,7 @@ description: >-
 # Stage A: discovery
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -253,11 +253,17 @@ For the multi-sample case:
 
 ## What Stage A does not do
 
-- **No size ceiling.** The 100 bp floor comes from svim-asm and Sniffles2; nothing caps the top end.
+- **No size ceiling.** The 100 bp floor comes from svim-asm and Sniffles2; on the PAV path the
+  floor is GraffiTE's own \|SVLEN\| > 50 filter. Nothing caps the top end.
 - **No repeat awareness.** Stage A is a plain SV caller pipeline. Nothing here knows what a TE is.
   That is entirely [Stage B](annotation.md).
-- **Only INS and DEL survive**, and only from the callers GraffiTE drives. If you supply your own
-  VCFs via `--svs`, other SV types are passed through unfiltered.
+- **INS and DEL only from svim-asm and Sniffles2.** `svim_asm` runs svim-asm with
+  `--types INS,DEL` <span class="src">`module/main.nf:178`</span>, and
+  `sniffles_population_call` keeps only `SVTYPE == INS` or `SVTYPE == DEL`
+  <span class="src">`module/main.nf:123`</span>. `pav_asm` filters on size alone,
+  \|SVLEN\| > 50 <span class="src">`module/main.nf:161`</span>, and VCFs given with `--svs`
+  go to the merge unfiltered, so records of any other SV type reaching the merge by those two
+  routes end up in `SVs.vcf`.
 
 ---
 

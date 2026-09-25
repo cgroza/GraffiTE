@@ -6,7 +6,7 @@ description: Every INFO and FORMAT tag GraffiTE writes, its meaning, and the cod
 # VCF fields
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -17,12 +17,14 @@ Which files carry which group is in [Output files](outputs.md).
 ## Reading a GraffiTE VCF record
 
 GraffiTE writes standard VCF 4.2 with sequence-resolved alleles. One record from the
-`pangenome.human.vcf` of a three-sample PAV run, the ALT sequence and the PAV-specific INFO
-fields shortened:
+`pangenome.human.vcf` of a three-sample PAV run, the ALT sequence shortened. Three input VCFs take
+the truvari collapse path, which strips every upstream INFO field before the merge and puts only
+`SVLEN` back, so no PAV INFO field survives. PAV's ID is in the ID column.
+<span class="src">`module/main.nf:219,256`</span>
 
 ```text
 chr1  18081  chr1-18082-INS-315_10  t  tAGAAGGAATAAGACGGGCCGGGT...  .  PASS
-      ID=chr1-18082-INS-315;SVTYPE=INS;SVLEN=315;HAP=h2;...;NumCollapsed=4;CollapseId=5.0;
+      SVLEN=315;NumCollapsed=4;CollapseId=5.0;
       n_hits=1;fragmts=1;match_lengths=298;repeat_ids=AluY;matching_classes=SINE/Alu;
       RM_hit_strands=+;RM_hit_IDs=72004;L1_5PINV=None;total_match_length=300;
       total_match_span=0.949367;ULTRA_TR=37;ULTRA_TR_span=0.117089;
@@ -32,14 +34,20 @@ chr1  18081  chr1-18082-INS-315_10  t  tAGAAGGAATAAGACGGGCCGGGT...  .  PASS
 
 | Column | What GraffiTE puts there | Source |
 |---|---|---|
-| `ID` column | The caller's ID, with `_<n>` appended after the truvari merge (`n` is the record's rank in `SVs.vcf`): `chr1-18082-INS-315_10` above is PAV's `chr1-18082-INS-315`, tenth in the merge. svim-asm IDs are prefixed with the assembly name (`HG002_mat.svim_asm.INS.12`). With `--vcf` the IDs pass through unchanged. An ID longer than 50 characters stops Stage B. | <span class="src">`module/main.nf:179,257`, `bin/shorten_ids.py:21`, `bin/repmask_vcf.sh:42-45`</span> |
+| `ID` column | The caller's ID, with `_<n>` appended after the truvari merge (`n` is the record's zero-based position in `SVs.vcf`, so the first record gets `_0`): `chr1-18082-INS-315_10` above is PAV's `chr1-18082-INS-315`, the eleventh record in the merge. svim-asm IDs are prefixed with the assembly name (`HG002_mat.svim_asm.INS.12`). With `--vcf` the IDs pass through unchanged. An ID longer than 50 characters stops Stage B. | <span class="src">`module/main.nf:179,257`, `bin/shorten_ids.py:21`, `bin/repmask_vcf.sh:42-45`</span> |
 | `REF` and `ALT` columns | Sequence-resolved. For an insertion `REF` is the anchor base and `ALT` is that base plus the inserted sequence; for a deletion `REF` is the anchor base plus the deleted reference interval, re-read from the reference FASTA, and `ALT` is the anchor base. Symbolic `<INS>` and `<DEL>` records from Sniffles2 are dropped in Stage A. | <span class="src">`bin/fix_vcf.py:33-44`, `module/main.nf:123`</span> |
 | `FILTER` column | Whatever the SV caller wrote. GraffiTE defines no FILTER of its own; see [Fields inherited from upstream callers](#fields-inherited-from-upstream-callers). | <span class="src">`module/main.nf:569`</span> |
 | Sample columns | In `pangenome.vcf`, one column per Stage A sample, holding the genotype its caller wrote (PAV writes phased diploid calls, as above). A genotype missing after the merge is set to `0`. In `GraffiTE.merged.genotypes.vcf.gz`, one column per read set from `--genotype_with`. | <span class="src">`module/main.nf:255`, `module/main.nf:872`</span> |
 
-Every VCF GraffiTE publishes carries a `##GraffiTE_version=` line right after `##fileformat`, with
-the content of `version.txt` (`1.1.0`).
-<span class="src">`module/main.nf:387,610,881`</span>
+`concat_repeatmask`, `hervk_annotate` and `merge_VCFs` each write a `##GraffiTE_version=` line,
+holding the content of `version.txt` (`1.1.0`), immediately after `##fileformat`. Between them they
+stamp `pangenome.vcf`, `pangenome.trusted.vcf`, `pangenome.human.vcf`,
+`pangenome.human.consolidated.vcf` and `GraffiTE.merged.genotypes.vcf.gz`; `bcftools view` and
+`hervk_classify.py` copy the header whole, so `GraffiTE.merged.genotypes.trusted.vcf.gz` and
+`hervk_candidates.vcf` carry the line too. The VCFs published earlier, the per-caller calls and
+`SVs.vcf` in `1_SV_search` and `genotypes_repmasked_filtered.vcf` in `2_Repeat_Filtering`, have
+none.
+<span class="src">`module/main.nf:386-388,608-611,881`</span>
 
 !!! warning "The ALT allele is not the element"
     For a `DEL` record the transposable element is in the reference and an `ALT` genotype means
@@ -57,19 +65,19 @@ neither as hits nor toward the TE span.
 
 | Field | Number | Type | Meaning | Source |
 |---|---|---|---|---|
-| `n_hits` | 1 | Integer | Hits on the variant sequence. `0` when RepeatMasker found nothing. | <span class="src">`bin/repmask_vcf.sh:125`, `bin/annotate_vcf.R:172`</span> |
-| `fragmts` | . | Integer | Fragments grouped into each hit, in hit order. | <span class="src">`bin/repmask_vcf.sh:129`, `bin/annotate_vcf.R:166`</span> |
-| `match_lengths` | . | Integer | Bases of the variant covered by each hit, first to last fragment. | <span class="src">`bin/repmask_vcf.sh:126`, `bin/annotate_vcf.R:160`</span> |
-| `repeat_ids` | . | String | Name of each hit, taken from its highest-scoring fragment. A hit whose fragments carry different names gets an `(x)` suffix. An SVA hit lying entirely inside the VNTR gets a `(VNTR_only)` suffix; see [SVA VNTR polymorphisms](../background/sva-vntr.md). | <span class="src">`bin/repmask_vcf.sh:127`, `bin/annotate_vcf.R:107-111,151-153`</span> |
-| `matching_classes` | . | String | RepeatMasker class of each hit, as `class/family` from the library (`SINE/Alu`, `LINE/L1`, `LTR/ERVK`, ...). A `(VNTR_only)` SVA hit is reported as `Simple_repeat` here. | <span class="src">`bin/repmask_vcf.sh:128`, `bin/annotate_vcf.R:109,154-156`</span> |
-| `RM_hit_strands` | . | String | Strand of each hit: `+` or `C` as RepeatMasker writes them. A hit whose fragments lie on both strands reports the concatenation (`C+`, `+C`), except an L1 with the `C+` twin-priming signature, whose strand is inferred; see [L1 5' inversions](../background/l1-5prime-inversion.md). | <span class="src">`bin/repmask_vcf.sh:130`, `bin/annotate_vcf.R:104,120-127`</span> |
-| `RM_hit_IDs` | . | String | RepeatMasker link ID of each hit, so a hit can be found again in `repeatmasker_dir/indels.fa.out`. | <span class="src">`bin/repmask_vcf.sh:131`, `bin/annotate_vcf.R:170`</span> |
-| `L1_5PINV` | . | String | Link IDs of the hits flagged as an L1 with a 5' inversion, or `None`. | <span class="src">`bin/repmask_vcf.sh:134`, `bin/annotate_vcf.R:119,171`</span> |
-| `total_match_length` | 1 | Integer | Bases of the variant covered by TE hits, overlaps counted once. | <span class="src">`bin/repmask_vcf.sh:132`, `bin/repmask_vcf.sh:114-124`</span> |
-| `total_match_span` | 1 | Float | `total_match_length` divided by the variant length. Written for continuity with v1.0, where it was the filter metric; nothing in v1.1 filters on it. | <span class="src">`bin/repmask_vcf.sh:133,71`</span> |
-| `ULTRA_TR` | 1 | Integer | Bases of the variant that ULTRA annotates as tandem repeat, overlaps counted once. `0` when ULTRA found nothing. | <span class="src">`bin/repmask_vcf.sh:135,49-51`</span> |
-| `ULTRA_TR_span` | 1 | Float | `ULTRA_TR` divided by the variant length, capped at 1. | <span class="src">`bin/repmask_vcf.sh:136,82-84`</span> |
-| `total_repeat_span` | 1 | Float | Fraction of the variant covered by the union of TE hits and ULTRA intervals, capped at 1. This is the Stage B filter metric: records at or below `--repeat_span_cutoff` (default `0.80`) are discarded. | <span class="src">`bin/repmask_vcf.sh:137,86-94`, `module/main.nf:557,639`</span> |
+| `n_hits` | 1 | Integer | Hits on the variant sequence. `0` when RepeatMasker found nothing. | <span class="src">`bin/repmask_vcf.sh:21`, `bin/annotate_vcf.R:172`</span> |
+| `fragmts` | . | Integer | Fragments grouped into each hit, in hit order. | <span class="src">`bin/repmask_vcf.sh:25`, `bin/annotate_vcf.R:166`</span> |
+| `match_lengths` | . | Integer | Bases of the variant covered by each hit, first to last fragment. | <span class="src">`bin/repmask_vcf.sh:22`, `bin/annotate_vcf.R:160`</span> |
+| `repeat_ids` | . | String | Name of each hit, taken from its highest-scoring fragment. A hit whose fragments carry different names gets an `(x)` suffix. An SVA hit lying entirely inside the VNTR gets a `(VNTR_only)` suffix; see [SVA VNTR polymorphisms](../background/sva-vntr.md). | <span class="src">`bin/repmask_vcf.sh:23`, `bin/annotate_vcf.R:107-111,151-153`</span> |
+| `matching_classes` | . | String | RepeatMasker class of each hit, as `class/family` from the library (`SINE/Alu`, `LINE/L1`, `LTR/ERVK`, ...). A `(VNTR_only)` SVA hit is reported as `Simple_repeat` here. | <span class="src">`bin/repmask_vcf.sh:24`, `bin/annotate_vcf.R:109,154-156`</span> |
+| `RM_hit_strands` | . | String | Strand of each hit: `+` or `C` as RepeatMasker writes them. A hit whose fragments lie on both strands reports the concatenation (`C+`, `+C`), except an L1 with the `C+` twin-priming signature, whose strand is inferred; see [L1 5' inversions](../background/l1-5prime-inversion.md). | <span class="src">`bin/repmask_vcf.sh:26`, `bin/annotate_vcf.R:104,120-127`</span> |
+| `RM_hit_IDs` | . | String | RepeatMasker link ID of each hit, so a hit can be found again in `repeatmasker_dir/indels.fa.out`. | <span class="src">`bin/repmask_vcf.sh:27`, `bin/annotate_vcf.R:170`</span> |
+| `L1_5PINV` | . | String | Link IDs of the hits flagged as an L1 with a 5' inversion, or `None`. | <span class="src">`bin/repmask_vcf.sh:30`, `bin/annotate_vcf.R:119,171`</span> |
+| `total_match_length` | 1 | Integer | Bases of the variant covered by TE hits, overlaps counted once. | <span class="src">`bin/repmask_vcf.sh:28`, `bin/repmask_vcf.sh:114-124`</span> |
+| `total_match_span` | 1 | Float | `total_match_length` divided by the variant length. Written for continuity with v1.0, where it was the filter metric; nothing in v1.1 filters on it. | <span class="src">`bin/repmask_vcf.sh:29,121-124`</span> |
+| `ULTRA_TR` | 1 | Integer | Bases of the variant that ULTRA annotates as tandem repeat, overlaps counted once. `0` when ULTRA found nothing. | <span class="src">`bin/repmask_vcf.sh:31,102-104`</span> |
+| `ULTRA_TR_span` | 1 | Float | `ULTRA_TR` divided by the variant length, capped at 1. | <span class="src">`bin/repmask_vcf.sh:32,135-137`</span> |
+| `total_repeat_span` | 1 | Float | Fraction of the variant covered by the union of TE hits and ULTRA intervals, capped at 1. This is the Stage B filter metric: records at or below `--repeat_span_cutoff` (default `0.80`) are discarded. | <span class="src">`bin/repmask_vcf.sh:33,142-147`, `module/main.nf:557,639`</span> |
 
 A record without any hit has `n_hits=0`, `repeat_ids=None`, `matching_classes=None`,
 `RM_hit_strands=None`, `RM_hit_IDs=None` and `L1_5PINV=None`; such records fail the span filter
@@ -194,7 +202,7 @@ frequency alone, because `AN` below `2N` deflates the denominator without touchi
 
 | Field | Number | Type | Meaning | Source |
 |---|---|---|---|---|
-| `GT` | 1 | String | Genotype. In `pangenome.vcf` it is the discovery genotype: `1` or `0` per haploid assembly, or the diploid call from Sniffles2. In the genotyped VCFs it is what PanGenie or `vg call` wrote for each read set. | <span class="src">`bin/repmask_vcf.sh:138`, `bin/merge_vcfs.py:521`</span> |
+| `GT` | 1 | String | Genotype. In `pangenome.vcf` it is the discovery genotype: `1` or `0` per haploid assembly, or the diploid call from Sniffles2. In the genotyped VCFs it is what PanGenie or `vg call` wrote for each read set. | <span class="src">`bin/repmask_vcf.sh:34`, `bin/merge_vcfs.py:521`</span> |
 
 PanGenie and `vg call` add their own FORMAT fields (genotype quality, depth, likelihoods) with
 their own header lines; GraffiTE passes them through unchanged. Which ones appear depends on the
@@ -203,18 +211,20 @@ version of those tools in the container, so they are not listed here.
 ## Fields inherited from upstream callers
 
 `SVTYPE`, `SVLEN` and `END` come from the SV caller. With more than one input VCF every upstream
-INFO field is stripped before the truvari merge, and `truvari collapse` adds `NumCollapsed`,
-`NumConsolidated` and `CollapseId`; with a single input VCF the caller's INFO fields (PAV's `HAP`,
-`QRY_REGION` and so on in the record above) are kept. `SVLEN` is then recomputed as
-`strlen(ALT) - strlen(REF)` for every record, so it is negative for a deletion, and `abs(SVLEN)`
-is what the trusted and human filters test.
-<span class="src">`module/main.nf:196-206,241,492,508`</span>
+INFO field is stripped before the truvari merge, `truvari collapse` adds `NumCollapsed`,
+`NumConsolidated` and `CollapseId`, and `bcftools +fill-tags` recomputes `SVLEN` as
+`strlen(ALT) - strlen(REF)` after the collapse, so it is negative for a deletion; with a single
+input VCF the caller's INFO fields (PAV's `HAP`, `QRY_REGION` and so on) are kept. On a
+`--vcf` run, and on a run whose callers produce a single VCF, `truvari_merge` only copies or
+decompresses the input into `SVs.vcf`, and `SVLEN` stays whatever the caller wrote, sign convention
+included. `abs(SVLEN)` is what the trusted and human filters test either way.
+<span class="src">`module/main.nf:14,196-203,213-214,219,237-240,256,522`</span>
 
 GraffiTE defines no `##FILTER` line and never sets `FILTER` itself. `pangenome.vcf` retains the
 value the caller wrote, and the caller's `##FILTER` definitions (PAV's `TRIM`, `COMPOUND`,
 `QRY_FILTER` and `SVLEN`, for instance) travel with it. The trusted and human subsets require
 `PASS` unless `--trusted_ignore_filter` or `--human_ignore_filter` is set.
-<span class="src">`module/main.nf:493,537,555`</span>
+<span class="src">`module/main.nf:22,551,569`</span>
 
 One field is defined for the PanGenie graph and comes back in the genotyped VCFs:
 

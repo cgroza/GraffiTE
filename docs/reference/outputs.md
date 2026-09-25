@@ -6,7 +6,7 @@ description: Every file GraffiTE publishes, which process produces it, and what 
 # Output files
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -102,8 +102,8 @@ flowchart LR
 
 ## 1_SV_search
 
-Stage A output. Present whenever discovery ran, so absent with `--vcf`, `--RM_dir` and
-`--graffite_vcf`.
+Stage A output. Present whenever discovery ran, and with `--vcf`, where the directory holds
+only `SVs.vcf`. Absent with `--RM_dir` and `--graffite_vcf`: neither runs the merge.
 
 | File | Contents | Source |
 |---|---|---|
@@ -126,7 +126,7 @@ reads back in to skip Stage B's masking step.
 |---|---|---|
 | `genotypes_repmasked_filtered.vcf` | The contig's records that passed `total_repeat_span > --repeat_span_cutoff`, with the repeat annotation fields. The TSD search reads this file. | <span class="src">`module/main.nf:639`</span> |
 | `genotypes_repmasked.vcf.gz` | The same records before the span filter, so a dropped variant can be inspected. | <span class="src">`module/main.nf:638`</span> |
-| `repeatmasker_dir/` | RepeatMasker's own output on `indels.fa`, the FASTA of every variant's inserted or deleted sequence: `indels.fa.out` is the table `annotate_vcf.R` parses, and the `RM_hit_IDs` field points into its last column. | <span class="src">`bin/repmask_vcf.sh:18-32`</span> |
+| `repeatmasker_dir/` | RepeatMasker's own output on `indels.fa`, the FASTA of every variant's inserted or deleted sequence: `indels.fa.out` is the table `annotate_vcf.R` parses, and the `RM_hit_IDs` field points into its last column. | <span class="src">`bin/repmask_vcf.sh:37-39,47-48,75,77,108`</span> |
 | `ultra_out.bed` | ULTRA's tandem repeat intervals, one BED line per repeat, the variant ID as the sequence name. | <span class="src">`bin/repmask_vcf.sh:92-98`</span> |
 | `ultra_out.span` | Non-redundant tandem-repeat bases per variant. | <span class="src">`bin/repmask_vcf.sh:102-104`</span> |
 | `ultra_out.stats` | Variant ID, `ULTRA_TR`, `ULTRA_TR_span`. | <span class="src">`bin/repmask_vcf.sh:135-137`</span> |
@@ -146,8 +146,8 @@ under `--human`, `hervk_annotate` writes its own files into the same directory a
 | File | Contents | Source |
 |---|---|---|
 | `pangenome.vcf` | Every variant from every contig that passed the span filter, with REF and ALT re-read from the reference, `TSD` and `polyA` added, and the caller's `FILTER` kept. This file induces the pangenome graph, so nothing downstream modifies it. | <span class="src">`module/main.nf:555-570`</span> |
-| `pangenome.trusted.vcf` | Default runs only. The records of `pangenome.vcf` that pass the trusted-subset expression in [Stage B](../guides/annotation.md). Not written under `--human`. | <span class="src">`module/main.nf:492-493,561-565`</span> |
-| `pangenome.human.vcf` | `--human` only. The records that pass the pME filter in [Human MEIs](../guides/human-mei.md), with the HERV-K classifier fields and locus flags added by `hervk_annotate`. This file, not the consolidated one, is what the graph is built from under `--human`. | <span class="src">`module/main.nf:585`, `module/main.nf:289,360-365`</span> |
+| `pangenome.trusted.vcf` | Default runs only. The records of `pangenome.vcf` that pass the trusted-subset expression in [Stage B](../guides/annotation.md). Not written under `--human`. | <span class="src">`module/main.nf:13-22,575-579`</span> |
+| `pangenome.human.vcf` | `--human` only. The records that pass the pME filter in [Human MEIs](../guides/human-mei.md), with the HERV-K classifier fields and locus flags added by `hervk_annotate`. `make_graph` and `pangenie_index` take `pangenome.vcf`, not this file, so the graph is the same under `--human`. `hervk_reconcile` reads this file to consolidate HERV-K loci in the genotyped VCF. | <span class="src">`module/main.nf:585`, `module/main.nf:289,361-365`, `main.nf:159,193,205,280`</span> |
 | `pangenome.human.consolidated.vcf` | `--human` only. `pangenome.human.vcf` with each HERV-K locus collapsed onto one multi-allelic record, genotypes taken from the assemblies. | <span class="src">`module/main.nf:378-384`</span> |
 | `pangenome.presence-absence.tsv`, `..._trusted.tsv`, `..._human.tsv` | Flat tables of the matching VCF; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:573,579,586`</span> |
 | `human_filter_summary.txt` | `--human` only. The exact `bcftools view -i` expression that was applied, record counts before and after, and the kept and dropped `(matching_classes, repeat_ids)` combinations with their counts. | <span class="src">`module/main.nf:588-603`</span> |
@@ -167,8 +167,8 @@ Stage C's deliverables, present when `--genotype` is true (the default).
 
 | File | Contents | Source |
 |---|---|---|
-| `pangenie_graph_variants.tsv` | PanGenie method only. One row per ALT allele of `pangenome.vcf`: `record`, `CHROM`, `POS`, `pangenome_ID`, `allele`, `graph_ID`, `in_graph`, `note`. `graph_ID` is what PanGenie writes to `INFO/ID` of the genotyped VCFs; `in_graph=no` marks alleles `merge_vcfs.py` left out of the graph. | <span class="src">`module/main.nf:693,701,705-708`, `bin/pangenie_graph_vcf.py:25`</span> |
-| `<sample>_genotyping.vcf.gz`, `.tbi` | PanGenie method only. Each read set's genotypes, split to one ALT per record so they match `pangenome.vcf` one for one. | <span class="src">`module/main.nf:703,710-719`</span> |
+| `pangenie_graph_variants.tsv` | PanGenie method only. One row per ALT allele of `pangenome.vcf`: `record`, `CHROM`, `POS`, `pangenome_ID`, `allele`, `graph_ID`, `in_graph`, `note`. `graph_ID` is what PanGenie writes to `INFO/ID` of the genotyped VCFs; `in_graph=no` marks alleles `merge_vcfs.py` left out of the graph. | <span class="src">`module/main.nf:693,702,705-708`, `bin/pangenie_graph_vcf.py:25`</span> |
+| `<sample>_genotyping.vcf.gz`, `.tbi` | PanGenie method only. Each read set's genotypes, split to one ALT per record so they match `pangenome.vcf` one for one. | <span class="src">`module/main.nf:715,722,726,744-747`</span> |
 | `GraffiTE.merged.genotypes.vcf.gz` | All read sets merged into one VCF, one column per sample, with every INFO field of `pangenome.vcf` copied onto the matching record by position and alleles. The headline genotyped file. No `.tbi` is published for it; run `tabix -p vcf` on it before random access. | <span class="src">`module/main.nf:860-882`</span> |
 | `GraffiTE.merged.genotypes.trusted.vcf.gz`, `.tbi` | Not written under `--human`. The records of the merged genotypes whose `pangenome.vcf` counterpart passes the trusted-subset expression, so every record has one repeat class. Subset by ID, because the expression tests `FILTER` and `merge_VCFs` does not transfer it. | <span class="src">`module/main.nf:909-939`</span> |
 | `GraffiTE.merged.genotypes.presence-absence_trusted.tsv` | Not written under `--human`. Flat table of the file above, same schema as the discovery TSVs; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:909-939`</span> |

@@ -8,7 +8,7 @@ description: >-
 # Choosing your inputs
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
@@ -26,7 +26,7 @@ given point. Choose the flag by asking what you already have.
 | **C, genotyping** | Which samples carry each polymorphism? | `--graffite_vcf`, `--graph`, `--graph_alignments`, `--vcfs` | `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz` |
 
 A fourth, optional step lifts methylation onto the graph (`--epigenomes`), only on the
-`giraffe` and `graphaligner` methods <span class="src">`main.nf:226`</span>. See
+`giraffe`, `graphaligner` and `precomputed` methods <span class="src">`main.nf:198,226`</span>. See
 [Methylation](../guides/methylation.md).
 
 ---
@@ -71,8 +71,8 @@ unless you pass `--genotype false`.
 
 | Flag | Takes | Runs | Skips |
 |---|---|---|---|
-| `--assemblies` | CSV `sample,path` of haploid assemblies | minimap2, svim-asm, then B and C | nothing |
-| `--pav` | CSV without header, `sample,hap1[,hap2...]` | PAV in its own container, then B and C | nothing |
+| `--assemblies` | CSV `sample,path` of haploid assemblies | minimap2 or winnowmap under `--aligner`, svim-asm, then B and C | nothing |
+| `--pav` | CSV read by position, first line skipped as a header, `sample,hap1[,hap2...]` | PAV in its own container, then B and C | nothing |
 | `--longreads` | CSV `sample,path,type` | minimap2 or winnowmap, Sniffles2, then B and C | nothing |
 | `--bams` | CSV `sample,path` of long-read alignments | Sniffles2, then B and C | read alignment |
 | `--svs` | CSV `sample,path` of per-sample VCFs | the truvari merge, then B and C | all callers |
@@ -88,7 +88,7 @@ unless you pass `--genotype false`.
 Lines in `main.nf`: the discovery block <span class="src">`main.nf:68-118`</span>, the
 annotation entry points <span class="src">`main.nf:121-148`</span>, `--graffite_vcf`
 <span class="src">`main.nf:175-178`</span>, the genotyping block
-<span class="src">`main.nf:180-292`</span>. Samplesheet columns are on
+<span class="src">`main.nf:180-286`</span>. Samplesheet columns are on
 [Samplesheet formats](../reference/samplesheets.md).
 
 ---

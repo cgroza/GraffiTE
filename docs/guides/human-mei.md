@@ -8,7 +8,7 @@ description: >-
 # Human mobile element insertions
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `9b3dbcd`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -257,9 +257,10 @@ refuses `--graffite_vcf --human` unless `--hervk_reconcile false` is also given
 | `--hervk_annotate_threads`, `_memory`, `_time` | `1`, `10G`, `12h` | resources for the masking step | <span class="src">`nextflow.config:127-129`</span> |
 
 The keys `--hervk_config` can override, with their defaults, are the `DEFAULTS` dictionary at
-the top of `bin/hervk_classify.py`: `sigmas`, `priors`, `t_min`, `t_max`, `int_full_frac`,
-`pmap_min`, `min_hml2_bp`, `hml2_frac_min`, `cnv_period_tol`, `cnv_period_frac`, `max_svlen`,
-`min_solo_bp` and `min_prov_int_bp`. Unknown keys are accepted and ignored.
+the top of `bin/hervk_classify.py`: `sigmas`, `priors`, `t_min`, `t_max`, `s_range`,
+`int_full_frac`, `pmap_min`, `min_hml2_bp`, `hml2_frac_min`, `cnv_period_tol`,
+`cnv_period_frac`, `max_svlen`, `min_solo_bp` and `min_prov_int_bp`. Unknown keys are accepted
+and ignored.
 
 !!! warning "`utils/HERVK.config.json` predates this classifier"
     The template in `utils/` carries keys from the previous, size-based classifier (`s_C`,
@@ -275,7 +276,7 @@ directory tree and [VCF fields](../reference/vcf-fields.md) for the fields.
 
 | File | Written by | Contents |
 |---|---|---|
-| `pangenome.human.vcf` | `concat_repeatmask`, then overwritten by `hervk_annotate` | the filtered subset, with HERV-K allele states and locus flags; this is what induces the graph together with `pangenome.vcf` |
+| `pangenome.human.vcf` | `concat_repeatmask`, then overwritten by `hervk_annotate` | the filtered subset, with HERV-K allele states and locus flags; not an input to graph construction |
 | `pangenome.presence-absence_human.tsv` | same | its presence-absence table |
 | `human_filter_summary.txt` | `concat_repeatmask` | the filter expression, counts, kept and dropped combinations |
 | `hervk_candidates.vcf` | `hervk_annotate` | every HERV-K candidate in `pangenome.vcf`, annotated, whether or not the filter kept it |

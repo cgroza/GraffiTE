@@ -8,7 +8,7 @@ description: >-
 # Resuming and skipping work
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -133,9 +133,15 @@ in it must exist, but its samples are not aligned.
 **On disk:** a samplesheet with `sample` and `path` columns pointing at per-sample `vg call`
 VCFs (`.vcf.gz` with index), as `vg_call` writes them <span class="src">`main.nf:210-212`</span>.
 
-**Runs:** `merge_VCFs` only, and `hervk_reconcile` under `--human`. No sample is aligned or
-called, though `--genotype_with` is still read and its paths must exist; `--graph` is still needed for the `precomputed` method's validation
-<span class="src">`main.nf:51-56`</span>.
+**Runs:** `merge_VCFs`, then `genotyping_audit` <span class="src">`main.nf:263-265`</span>, and
+`trusted_genotypes` unless `--human` <span class="src">`main.nf:271-272`</span>; `hervk_reconcile`
+under `--human`. No sample is aligned or called, but `--genotype_with` is still read, its paths
+must exist, and any BAM row in it still goes through `bam_to_fastq`
+<span class="src">`main.nf:189`</span>. Pass `--graph` alongside `--vcfs`: the `make_graph` call
+sits outside the `--vcfs` test <span class="src">`main.nf:201-206`</span>, so without it the run
+still builds an index at 40G for up to 6h <span class="src">`nextflow.config:132-134`</span>, and
+unless `--epigenomes` is on nothing consumes it. `precomputed` requires `--graph` in any case
+<span class="src">`main.nf:53-56`</span>.
 
 ### `--hervk_reconcile_vcf` with `--genotype false`
 

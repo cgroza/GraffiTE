@@ -8,7 +8,7 @@ description: >-
 # Methylation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -31,7 +31,7 @@ methylation levels in the genotyped VCF. The processes come from
 |---|---|---|
 | `--graph_method giraffe`, `graphaligner` or `precomputed` | the methylation branch sits inside the vg genotyping block; PanGenie has no graph alignments to lift onto | <span class="src">`main.nf:198,226`</span> |
 | `--epigenomes` | switches the branch on | <span class="src">`nextflow.config:29`</span> |
-| BAM entries in `--genotype_with` | modifications are read from BAM tags; a FASTQ sample is genotyped but gets no methylation | <span class="src">`main.nf:236`</span> |
+| BAM entries in `--genotype_with` | `bamtags_to_BED` reads the modifications from BAM tags, and `annotate_VCF` runs only for samples that have a mods CSV; a FASTQ sample is aligned and genotyped, then dropped by the join, so its calls never reach `GraffiTE.merged.genotypes.vcf.gz` | <span class="src">`main.nf:236,243`</span> |
 | `MM`/`ML` tags in those BAMs | what `tagtobed` extracts | <span class="src">`panmethyl/module/main.nf:146`</span> |
 
 The reads of a BAM sample are also extracted to FASTQ and aligned to the graph as for any other
@@ -130,6 +130,9 @@ Change them with a `-c` config file that overrides the `withName` blocks.
 
 - PanGenie runs get no methylation: the branch needs graph alignments.
 - One modification code per run.
+- Under `--epigenomes`, every entry in `--genotype_with` must be a BAM or be listed in
+  `--lifted`. A FASTQ entry is aligned and genotyped, then left out of the merged genotype
+  VCF with no warning <span class="src">`main.nf:243,258`</span>.
 - panmethyl's own aligners (`align_giraffe`, `align_graphaligner`, `align_minigraph`) and its
   `lift_nucleotides` process are not called by GraffiTE; the alignment comes from
   `graph_align_reads`.

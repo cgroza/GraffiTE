@@ -6,7 +6,7 @@ description: Twin priming, the C/+ strand signature, and the L1_5PINV annotation
 # L1 5' inversions
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -33,10 +33,10 @@ same L1 on opposite strands, and without a rule to join them the element reads a
 
 RepeatMasker reports each fragment's strand as `+` or `C`. An L1 with a 5' inversion appears as
 a `C` fragment followed, along the variant sequence, by a `+` fragment, both belonging to the
-same L1 (RepeatMasker gives them the same link ID). A `+` fragment followed by a `C` one is the
-same element seen from the other strand: it is also a 5' inversion, but only the `C+` order is
-recognised, because RepeatMasker reports the fragments in query order and the inverted piece
-is 5' on the query.
+same L1 (RepeatMasker gives them the same link ID). Only the `C+` order counts as a 5'
+inversion. Reverse-complementing a twin-primed insertion flips the strand labels and the
+fragment order together, so the same element read from the other strand is `C+` again; which
+strand it sits on comes from the consensus coordinates instead, below.
 
 <figure markdown="span">
 ![A RepeatMasker .out excerpt in which two fragments share one link ID, the first on strand C and the second on strand +](../assets/l1-strand-pattern.png)
@@ -74,8 +74,9 @@ The rule runs on every dataset, not only human ones. It needs the library to nam
 | `None` | No hit on the variant matched the rule (this is also the value for variants with no hit at all). |
 | `<link ID>` | The RepeatMasker link ID of the hit flagged as inverted, the same number that appears in `RM_hit_IDs`, so the fragments can be found in `repeatmasker_dir/indels.fa.out`. Several IDs are comma-separated. |
 
-<span class="src">`bin/annotate_vcf.R:171,195`, `bin/repmask_vcf.sh:134`</span>
+<span class="src">`bin/annotate_vcf.R:171,195`, `bin/repmask_vcf.sh:30,181`</span>
 
 Such a variant still has `n_hits=1` when the inverted L1 is its only element, so it is eligible
-for the trusted and human subsets like any other single-hit L1. In v1.0 the same information was
-written as `mam_filter_1=5P_INV`, and only with `--mammal`.
+for the trusted and human subsets like any other single-hit L1. In v1.0 the field was
+`mam_filter_1`, written only with `--mammal`, and its value was the inferred strand:
+`5P_INV:plus`, `5P_INV:minus`, or `None`.

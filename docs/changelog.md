@@ -6,7 +6,7 @@ description: Release history of GraffiTE, from the first beta to the current v1.
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `9b3dbcd`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -28,7 +28,8 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   ULTRA tandem repeats over the variant length, in place of `total_match_span` alone. Long
   insertions where a TE sits next to a polyA or tandem tail are kept. `--repeat_span_cutoff`
   (default `0.80`) sets the threshold.
-- polyA tail detection: `polyA=TRUE/FALSE/NA` on single-hit records, after trimming an exact
+- polyA tail detection: `polyA=TRUE` or `FALSE` on single-hit records and `NA` where `n_hits`
+  is above 1, after trimming an exact
   TSD copy from the variant end.
 - `--mammal` discontinued. L1 5′ inversion detection and SVA VNTR-only handling run on every
   dataset.
@@ -39,8 +40,6 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 - OneCodeToFindThemAll removed from the annotation step; the RepeatMasker `.out` is read
   directly.
 - `concat_repeatmask` accepts a gzip-compressed `--reference` and re-compresses it to BGZF.
-- Satellite and RNA hits are filtered out of `pangenome.vcf`; the repeat-class filter in the
-  annotation step was removed.
 
 **Genotyping**
 
@@ -208,10 +207,10 @@ Pull request by [Han-Cao](https://github.com/Han-Cao).
 
 ## 06/24/24
 
-- New option `--break_scaffolds`, which splits contigs at runs of more than four N. With some
-  scaffolded genomes minimap2 fails with `[E::parse_cigar] CIGAR length too long at position
-  ...`, a limit of htslib and the SAM specification; breaking scaffolds at N stretches avoids
-  it.
+- New option `--break_scaffolds`, which splits each scaffold into contigs at every run of `N`,
+  however short. With some scaffolded genomes minimap2 fails with `[E::parse_cigar] CIGAR length
+  too long at position ...`, a limit of htslib and the SAM specification; breaking scaffolds at N
+  stretches avoids it.
 
 ## 06/17/24
 

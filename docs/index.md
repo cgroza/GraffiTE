@@ -11,7 +11,7 @@ description: >-
 <p class="gt-tagline">Pangenomic toolbox for the analysis of transposable element insertion polymorphisms.</p>
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `1a050f9`. The
+    Verified against `v1.1dev` at commit `ee7da10`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -38,7 +38,7 @@ flowchart TB
         direction TB
         A1["Assemblies<br/><code>--assemblies</code> · <code>--pav</code>"]
         A2["Long reads<br/><code>--longreads</code> · <code>--bams</code>"]
-        A3["Existing SV calls<br/><code>--svs</code> · <code>--vcf</code>"]
+        A3["Existing SV calls<br/><code>--svs</code>"]
         A1 --> AM["Merge<br/><small>truvari collapse</small>"]
         A2 --> AM
         A3 --> AM
@@ -55,12 +55,15 @@ flowchart TB
     subgraph C["Stage C · Genotyping"]
         direction TB
         C1["Build pangenome graph"]
-        C2["Map reads to graph"]
+        C2["Compare reads to graph<br/><small>k-mers or alignment</small>"]
         C3["Call genotypes"]
         C1 --> C2 --> C3
     end
 
+    V["Merged SV VCF<br/><code>--vcf</code>"]
+
     AM --> B1
+    V --> B1
     B3 --> C1
 
     A ~~~ B ~~~ C
@@ -76,12 +79,14 @@ are discarded. Survivors are annotated with their repeat identity, target site d
 polyA tails.
 
 **Stage C, genotyping.** The annotated polymorphisms are induced into a pangenome graph as
-bubbles, reads are mapped onto it, and each sample is genotyped at every polymorphism.
+bubbles, and each sample is genotyped at every polymorphism. The default back end,
+`--graph_method pangenie`, counts k-mers against a PanGenie index and never aligns; `giraffe`
+and `graphaligner` map the reads onto the graph and call genotypes with `vg call`.
 
-**Methylation, optional.** With `--epigenomes`, and only on the `giraffe` or `graphaligner`
-graph methods, the base modifications carried by the genotyping BAMs are lifted onto the graph
-and summarised per polymorphism. This step lives in the `panmethyl` submodule. See
-[Methylation](guides/methylation.md).
+**Methylation, optional.** With `--epigenomes`, on the `giraffe`, `graphaligner` and
+`precomputed` graph methods (every method but `pangenie`), the base modifications carried by the
+genotyping BAMs are lifted onto the graph and summarised per polymorphism. This step lives in the
+`panmethyl` submodule. See [Methylation](guides/methylation.md).
 
 Stage C is optional (`--genotype false`). Stages A and B can each be skipped by supplying their
 outputs directly; see [Resuming and skipping work](guides/skipping-work.md).
@@ -90,22 +95,29 @@ outputs directly; see [Resuming and skipping work](guides/skipping-work.md).
 
 ## Reference and non-reference insertions
 
-GraffiTE reports variants **relative to the reference genome**, so the VCF `SVTYPE` and the
-presence of the TE point in opposite directions half the time:
+GraffiTE reports variants **relative to the reference genome**, so an ALT allele and the presence
+of the TE do not always agree. Read the direction off the allele lengths: ALT longer than REF is a
+non-reference insertion, REF longer than ALT is a reference insertion. `SVLEN` is positive for the
+first and negative for the second. Do not use `SVTYPE` for this. On any run with two or more
+caller VCFs, `truvari_merge` strips every upstream INFO field before the collapse and adds back
+only `SVLEN`, so `pangenome.vcf` has no `SVTYPE`. It survives only on the single-input paths,
+`--vcf` and a single caller VCF.
 
 <figure>
 --8<-- "assets/ref-vs-nonref-insertion.svg"
 <figcaption>
-An <code>INS</code> record means the element is <em>absent</em> from the reference and
-<em>present</em> in the sample. A <code>DEL</code> record means the element is <em>present</em> in
-the reference and <em>absent</em> from the sample. In both cases the element itself is what
-GraffiTE annotated.
+ALT longer than REF means the element is <em>absent</em> from the reference and
+<em>present</em> in the sample. REF longer than ALT means the element is <em>present</em> in
+the reference and <em>absent</em> from the sample. The <code>SVTYPE</code> values shown appear
+only on the single-input paths. In both cases the element itself is what GraffiTE annotated.
 </figcaption>
 </figure>
 
 So **an ALT allele does not mean "TE present"**. For `DEL` records the relationship is inverted.
-The presence-absence TSVs published alongside each VCF do this conversion for you: a `1` always
-means *the TE is present in this sample*, whichever way the VCF record points. See
+`vcf_to_pa_tsv.py` writes the presence-absence TSVs, and it reads presence off `INFO/SVTYPE`.
+With more than one input VCF, `truvari_merge` strips INFO and puts back only `SVLEN`, so no record
+carries `SVTYPE` and every sample column comes out `NA`. On a single input VCF the sample columns
+hold `1` for present and `0` for absent, whichever way the record points. See
 [Output files](reference/outputs.md).
 
 ---
@@ -117,15 +129,15 @@ Where the codebase uses a term loosely, this table states the meaning that appli
 | Term | Meaning |
 |---|---|
 | **pME** | Polymorphic mobile element. A mobile element insertion that is present in some haplotypes and absent in others. |
-| **Non-reference insertion** | TE present in the sample, absent from the reference. Appears as `SVTYPE=INS`. |
-| **Reference insertion** | TE present in the reference, absent from the sample. Appears as `SVTYPE=DEL`. |
+| **Non-reference insertion** | TE present in the sample, absent from the reference. ALT longer than REF, `SVLEN` positive. |
+| **Reference insertion** | TE present in the reference, absent from the sample. REF longer than ALT, `SVLEN` negative. |
 | **Hit** | One RepeatMasker match after fragment grouping, a single element. Counted by the `n_hits` INFO field. |
 | **Fragment** | One raw line of RepeatMasker output. Several fragments may be grouped into one hit. Counted by `fragmts`. |
 | **Repeat span** | The fraction of a variant's sequence covered by the non-redundant union of RepeatMasker TE hits and ULTRA tandem repeats. The `total_repeat_span` INFO field; the main quality filter. |
 | **Trusted subset** | A conservative subset of `pangenome.vcf`: single-hit, long enough, not dominated by tandem repeat, and polyA-supported if it is a non-LTR element. Written to `pangenome.trusted.vcf`. |
 | **Human pME subset** | With `--human`, a subset filtered to recent human mobile element subfamilies (AluY, L1HS, SVA_D/E/F, HML-2). Written to `pangenome.human.vcf`, **instead of** the trusted subset. |
 | **TSD** | Target site duplication. A short direct repeat flanking a genuine mobile element insertion, created by the integration mechanism. |
-| **Locus** (HERV-K) | With `--human`, the set of records that describe the same HML-2 element, grouped by overlap. Named by the `HERVK_LOCUS` INFO field. |
+| **Locus** (HERV-K) | With `--human`, the set of records that describe the same HML-2 element. Two records share a locus when they touch the same reference HML-2 element, or when their footprints lie within `--hervk_locus_window` (`1200` bp) of each other. Named by the `HERVK_LOCUS` INFO field. |
 | **Consolidated VCF** | With `--human`, a VCF in which each HERV-K locus is one record with per-allele states (`pangenome.human.consolidated.vcf`, and `GraffiTE.merged.genotypes.human.vcf.gz` after genotyping). |
 | **Precomputed** | The `--graph_method precomputed` mode: no graph is built and no reads are mapped; the run reuses a `--graph` directory with `--vcfs` or `--graph_alignments` from an earlier run. |
 | **Stage A / B / C** | Discovery / annotation / genotyping, as above. |
