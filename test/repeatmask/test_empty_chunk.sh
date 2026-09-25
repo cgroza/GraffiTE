@@ -76,6 +76,54 @@ if command -v Rscript >/dev/null && \
     cat(nrow(read_rm_custom(commandArgs(TRUE)[2])))
   ' "$BIN" "$tmp/empty.out" 2>/dev/null)
   chk "header-only .out: read_rm_custom returns no row" "$n" "0"
+
+  # read_rm_custom returning no row was as far as this test used to go, and the
+  # crash is further down: summarise() types L1_5PINV from ifelse(), which gives
+  # logical(0) when there are no groups, and replace_na() cannot then put "None"
+  # into it. Run the whole script, which is where a user meets it.
+  if Rscript -e 'quit(status = !all(c("optparse","vcfR","tidyr") %in% rownames(installed.packages())))' 2>/dev/null; then
+    cat > "$tmp/one.vcf" <<'VCF'
+##fileformat=VCFv4.2
+##contig=<ID=chr1,length=1000>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	100	ins1	A	ACGTACGTACGT	.	PASS	.
+VCF
+    ( cd "$tmp" && Rscript "$BIN/annotate_vcf.R" --dotout empty.out --vcf one.vcf \
+        --annotation empty_annot.tsv ) >/dev/null 2>&1
+    chk "header-only .out: annotate_vcf.R exits 0" "$?" "0"
+    chk "header-only .out: it still writes one row" \
+        "$(wc -l < "$tmp/empty_annot.tsv" 2>/dev/null | tr -d ' ')" "1"
+    chk "header-only .out: the row reads n_hits 0 and None" \
+        "$(cut -f6,9,10,13 "$tmp/empty_annot.tsv" 2>/dev/null)" \
+        "$(printf '0\tNone\tNone\tNone')"
+
+    # and the same script on a .out that does have a hit, so the fix cannot pass
+    # by turning every row into None.
+    printf '  300   5.0  0.0  0.0  ins1              2      11    (0) +  AluY           SINE/Alu        1    10   (1)      1\n' \
+      >> "$tmp/empty.out"
+    ( cd "$tmp" && Rscript "$BIN/annotate_vcf.R" --dotout empty.out --vcf one.vcf \
+        --annotation hit_annot.tsv ) >/dev/null 2>&1
+    chk "one hit: the row reads n_hits 1 and the family" \
+        "$(cut -f6,9,10 "$tmp/hit_annot.tsv" 2>/dev/null)" \
+        "$(printf '1\tAluY\tSINE/Alu')"
+
+    # One variant carrying an inverted L1 hit beside an ordinary hit. summarise()
+    # used to see a length-2 condition here and write the variant out twice, once
+    # with the hit IDs and once with "None".
+    printf '   SW   perc perc perc  query\nscore   div. del. ins.  sequence\n\n' > "$tmp/mixed.out"
+    printf '  500   2.0  0.0  0.0  ins1    1   10   (0) C  L1HS   LINE/L1   (0)  100   50      1\n' >> "$tmp/mixed.out"
+    printf '  500   2.0  0.0  0.0  ins1   11   20   (0) +  L1HS   LINE/L1    200  300  (0)      1\n' >> "$tmp/mixed.out"
+    printf '  300   5.0  0.0  0.0  ins1   30   40   (0) +  AluY   SINE/Alu     1   10  (1)      2\n' >> "$tmp/mixed.out"
+    ( cd "$tmp" && Rscript "$BIN/annotate_vcf.R" --dotout mixed.out --vcf one.vcf \
+        --annotation mixed_annot.tsv ) >/dev/null 2>&1
+    chk "inverted L1 beside another hit: one row, not two" \
+        "$(wc -l < "$tmp/mixed_annot.tsv" 2>/dev/null | tr -d ' ')" "1"
+    chk "inverted L1 beside another hit: both hits and the link ID kept" \
+        "$(cut -f6,9,13 "$tmp/mixed_annot.tsv" 2>/dev/null)" \
+        "$(printf '2\tL1HS,AluY\t1')"
+  else
+    echo "  [skip] optparse, vcfR or tidyr not available; full-script check skipped"
+  fi
 else
   echo "  [skip] Rscript or its libraries not available"
 fi

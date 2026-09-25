@@ -168,7 +168,13 @@ dotout_parsed_per_ID %>%
     matching_classes = paste0(hit_matching_class, collapse = ","),
     strands = paste0(final_hit_strand, collapse = ","), 
     RM_id = paste0(ID, collapse = ","),
-    L1_5PINV = ifelse(unique(is_L15PINV) == "no", "None", paste0(ID[is_L15PINV == "yes"], collapse = ",")),
+    # paste0(collapse=) always returns one string, so this stays one value per
+    # group and stays character. ifelse(unique(is_L15PINV) == "no", ...) did
+    # neither: a variant carrying one inverted L1 hit beside an ordinary hit
+    # made the condition length 2, and summarise wrote that variant out twice,
+    # once with the hit IDs and once with "None". "None" is filled in after the
+    # summarise instead, once.
+    L1_5PINV = paste0(ID[is_L15PINV == "yes"], collapse = ","),
     n_hits = n()
   ) -> rep_mask 
 
@@ -184,6 +190,18 @@ vcf_df <- tibble(
   qry_id = getID(vcf)
 )
 # create the annotation table for each SV with default
+# summarise() types each column from its own expression, and a chunk where
+# RepeatMasker found nothing has no groups to evaluate. A column that comes back
+# logical there, or from groups that are all NA, reaches replace_na() below as a
+# logical column, and it cannot put "None" into one. Cast the columns it touches
+# rather than leaving their type to the data.
+rep_mask <- rep_mask %>%
+  mutate(across(any_of(c("match_lengths", "fragmts", "repeat_ids", "matching_classes",
+                         "strands", "RM_id", "L1_5PINV")), as.character),
+         # replace(), not ifelse(): ifelse() on a zero-length condition returns
+         # logical(0) and would undo the cast one line above.
+         L1_5PINV = replace(L1_5PINV, !nzchar(L1_5PINV), "None"))
+
 annot <- left_join(vcf_df, rep_mask, by = "qry_id") %>%
   replace_na(list(matching_classes = "None",
                   repeat_ids = "None",
