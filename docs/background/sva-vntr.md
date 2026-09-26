@@ -6,7 +6,7 @@ description: Why VNTR-only SVA variants are reclassified, and the per-subfamily 
 # SVA VNTR polymorphisms
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `3b8fd03`. The
+    Verified against `v1.1dev` at commit `583f603`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -82,7 +82,7 @@ That relabelling is what the downstream filters see:
   `--human_sva_ids` (default `^SVA_[DEF]`), without requiring a polyA tail, so VNTR
   polymorphisms of the young subfamilies reach `pangenome.human.vcf`, distinguishable from
   SVA insertions by the suffix.
-  <span class="src">`module/main.nf:520,522,528`, `nextflow.config:67`</span>
+  <span class="src">`module/main.nf:535,537,543`, `nextflow.config:67`</span>
 
 To count SVA insertion polymorphisms alone, exclude them:
 

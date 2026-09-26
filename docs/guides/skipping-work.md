@@ -8,7 +8,7 @@ description: >-
 # Resuming and skipping work
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `3b8fd03`. The
+    Verified against `v1.1dev` at commit `583f603`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -76,7 +76,7 @@ GraffiTE's own calls.
 **On disk:** a directory holding one subdirectory per Stage B batch, each with
 `genotypes_repmasked_filtered.vcf` and a `repeatmasker_dir/`. That is exactly the layout of
 `out/2_Repeat_Filtering/`, where the subdirectories are numbered by task
-<span class="src">`main.nf:126-128`, `module/main.nf:616-622`</span>.
+<span class="src">`main.nf:126-128`, `module/main.nf:631-637`</span>.
 
 ```text
 out/2_Repeat_Filtering/
@@ -112,7 +112,7 @@ instead.
 
 **On disk:** the `GraffiTE_graph/index/` directory of an earlier run, or any directory holding
 what `make_graph` writes: `index.gfa` and `index.pb`, plus `index.giraffe.gbz` and its
-companions for the `giraffe` method <span class="src">`module/main.nf:766-779`</span>.
+companions for the `giraffe` method <span class="src">`module/main.nf:781-794`</span>.
 
 **Runs:** alignment and calling for every sample in `--genotype_with`. Requires
 `--graph_method giraffe`, `graphaligner` or `precomputed`; the PanGenie path has its own index

@@ -6,7 +6,7 @@ description: The exact CSV columns each GraffiTE samplesheet parameter reads, wi
 # Samplesheet formats
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `3b8fd03`. The
+    Verified against `v1.1dev` at commit `583f603`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -96,7 +96,7 @@ to a read preset and anything else, including an empty value, means short reads:
 | `ont` | `r10` | `vg giraffe --parameter-preset r10` |
 | anything else | `default` | `vg giraffe` with `-i`, interleaved paired-end short reads |
 
-<span class="src">`main.nf:181-183`, `module/main.nf:815-822`</span>
+<span class="src">`main.nf:181-183`, `module/main.nf:830-837`</span>
 
 `pangenie` and `graphaligner` ignore the preset. A `.bam` path is converted to FASTQ first by
 `bam_to_fastq`; a BAM is also what `--epigenomes` reads its modification tags from.
@@ -114,7 +114,7 @@ Columns `sample`, `path`. Per-sample `vg call` VCFs from an earlier run, bgzippe
 `.vcf.gz` suffix, because `merge_VCFs` collects every `*vcf.gz` it is given. `path` has to be a
 glob such as `HG002.vcf.gz*`: the code sorts the files it matches, and a plain path is taken apart
 into its directory components instead (checked with Nextflow 26.04.6). The glob also brings the
-`.tbi` index along. <span class="src">`main.nf:210-212`, `module/main.nf:871`</span>
+`.tbi` index along. <span class="src">`main.nf:210-212`, `module/main.nf:886`</span>
 
 ```csv title="vcfs.csv"
 sample,path
@@ -125,7 +125,7 @@ HG002,/data/earlier_run/HG002.vcf.gz*
 
 Columns `sample`, `gaf`, `pack`. The two files `graph_align_reads` publishes to
 `GraffiTE_alignments/` for each sample. Needs `--graph` pointing at the index they were made
-against. <span class="src">`main.nf:215-217`, `module/main.nf:805-811`</span>
+against. <span class="src">`main.nf:215-217`, `module/main.nf:820-826`</span>
 
 ```csv title="graph_alignments.csv"
 sample,gaf,pack

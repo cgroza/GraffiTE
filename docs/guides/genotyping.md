@@ -8,7 +8,7 @@ description: >-
 # Stage C: genotyping
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `3b8fd03`. The
+    Verified against `v1.1dev` at commit `583f603`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -51,14 +51,14 @@ parameter preset <span class="src">`main.nf:181-183`</span>:
 Two details follow from that table:
 
 - With the `default` preset, `vg giraffe` is given `-i`, so the FASTQ is read as
-  **interleaved paired-end** <span class="src">`module/main.nf:815-817,822`</span>. Short-read
+  **interleaved paired-end** <span class="src">`module/main.nf:830-832,837`</span>. Short-read
   samples must be supplied as a single interleaved file, not as two mate files.
 - PanGenie ignores the preset: it counts k-mers and never aligns
-  <span class="src">`module/main.nf:726`</span>.
+  <span class="src">`module/main.nf:741`</span>.
 
 A `path` ending in `.bam` goes through `bam_to_fastq` first: alignment tags are stripped, the
 file is name-sorted and converted back to FASTQ with `samtools fastq`
-<span class="src">`main.nf:184-189`, `module/main.nf:786-802`</span>. The alignments in the BAM
+<span class="src">`main.nf:184-189`, `module/main.nf:801-817`</span>. The alignments in the BAM
 are not used; only the reads are. Methylation tags in such a BAM are read separately, see
 [Methylation](methylation.md).
 
@@ -97,7 +97,7 @@ See [Resuming and skipping work](skipping-work.md) for what each of those inputs
 
 ## PanGenie
 
-Two processes <span class="src">`module/main.nf:692-749`</span>.
+Two processes <span class="src">`module/main.nf:707-764`</span>.
 
 **`pangenie_index`**, once per run:
 
@@ -129,7 +129,7 @@ the first record and leaves a zero-byte `.vcf.gz`. Then `bcftools norm -f ref -N
 multi-allelic genotypes back into one record per GraffiTE variant, so that they match
 `pangenome.vcf` one for one when the merge transfers INFO. `-N` keeps the position, since `-f`
 turns on left-alignment as well as splitting and a realigned insertion matches nothing at the
-merge <span class="src">`module/main.nf:726-747`</span>.
+merge <span class="src">`module/main.nf:741-762`</span>.
 The result is published as `4_Genotyping/<sample>_genotyping.vcf.gz` with its index. The
 reference is passed as a value channel; as a queue channel it held one item, and PanGenie ran
 for one sample and stopped <span class="src">`main.nf:194-197`</span>.
@@ -145,7 +145,7 @@ Three processes, plus `bam_to_fastq` when needed.
 
 ### `make_graph`
 
-<span class="src">`module/main.nf:751-784`</span>. `bcftools +setGT -- -t a -n u` unphases every genotype
+<span class="src">`module/main.nf:766-799`</span>. `bcftools +setGT -- -t a -n u` unphases every genotype
 in `pangenome.vcf`, then:
 
 | method | commands | `index/` holds |
@@ -162,7 +162,7 @@ run. Skipped entirely when `--graph` is given <span class="src">`main.nf:202-206
 
 ### `graph_align_reads`
 
-<span class="src">`module/main.nf:804-839`</span>, once per sample:
+<span class="src">`module/main.nf:819-854`</span>, once per sample:
 
 | method | aligner | then |
 |---|---|---|
@@ -184,7 +184,7 @@ complete before the run stops <span class="src">`nextflow.config:262-267`</span>
 
 ### `vg_call`
 
-<span class="src">`module/main.nf:841-857`</span>, once per sample:
+<span class="src">`module/main.nf:856-872`</span>, once per sample:
 
 ```bash
 vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> -k <sample>.pack index/<graph> \
@@ -210,7 +210,7 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
 
 ## The merged genotypes
 
-`merge_VCFs` <span class="src">`module/main.nf:859-885`</span> takes every per-sample VCF and:
+`merge_VCFs` <span class="src">`module/main.nf:874-900`</span> takes every per-sample VCF and:
 
 1. `bcftools merge -m none` joins them into one multi-sample VCF without creating multi-allelic
    records.
@@ -221,7 +221,7 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
    Allele comparison ignores case, which matters because `pangenome.vcf` carries soft-masked
    lowercase bases and the graph upper-cases them. A record that matches nothing keeps whatever
    the genotyper gave it and arrives with no annotation
-   <span class="src">`module/main.nf:880`</span>.
+   <span class="src">`module/main.nf:895`</span>.
 3. The `##GraffiTE_version` header line is added.
 
 Published as `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz`. No `.tbi` is published for it: the
@@ -233,7 +233,7 @@ index written earlier in the script belongs to the pre-annotation file, which is
 
 ## The trusted subset of the genotypes
 
-`trusted_genotypes` <span class="src">`module/main.nf:909-939`</span> writes the counterpart of
+`trusted_genotypes` <span class="src">`module/main.nf:924-954`</span> writes the counterpart of
 `pangenome.trusted.vcf` for the genotyped calls:
 
 - `4_Genotyping/GraffiTE.merged.genotypes.trusted.vcf.gz` and its `.tbi`
