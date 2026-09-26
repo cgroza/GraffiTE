@@ -79,4 +79,30 @@ chk "missing GT set to 0/0"    "$(bcftools view -H SVs.vcf | awk '$2==5000' | cu
 chk "SVLEN filled"             "$(bcftools view -H SVs.vcf | awk '$2==15000' | grep -o 'SVLEN=[-0-9]*')" "SVLEN=400"
 chk "IDs shortened and unique" "$(bcftools view -H SVs.vcf | cut -f3 | sort -u | wc -l | tr -d ' ')" "4"
 
+# Every caller VCF record-less, which is what sniffles leaves behind when it
+# calls nothing. bcftools segfaults merging that set, so the process stops with
+# a message of its own first. Run it somewhere else: the script globs *.vcf.gz
+# and the files from the case above are still here.
+mkdir -p empty && cd empty
+python3 - "$module" <<'EOF'
+import re, sys
+for n in ('E1', 'E2'):
+    open(f'{n}.vcf', 'w').write('\n'.join([
+        '##fileformat=VCFv4.2', '##contig=<ID=chr1,length=20000>',
+        '##INFO=<ID=SVTYPE,Number=1,Type=String,Description="type">',
+        '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">',
+        '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t' + n]) + '\n')
+body = re.search(r'process truvari_merge \{.*?script:\n  """\n(.*?)\n  """', open(sys.argv[1]).read(), re.S).group(1)
+body = (body.replace('\\$', '$').replace('${vcfs}', 'E1.vcf.gz E2.vcf.gz')
+            .replace('${task.cpus}', '2').replace('${ref}', '../ref.fa').replace('${from_vcf}', 'false'))
+open('empty_merge.sh', 'w').write(body)
+EOF
+for s in E1 E2; do bcftools sort -Oz -o $s.vcf.gz $s.vcf 2>/dev/null; done
+rc=0; bash -ue empty_merge.sh > empty.log 2>&1 || rc=$?
+chk "all-empty input: the process stops" "$([[ $rc -ne 0 ]] && echo stopped || echo continued)" "stopped"
+chk "all-empty input: no segfault"       "$([[ $rc -eq 139 ]] && echo segfault || echo clean)" "clean"
+chk "all-empty input: it says why"       "$(grep -c 'no SV caller produced a record' empty.log)" "1"
+chk "all-empty input: no SVs.vcf written" "$([[ -f SVs.vcf ]] && echo yes || echo no)" "no"
+cd "$tmp"
+
 exit $fail
