@@ -260,6 +260,14 @@ CONTIGS = [
     ('X', 8000), ('chr1', 60000), ('chr2', 60000), ('chr3_quiet', 20000),
     ('chr4_narrow', 20000), ('chrX', 8000), ('chrX_alt', 8000), ('chrY', 8000),
 ]
+MIN_CONTIG = 1_050_000
+                  # Sniffles 2.8 and later skip any contig shorter than 1 Mb
+                  # unless --all-contigs is given, and module/main.nf:105,122 do
+                  # not give it. At the 60 kb these contigs used to be, sniffles
+                  # 2.8.1 called nothing on a BAM that 2.4 called 18 SVs from,
+                  # and said only "Wrote 0 called SVs". Every contig is padded
+                  # past the floor so the --longreads and --bams cells exercise
+                  # discovery as the pipeline actually invokes it.
 PITCH = 2500      # spacing between planted sites on chr1/chr2
 MARGIN = 2500     # left flank for the first site on a contig. At 900 svim-asm
                   # called 16 of h3's 17 sites: H01_solo_ltr is a 984 bp insert
@@ -315,6 +323,13 @@ def build(args):
     # Plant a run of N in chr1 for --break_scaffolds.
     npos = 58000 * scale
     ref['chr1'] = ref['chr1'][:npos] + 'N' * 120 + ref['chr1'][npos + 120:]
+
+    # Past sniffles' 1 Mb contig floor, see MIN_CONTIG. The padding goes on the
+    # end, so every position chosen above and every site position below is
+    # unchanged by it.
+    for name in ref:
+        if len(ref[name]) < MIN_CONTIG:
+            ref[name] += background(rng, MIN_CONTIG - len(ref[name]))
 
     sites = plan_sites(cons, const)
     # Assign a position per site, per contig, on a fixed pitch unless the site
