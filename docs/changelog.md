@@ -6,7 +6,7 @@ description: Release history of GraffiTE, from the first beta to the current v1.
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `3b8fd03`. The
+    Verified against `v1.1dev` at commit `583f603`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -142,7 +142,7 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   truvari merge. `truvari_merge` strips the upstream INFO fields and puts only `SVLEN` back, so
   `SVTYPE` had gone by the time `add_polyA.py` ran and it scanned an empty string. The `--human`
   filter selects Alu, L1 and SVA on `polyA="TRUE"`, so `pangenome.human.vcf` lost those records
-  (`module/main.nf:523-527`). `add_polyA.py` now takes the insertion polarity from
+  (`module/main.nf:538-542`). `add_polyA.py` now takes the insertion polarity from
   `len(ALT) - len(REF)` when `SVTYPE` is absent (`97a6d01`).
 - `--graph_method pangenie`, the default, produced no genotypes. PanGenie writes its output
   with no `##contig` lines, and the `bcftools norm -Oz` on the next line cannot BCF-encode a

@@ -220,6 +220,21 @@ process truvari_merge {
     tabix stripped_\${f}
     done
 
+    # bcftools segfaults merging a set in which every input is record-less
+    # (measured on 1.24-24-gedf7fd96; 1.16 returns 0). A mix of empty and
+    # non-empty inputs is fine, so only the all-empty case is stopped here,
+    # and with a message rather than exit 139.
+    total_records=\$(for f in stripped_*.vcf.gz; do bcftools view -H "\$f" | wc -l; done | awk '{s+=\$1} END{print s+0}')
+    if [[ "\$total_records" -eq 0 ]]; then
+      echo "ERROR: no SV caller produced a record, so there is nothing to merge." >&2
+      echo "  With --longreads or --bams this means sniffles called nothing." >&2
+      echo "  Sniffles 2.8 and later skip contigs shorter than 1 Mb unless" >&2
+      echo "  --all-contigs is given, so a fragmented assembly can come back" >&2
+      echo "  empty with no warning of its own. Check the per-sample VCFs and" >&2
+      echo "  the sniffles log in this work directory." >&2
+      exit 1
+    fi
+
     bcftools merge -Oz -m none -o merged.vcf.gz stripped_*.vcf.gz
     tabix merged.vcf.gz
 

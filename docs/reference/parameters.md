@@ -8,7 +8,7 @@ description: >-
 # Parameters
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `3b8fd03`. The
+    Verified against `v1.1dev` at commit `583f603`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -54,7 +54,7 @@ launch directory and stops if they are absent.
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--reference` | `"reference.fa"` | Reference genome FASTA. Everything is called relative to it. Its existence is checked at launch. Plain or BGZF-compressed; a plain gzip is re-compressed with bgzip where an index is needed. | <span class="src">`nextflow.config:45`, `module/main.nf:558-565`</span> |
+| `--reference` | `"reference.fa"` | Reference genome FASTA. Everything is called relative to it. Its existence is checked at launch. Plain or BGZF-compressed; a plain gzip is re-compressed with bgzip where an index is needed. | <span class="src">`nextflow.config:45`, `module/main.nf:573-580`</span> |
 | `--TE_library` | `"TE_library.fa"` | FASTA of repeat consensus sequences, passed to RepeatMasker as `-lib`. Needed for Stage B, and again by the HERV-K step under `--human`, even with `--RM_dir`. | <span class="src">`nextflow.config:47`, `main.nf:136,167`</span> |
 | `--genotype_with` | `"reads.csv"` | Samplesheet of the read sets to genotype. Read when `--genotype` is true (the default). See [Samplesheets](samplesheets.md). | <span class="src">`nextflow.config:39`, `main.nf:181`</span> |
 
@@ -95,8 +95,8 @@ See [Stage A: discovery](../guides/discovery.md) for what each backend does.
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--repeat_span_cutoff` | `0.80` (fraction of variant length) | The filter keeps a variant when `total_repeat_span`, the fraction of its sequence covered by the union of RepeatMasker hits and ULTRA tandem repeats, is above this value. Applied twice: per contig chunk, and again after concatenation. | <span class="src">`nextflow.config:56`, `module/main.nf:557,639`</span> |
-| `--tsd_win` | `30` (bp) | Width of the flank on each side of the variant, and of the variant end trimmed for the search, when looking for target site duplications. Sizes the sequences and the scoring alike. | <span class="src">`nextflow.config:49`, `module/main.nf:653,668`</span> |
+| `--repeat_span_cutoff` | `0.80` (fraction of variant length) | The filter keeps a variant when `total_repeat_span`, the fraction of its sequence covered by the union of RepeatMasker hits and ULTRA tandem repeats, is above this value. Applied twice: per contig chunk, and again after concatenation. | <span class="src">`nextflow.config:56`, `module/main.nf:572,654`</span> |
+| `--tsd_win` | `30` (bp) | Width of the flank on each side of the variant, and of the variant end trimmed for the search, when looking for target site duplications. Sizes the sequences and the scoring alike. | <span class="src">`nextflow.config:49`, `module/main.nf:668,683`</span> |
 | `--tsd_batch_size` | `100` (variants) | Variants per TSD-search task. Lower for more parallel tasks, higher for fewer. | <span class="src">`nextflow.config:55`, `main.nf:150`</span> |
 
 ### The trusted subset
@@ -129,20 +129,20 @@ HERV-K steps below.
 | `--human` | `false` | Write `pangenome.human.vcf` instead of `pangenome.trusted.vcf`, run `hervk_annotate`, and run `hervk_reconcile` after genotyping. | <span class="src">`nextflow.config:60`, `main.nf:163,278`</span> |
 | `--human_alu_ids` | `"^AluY"` | Alu subfamilies to keep. The default keeps every `AluY*` and drops `AluS*` and `AluJ*`. | <span class="src">`nextflow.config:65`</span> |
 | `--human_l1_ids` | `"^L1HS"` | L1 subfamilies. Add `^L1PA2` to widen by one subfamily. | <span class="src">`nextflow.config:66`</span> |
-| `--human_sva_ids` | `"^SVA_[DEF]"` | SVA subfamilies. The same list gates the `Simple_repeat` records that come from VNTR-only SVA variants, where it matches the consensus the VNTR sequence scored against rather than the host element’s subfamily. See [SVA VNTR polymorphisms](../background/sva-vntr.md#the-subsets-truncate-this-set). | <span class="src">`nextflow.config:67`, `module/main.nf:519-520`</span> |
+| `--human_sva_ids` | `"^SVA_[DEF]"` | SVA subfamilies. The same list gates the `Simple_repeat` records that come from VNTR-only SVA variants, where it matches the consensus the VNTR sequence scored against rather than the host element’s subfamily. See [SVA VNTR polymorphisms](../background/sva-vntr.md#the-subsets-truncate-this-set). | <span class="src">`nextflow.config:67`, `module/main.nf:534-535`</span> |
 | `--human_hervk_ids` | `'^HERVK-int,^HERVK$,^LTR5_Hs,^LTR5A,^LTR5B'` | HML-2 lineage names. Both `HERVK-int` and a bare `HERVK` are listed because libraries differ; `^HERVK$` is anchored at both ends so that HERVK9, HERVK11 and HERVK14 stay out. Single-quoted in the config because `$` inside double quotes is a Groovy interpolation. | <span class="src">`nextflow.config:68-76`</span> |
-| `--human_min_svlen` | `250` (bp) | Minimum \|SVLEN\|. Sized for insertions; it truncates the `SVA_*(VNTR_only)` records, whose unit is about 49 bp. See [SVA VNTR polymorphisms](../background/sva-vntr.md#the-subsets-truncate-this-set). | <span class="src">`nextflow.config:77`, `module/main.nf:522`</span> |
-| `--human_max_ultra_span` | `0.6` (fraction of variant length) | Maximum `ULTRA_TR_span`; `Simple_repeat` records bypass it. | <span class="src">`nextflow.config:78`, `module/main.nf:522`</span> |
-| `--human_ignore_filter` | `false` | When true, drop the `FILTER=PASS` requirement. | <span class="src">`nextflow.config:79`, `module/main.nf:551`</span> |
-| `--hervk_sva_pair` | `true` | Also admit multi-hit records that pair `HERVK-int` with an SVA hit. RepeatMasker assigns part of the LTR5_Hs sequence to SVA, so a provirus arrives as two or three hits. | <span class="src">`nextflow.config:80`, `module/main.nf:548-549`</span> |
-| `--hervk_pair_max_svlen` | `10500` (bp) | \|SVLEN\| ceiling for that carve-out: a 9472 bp provirus plus tolerance. | <span class="src">`nextflow.config:81`, `module/main.nf:548`</span> |
-| `--hervk_pair_max_hits` | `3` (hits) | `n_hits` ceiling for the same carve-out. Three admits a provirus whose internal region RepeatMasker split in two; `2` restores the earlier behaviour. | <span class="src">`nextflow.config:82`, `module/main.nf:533-548`</span> |
+| `--human_min_svlen` | `250` (bp) | Minimum \|SVLEN\|. Sized for insertions; it truncates the `SVA_*(VNTR_only)` records, whose unit is about 49 bp. See [SVA VNTR polymorphisms](../background/sva-vntr.md#the-subsets-truncate-this-set). | <span class="src">`nextflow.config:77`, `module/main.nf:537`</span> |
+| `--human_max_ultra_span` | `0.6` (fraction of variant length) | Maximum `ULTRA_TR_span`; `Simple_repeat` records bypass it. | <span class="src">`nextflow.config:78`, `module/main.nf:537`</span> |
+| `--human_ignore_filter` | `false` | When true, drop the `FILTER=PASS` requirement. | <span class="src">`nextflow.config:79`, `module/main.nf:566`</span> |
+| `--hervk_sva_pair` | `true` | Also admit multi-hit records that pair `HERVK-int` with an SVA hit. RepeatMasker assigns part of the LTR5_Hs sequence to SVA, so a provirus arrives as two or three hits. | <span class="src">`nextflow.config:80`, `module/main.nf:563-564`</span> |
+| `--hervk_pair_max_svlen` | `10500` (bp) | \|SVLEN\| ceiling for that carve-out: a 9472 bp provirus plus tolerance. | <span class="src">`nextflow.config:81`, `module/main.nf:563`</span> |
+| `--hervk_pair_max_hits` | `3` (hits) | `n_hits` ceiling for the same carve-out. Three admits a provirus whose internal region RepeatMasker split in two; `2` restores the earlier behaviour. | <span class="src">`nextflow.config:82`, `module/main.nf:548-563`</span> |
 
 !!! note "Whitelist syntax"
     The `*_ids` parameters are comma-separated lists of bcftools regular expressions matched against
     `repeat_ids`. bcftools regexes support `^`, `$`, `.`, `*` and `[...]` and have no alternation,
     which is why they are lists. `~` is applied to each element of the field, so `^` anchors per
-    element. An empty string keeps the whole class. <span class="src">`nextflow.config:62-64`, `module/main.nf:511-515`</span>
+    element. An empty string keeps the whole class. <span class="src">`nextflow.config:62-64`, `module/main.nf:526-530`</span>
 
 See [Human mobile element insertions](../guides/human-mei.md) for the assembled expression.
 
@@ -153,15 +153,15 @@ tables; `hervk_reconcile` runs after `merge_VCFs`.
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--hervk_config` | `null` | JSON file overriding the classifier's thresholds. Template at [`utils/HERVK.config.json`](https://github.com/cgroza/GraffiTE/blob/v1.1dev/utils/HERVK.config.json). | <span class="src">`nextflow.config:61`, `module/main.nf:301`</span> |
-| `--hervk_max_svlen` | `25000` (bp) | \|SVLEN\| ceiling for HERV-K candidacy. Applied when the candidate list is built, before the reference windows are masked, so an oversized record costs no masking. | <span class="src">`nextflow.config:84`, `module/main.nf:325`</span> |
-| `--hervk_ref_flank` | `1500` (bp) | Reference sequence masked on each side of a candidate footprint to establish the REF state. | <span class="src">`nextflow.config:108`, `module/main.nf:333,337`</span> |
-| `--hervk_ref_annotation` | `null` | A precomputed RepeatMasker `.out` or BED for the reference. When set, the in-pipeline masking is skipped. | <span class="src">`nextflow.config:113`, `module/main.nf:330-333`</span> |
-| `--hervk_locus_window` | `1200` (bp) | Largest gap between two record footprints that still counts as one locus: one LTR plus tolerance. | <span class="src">`nextflow.config:109`, `module/main.nf:365`</span> |
-| `--hervk_strict` | `false` | Drop candidates classed `other` or below the confidence floor from `pangenome.human.vcf`. Off by default because dropping records is what hid a classifier failure before. | <span class="src">`nextflow.config:115`, `module/main.nf:302,355`</span> |
+| `--hervk_config` | `null` | JSON file overriding the classifier's thresholds. Template at [`utils/HERVK.config.json`](https://github.com/cgroza/GraffiTE/blob/v1.1dev/utils/HERVK.config.json). | <span class="src">`nextflow.config:61`, `module/main.nf:316`</span> |
+| `--hervk_max_svlen` | `25000` (bp) | \|SVLEN\| ceiling for HERV-K candidacy. Applied when the candidate list is built, before the reference windows are masked, so an oversized record costs no masking. | <span class="src">`nextflow.config:84`, `module/main.nf:340`</span> |
+| `--hervk_ref_flank` | `1500` (bp) | Reference sequence masked on each side of a candidate footprint to establish the REF state. | <span class="src">`nextflow.config:108`, `module/main.nf:348,352`</span> |
+| `--hervk_ref_annotation` | `null` | A precomputed RepeatMasker `.out` or BED for the reference. When set, the in-pipeline masking is skipped. | <span class="src">`nextflow.config:113`, `module/main.nf:345-348`</span> |
+| `--hervk_locus_window` | `1200` (bp) | Largest gap between two record footprints that still counts as one locus: one LTR plus tolerance. | <span class="src">`nextflow.config:109`, `module/main.nf:380`</span> |
+| `--hervk_strict` | `false` | Drop candidates classed `other` or below the confidence floor from `pangenome.human.vcf`. Off by default because dropping records is what hid a classifier failure before. | <span class="src">`nextflow.config:115`, `module/main.nf:317,370`</span> |
 | `--hervk_reconcile` | `true` | Consolidate flagged HERV-K loci in the human subset of the genotyped calls. Only the giraffe back end is validated; the reconciler refuses others. | <span class="src">`nextflow.config:94`, `main.nf:278,294`</span> |
 | `--hervk_reconcile_vcf` | `null` | Consolidate against this genotyped VCF from an earlier run instead of one produced now. Pair it with `--genotype false`. | <span class="src">`nextflow.config:90`, `main.nf:294-306`</span> |
-| `--hervk_mask_graph_gt_at_cnv` | `true` | Withhold the graph genotypes at copy-number loci, where reads from the pre-existing reference copy give non-carriers ALT support. The calls are kept either way. | <span class="src">`nextflow.config:98`, `module/main.nf:419-421`</span> |
+| `--hervk_mask_graph_gt_at_cnv` | `true` | Withhold the graph genotypes at copy-number loci, where reads from the pre-existing reference copy give non-carriers ALT support. The calls are kept either way. | <span class="src">`nextflow.config:98`, `module/main.nf:434-436`</span> |
 
 `--graffite_vcf` with `--human` and the default `--hervk_reconcile true` stops at launch, because
 the reconciler needs the outputs of `hervk_annotate` and that process only runs during discovery.
@@ -175,8 +175,8 @@ Pass `--hervk_reconcile false`, or enter from `--RM_dir`. <span class="src">`mai
 |---|---|---|---|
 | `--genotype` | `true` | Run Stage C. Set `false` to stop after annotation. | <span class="src">`nextflow.config:33`, `main.nf:180`</span> |
 | `--graph_method` | `"pangenie"` | One of `pangenie`, `giraffe`, `graphaligner`, `precomputed`. See below. | <span class="src">`nextflow.config:34`, `main.nf:192-198,255`</span> |
-| `--min_mapq` | `0` | `vg pack -Q`, the lowest mapping quality a read needs to contribute coverage. Ignored by `pangenie`. | <span class="src">`nextflow.config:120`, `module/main.nf:823,831`</span> |
-| `--min_support` | `"2,4"` | `vg call -m`, minimum support to call an allele, as `ref,alt`. Ignored by `pangenie`. | <span class="src">`nextflow.config:121`, `module/main.nf:852`</span> |
+| `--min_mapq` | `0` | `vg pack -Q`, the lowest mapping quality a read needs to contribute coverage. Ignored by `pangenie`. | <span class="src">`nextflow.config:120`, `module/main.nf:838,846`</span> |
+| `--min_support` | `"2,4"` | `vg call -m`, minimum support to call an allele, as `ref,alt`. Ignored by `pangenie`. | <span class="src">`nextflow.config:121`, `module/main.nf:867`</span> |
 
 | `--graph_method` | Graph | Read mapping | Notes |
 |---|---|---|---|
@@ -185,7 +185,7 @@ Pass `--hervk_reconcile false`, or enter from `--RM_dir`. <span class="src">`mai
 | `graphaligner` | `vg construct` | `GraphAligner` | Long reads. |
 | `precomputed` | supplied with `--graph` | supplied with `--graph_alignments`, or skipped with `--vcfs` | Builds nothing. Without `--graph` and one of the two, the run stops at launch. |
 
-<span class="src">`main.nf:53-56,192-224`, `module/main.nf:766-779,820-838`</span>
+<span class="src">`main.nf:53-56,192-224`, `module/main.nf:781-794,835-853`</span>
 
 ### Reusing existing intermediates
 
@@ -288,7 +288,7 @@ have fixed allocations of 40 to 60 GB and 6 h that no parameter changes. See
 !!! note "`truvari_merge` shares the svim-asm parameters"
     The merge has no parameters of its own. It shards the merged VCF with `truvari divide` and runs
     `truvari collapse` on `task.cpus` shards at once, so `--svim_asm_threads` also speeds up
-    merging. <span class="src">`module/main.nf:227-234`</span>
+    merging. <span class="src">`module/main.nf:242-249`</span>
 
 ### RepeatMasker threading
 
@@ -303,7 +303,7 @@ allocated to the job, both run wider than the allocation. <span class="src">`bin
 | Parameter | Default | Status | Source |
 |---|---|---|---|
 | `--mammal` | `false` | Inert since v1.1. Still passed to `bin/repmask_vcf.sh`, which prints a notice and does nothing else. L1 5′ inversions and SVA VNTR-only polymorphisms are always reported, through the `L1_5PINV` INFO field and the `(VNTR_only)` suffix on `repeat_ids`. The `mam_filter_1` and `mam_filter_2` fields no longer exist. | <span class="src">`nextflow.config:51`, `bin/repmask_vcf.sh:165-169`</span> |
-| `--hervk_mask_tandem` | `null` | Old name of `--hervk_mask_graph_gt_at_cnv`. When set, its value wins over the new name. | <span class="src">`nextflow.config:107`, `module/main.nf:419-420`</span> |
+| `--hervk_mask_tandem` | `null` | Old name of `--hervk_mask_graph_gt_at_cnv`. When set, its value wins over the new name. | <span class="src">`nextflow.config:107`, `module/main.nf:434-435`</span> |
 
 ---
 

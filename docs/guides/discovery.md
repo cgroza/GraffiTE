@@ -8,7 +8,7 @@ description: >-
 # Stage A: discovery
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `3b8fd03`. The
+    Verified against `v1.1dev` at commit `583f603`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -219,7 +219,7 @@ Whatever the sources, all calls converge on `truvari_merge`, which behaves in on
 |---|---|---|
 | `--vcf` was used | Pass-through. Decompress only; original IDs preserved. | <span class="src">`module/main.nf:196-203`</span> |
 | Exactly one VCF reached the merge | No collapse. Original IDs preserved. | <span class="src">`module/main.nf:211-214`</span> |
-| Two or more VCFs | Full merge and collapse, described below. | <span class="src">`module/main.nf:217-257`</span> |
+| Two or more VCFs | Full merge and collapse, described below. | <span class="src">`module/main.nf:217-272`</span> |
 
 For the multi-sample case:
 
