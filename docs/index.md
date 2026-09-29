@@ -11,7 +11,7 @@ description: >-
 <p class="gt-tagline">Pangenomic toolbox for the analysis of transposable element insertion polymorphisms.</p>
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `85eeb18`. The
+    Verified against `v1.1dev` at commit `0fb99aa`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -113,11 +113,12 @@ only on the single-input paths. In both cases the element itself is what GraffiT
 </figcaption>
 </figure>
 
-So **an ALT allele does not mean "TE present"**. For `DEL` records the relationship is inverted.
-`vcf_to_pa_tsv.py` writes the presence-absence TSVs, and it reads presence off `INFO/SVTYPE`.
-With more than one input VCF, `truvari_merge` strips INFO and puts back only `SVLEN`, so no record
-carries `SVTYPE` and every sample column comes out `NA`. On a single input VCF the sample columns
-hold `1` for present and `0` for absent, whichever way the record points. See
+So **an ALT allele does not mean "TE present"**. For a reference insertion the relationship is
+inverted. `vcf_to_pa_tsv.py` writes the presence-absence TSVs and does that conversion for you:
+a `1` always means the TE is in that sample, whichever way the record points. It reads the
+direction from `INFO/SVTYPE` where there is one and from the allele lengths where there is not,
+which is what a run with two or more caller VCFs produces. `NA` is left only where neither says,
+on a symbolic ALT or when REF and ALT are the same length. See
 [Output files](reference/outputs.md).
 
 ---

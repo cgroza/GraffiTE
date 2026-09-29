@@ -6,7 +6,7 @@ description: Every INFO and FORMAT tag GraffiTE writes, its meaning, and the cod
 # VCF fields
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `85eeb18`. The
+    Verified against `v1.1dev` at commit `0fb99aa`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
