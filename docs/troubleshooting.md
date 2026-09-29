@@ -138,6 +138,22 @@ shows where the time went and which requests to change.
 
 ---
 
+## A tool is missing, or a fixed bug is still there
+
+If a run fails on a tool the image is supposed to carry, or a bug fixed in a rebuilt image is
+still happening, check the image you are running before anything else. Nextflow's Singularity
+cache is keyed on the image name, so it reuses an old `cgroza-graffite-latest.img` after the
+tag is rebuilt, and says nothing about it.
+
+```bash
+apptainer inspect /path/to/cgroza-graffite-latest.img | grep base.digest
+```
+
+Compare that with the registry. If it differs, delete the cached file and let Nextflow pull
+again; see [Updating](getting-started/installation.md#updating).
+
+---
+
 ## Getting help
 
 Open an issue at <https://github.com/cgroza/GraffiTE/issues>. It is the only channel the
