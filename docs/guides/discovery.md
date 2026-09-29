@@ -8,7 +8,7 @@ description: >-
 # Stage A: discovery
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `3b8fd03`. The
+    Verified against `v1.1dev` at commit `85eeb18`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -97,7 +97,7 @@ and its own sample name.
 3. `svim_asm`: `svim-asm haploid --min_sv_size 100 --types INS,DEL`. **Only insertions and
    deletions of at least 100 bp are kept**; inversions, duplications and translocations are
    discarded here and never reach the rest of the pipeline. Variant IDs are prefixed with the
-   sample name. <span class="src">`module/main.nf:178-179`</span>
+   sample name. <span class="src">`module/main.nf:184-185`</span>
 
 **Published:** `out/1_SV_search/svim-asm_individual_VCFs/<sample>.vcf.gz`
 
@@ -122,7 +122,7 @@ HG005,/data/HG005.hap1.fa.gz,/data/HG005.hap2.fa.gz
 
 **What runs:** `pav_asm` writes a `config.json` and a tab-delimited `assemblies.tsv` with
 `NAME`/`HAP1`…`HAPn` columns, invokes PAV's own run script, then filters to
-\|SVLEN\| > 50 bp. <span class="src">`module/main.nf:141-162`</span>
+\|SVLEN\| > 50 bp. <span class="src">`module/main.nf:147-168`</span>
 
 **Published:** `out/1_SV_search/pav_individual_VCFs/sv_<sample>.vcf.gz`
 
@@ -156,11 +156,11 @@ unchanged rather than being prefixed.
 1. `map_longreads`: `minimap2 -ax <preset>` into `samtools sort`. With `--aligner winnowmap`,
    winnowmap with a `meryl` k=15 set. <span class="src">`module/main.nf:72-91`</span>
 2. `sniffles_sample_call`: per sample, `sniffles --minsvlen 100`, producing both a `.vcf` and a
-   `.snf`. <span class="src">`module/main.nf:104-105`</span>
+   `.snf`. <span class="src">`module/main.nf:104-110`</span>
 3. `sniffles_population_call`: the `.snf` files from **all** samples are called jointly, then
    filtered to `SVTYPE` of `INS` or `DEL`, symbolic `<INS>`/`<DEL>` alleles are dropped, and the
    result is split back into one VCF per sample with `bcftools +split`.
-   <span class="src">`module/main.nf:121-126`</span>
+   <span class="src">`module/main.nf:126-132`</span>
 
 **Published:** `out/1_SV_search/sniffles2_individual_VCFs/*.vcf.gz`
 
@@ -217,9 +217,9 @@ Whatever the sources, all calls converge on `truvari_merge`, which behaves in on
 
 | Situation | Behaviour | Source |
 |---|---|---|
-| `--vcf` was used | Pass-through. Decompress only; original IDs preserved. | <span class="src">`module/main.nf:196-203`</span> |
-| Exactly one VCF reached the merge | No collapse. Original IDs preserved. | <span class="src">`module/main.nf:211-214`</span> |
-| Two or more VCFs | Full merge and collapse, described below. | <span class="src">`module/main.nf:217-257`</span> |
+| `--vcf` was used | Pass-through. Decompress only; original IDs preserved. | <span class="src">`module/main.nf:202-209`</span> |
+| Exactly one VCF reached the merge | No collapse. Original IDs preserved. | <span class="src">`module/main.nf:217-220`</span> |
+| Two or more VCFs | Full merge and collapse, described below. | <span class="src">`module/main.nf:223-277`</span> |
 
 For the multi-sample case:
 
@@ -258,10 +258,10 @@ For the multi-sample case:
 - **No repeat awareness.** Stage A is a plain SV caller pipeline. Nothing here knows what a TE is.
   That is entirely [Stage B](annotation.md).
 - **INS and DEL only from svim-asm and Sniffles2.** `svim_asm` runs svim-asm with
-  `--types INS,DEL` <span class="src">`module/main.nf:178`</span>, and
+  `--types INS,DEL` <span class="src">`module/main.nf:184`</span>, and
   `sniffles_population_call` keeps only `SVTYPE == INS` or `SVTYPE == DEL`
-  <span class="src">`module/main.nf:123`</span>. `pav_asm` filters on size alone,
-  \|SVLEN\| > 50 <span class="src">`module/main.nf:161`</span>, and VCFs given with `--svs`
+  <span class="src">`module/main.nf:129`</span>. `pav_asm` filters on size alone,
+  \|SVLEN\| > 50 <span class="src">`module/main.nf:167`</span>, and VCFs given with `--svs`
   go to the merge unfiltered, so records of any other SV type reaching the merge by those two
   routes end up in `SVs.vcf`.
 

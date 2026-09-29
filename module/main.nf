@@ -102,7 +102,12 @@ process sniffles_sample_call {
   script:
   """
   samtools index ${longreads_bam}
-  sniffles --minsvlen 100 --threads ${task.cpus} --reference ${ref} --input ${longreads_bam} --snf ${sample_name}.snf --vcf ${sample_name}.vcf
+  # --all-contigs because sniffles 2.8 and later skip every contig shorter than
+  # 1 Mb without it, and report only "Wrote 0 called SVs". On a fragmented
+  # assembly that loses the calls on those contigs with nothing in the log to
+  # say so. 2.4 had no such cutoff, so a run that worked before an image
+  # rebuild can come back empty after one.
+  sniffles --minsvlen 100 --all-contigs --threads ${task.cpus} --reference ${ref} --input ${longreads_bam} --snf ${sample_name}.snf --vcf ${sample_name}.vcf
   """
 }
 
@@ -119,7 +124,8 @@ process sniffles_population_call {
   script:
   """
   ls *.snf > snfs.tsv
-  sniffles --minsvlen 100  --threads ${task.cpus} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
+  # --all-contigs for the same reason as sniffles_sample_call above.
+  sniffles --minsvlen 100 --all-contigs --threads ${task.cpus} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
   bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 !~ "<INS>" && \$5 !~ "<DEL>"' | \
     bcftools sort -Oz -o sniffles2_variants.vcf.gz
   mkdir sniffles2_individual_VCFs
@@ -219,6 +225,20 @@ process truvari_merge {
     bcftools annotate -x INFO \${f} -Oz -o stripped_\${f}
     tabix stripped_\${f}
     done
+
+    # bcftools segfaults merging a set in which every input is record-less
+    # (measured on 1.24-24-gedf7fd96; 1.16 returns 0). A mix of empty and
+    # non-empty inputs is fine, so only the all-empty case is stopped here,
+    # and with a message rather than exit 139.
+    total_records=\$(for f in stripped_*.vcf.gz; do bcftools view -H "\$f" | wc -l; done | awk '{s+=\$1} END{print s+0}')
+    if [[ "\$total_records" -eq 0 ]]; then
+      echo "ERROR: no SV caller produced a record, so there is nothing to merge." >&2
+      echo "  With --longreads or --bams this means sniffles called nothing." >&2
+      echo "  Read the per-sample VCFs and the sniffles log in this work" >&2
+      echo "  directory before suspecting the reads or the reference: a caller" >&2
+      echo "  that finds nothing usually says so there first." >&2
+      exit 1
+    fi
 
     bcftools merge -Oz -m none -o merged.vcf.gz stripped_*.vcf.gz
     tabix merged.vcf.gz
