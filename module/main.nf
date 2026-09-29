@@ -102,7 +102,12 @@ process sniffles_sample_call {
   script:
   """
   samtools index ${longreads_bam}
-  sniffles --minsvlen 100 --threads ${task.cpus} --reference ${ref} --input ${longreads_bam} --snf ${sample_name}.snf --vcf ${sample_name}.vcf
+  # --all-contigs because sniffles 2.8 and later skip every contig shorter than
+  # 1 Mb without it, and report only "Wrote 0 called SVs". On a fragmented
+  # assembly that loses the calls on those contigs with nothing in the log to
+  # say so. 2.4 had no such cutoff, so a run that worked before an image
+  # rebuild can come back empty after one.
+  sniffles --minsvlen 100 --all-contigs --threads ${task.cpus} --reference ${ref} --input ${longreads_bam} --snf ${sample_name}.snf --vcf ${sample_name}.vcf
   """
 }
 
@@ -119,7 +124,8 @@ process sniffles_population_call {
   script:
   """
   ls *.snf > snfs.tsv
-  sniffles --minsvlen 100  --threads ${task.cpus} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
+  # --all-contigs for the same reason as sniffles_sample_call above.
+  sniffles --minsvlen 100 --all-contigs --threads ${task.cpus} --reference ${ref} --input snfs.tsv --vcf genotypes_unfiltered.vcf
   bcftools filter -i 'INFO/SVTYPE == "INS" | INFO/SVTYPE == "DEL"' genotypes_unfiltered.vcf | awk '\$5 !~ "<INS>" && \$5 !~ "<DEL>"' | \
     bcftools sort -Oz -o sniffles2_variants.vcf.gz
   mkdir sniffles2_individual_VCFs
