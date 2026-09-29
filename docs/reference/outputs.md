@@ -6,7 +6,7 @@ description: Every file GraffiTE publishes, which process produces it, and what 
 # Output files
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `85eeb18`. The
+    Verified against `v1.1dev` at commit `0fb99aa`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -225,7 +225,7 @@ present, whichever way the VCF record points:
 
 A `1` therefore always means the TE is in that sample. Under `--human`, the `_human.tsv` is
 rewritten by `hervk_annotate` with the classifier's columns appended.
-<span class="src">`bin/vcf_to_pa_tsv.py:4-15,42-53`, `module/main.nf:376-378`</span>
+<span class="src">`bin/vcf_to_pa_tsv.py:4-15,42-75`, `module/main.nf:376-378`</span>
 
 ## What is not published
 
