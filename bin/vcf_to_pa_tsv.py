@@ -39,18 +39,40 @@ def parse_info(info):
     return d
 
 
-def gt_presence(gt, svtype):
+def is_insertion(svtype, ref, alt):
+    """True for an insertion, False for a deletion, None when neither can be told.
+
+    SVTYPE is not always there to read. truvari_merge strips every upstream INFO
+    field before the collapse (module/main.nf:219) and puts back only SVLEN
+    (:271), so on any run with two or more caller VCFs pangenome.vcf carries no
+    SVTYPE at all, and keying on it alone returned NA for every sample. The
+    allele lengths say the same thing, and bin/add_polyA.py:119-130 and
+    bin/hervk_ref_state.py read polarity the same way.
+    """
+    if svtype == 'INS':
+        return True
+    if svtype == 'DEL':
+        return False
+    if alt.startswith('<') or ',' in alt:
+        return None               # symbolic or multi-allelic: no length to compare
+    if len(alt) > len(ref):
+        return True
+    if len(ref) > len(alt):
+        return False
+    return None
+
+
+def gt_presence(gt, svtype, ref='', alt=''):
     if not gt or gt in ('.', './.', '.|.'):
         return 'NA'
     alleles = re.split(r'[/|]', gt)
     if all(a == '.' for a in alleles):
         return 'NA'
     has_alt = any(a not in ('0', '.', '') for a in alleles)
-    if svtype == 'INS':
-        return '1' if has_alt else '0'
-    if svtype == 'DEL':
-        return '0' if has_alt else '1'
-    return 'NA'
+    ins = is_insertion(svtype, ref, alt)
+    if ins is None:
+        return 'NA'
+    return ('1' if has_alt else '0') if ins else ('0' if has_alt else '1')
 
 
 def main():
@@ -84,7 +106,7 @@ def main():
         fields = line.split('\t')
         if len(fields) < 8:
             continue
-        chrom, pos, vid, _ref, _alt, _qual, _filt, info = fields[:8]
+        chrom, pos, vid, ref, alt, _qual, _filt, info = fields[:8]
         info_d = parse_info(info)
         svtype = info_d.get('SVTYPE', '')
         end_val = info_d.get('END', 'NA')
@@ -104,7 +126,7 @@ def main():
                 gt_idx = 0
             for s_data in fields[9:]:
                 gt = s_data.split(':')[gt_idx] if s_data else '.'
-                sample_vals.append(gt_presence(gt, svtype))
+                sample_vals.append(gt_presence(gt, svtype, ref, alt))
         row = [chrom, pos, end_val, vid] + other_vals + sample_vals
         fout.write('\t'.join(row) + '\n')
 
