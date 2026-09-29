@@ -40,11 +40,26 @@ jobs:
       - name: Build
         run: mkdocs build --strict
 
+      # The built site, for previewing a branch that does not publish. Download
+      # it from the run's Artifacts panel and open index.html. v1.1dev relies on
+      # this: only main deploys to Pages.
       - uses: actions/upload-artifact@v4
         with:
-          name: site
+          name: site-${{ github.sha }}
           path: site/
-          retention-days: 7
+          retention-days: 14
+
+      - name: Where to find the preview
+        run: |
+          {
+            echo '## Preview'
+            echo 'Built site uploaded as artifact `site-${{ github.sha }}`.'
+            echo 'Download it from the Artifacts panel of this run and open `index.html`.'
+            if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+              echo
+              echo 'Only `main` publishes to GitHub Pages, so this branch previews here.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # Report only. A parameter or INFO tag that the code has and the reference
   # pages do not (or the reverse) shows up here; it does not block the merge.
@@ -84,8 +99,12 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
-    # Only the documentation branch publishes; PRs build but do not deploy.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/v1.1dev'
+    # Only main publishes. Every other branch, v1.1dev included, is previewed
+    # through the `site-*` artifact the build job uploads: the github-pages
+    # environment is restricted to main, so a deploy from anywhere else fails
+    # with "Branch ... is not allowed to deploy to github-pages due to
+    # environment protection rules" rather than publishing.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     permissions:
