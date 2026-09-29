@@ -5,7 +5,7 @@ set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 # shellcheck disable=SC1091
 source ./INPUTS.env
-PROJECT="${PROJECT:-cgroza/GraffiTE}"; REVISION="${REVISION:-test/synthetic-end-to-end}"
+PROJECT="${PROJECT:-cgroza/GraffiTE}"; REVISION="${REVISION:-v1.1dev}"
 B="${WORKDIR:?}/build"
 fail=0
 expect() {  # expect <label> <substring> <args...>

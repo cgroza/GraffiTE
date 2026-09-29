@@ -18,7 +18,7 @@ source ./INPUTS.env
 PROFILE="${PROFILE:-standard}"
 CPUS="${CPUS:-16}"
 PROJECT="${PROJECT:-cgroza/GraffiTE}"
-REVISION="${REVISION:-test/synthetic-end-to-end}"
+REVISION="${REVISION:-v1.1dev}"
 HANDOUT="$PWD"
 
 CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi epi_bam winnowmap tsd_win40)

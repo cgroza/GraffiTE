@@ -109,7 +109,7 @@ reports the missing runtime and fix that one item later.
 mkdir -p /xdisk/cgoubert/cgoubert/GraffiTE1.1/synthetic && cd $_
 module load nextflow
 
-nextflow pull cgroza/GraffiTE -r test/synthetic-end-to-end
+nextflow pull cgroza/GraffiTE -r v1.1dev
 cp ~/.nextflow/assets/cgroza/GraffiTE/test/synthetic/handout/* .
 
 ./bootstrap.sh                  # pull + refresh this handout

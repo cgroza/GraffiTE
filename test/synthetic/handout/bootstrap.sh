@@ -9,7 +9,7 @@ if [[ -f ./INPUTS.env ]]; then
   _env_proj="$(source ./INPUTS.env >/dev/null 2>&1; echo "${PROJECT:-}")"
 fi
 PROJECT="${PROJECT:-${_env_proj:-cgroza/GraffiTE}}"
-REVISION="${REVISION:-${_env_rev:-test/synthetic-end-to-end}}"
+REVISION="${REVISION:-${_env_rev:-v1.1dev}}"
 
 command -v nextflow >/dev/null || {
   echo "nextflow not on PATH -- module load it first" >&2; exit 1; }
