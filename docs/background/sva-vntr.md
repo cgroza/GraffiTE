@@ -6,7 +6,7 @@ description: Why VNTR-only SVA variants are reclassified, and the per-subfamily 
 # SVA VNTR polymorphisms
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `3b8fd03`. The
+    Verified against `v1.1dev` at commit `85eeb18`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -82,7 +82,7 @@ That relabelling is what the downstream filters see:
   `--human_sva_ids` (default `^SVA_[DEF]`), without requiring a polyA tail, so VNTR
   polymorphisms of the young subfamilies reach `pangenome.human.vcf`, distinguishable from
   SVA insertions by the suffix.
-  <span class="src">`module/main.nf:520,522,528`, `nextflow.config:67`</span>
+  <span class="src">`module/main.nf:540,542,548`, `nextflow.config:67`</span>
 
 To count SVA insertion polymorphisms alone, exclude them:
 
@@ -128,8 +128,8 @@ variable VNTR across the 20 samples, and 54% of SVA_F elements do. With both fil
 10%.
 
 A floor remains below that, from the SV caller. The PAV path keeps `|SVLEN| > 50`
-<span class="src">`module/main.nf:161`</span>, and the sniffles and svim-asm paths ask for 100 bp
-<span class="src">`module/main.nf:105,122,178`</span>. On the run above the smallest annotated
+<span class="src">`module/main.nf:167`</span>, and the sniffles and svim-asm paths ask for 100 bp
+<span class="src">`module/main.nf:110,128,184`</span>. On the run above the smallest annotated
 VNTR record is 50 bp, about one unit, so single-unit changes sit at the edge of what the
 callset records.
 
