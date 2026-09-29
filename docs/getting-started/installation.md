@@ -171,6 +171,28 @@ nextflow pull cgroza/GraffiTE -r v1.1dev
 The image and the code are updated separately. After a code update that changes a tool, pull
 the image again as well; the [Changelog](../changelog.md) says when that is needed.
 
+Nextflow will not notice a rebuilt image on its own. Its Singularity cache is keyed on the
+image **name**, so it reuses a `cgroza-graffite-latest.img` left by an earlier run however many
+times `:latest` has been rebuilt since, and nothing in the log says the file is old. Delete it
+to force a fresh pull:
+
+```bash
+rm -f "${NXF_SINGULARITY_CACHEDIR:-$NXF_HOME/singularity}"/cgroza-graffite-latest.img
+```
+
+`NXF_HOME` is `~/.nextflow` unless you set it.
+
+To see which image you are running, read the digest out of the cached file and compare
+it with the registry:
+
+```bash
+apptainer inspect /path/to/cgroza-graffite-latest.img | grep base.digest
+```
+
+Comparing checksums of the `.img` files themselves does not answer the question: Apptainer's
+conversion from the Docker image is not byte-reproducible, so two conversions of one image have
+different checksums.
+
 ---
 
 ## Execution profiles
