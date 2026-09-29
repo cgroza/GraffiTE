@@ -126,8 +126,12 @@ for cell in "${SEL[@]}"; do
   svs)
     nf svs --svs "$B/svs_one.csv" --genotype false || fail=1 ;;
   duallib)
-    # Same inputs, the other spelling of the internal region.
-    local_out="$RUNS_DIR/duallib"; mkdir -p "$local_out"
+    # Same inputs, the other spelling of the internal region. This arm calls
+    # nextflow itself rather than nf(), so it clears its directory and keeps
+    # its exit code on its own. It used to do neither: a rerun stopped at
+    # launch on "Trace file already exists", and the rc=$? printed after
+    # "|| fail=1" said 0 either way.
+    local_out="$RUNS_DIR/duallib"; rm -rf "$local_out"; mkdir -p "$local_out"
     echo "=== duallib ===" | tee -a "$HANDOUT/MATRIX.log"
     ( set -x
       nextflow -log "$local_out/nextflow.log" run "$PROJECT" -r "$REVISION" \
@@ -136,8 +140,9 @@ for cell in "${SEL[@]}"; do
         --reference "$B/ref/synth.fa" --TE_library "$B/lib/synth_TE_bare_HERVK.fasta" \
         --cores "$CPUS" --out "$local_out" \
         "${SIF_ARG[@]}" "${TMP_ARG[@]}" -with-trace "$local_out/nextflow_trace.txt"
-    ) >"$local_out/run.log" 2>&1 || fail=1
-    echo "duallib rc=$?" | tee -a "$HANDOUT/MATRIX.log" ;;
+    ) >"$local_out/run.log" 2>&1
+    rc=$?; [[ $rc -eq 0 ]] || fail=1
+    echo "duallib rc=$rc" | tee -a "$HANDOUT/MATRIX.log" ;;
   guards)
     bash "$HANDOUT/check_guards.sh" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
   epi)
