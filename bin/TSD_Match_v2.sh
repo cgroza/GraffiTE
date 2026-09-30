@@ -47,7 +47,15 @@ echo ""
 # TSD_MAX: default = 20; min = 4 max = 30
 TSD_MIN=4
 TSD_MAX=20
-exact_match.py -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk -v tsdmin=${TSD_MIN} -v tsdmax=${TSD_MAX} -v win=${WIN} 'function abs(x) { return x < 0 ? -x : x } function min(x,y) { return x < y ? x : y } { a = (abs(win-$7) + abs(win-$9)) / 2; b = (abs(win-$8) + abs(win-$10)) / 2; score = min(a, b);if($4 >= tsdmin && $4 <= tsdmax){print $0"\t"(win-$7)"\t"(win-$9)"\t"(win-$8)"\t"(win-$10)"\t"score} }' > blastout 2>&1
+# Score = distance from the junction, averaged over the two fragments. A TSD
+# either starts both the SV and the 3' flank ([TSD---]TSD), so both copies start
+# at column WIN+1, or ends both the 5' flank and the SV (TSD[---TSD]), so both
+# end at column WIN. The awk below therefore takes start offsets from WIN+1
+# and end offsets from WIN, so a TSD at either junction scores 0. When start
+# offsets were taken from WIN, every [TSD---]TSD scored 1 and lost to any
+# shorter match scoring 0.5, usually a one-base-shifted AAAA where a TSD
+# opening with AAAA meets the poly(A) tail (test/tsd/test_tsd_match.sh).
+exact_match.py -word_size 4 -query R.fasta -db L.fasta -outfmt 6 -strand plus | awk -v tsdmin=${TSD_MIN} -v tsdmax=${TSD_MAX} -v win=${WIN} 'function abs(x) { return x < 0 ? -x : x } function min(x,y) { return x < y ? x : y } { a = (abs(win+1-$7) + abs(win+1-$9)) / 2; b = (abs(win-$8) + abs(win-$10)) / 2; score = min(a, b);if($4 >= tsdmin && $4 <= tsdmax){print $0"\t"(win+1-$7)"\t"(win+1-$9)"\t"(win-$8)"\t"(win-$10)"\t"score} }' > blastout 2>&1
 
 
 if ! [[ -s blastout ]]
@@ -65,7 +73,7 @@ else # match found
 
 	# get best hit using lowest (best) TSD score (= how close to the edges of the SV/flank the TSD are -- it should be ideally: [TSD----]TSD or TSD[-----TSD])
 	# example of good scoring: TSD are snug with the breakpoints, one on the genome, one on the SV:
-	# best hit: R|3P_end	L|5P_end	100.000	23	0	0	31	53	31	53	1.00e-20	46.		-1	-1	-23	-23	1 <---- score is 1 (should be 0, need to fix 31 not 30 as reference point)
+	# best hit: R|3P_end	L|5P_end	100.000	23	0	0	31	53	31	53	1.00e-20	46.		0	0	-23	-23	0 <---- start-anchored, so start offsets 0 and score 0
 	# 
 	# >L|5P_end                     ***********************       
 	# acataaaatatcaaagtacccaaactatacATTATATACTGTACATAAAATATAAAATTA
@@ -83,7 +91,16 @@ else # match found
 	#                                 ^^^^^^^^^^^^^^^^^^^^^^^                                                     ^^^^^^^^^^^^^^^^^^^^^^^
 	
 	# get best hit
-	sort -k17,17n -k4,4nr blastout | head -n 1 > best_hit
+	# Candidates scoring 1.5 or less are ties, and the longest wins. Above 1.5
+	# the lowest score wins and length breaks ties, as before. Ranked by score
+	# alone, a candidate one base closer to the junction beat any longer one.
+	# Where a TSD opening with As meets the poly(A) tail, the two run together
+	# and the boundary between them is uncertain by a base or two, and a real
+	# TSD of 13 or 17 bp lost to a 4 bp AAAA half a base closer. At 1.5 the
+	# two copies can sit up to three bases off the junction between them.
+	# (test/tsd/test_tsd_match.sh, cases 1, 3 and 4.)
+	awk -F'\t' -v OFS='\t' '{ near = ($17 <= 1.5) ? 0 : 1; print near, (near == 0 ? -$4 : $17), (near == 0 ? $17 : -$4), $0 }' blastout \
+		| sort -t$'\t' -k1,1n -k2,2g -k3,3g | head -n 1 | cut -f4- > best_hit
 	# print the candidate hits and best hit
 	echo -e "R_query\tL_target\tidty\tmatch_len\tMM\tgaps\tR_start\tR_end\tL_start\tL_end\te-value\tR_start_offset\tL_start_offset\tR_end_offset\tL_end_offset\tTSD_score" > header
 	echo ""

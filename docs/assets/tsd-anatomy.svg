@@ -80,6 +80,6 @@
   <text class="ttl" x="20" y="374">The score</text>
   <text class="mono" x="20" y="398">score = min(a, b)</text>
   <text class="mono" x="20" y="418">PASS when score ≤ 5 and the copies are 4 to 20 bp long</text>
-  <text class="cap" x="440" y="398">The best candidate is the lowest score, then the</text>
-  <text class="cap" x="440" y="418">longest match. Here score = 0: PASS.</text>
+  <text class="cap" x="440" y="398">Scores of 1.5 or less tie and the longest wins;</text>
+  <text class="cap" x="440" y="418">otherwise the lowest score. Here score = 0: PASS.</text>
 </svg>
