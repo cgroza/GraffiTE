@@ -6,7 +6,7 @@ description: Release history of GraffiTE, from the first beta to the current v1.
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `0fb99aa`. The
+    Verified against `v1.1dev` at commit `d268d93`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -124,6 +124,12 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   stops the run instead of writing an empty flank file; a missing `exact_match.py` is an error
   rather than no hits; `add_polyA.py` trims the two-copy `TSD` value correctly. Test:
   `test/tsd/test_tsd_chain.sh` (commit `884afa8`).
+- `TSD_Match_v2.sh` measured start offsets from `WIN` instead of `WIN + 1`, so a TSD at the
+  start of the variant scored 1, and a shorter match scoring 0.5 beat it, usually a 4 bp AAAA
+  where a TSD opening with As meets the poly(A) tail. Start offsets now count from `WIN + 1`, and
+  candidates scoring 1.5 or less are ties won by the longest. On the 5,819 records of a 20-genome
+  human run, 1,039 TSD calls got longer and 6 shorter. Test: `test/tsd/test_tsd_match.sh`
+  (commit `d268d93`).
 
 **PanGenie and Nextflow 26** (PR #101, 2026-09-14)
 

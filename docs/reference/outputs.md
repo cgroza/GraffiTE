@@ -6,7 +6,7 @@ description: Every file GraffiTE publishes, which process produces it, and what 
 # Output files
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `0fb99aa`. The
+    Verified against `v1.1dev` at commit `d268d93`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -151,8 +151,8 @@ under `--human`, `hervk_annotate` writes its own files into the same directory a
 | `pangenome.human.consolidated.vcf` | `--human` only. `pangenome.human.vcf` with each HERV-K locus collapsed onto one multi-allelic record, genotypes taken from the assemblies. | <span class="src">`module/main.nf:398-404`</span> |
 | `pangenome.presence-absence.tsv`, `..._trusted.tsv`, `..._human.tsv` | Flat tables of the matching VCF; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:593,599,606`</span> |
 | `human_filter_summary.txt` | `--human` only. The exact `bcftools view -i` expression that was applied, record counts before and after, and the kept and dropped `(matching_classes, repeat_ids)` combinations with their counts. | <span class="src">`module/main.nf:608-623`</span> |
-| `TSD_summary.txt` | One row per variant searched, the best duplication found and whether it passed. Columns are in [Target site duplications](../background/tsd.md). | <span class="src">`module/main.nf:573`, `bin/TSD_Match_v2.sh:116`</span> |
-| `TSD_full_log.txt` | The full search log: both fragments with a ruler, every candidate duplication and the chosen one, per variant. | <span class="src">`module/main.nf:574`, `bin/TSD_Match_v2.sh:126`</span> |
+| `TSD_summary.txt` | One row per variant searched, the best duplication found and whether it passed. Columns are in [Target site duplications](../background/tsd.md). | <span class="src">`module/main.nf:573`, `bin/TSD_Match_v2.sh:133`</span> |
+| `TSD_full_log.txt` | The full search log: both fragments with a ruler, every candidate duplication and the chosen one, per variant. | <span class="src">`module/main.nf:574`, `bin/TSD_Match_v2.sh:143`</span> |
 | `hervk_candidates.vcf` | `--human` only. Every `LTR/ERVK` record of `pangenome.vcf` up to `--hervk_max_svlen`, classified, with its discovery genotypes. Wider than the human subset: a locus the `--human` filter split keeps all its members here. | <span class="src">`module/main.nf:346-374`</span> |
 | `hervk_calls.tsv` | `--human` only. The per-candidate call table: id, position, `SVLEN`, class, allele states, evidence, `k`, `j`, reference units and period, reference state, `lambda`, `nu`, coverage, `pmap`, architecture, notes. | <span class="src">`bin/hervk_classify.py:478-480`</span> |
 | `hervk_loci.tsv` | `--human` only. One row per locus: id, interval, member records, how many are in the human subset and which are not, reference state, allele set, locus type, the three flags, per-record class, evidence and `k`, architecture, and flags such as `LOCUS_SPLIT_BY_HUMAN_FILTER`. | <span class="src">`bin/hervk_reconcile.py:127-131`</span> |
