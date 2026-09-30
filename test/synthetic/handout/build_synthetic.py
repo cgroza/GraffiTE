@@ -488,6 +488,55 @@ def write_reads(rng, ref, haps, out, args):
         f'L2,{ab}/reads/L2.long.fq.gz,ont\n')
 
 
+def add_mods_to_sam(sam_text, every=1, prob=200):
+    """Put MM/ML base-modification tags on every aligned read.
+
+    --epigenomes without --lifted runs bamtags_to_BED, which calls
+    `tagtobed -T C -B C+m`, so the BAMs have to carry the tags a methylation
+    caller would have written. Without them that branch has nothing to read and
+    the only path this test set could reach was the --lifted shortcut.
+
+    MM is defined over the read as it was sequenced, not as it was aligned, so
+    a reverse-strand record needs the reverse complement of SEQ. The deltas
+    count canonical C bases skipped between reported ones, and ML carries one
+    probability per reported base. Only CpG cytosines are marked, which is what
+    --motif CG selects.
+    """
+    comp = str.maketrans('ACGTNacgtn', 'TGCANtgcan')
+    out = []
+    for line in sam_text.splitlines():
+        if line.startswith('@'):
+            out.append(line)
+            continue
+        f = line.split('\t')
+        if len(f) < 11 or f[9] == '*':
+            out.append(line)
+            continue
+        flag = int(f[1])
+        if flag & 0x900:                      # secondary or supplementary
+            out.append(line)
+            continue
+        seq = f[9]
+        fwd = seq.translate(comp)[::-1] if flag & 0x10 else seq
+        deltas, probs, skipped = [], [], 0
+        for i, b in enumerate(fwd):
+            if b != 'C':
+                continue
+            if fwd[i + 1:i + 2] == 'G':       # CpG only
+                deltas.append(skipped)
+                probs.append(prob)
+                skipped = 0
+            else:
+                skipped += 1
+        if not deltas:
+            out.append(line)
+            continue
+        f.append('MM:Z:C+m?,' + ','.join(str(d) for d in deltas) + ';')
+        f.append('ML:B:C,' + ','.join(str(v) for v in probs))
+        out.append('\t'.join(f))
+    return '\n'.join(out) + '\n'
+
+
 def make_bams(out, args):
     """--bams needs coordinate-sorted BAMs. sniffles takes the sample name from
     @RG SM when it is there, so set it: the sample column of the output depends
@@ -514,13 +563,19 @@ def make_bams(out, args):
             print('  [warn] minimap2 failed:', sam.stderr.strip().splitlines()[-1:])
             return
         p = subprocess.run(['samtools', 'sort', '-o', str(bam)],
-                           input=sam.stdout, text=True, capture_output=True)
+                           input=add_mods_to_sam(sam.stdout), text=True, capture_output=True)
         if p.returncode != 0:
             print('  [warn] samtools sort failed:', p.stderr.strip()[-200:])
             return
         subprocess.run(['samtools', 'index', str(bam)], check=True)
         rows.append(f'csv{sample},{ab}/bam/file{sample}.bam\n')
     (out / 'bams.csv').write_text('sample,path\n' + ''.join(rows))
+    # --genotype_with routes a .bam row to reads_input_ch.bam (main.nf:185),
+    # which is the only way into bamtags_to_BED and lift_epigenome. The type
+    # column picks the giraffe preset.
+    (out / 'reads_bam.csv').write_text(
+        'sample,path,type\n'
+        + ''.join(f'{s},{ab}/bam/file{s}.bam,hifi\n' for s in ('B1', 'B2')))
 
 
 # ---------------------------------------------------------------- vcf inputs

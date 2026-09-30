@@ -21,7 +21,7 @@ PROJECT="${PROJECT:-cgroza/GraffiTE}"
 REVISION="${REVISION:-test/synthetic-end-to-end}"
 HANDOUT="$PWD"
 
-CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi winnowmap)
+CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi epi_bam winnowmap)
 describe() { case "$1" in
   spine)        echo "--assemblies x4 + --svs + --human + giraffe + genotyping. Pays discovery, RepeatMasker, TSD and the HERV-K stack once; publishes the graph, the alignments and the RM_dir for everything after it.";;
   pangenie)     echo "--graffite_vcf on the spine's pangenome.vcf, pangenie. The -N left-alignment guard and the allele-drop categories in the audit.";;
@@ -34,6 +34,7 @@ describe() { case "$1" in
   duallib)      echo "The spine's inputs against the library that spells the internal region HERVK rather than HERVK-int. The pair-rule records should vanish with no error.";;
   guards)       echo "Launch-time guards only. No container, seconds.";;
   epi)          echo "--epigenomes via a hand-written --lifted CSV. Tier 2.";;
+  epi_bam)      echo "--epigenomes with no --lifted: the bamtags_to_BED and lift_epigenome branch, off MM/ML-tagged BAMs.";;
   winnowmap)    echo "--aligner winnowmap over the spine's assemblies. Tier 2.";;
 esac; }
 
@@ -57,6 +58,11 @@ TMP_ARG=(); [[ -n "${CONTAINER_TMP:-}" ]] && TMP_ARG=(--container_tmp "$CONTAINE
 nf() {  # nf <cell> <extra args...>
   local cell="$1"; shift
   local out="$RUNS_DIR/$cell"
+  # Clear the cell's own directory first. Nextflow refuses to start when
+  # -with-trace names a file that exists, so re-running a cell that failed
+  # dies on "Trace file already exists" before it reaches the pipeline, and
+  # the log then describes the previous run rather than this one.
+  rm -rf "$out"
   mkdir -p "$out"
   echo "=== $cell ===" | tee -a "$HANDOUT/MATRIX.log"
   ( set -x
@@ -138,6 +144,13 @@ for cell in "${SEL[@]}"; do
     nf epi --graffite_vcf "$SPINE/3_TSD_search/pangenome.vcf" --graph_method giraffe \
        --genotype_with "$B/reads.csv" --epigenomes "$B/epigenomes.csv" \
        --lifted "$B/lifted.csv" || fail=1 ;;
+  epi_bam)
+    # No --lifted, so main.nf:235-239 runs bamtags_to_BED and lift_epigenome
+    # instead of reading a CSV. --genotype_with must name BAMs: only a .bam row
+    # reaches reads_input_ch.bam (main.nf:185), and the generator writes those
+    # with MM/ML tags for tagtobed to read.
+    nf epi_bam --graffite_vcf "$SPINE/3_TSD_search/pangenome.vcf" --graph_method giraffe \
+       --genotype_with "$B/reads_bam.csv" --epigenomes true || fail=1 ;;
   winnowmap)
     nf winnowmap --assemblies "$B/assemblies.csv" --aligner winnowmap --genotype false || fail=1 ;;
   *) echo "unknown cell: $cell (see ./run_matrix.sh -l)" >&2; fail=1 ;;
