@@ -17,6 +17,7 @@ region has A (or T) fraction >= MIN_PURITY.
 import argparse
 import re
 import sys
+from urllib.parse import unquote
 
 MIN_LEN = 8          # minimum tail length
 MIN_PURITY = 0.8     # minimum A/T fraction within the tail window
@@ -135,7 +136,15 @@ def annotate_record(fields):
         # INFO/TSD holds the 5' copy and the 3' copy comma-separated. Trim the
         # copy at the end being scanned. Read as one string, "X,X" never matched
         # a suffix, so no TSD was ever trimmed.
-        copies = tsd.split(',')
+        #
+        # Decode first. vcfpy, which writes pangenome.vcf in fix_vcf.py,
+        # percent-encodes a comma inside a Number=1 value, and
+        # tsd_annotate_vcf.sh used to declare TSD Number=1. In a pipeline run
+        # this line got "X%2CX", the split returned it whole, and the script
+        # trimmed nothing. tsd_annotate_vcf.sh now declares Number=2, which
+        # vcfpy writes with a plain comma; pangenome.vcf files from earlier
+        # runs still hold %2C.
+        copies = unquote(tsd).split(',')
         tsd = copies[-1] if strands == '+' else copies[0]
 
         if variant_seq and detect_polyA(variant_seq, strands, tsd):
