@@ -6,7 +6,7 @@ description: Release history of GraffiTE, from the first beta to the current v1.
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `d1dfd7b`. The
+    Verified against `v1.1dev` at commit `cc1f3ac`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -140,6 +140,13 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   (15 Alu, 1 L1, 1 SVA) go from `polyA=TRUE` to `FALSE` and leave `pangenome.human.vcf`.
   Records outside that subset were not rerun, so any that turn `TRUE` are not counted. Test:
   `test/tsd/test_tsd_chain.sh` now runs `fix_vcf.py` (commit `d1dfd7b`).
+- TSD candidates shorter than 6 bp count only when they sit on the junction (score 0.5 or less).
+  With each insertion's R window swapped for another's, so that no duplication can exist, the
+  search passed a match in 72% of Alu, L1 and SVA pairs; with the rule, 36%. On the 5,614 Alu,
+  L1 and SVA records of a 20-genome human run, 53 short calls are dropped and 33 switch to a
+  longer candidate. Through the TSD trim, `polyA` changes on 2 of all 5,819 records, both
+  `LTR/ERVK`, for which no filter reads `polyA`. Test: `test/tsd/test_tsd_match.sh`, cases 5
+  and 6 (commit `cc1f3ac`).
 
 **PanGenie and Nextflow 26** (PR #101, 2026-09-14)
 
