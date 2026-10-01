@@ -1,4 +1,4 @@
-<svg viewBox="0 0 780 436" xmlns="http://www.w3.org/2000/svg" role="img"
+<svg viewBox="0 0 780 456" xmlns="http://www.w3.org/2000/svg" role="img"
      aria-labelledby="tsd-title tsd-desc" class="gt-figure">
   <title id="tsd-title">How GraffiTE searches for a target site duplication</title>
   <desc id="tsd-desc">Two fragments are compared. The L fragment is the 5-prime reference flank
@@ -76,10 +76,11 @@
   <text class="mono" x="440" y="281">    from the junction (12 here)</text>
   <text class="mono" x="440" y="311">b = the same for the two ends (0 here)</text>
   <!-- ══════════════ panel 3 · the score ══════════════ -->
-  <rect class="panel" x="1" y="347" width="778" height="88" rx="8"/>
+  <rect class="panel" x="1" y="347" width="778" height="108" rx="8"/>
   <text class="ttl" x="20" y="374">The score</text>
   <text class="mono" x="20" y="398">score = min(a, b)</text>
   <text class="mono" x="20" y="418">PASS when score ≤ 5 and the copies are 4 to 20 bp long</text>
-  <text class="cap" x="440" y="398">Scores of 1.5 or less tie and the longest wins;</text>
-  <text class="cap" x="440" y="418">otherwise the lowest score. Here score = 0: PASS.</text>
+  <text class="cap" x="440" y="398">Copies under 6 bp compete only at score ≤ 0.5.</text>
+  <text class="cap" x="440" y="418">Scores of 1.5 or less tie and the longest wins;</text>
+  <text class="cap" x="440" y="438">otherwise the lowest score. Here score = 0: PASS.</text>
 </svg>

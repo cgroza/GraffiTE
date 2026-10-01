@@ -6,7 +6,7 @@ description: Why TSDs matter for mobile element insertions and how GraffiTE find
 # Target site duplications
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `d1dfd7b`. The
+    Verified against `v1.1dev` at commit `cc1f3ac`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -42,7 +42,7 @@ by the first bases of the variant; the R fragment is the last bases of the varia
 the 3' flank. Each is two windows long and the junction between flank and variant sits at column
 `WIN` in both. `exact_match.py` then lists every maximal exact match of at least 4 bp between R
 and L on the plus strand, in BLAST tabular form, and matches longer than 20 bp are discarded.
-<span class="src">`bin/TSD_Match_v2.sh:37-58`, `bin/exact_match.py:45-89,117`</span>
+<span class="src">`bin/TSD_Match_v2.sh:37-69`, `bin/exact_match.py:45-89,117`</span>
 
 <figure>
 --8<-- "assets/tsd-anatomy.svg"
@@ -77,11 +77,12 @@ b     = ( |WIN - R_end|       + |WIN - L_end|       ) / 2
 score = min(a, b)
 ```
 
-`a` is low when both copies begin at the junction, `b` when both end there. Candidates scoring
-1.5 or less count as ties, and the longest of them is the best. When none scores that low, the
-best is the lowest score, ties broken by the longest match. The best candidate passes when its
-score is at most 5 bp. These thresholds, and the 4 to 20 bp length range, are fixed in the script.
-<span class="src">`bin/TSD_Match_v2.sh:48-49,58,102-103,129`</span>
+`a` is low when both copies begin at the junction, `b` when both end there. A candidate shorter
+than 6 bp competes only if it scores 0.5 or less. Among the rest, candidates scoring 1.5 or less
+count as ties, and the longest of them is the best. When none scores that low, the best is the
+lowest score, ties broken by the longest match. The best candidate passes when its score is at
+most 5 bp. These thresholds, and the 4 to 20 bp length range, are fixed in the script.
+<span class="src">`bin/TSD_Match_v2.sh:48-49,59-60,69,115-116,142`</span>
 
 A copy that ends exactly at the junction is at column `WIN`, and one that starts exactly there is
 at column `WIN + 1`, so both snug configurations score 0. The tie at 1.5 is for insertions that
@@ -89,7 +90,18 @@ end in a poly(A) tail. When the TSD also opens with As, the tail and the TSD run
 boundary between them is uncertain by a base or two. A 4 bp run of A scoring 0.5 lower would
 otherwise beat the real copy. At 1.5 the two copies can sit up to three bases off the junction
 between them.
-<span class="src">`bin/TSD_Match_v2.sh:50-57,93-103`, `test/tsd/test_tsd_match.sh`</span>
+<span class="src">`bin/TSD_Match_v2.sh:61-68,104-116`, `test/tsd/test_tsd_match.sh`</span>
+
+The rule for short candidates comes from a null test on the CaG set (20 genomes, CHM13v2.0). We
+replaced each insertion's R window with that of another insertion of the same family, strand and
+SV type, so that no duplication could span the pair, and ran the search unchanged. Without the
+rule it passed a match in 72% of swapped Alu, L1 and SVA pairs, most of them 4 or 5 bp long and
+off the junction, while real calls of 9 bp or more scored 0 or 0.5 in 97% of cases. With it,
+36% of swapped pairs pass, and 53 calls on 5,614 real Alu, L1 and SVA records are lost, all
+short and off the junction. Swapped pairs still get a call of 9 bp or more 1.6% of the time, so a
+long TSD is good evidence of transposition and a short one is weak even when it sits on the
+junction.
+<span class="src">`bin/TSD_Match_v2.sh:50-60,115-116,142`, `test/tsd/test_tsd_match.sh`</span>
 
 ## Reading TSD_summary.txt
 
@@ -113,14 +125,14 @@ One row per variant searched. A row with a hit has 21 tab-separated columns:
 A variant with no exact match of 4 bp or more gets a shorter row: the ID, twelve `NA`, `no_hit`,
 `no_hit`, `FAIL`. Read the file from the right (`$NF`, `$(NF-1)`, `$(NF-2)`) rather than by
 column number, as `tsd_annotate_vcf.sh` does.
-<span class="src">`bin/TSD_Match_v2.sh:58,65,129`, `bin/exact_match.py:92-109`</span>
+<span class="src">`bin/TSD_Match_v2.sh:69,76,142`, `bin/exact_match.py:92-109`</span>
 
 `TSD_full_log.txt` shows, for each variant, both fragments over a base ruler, every candidate
 match with its offsets, the chosen one, and the two fragments again with the copies underlined.
 The column header printed there names 16 columns for rows that have 17, because it omits the bit
 score. The header lines up through the e-value in column 11; column 12 of a row is the unnamed
 bit score; from column 13 on, the right name is one header column to the left.
-<span class="src">`bin/TSD_Match_v2.sh:42,105-122`</span>
+<span class="src">`bin/TSD_Match_v2.sh:42,118-135`</span>
 
 ## Limitations
 
@@ -129,7 +141,7 @@ bit score; from column 13 on, the right name is one header column to the left.
   reported partial matches; v1.1 traded that for a search that cannot produce spurious
   alignments in low-complexity flanks.
 - **4 to 20 bp.** Shorter matches are below the seed; longer ones are treated as flank
-  homology rather than a TSD.
+  homology rather than a TSD. A match under 6 bp counts only when it sits on the junction.
 - **One TSD per variant.** Only the best candidate is reported, so a variant with two
   plausible duplications shows one.
 - **The window bounds what can be seen.** A copy further than `--tsd_win` from the breakpoint,
