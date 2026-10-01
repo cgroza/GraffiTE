@@ -6,7 +6,7 @@ description: Twin priming, the C/+ strand signature, and the L1_5PINV annotation
 # L1 5' inversions
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `d268d93`. The
+    Verified against `v1.1dev` at commit `d1dfd7b`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -57,7 +57,7 @@ begins at a lower consensus position than the `+` fragment, the element is on th
 otherwise it is on `C`. That inferred value is what `RM_hit_strands` reports for the hit, and
 `polyA` is scanned on the end that strand implies. Every other hit reports its fragments'
 strands as they came.
-<span class="src">`bin/annotate_vcf.R:120-127`, `bin/add_polyA.py:107`</span>
+<span class="src">`bin/annotate_vcf.R:120-127`, `bin/add_polyA.py:108`</span>
 
 <figure markdown="span">
 ![Consensus coordinates of the two fragments for a plus-strand and a minus-strand L1 with a 5' inversion](../assets/l1-consensus-coordinates.png)

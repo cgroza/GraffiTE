@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Regression test for the TSD chain: prepTSD.sh, TSD_Match_v2.sh,
-# tsd_annotate_vcf.sh and add_polyA.py, from a VCF and a reference to INFO/TSD
-# and INFO/polyA in the VCF.
+# tsd_annotate_vcf.sh, fix_vcf.py and add_polyA.py, from a VCF and a reference
+# to INFO/TSD and INFO/polyA in the VCF, in the order concat_repeatmask runs
+# them.
 #
 # The chain could fail without an error. bedtools getfasta cannot read a gzip
 # reference, and prepTSD.sh went on with an empty flank file, so the matcher
@@ -11,9 +12,16 @@
 # two-copy TSD value as one string, so it never trimmed the TSD before scanning
 # for a tail.
 #
-# Two insertions and a deletion with a planted 8 bp duplication on a synthetic
-# contig, run against the reference as plain FASTA, gzip and BGZF. One
-# insertion sits closer to the contig start than the window is wide.
+# 884afa8 fixed that read, but in a pipeline run add_polyA.py still trimmed
+# nothing, and this test passed because it skipped fix_vcf.py. With INFO/TSD
+# declared Number=1, fix_vcf.py's vcfpy writer turned the comma into %2C, and
+# add_polyA.py's split on ',' returned one piece again. The polyA call on insA
+# is TRUE with or without the trim, since its 15 bp tail passes with the TSD
+# left on. insC's 10 bp tail passes only once its TSD is trimmed.
+#
+# Three insertions and a deletion with a planted 8 bp duplication on a
+# synthetic contig, run against the reference as plain FASTA, gzip and BGZF.
+# One insertion sits closer to the contig start than the window is wide.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 export PATH="$(cd ../../bin && pwd):$PATH"
@@ -29,16 +37,33 @@ chk(){ if [[ "$2" == "$3" ]]; then echo "  [ ok ] $1"; else
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
+# Without vcfpy the chain runs without fix_vcf.py, as it did when the %2C bug
+# got past this test, and the test prints a [skip] line saying so.
+# fix_vcf.py names /usr/bin/python3, which may not be the python3 that has
+# vcfpy; a shim first on PATH redirects it, as in
+# test/truvari_merge/test_multi_input.sh.
+if python3 -c 'import vcfpy' 2>/dev/null; then
+  have_vcfpy=1
+  mkdir "$tmp/shim"
+  printf '#!/usr/bin/env bash\nexec python3 %s "$@"\n' "$(command -v fix_vcf.py)" > "$tmp/shim/fix_vcf.py"
+  chmod +x "$tmp/shim/fix_vcf.py"
+  export PATH="$tmp/shim:$PATH"
+else
+  have_vcfpy=0
+  echo "  [skip] vcfpy not importable: fix_vcf.py is left out and its checks do not run"
+fi
+
 python3 - "$tmp" <<'EOF'
 import random, sys, os
 tmp = sys.argv[1]
 random.seed(11)
 def rnd(n): return ''.join(random.choice('ACGT') for _ in range(n))
 TSD = 'GATTACAG'
+TSD_C = 'CGTCTGAC'                     # no A in its first three bases, see insC
 
 seq = list(rnd(400))
-def plant(pos):                        # the duplication occupies pos-7..pos, 1-based
-    seq[pos-8:pos] = list(TSD)
+def plant(pos, tsd=TSD):               # the duplication occupies pos-7..pos, 1-based
+    seq[pos-8:pos] = list(tsd)
     # The matcher extends an exact match as far as it goes, so the bases on
     # either side of the planted copies must differ between the two copies:
     # C before and G after in the reference, G before and C after in the SV.
@@ -48,6 +73,7 @@ def plant(pos):                        # the duplication occupies pos-7..pos, 1-
 plant(150)                             # insertion A
 plant(12)                              # insertion B, inside the first 30 bp
 plant(250)                             # deletion
+plant(350, TSD_C)                      # insertion C, at 418 once the deletion is in
 te = 'C' + rnd(58) + 'G'
 del_seq = te + TSD                     # reference reads TSD [te TSD] after this
 seq = ''.join(seq[:250]) + del_seq + ''.join(seq[250:])
@@ -59,10 +85,16 @@ with open(os.path.join(tmp, 'ref.fa'), 'w') as fh:
 
 ins_a = 'C' + rnd(59) + 'A' * 15 + TSD # polyA tail, then the 3' copy of the TSD
 ins_b = 'C' + rnd(48) + 'G' + TSD
+# A 10 bp tail after CG, then the 3' copy. add_polyA.py lets a tail end up to
+# 5 bp short of the terminus, so with the TSD left on, every window it scans
+# includes the CGT that opens the TSD. The best of them, the tail plus CGT,
+# holds 10 A in 13 bp, under the 80% the call needs.
+ins_c = 'C' + rnd(59) + 'A' * 10 + TSD_C
 recs = [
   ('t1', 12,  'insB', seq[11],           seq[11] + ins_b),
   ('t1', 150, 'insA', seq[149],          seq[149] + ins_a),
   ('t1', 250, 'del1', seq[249] + del_seq, seq[249]),
+  ('t1', 418, 'insC', seq[417],          seq[417] + ins_c),
 ]
 with open(os.path.join(tmp, 'genotypes_repmasked_filtered.vcf'), 'w') as fh:
     fh.write('##fileformat=VCFv4.2\n')
@@ -90,7 +122,21 @@ run_chain(){                           # $1 workdir, $2 reference basename, $3 w
     && cat ./*.TSD_summary.txt > TSD_summary.raw.txt \
     && awk -F'\t' -v OFS='\t' '$1 == "insB" { $NF = "FAIL" } 1' TSD_summary.raw.txt > TSD_summary.txt \
     && tsd_annotate_vcf.sh genotypes_repmasked_filtered.vcf TSD_summary.txt pangenome.vcf > annot.log 2>&1 \
-    && add_polyA.py pangenome.vcf -o pangenome.polyA.vcf )
+    && fix_step "$2" \
+    && add_polyA.py pangenome_nopa.vcf -o pangenome.polyA.vcf )
+}
+
+# concat_repeatmask's fix_vcf.py step (module/main.nf:578-586), run in the
+# workdir. Like concat_repeatmask, it re-compresses a gzip reference to BGZF
+# first so that pysam can open it.
+fix_step(){                            # $1 reference basename
+  local ref=$1
+  if (( ! have_vcfpy )); then cp pangenome.vcf pangenome_nopa.vcf; return; fi
+  if [[ $ref == *.gz ]] && ! (file -L "$ref" | grep -q BGZF); then
+    gzip -dc "$ref" | bgzip -c > fix_ref.fa.gz || return 1
+    ref=fix_ref.fa.gz
+  fi
+  fix_vcf.py --ref "$ref" --vcf_in pangenome.vcf --vcf_out pangenome_nopa.vcf 2> fix.log
 }
 
 for enc in plain gzip bgzf; do
@@ -102,26 +148,52 @@ for enc in plain gzip bgzf; do
   esac
   rc=0; run_chain "$w" "$ref" || rc=$?
   chk "$enc: chain exits 0" "$rc" "0"
-  [[ $rc -eq 0 ]] || { cat "$w/prep.log" "$w/annot.log" 2>/dev/null; continue; }
+  [[ $rc -eq 0 ]] || { cat "$w/prep.log" "$w/annot.log" "$w/fix.log" 2>/dev/null; continue; }
 
-  chk "$enc: two flanks per indel" "$(grep -c '^>' "$w/flanking_sequences.fasta")" "6"
+  chk "$enc: two flanks per indel" "$(grep -c '^>' "$w/flanking_sequences.fasta")" "8"
   chk "$enc: flank clamped at the contig start" \
       "$(grep -A1 '^>insB__L$' "$w/flanking_sequences.fasta" | tail -1 | tr -d '\n' | wc -c | tr -d ' ')" "12"
-  chk "$enc: one summary row per indel" "$(wc -l < "$w/TSD_summary.txt" | tr -d ' ')" "3"
+  chk "$enc: one summary row per indel" "$(wc -l < "$w/TSD_summary.txt" | tr -d ' ')" "4"
   chk "$enc: insA passes with the planted TSD" \
       "$(awk -F'\t' '$1=="insA"{print $(NF-2)","$(NF-1)","$NF}' "$w/TSD_summary.txt")" "GATTACAG,GATTACAG,PASS"
   chk "$enc: del1 passes with the planted TSD" \
       "$(awk -F'\t' '$1=="del1"{print $(NF-2)","$(NF-1)","$NF}' "$w/TSD_summary.txt")" "GATTACAG,GATTACAG,PASS"
-  chk "$enc: TSD is declared in the header" "$(grep -c '^##INFO=<ID=TSD,' "$w/pangenome.vcf")" "1"
+  chk "$enc: insC passes with the planted TSD" \
+      "$(awk -F'\t' '$1=="insC"{print $(NF-2)","$(NF-1)","$NF}' "$w/TSD_summary.txt")" "CGTCTGAC,CGTCTGAC,PASS"
+  chk "$enc: TSD is declared in the header, with two values" \
+      "$(grep -c '^##INFO=<ID=TSD,Number=2,' "$w/pangenome.vcf")" "1"
   chk "$enc: insA carries INFO/TSD" \
       "$(bcftools query -i 'ID="insA"' -f '%INFO/TSD\n' "$w/pangenome.vcf")" "GATTACAG,GATTACAG"
   chk "$enc: del1 carries INFO/TSD" \
       "$(bcftools query -i 'ID="del1"' -f '%INFO/TSD\n' "$w/pangenome.vcf")" "GATTACAG,GATTACAG"
   chk "$enc: a FAIL row leaves TSD unset" \
       "$(bcftools query -i 'ID="insB"' -f '%INFO/TSD\n' "$w/pangenome.vcf")" "."
-  chk "$enc: polyA is found once the TSD is trimmed" \
+  if (( have_vcfpy )); then
+    chk "$enc: fix_vcf.py writes the TSD comma as a comma" \
+        "$(awk -F'\t' '$3=="insA"{print $8}' "$w/pangenome_nopa.vcf" | tr ';' '\n' | grep '^TSD=')" "TSD=GATTACAG,GATTACAG"
+  fi
+  chk "$enc: polyA is found on insA" \
       "$(bcftools query -i 'ID="insA"' -f '%INFO/polyA\n' "$w/pangenome.polyA.vcf")" "TRUE"
+  chk "$enc: polyA is found on insC once its TSD is trimmed" \
+      "$(bcftools query -i 'ID="insC"' -f '%INFO/polyA\n' "$w/pangenome.polyA.vcf")" "TRUE"
 done
+
+# Two checks on insC, on the plain run. With its TSD removed from INFO,
+# add_polyA.py does not call the tail, so the TRUE above comes from the trim.
+# And add_polyA.py gives the same call on a pangenome.vcf from before TSD was
+# Number=2, where the comma is %2C.
+w="$tmp/plain"
+awk -F'\t' -v OFS='\t' '$3 == "insC" { sub(/;?TSD=[^;]*/, "", $8) } 1' \
+    "$w/pangenome_nopa.vcf" > "$w/no_tsd.vcf"
+add_polyA.py "$w/no_tsd.vcf" -o "$w/no_tsd.polyA.vcf"
+chk "insC without its TSD: the tail alone is not called" \
+    "$(bcftools query -i 'ID="insC"' -f '%INFO/polyA\n' "$w/no_tsd.polyA.vcf")" "FALSE"
+sed -e 's/^##INFO=<ID=TSD,Number=2,/##INFO=<ID=TSD,Number=1,/' \
+    -e '/^#/!s/\(TSD=[ACGT]*\),/\1%2C/' "$w/pangenome_nopa.vcf" > "$w/encoded.vcf"
+chk "encoded fixture: three TSDs carry %2C" "$(grep -c 'TSD=[ACGT]*%2C' "$w/encoded.vcf")" "3"
+add_polyA.py "$w/encoded.vcf" -o "$w/encoded.polyA.vcf"
+chk "a %2C TSD from an earlier run is still trimmed" \
+    "$(bcftools query -i 'ID="insC"' -f '%INFO/polyA\n' "$w/encoded.polyA.vcf")" "TRUE"
 
 # A window other than 30. The matcher scored hit offsets against a literal 30,
 # so at 40 a snug TSD scored 3 instead of 0, and a wider window pushes it past

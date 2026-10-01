@@ -6,7 +6,7 @@ description: Every INFO and FORMAT tag GraffiTE writes, its meaning, and the cod
 # VCF fields
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `d268d93`. The
+    Verified against `v1.1dev` at commit `d1dfd7b`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -92,8 +92,8 @@ does not carry them.
 
 | Field | Number | Type | Meaning | Source |
 |---|---|---|---|---|
-| `TSD` | 1 | String | The target site duplication as its 5' copy and its 3' copy, comma-separated and upper-cased: `GATTACAG,GATTACAG`. The two copies are exact matches. Absent when the search found no duplication of 4 to 20 bp whose ends sit, on average, within 5 bp of the breakpoints. How the search works is in [Target site duplications](../background/tsd.md). | <span class="src">`bin/tsd_annotate_vcf.sh:18,27`</span> |
-| `polyA` | 1 | String | `TRUE` when a tail of at least 8 bp with at least 80% A ends within 5 bp of the 3' end of a plus-strand hit, or the same with T at the 5' end of a minus-strand hit, after the matching `TSD` copy has been trimmed off. `FALSE` otherwise, including when the single hit has a mixed strand. `NA` when `n_hits` is greater than 1. | <span class="src">`bin/add_polyA.py:21-31,102-121`</span> |
+| `TSD` | 2 | String | The target site duplication as its 5' copy and its 3' copy, comma-separated and upper-cased: `GATTACAG,GATTACAG`. The two copies are exact matches. Absent when the search found no duplication of 4 to 20 bp whose ends sit, on average, within 5 bp of the breakpoints. How the search works is in [Target site duplications](../background/tsd.md). In output from before commit `d1dfd7b` the header says `Number=1` and the comma reads `%2C` (`GATTACAG%2CGATTACAG`); decode it before splitting. | <span class="src">`bin/tsd_annotate_vcf.sh:23,32`</span> |
+| `polyA` | 1 | String | `TRUE` when a tail of at least 8 bp with at least 80% A ends within 5 bp of the 3' end of a plus-strand hit, or the same with T at the 5' end of a minus-strand hit, after the matching `TSD` copy has been trimmed off. `FALSE` otherwise, including when the single hit has a mixed strand. `NA` when `n_hits` is greater than 1. Before commit `d1dfd7b` the pipeline trimmed no `TSD` copy; see the [changelog](../changelog.md). | <span class="src">`bin/add_polyA.py:22-32,103-148`</span> |
 
 ## HERV-K classifier fields
 
