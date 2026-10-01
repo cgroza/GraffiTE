@@ -31,6 +31,14 @@
 # poly(A) tail, so its junction is ambiguous by a base. Case 4 is the Alu at
 # chr16:11,028,501, whose two TSD copies sit two bases and one base off the
 # junction, a score of 1.5.
+#
+# Candidates shorter than 6 bp must also score 0.5 or less (TSD_SHORT and
+# TSD_SHORT_SCORE in TSD_Match_v2.sh). Case 5 is the Alu at chr12:66,597,281:
+# its two TSD copies differ at column 32, so the exact match is 18 bp starting
+# two bases in on both sides (score 2), and it lost to a 4 bp match scoring
+# 1.5. Case 6 is synthetic: L holds only C and G, R only A and T, except for
+# one planted 4 bp word 2.5 bases off the junction. It passed before and must
+# now fail.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 export PATH="$(cd ../../bin && pwd):${PATH}"
@@ -66,8 +74,27 @@ L4_FLANK=ataaccatgtacaattataatgcatccatt
 L4_SV=aaaaaataaaaaagaaggccgggcgcggtg
 R4_SV=agactccgtctcaaaaaaaaaaaaaaaata
 R4_FLANK=aaaaataaaaaagaaaaagatagcatTAAA
+# case 5, chr12-66597281-INS-337_21819
+TSD5=AAGAAATGCATATTAAAG
+L5_FLANK=tcatgaaagaaaagatgttcaacttcactc
+L5_SV=AAAAGAAATGCATATTAAAGGCCGGGCGCG
+R5_SV=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+R5_FLANK=ataagaaatgcatattaaagccacaggaaa
+# case 6, synthetic: the only shared word is GATC, at L 33-36 and R 34-37
+L6_FLANK=CGGCGCCGCGGCGCCGGCGCGGCCGCGCGG
+L6_SV=CCGATCGGCCGCGGCGCCGGCGCGCCGGCG
+R6_SV=TTATAATTTAATATTATAATTTATATTAAT
+R6_FLANK=ATTGATCATATTTAATATTTATATTTAATA
 
 cat > flanking_sequences.fasta <<EOF
+>case5__L
+${L5_FLANK}
+>case5__R
+${R5_FLANK}
+>case6__L
+${L6_FLANK}
+>case6__R
+${R6_FLANK}
 >case1__L
 ${L1_FLANK}
 >case1__R
@@ -86,6 +113,14 @@ ${L4_FLANK}
 ${R4_FLANK}
 EOF
 cat > SV_sequences_L_R_trimmed_WIN.fa <<EOF
+>case5__L
+${L5_SV}
+>case5__R
+${R5_SV}
+>case6__L
+${L6_SV}
+>case6__R
+${R6_SV}
 >case1__L
 ${L1_SV}
 >case1__R
@@ -103,7 +138,7 @@ ${L4_SV}
 >case4__R
 ${R4_SV}
 EOF
-printf 'case1\ncase2\ncase3\ncase4\n' > indels.txt
+printf 'case1\ncase2\ncase3\ncase4\ncase5\ncase6\n' > indels.txt
 
 TSD_Match_v2.sh SV_sequences_L_R_trimmed_WIN.fa flanking_sequences.fasta indels.txt 30 > /dev/null 2>&1
 S=case1.TSD_summary.txt
@@ -127,5 +162,10 @@ chk "it passes"                              "$(field case3 0)" "PASS"
 echo "case 4: TSD copies two bases and one base off the junction"
 chk "reported TSD is the 17 bp duplication"  "$(field case4 2)" "${TSD4}"
 chk "it passes"                              "$(field case4 0)" "PASS"
+echo "case 5: 18 bp TSD two bases off, against a 4 bp match scoring 1.5"
+chk "reported TSD is the 18 bp duplication"  "$(field case5 2)" "${TSD5}"
+chk "it passes"                              "$(field case5 0)" "PASS"
+echo "case 6: a lone 4 bp match off the junction"
+chk "it fails"                               "$(field case6 0)" "FAIL"
 
 exit ${fail}

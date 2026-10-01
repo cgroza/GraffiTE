@@ -47,6 +47,17 @@ echo ""
 # TSD_MAX: default = 20; min = 4 max = 30
 TSD_MIN=4
 TSD_MAX=20
+# A candidate shorter than TSD_SHORT bp competes only if it scores
+# TSD_SHORT_SCORE or less, that is, if it sits on the junction. On the CaG
+# set, with each insertion's R window swapped for another's so that no
+# duplication can span the pair, the search still passed a match in 72% of
+# Alu, L1 and SVA pairs, most of them 4 or 5 bp long and spread around the
+# junction. Calls of 9 bp or more on the real windows score 0 or 0.5 in 97%
+# of cases. With this rule, 36% of swapped pairs pass, and the search
+# drops 53 calls on 5,614 real Alu, L1 and SVA records, all short and off the
+# junction (test/tsd/test_tsd_match.sh, cases 5 and 6).
+TSD_SHORT=6
+TSD_SHORT_SCORE=0.5
 # Score = distance from the junction, averaged over the two fragments. A TSD
 # either starts both the SV and the 3' flank ([TSD---]TSD), so both copies start
 # at column WIN+1, or ends both the 5' flank and the SV (TSD[---TSD]), so both
@@ -98,9 +109,11 @@ else # match found
 	# and the boundary between them is uncertain by a base or two, and a real
 	# TSD of 13 or 17 bp lost to a 4 bp AAAA half a base closer. At 1.5 the
 	# two copies can sit up to three bases off the junction between them.
-	# (test/tsd/test_tsd_match.sh, cases 1, 3 and 4.)
-	awk -F'\t' -v OFS='\t' '{ near = ($17 <= 1.5) ? 0 : 1; print near, (near == 0 ? -$4 : $17), (near == 0 ? $17 : -$4), $0 }' blastout \
-		| sort -t$'\t' -k1,1n -k2,2g -k3,3g | head -n 1 | cut -f4- > best_hit
+	# (test/tsd/test_tsd_match.sh, cases 1, 3 and 4.) Short candidates off the
+	# junction (see TSD_SHORT) sort last, so they are chosen only when nothing
+	# else exists, and then fail below.
+	awk -F'\t' -v OFS='\t' -v short=${TSD_SHORT} -v shortmax=${TSD_SHORT_SCORE} '{ off = ($4 < short && $17 > shortmax) ? 1 : 0; near = ($17 <= 1.5) ? 0 : 1; print off, near, (near == 0 ? -$4 : $17), (near == 0 ? $17 : -$4), $0 }' blastout \
+		| sort -t$'\t' -k1,1n -k2,2n -k3,3g -k4,4g | head -n 1 | cut -f5- > best_hit
 	# print the candidate hits and best hit
 	echo -e "R_query\tL_target\tidty\tmatch_len\tMM\tgaps\tR_start\tR_end\tL_start\tL_end\te-value\tR_start_offset\tL_start_offset\tR_end_offset\tL_end_offset\tTSD_score" > header
 	echo ""
@@ -126,7 +139,7 @@ else # match found
 	R_TSD=$(awk -v Rstart=${Rstart} -v Rend=${Rend} 'getline seq {printf substr(seq, Rstart, Rend-Rstart+1)}' R.fasta)
 
 	# add sequences to summary report and assign PASS/FAIL - We have an opportunity here to offer user parameters
-	output=$(awk -v sv=${i} -v ltsd=${L_TSD} -v rtsd=${R_TSD} '{ if($NF <= 5) { print sv"\t"$0"\t"ltsd"\t"rtsd"\tPASS" } else { print sv"\t"$0"\t"ltsd"\t"rtsd"\tFAIL" } }' best_hit)
+	output=$(awk -v sv=${i} -v ltsd=${L_TSD} -v rtsd=${R_TSD} -v short=${TSD_SHORT} -v shortmax=${TSD_SHORT_SCORE} '{ if($NF <= 5 && ($4 >= short || $NF <= shortmax)) { print sv"\t"$0"\t"ltsd"\t"rtsd"\tPASS" } else { print sv"\t"$0"\t"ltsd"\t"rtsd"\tFAIL" } }' best_hit)
 fi
 
 echo ""
