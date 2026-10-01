@@ -6,7 +6,7 @@ description: Release history of GraffiTE, from the first beta to the current v1.
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `d268d93`. The
+    Verified against `v1.1dev` at commit `d1dfd7b`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -122,7 +122,8 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 
 - `prepTSD.sh` reads the flanks through htslib, re-compresses a gzip reference to BGZF, and
   stops the run instead of writing an empty flank file; a missing `exact_match.py` is an error
-  rather than no hits; `add_polyA.py` trims the two-copy `TSD` value correctly. Test:
+  rather than no hits; `add_polyA.py` splits the two-copy `TSD` value before trimming (in a
+  pipeline run, only from `d1dfd7b` on; see below). Test:
   `test/tsd/test_tsd_chain.sh` (commit `884afa8`).
 - `TSD_Match_v2.sh` measured start offsets from `WIN` instead of `WIN + 1`, so a TSD at the
   start of the variant scored 1, and a shorter match scoring 0.5 beat it, usually a 4 bp AAAA
@@ -130,6 +131,15 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   candidates scoring 1.5 or less are ties won by the longest. On the 5,819 records of a 20-genome
   human run, 1,039 TSD calls got longer and 6 shorter. Test: `test/tsd/test_tsd_match.sh`
   (commit `d268d93`).
+- In a pipeline run `add_polyA.py` trimmed no TSD before scanning for a tail. `fix_vcf.py`
+  rewrites `pangenome.vcf` with vcfpy, which wrote the comma of the `Number=1` `INFO/TSD` as
+  `%2C`, so `add_polyA.py` could not split the value into its two copies. `INFO/TSD` is now
+  `Number=2` and keeps its comma, in `pangenome.vcf` and in the `TSD` column of the
+  presence-absence TSVs, and `add_polyA.py` decodes `%2C` in VCFs from earlier runs. On the
+  5,819 records of a 20-genome human run, with the `d268d93` TSD calls, 17 single-hit records
+  (15 Alu, 1 L1, 1 SVA) go from `polyA=TRUE` to `FALSE` and leave `pangenome.human.vcf`.
+  Records outside that subset were not rerun, so any that turn `TRUE` are not counted. Test:
+  `test/tsd/test_tsd_chain.sh` now runs `fix_vcf.py` (commit `d1dfd7b`).
 
 **PanGenie and Nextflow 26** (PR #101, 2026-09-14)
 

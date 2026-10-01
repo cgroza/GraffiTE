@@ -6,7 +6,7 @@ description: How candidate SVs are scanned with RepeatMasker and ULTRA, filtered
 # Stage B: repeat annotation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `d268d93`. The
+    Verified against `v1.1dev` at commit `d1dfd7b`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -157,7 +157,7 @@ the matching copy of `TSD` from that end. A tail is called when a window of at l
 least 80% A (or T) ends within 5 bp of the trimmed terminus. The result is `polyA=TRUE` or
 `FALSE`; a variant with more than one hit gets `NA` and is not scanned. The three constants are
 fixed in the script.
-<span class="src">`bin/add_polyA.py:21-23,100-133`, `module/main.nf:587`</span>
+<span class="src">`bin/add_polyA.py:22-24,101-148`, `module/main.nf:587`</span>
 
 ## The trusted subset
 

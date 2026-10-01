@@ -6,7 +6,7 @@ description: Why TSDs matter for mobile element insertions and how GraffiTE find
 # Target site duplications
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `d268d93`. The
+    Verified against `v1.1dev` at commit `d1dfd7b`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -55,8 +55,11 @@ the variant and one at the beginning of the 3′ flank; it scores 0 too.
 
 **`tsd_annotate_vcf.sh` writes `INFO/TSD`** for every record whose row in the summary says
 `PASS`, as the 5' copy and the 3' copy comma-separated and upper-cased. Records that failed get
-no `TSD` field.
-<span class="src">`bin/tsd_annotate_vcf.sh:17-31`</span>
+no `TSD` field. The header declares `Number=2`, one value per copy. `fix_vcf.py` rewrites
+`pangenome.vcf` afterwards with vcfpy, which percent-encodes a comma inside a `Number=1` value.
+In output from before commit `d1dfd7b` the header said `Number=1`, and the field shows as
+`GATTACAG%2CGATTACAG`.
+<span class="src">`bin/tsd_annotate_vcf.sh:22-36`</span>
 
 The search runs in batches of `--tsd_batch_size` variants per contig, and the per-batch
 summaries and logs are concatenated into `3_TSD_search/TSD_summary.txt` and
@@ -138,4 +141,4 @@ bit score; from column 13 on, the right name is one header column to the left.
 - **PolyA tails can hide a copy.** The 3' end of a plus-strand Alu or L1 is a run of A; a TSD
   rich in A can be found at the wrong offset inside it. `polyA` is computed after the `TSD` copy
   is trimmed, in the other direction, for this reason.
-  <span class="src">`bin/add_polyA.py:74-85`</span>
+  <span class="src">`bin/add_polyA.py:75-86`</span>
