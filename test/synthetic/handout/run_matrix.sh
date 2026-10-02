@@ -18,10 +18,10 @@ source ./INPUTS.env
 PROFILE="${PROFILE:-standard}"
 CPUS="${CPUS:-16}"
 PROJECT="${PROJECT:-cgroza/GraffiTE}"
-REVISION="${REVISION:-test/synthetic-end-to-end}"
+REVISION="${REVISION:-v1.1dev}"
 HANDOUT="$PWD"
 
-CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi winnowmap)
+CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi epi_bam winnowmap tsd_win40)
 describe() { case "$1" in
   spine)        echo "--assemblies x4 + --svs + --human + giraffe + genotyping. Pays discovery, RepeatMasker, TSD and the HERV-K stack once; publishes the graph, the alignments and the RM_dir for everything after it.";;
   pangenie)     echo "--graffite_vcf on the spine's pangenome.vcf, pangenie. The -N left-alignment guard and the allele-drop categories in the audit.";;
@@ -34,7 +34,9 @@ describe() { case "$1" in
   duallib)      echo "The spine's inputs against the library that spells the internal region HERVK rather than HERVK-int. The pair-rule records should vanish with no error.";;
   guards)       echo "Launch-time guards only. No container, seconds.";;
   epi)          echo "--epigenomes via a hand-written --lifted CSV. Tier 2.";;
+  epi_bam)      echo "--epigenomes with no --lifted: the bamtags_to_BED and lift_epigenome branch, off MM/ML-tagged BAMs.";;
   winnowmap)    echo "--aligner winnowmap over the spine's assemblies. Tier 2.";;
+  tsd_win40)    echo "The spine's discovery at --tsd_win 40, no genotyping. Every verdict, and every PASS's TSD, must match the spine's at 30.";;
 esac; }
 
 if [[ "${1:-}" == "-l" ]]; then
@@ -57,6 +59,11 @@ TMP_ARG=(); [[ -n "${CONTAINER_TMP:-}" ]] && TMP_ARG=(--container_tmp "$CONTAINE
 nf() {  # nf <cell> <extra args...>
   local cell="$1"; shift
   local out="$RUNS_DIR/$cell"
+  # Clear the cell's own directory first. Nextflow refuses to start when
+  # -with-trace names a file that exists, so re-running a cell that failed
+  # dies on "Trace file already exists" before it reaches the pipeline, and
+  # the log then describes the previous run rather than this one.
+  rm -rf "$out"
   mkdir -p "$out"
   echo "=== $cell ===" | tee -a "$HANDOUT/MATRIX.log"
   ( set -x
@@ -120,8 +127,12 @@ for cell in "${SEL[@]}"; do
   svs)
     nf svs --svs "$B/svs_one.csv" --genotype false || fail=1 ;;
   duallib)
-    # Same inputs, the other spelling of the internal region.
-    local_out="$RUNS_DIR/duallib"; mkdir -p "$local_out"
+    # Same inputs, the other spelling of the internal region. This arm calls
+    # nextflow itself rather than nf(), so it clears its directory and keeps
+    # its exit code on its own. It used to do neither: a rerun stopped at
+    # launch on "Trace file already exists", and the rc=$? printed after
+    # "|| fail=1" said 0 either way.
+    local_out="$RUNS_DIR/duallib"; rm -rf "$local_out"; mkdir -p "$local_out"
     echo "=== duallib ===" | tee -a "$HANDOUT/MATRIX.log"
     ( set -x
       nextflow -log "$local_out/nextflow.log" run "$PROJECT" -r "$REVISION" \
@@ -130,16 +141,33 @@ for cell in "${SEL[@]}"; do
         --reference "$B/ref/synth.fa" --TE_library "$B/lib/synth_TE_bare_HERVK.fasta" \
         --cores "$CPUS" --out "$local_out" \
         "${SIF_ARG[@]}" "${TMP_ARG[@]}" -with-trace "$local_out/nextflow_trace.txt"
-    ) >"$local_out/run.log" 2>&1 || fail=1
-    echo "duallib rc=$?" | tee -a "$HANDOUT/MATRIX.log" ;;
+    ) >"$local_out/run.log" 2>&1
+    rc=$?; [[ $rc -eq 0 ]] || fail=1
+    echo "duallib rc=$rc" | tee -a "$HANDOUT/MATRIX.log" ;;
   guards)
     bash "$HANDOUT/check_guards.sh" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
   epi)
     nf epi --graffite_vcf "$SPINE/3_TSD_search/pangenome.vcf" --graph_method giraffe \
        --genotype_with "$B/reads.csv" --epigenomes "$B/epigenomes.csv" \
        --lifted "$B/lifted.csv" || fail=1 ;;
+  epi_bam)
+    # No --lifted, so main.nf:235-239 runs bamtags_to_BED and lift_epigenome
+    # instead of reading a CSV. --genotype_with must name BAMs: only a .bam row
+    # reaches reads_input_ch.bam (main.nf:185), and the generator writes those
+    # with MM/ML tags for tagtobed to read.
+    nf epi_bam --graffite_vcf "$SPINE/3_TSD_search/pangenome.vcf" --graph_method giraffe \
+       --genotype_with "$B/reads_bam.csv" --epigenomes true || fail=1 ;;
   winnowmap)
     nf winnowmap --assemblies "$B/assemblies.csv" --aligner winnowmap --genotype false || fail=1 ;;
+  tsd_win40)
+    # The window reaches prepTSD.sh and TSD_Match_v2.sh (module/main.nf:673,688).
+    # The same inputs as the spine at a different window should give the same
+    # TSD on every SV; check_tsd_win.py compares the two and confirms that the
+    # fragments are 80 bp here.
+    nf tsd_win40 --assemblies "$B/assemblies.csv" --svs "$B/svs.csv" --human --genotype false \
+       --tsd_win 40 --repeatmasker_memory "${REPEATMASKER_MEMORY:-16G}" || fail=1
+    python3 "$HANDOUT/check_tsd_win.py" "$SPINE" "$RUNS_DIR/tsd_win40" 40 2>&1 \
+      | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
   *) echo "unknown cell: $cell (see ./run_matrix.sh -l)" >&2; fail=1 ;;
   esac
 done
