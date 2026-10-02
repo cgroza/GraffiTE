@@ -36,7 +36,7 @@ describe() { case "$1" in
   epi)          echo "--epigenomes via a hand-written --lifted CSV. Tier 2.";;
   epi_bam)      echo "--epigenomes with no --lifted: the bamtags_to_BED and lift_epigenome branch, off MM/ML-tagged BAMs.";;
   winnowmap)    echo "--aligner winnowmap over the spine's assemblies. Tier 2.";;
-  tsd_win40)    echo "The spine's discovery at --tsd_win 40, no genotyping. Every SV's TSD call must match the spine's at 30.";;
+  tsd_win40)    echo "The spine's discovery at --tsd_win 40, no genotyping. Every verdict, and every PASS's TSD, must match the spine's at 30.";;
 esac; }
 
 if [[ "${1:-}" == "-l" ]]; then

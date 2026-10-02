@@ -6,7 +6,12 @@ TSD_Match_v2.sh scores against, and the two have to agree. Flanks of 40 scored
 against a junction at 30 made the matcher pick other hits: all 29 SVs of the
 test set changed, and PASS went from 27 to 16. When both move, the offsets and
 scores are measured from the junction, so each SV should come back with the
-same TSD, offsets, score and verdict as in the spine.
+same verdict as in the spine, and each PASS with the same TSD, offsets and score.
+
+A FAIL can report a different best hit. Since 170c788 the matcher ranks a hit
+under 6 bp that is off the junction below any longer one, so a wider window can
+bring in a longer, farther hit and report it instead. Both fail, and neither
+reaches INFO/TSD; the script lists them without counting them as a failure.
 
 usage: check_tsd_win.py <spine run dir> <run dir> <window> [spine window]
 """
@@ -91,9 +96,17 @@ def main():
           f"{len(a.keys() - b.keys())} only in spine, {len(b.keys() - a.keys())} only here")
     n_pass = sum(v[0] == 'PASS' for v in a.values())
     check("spine has TSDs to compare", n_pass > 0, "no PASS in the spine")
-    diff = sorted(k for k in a.keys() & b.keys() if a[k] != b[k])
-    check(f"same TSD, offsets, score and verdict on all {len(a.keys() & b.keys())} SVs ({n_pass} PASS)",
-          not diff, f"{len(diff)} differ, first {diff[0]}: {a[diff[0]]} vs {b[diff[0]]}" if diff else '')
+    both = a.keys() & b.keys()
+    diff = sorted(k for k in both if a[k][0] != b[k][0])
+    check(f"same verdict on all {len(both)} SVs", not diff,
+          f"{len(diff)} differ, first {diff[0]}: {a[diff[0]]} vs {b[diff[0]]}" if diff else '')
+    passed = [k for k in both if a[k][0] == 'PASS' or b[k][0] == 'PASS']
+    diff = sorted(k for k in passed if a[k] != b[k])
+    check(f"same TSD, offsets and score on all {len(passed)} PASS SVs", not diff,
+          f"{len(diff)} differ, first {diff[0]}: {a[diff[0]]} vs {b[diff[0]]}" if diff else '')
+    moved = sorted(k for k in both if k not in passed and a[k] != b[k])
+    for k in moved:
+        print(f"  [info] FAIL in both, best hit moved: {k}: {a[k][1]} -> {b[k][1]}")
 
     a = vcf_tsd(os.path.join(s_dir, 'pangenome.vcf'))
     b = vcf_tsd(os.path.join(r_dir, 'pangenome.vcf'))
