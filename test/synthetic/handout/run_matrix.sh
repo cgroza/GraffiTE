@@ -21,7 +21,7 @@ PROJECT="${PROJECT:-cgroza/GraffiTE}"
 REVISION="${REVISION:-v1.1dev}"
 HANDOUT="$PWD"
 
-CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi epi_bam winnowmap tsd_win40)
+CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi epi_bam winnowmap tsd_win40 ison)
 describe() { case "$1" in
   spine)        echo "--assemblies x4 + --svs + --human + giraffe + genotyping. Pays discovery, RepeatMasker, TSD and the HERV-K stack once; publishes the graph, the alignments and the RM_dir for everything after it.";;
   pangenie)     echo "--graffite_vcf on the spine's pangenome.vcf, pangenie. The -N left-alignment guard and the allele-drop categories in the audit.";;
@@ -37,6 +37,7 @@ describe() { case "$1" in
   epi_bam)      echo "--epigenomes with no --lifted: the bamtags_to_BED and lift_epigenome branch, off MM/ML-tagged BAMs.";;
   winnowmap)    echo "--aligner winnowmap over the spine's assemblies. Tier 2.";;
   tsd_win40)    echo "The spine's discovery at --tsd_win 40, no genotyping. Every verdict, and every PASS's TSD, must match the spine's at 30.";;
+  ison)         echo "--human and --genotype passed as strings from a params file (\"false\", \"FALSE\", \"\", \"true\", \"True\"). Each has to switch its stages off or on as isOn() reads it.";;
 esac; }
 
 if [[ "${1:-}" == "-l" ]]; then
@@ -168,6 +169,21 @@ for cell in "${SEL[@]}"; do
        --tsd_win 40 --repeatmasker_memory "${REPEATMASKER_MEMORY:-16G}" || fail=1
     python3 "$HANDOUT/check_tsd_win.py" "$SPINE" "$RUNS_DIR/tsd_win40" 40 2>&1 \
       | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
+  ison)
+    # A string reaches isOn() only from a params or config file; the command line
+    # turns "false" into a Boolean first. Each run passes one switch that way, on
+    # the short --svs input, with -resume so the runs share the masking.
+    for v in human_str_false:human:false human_str_FALSE:human:FALSE human_str_empty:human: \
+             human_str_true:human:true human_str_True:human:True genotype_str_false:genotype:false; do
+      name=${v%%:*}; rest=${v#*:}; key=${rest%%:*}; val=${rest#*:}
+      pf="$RUNS_DIR/ison_$name.yaml"; printf '%s: "%s"\n' "$key" "$val" > "$pf"
+      args=(--svs "$B/svs_one.csv")
+      # genotyping would run if the string were read as on: give it reads
+      if [[ $key == genotype ]]; then args+=(--genotype_with "$B/reads.csv" --graph_method giraffe); else args+=(--genotype false); fi
+      nf "ison_$name" "${args[@]}" -params-file "$pf" -resume
+      echo $? > "$RUNS_DIR/ison_$name.rc"
+    done
+    bash "$HANDOUT/check_ison.sh" "$RUNS_DIR" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
   *) echo "unknown cell: $cell (see ./run_matrix.sh -l)" >&2; fail=1 ;;
   esac
 done
