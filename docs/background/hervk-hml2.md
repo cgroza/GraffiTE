@@ -8,7 +8,7 @@ description: >-
 # HERV-K (HML-2) biology
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
     HERV-K classification runs only under `--human`; the procedure is in
@@ -124,7 +124,7 @@ non-carriers pick up ALT support; in the CaG run the ALT fraction at such a locu
 provirus dosage rather than carriage. Discovery genotypes come from haplotype-resolved
 alignments, do not have this problem, and carry the allele frequencies
 (`HERVK_AC_DISC`, `HERVK_AN_DISC`). Set `--hervk_mask_graph_gt_at_cnv false` to keep the graph
-calls <span class="src">`nextflow.config:98-106`</span>.
+calls <span class="src">`nextflow.config:99-107`</span>.
 
 ## Why the SVA hits are not SVA
 

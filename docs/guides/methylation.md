@@ -8,7 +8,7 @@ description: >-
 # Methylation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -84,8 +84,8 @@ or one haplotype's copy against the other's.
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
 | `--epigenomes` | `false` | run the branch | <span class="src">`nextflow.config:29`</span> |
-| `--motif` | `"CG"` | motif indexed on the graph | <span class="src">`nextflow.config:165`</span> |
-| `--code` | `"C+m"` | modification code passed to `tagtobed` (`-T C -B C+m`) | <span class="src">`nextflow.config:164`, `panmethyl/module/main.nf:146`</span> |
+| `--motif` | `"CG"` | motif indexed on the graph | <span class="src">`nextflow.config:166`</span> |
+| `--code` | `"C+m"` | modification code passed to `tagtobed` (`-T C -B C+m`) | <span class="src">`nextflow.config:165`, `panmethyl/module/main.nf:146`</span> |
 | `--lifted` | `false` | samplesheet (`sample,path`) of already-lifted `<sample>.csv.gz` files; skips steps 2 and 3 | <span class="src">`main.nf:231-234`</span> |
 | `--bed` | `false` | a BED of regions to project onto the graph and annotate with methylation | <span class="src">`main.nf:245-249`</span> |
 
@@ -114,7 +114,7 @@ All relative to `--out`, and beside GraffiTE's numbered directories:
 ## Resources
 
 The panmethyl processes have fixed allocations in `nextflow.config` rather than parameters
-<span class="src">`nextflow.config:298-337`</span>:
+<span class="src">`nextflow.config:299-338`</span>:
 
 | Process | CPUs | Memory | Time |
 |---|---|---|---|

@@ -8,7 +8,7 @@ description: >-
 # Stage C: genotyping
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -135,7 +135,7 @@ reference is passed as a value channel; as a queue channel it held one item, and
 for one sample and stopped <span class="src">`main.nf:194-197`</span>.
 
 **Resources:** `--pangenie_threads`, `--pangenie_memory`, `--pangenie_time` for both processes
-<span class="src">`nextflow.config:242-251`</span>.
+<span class="src">`nextflow.config:243-252`</span>.
 
 ---
 
@@ -158,7 +158,7 @@ The directory is published as `GraffiTE_graph/index/` and is what `--graph` take
 run. Skipped entirely when `--graph` is given <span class="src">`main.nf:202-206`</span>.
 
 **Resources:** `--make_graph_threads`, `--make_graph_memory` (default `40G`), `--make_graph_time`
-(default `6h`) <span class="src">`nextflow.config:252-256`</span>.
+(default `6h`) <span class="src">`nextflow.config:253-257`</span>.
 
 ### `graph_align_reads`
 
@@ -170,14 +170,14 @@ run. Skipped entirely when `--graph` is given <span class="src">`main.nf:202-206
 | `graphaligner` | `GraphAligner -x vg -g index/index.gfa -f reads -a sample.gam` | same |
 
 `vg pack` builds the per-node coverage `vg call` reads, dropping alignments below
-`--min_mapq` (default `0`) <span class="src">`nextflow.config:120`</span>. The GAF is passed
+`--min_mapq` (default `0`) <span class="src">`nextflow.config:121`</span>. The GAF is passed
 through `subset_gaf.py`, which keeps the twelve standard columns plus the `cs`/`cg` difference
 string, then sorted by read name and gzipped. The GAM is deleted. Published as
 `GraffiTE_alignments/<sample>.gaf.gz` and `<sample>.pack`, which is the pair
 `--graph_alignments` takes on a later run.
 
 This process runs with `errorStrategy = 'finish'`: a failed sample lets the other samples
-complete before the run stops <span class="src">`nextflow.config:262-267`</span>.
+complete before the run stops <span class="src">`nextflow.config:263-268`</span>.
 
 **Resources:** `--graph_align_threads`, `--graph_align_memory`, `--graph_align_time` (default
 `12h`); `bam_to_fastq` uses the same three.
@@ -197,14 +197,14 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
   every sample has a genotype at every bubble and the merge lines up. Check `vg call --help` for
   the exact wording in your vg version; the container ships vg 1.70.0.
 - `-m 2,4` is `--min_support`, passed to vg as its minimum allele and site support
-  <span class="src">`nextflow.config:121`</span>.
+  <span class="src">`nextflow.config:122`</span>.
 - `-R chrX:1,chrY:1` sets ploidy 1 on the contigs named **exactly** `chrX` and `chrY`. Every other
   contig is called diploid, so a reference that names them `X` and `Y`, or `NC_000023.11`, gets
   diploid calls on the sex chromosomes. `vg call` has no other ploidy input.
 - `bcftools norm -m-` splits multi-allelic calls into one record per ALT.
 
 **Resources:** `--vg_call_threads`, `--vg_call_memory`, `--vg_call_time` (default `2h`)
-<span class="src">`nextflow.config:268-272`</span>.
+<span class="src">`nextflow.config:269-273`</span>.
 
 ---
 
@@ -229,7 +229,7 @@ index written earlier in the script belongs to the pre-annotation file, which is
 `tabix -p vcf` on it yourself.
 
 **Resources:** `--merge_vcf_memory` (default `10G`), `--merge_vcf_time` (default `1h`)
-<span class="src">`nextflow.config:273-277`</span>.
+<span class="src">`nextflow.config:274-278`</span>.
 
 ## The trusted subset of the genotypes
 

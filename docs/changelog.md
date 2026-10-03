@@ -6,7 +6,7 @@ description: Release history of GraffiTE, from the first beta to the current v1.
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -117,6 +117,9 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 - `vg call` receives `-a -A` on every graph method, and ploidy 1 on `chrX` and `chrY`.
 - Precomputed graph alignments: `--graph_alignments` (CSV `sample,gaf,pack`), published to
   `GraffiTE_alignments/`.
+- `--break_scaffolds` splits only at runs of at least `--break_scaffolds_min_gap` `N`, 10 by
+  default. It used to split at every `N`, which cut any insertion carrying one; on the synthetic
+  test set it lost 14 of 29 records (`2e13c68`).
 
 **TSD chain**
 
