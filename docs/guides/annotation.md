@@ -6,7 +6,7 @@ description: How candidate SVs are scanned with RepeatMasker and ULTRA, filtered
 # Stage B: repeat annotation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `cc1f3ac`. The
+    Verified against `v1.1dev` at commit `19da5f8`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -152,12 +152,14 @@ its `n_hits`. The procedure, the scoring and the log format are in
 
 `add_polyA.py` runs on the concatenated VCF after the reference alleles have been re-read. For a
 variant with exactly one hit it scans the 3' end of the variant sequence for an A-rich tail when
-the hit is on the `+` strand, or the 5' end for a T-rich tail when it is on `C`, after trimming
-the matching copy of `TSD` from that end. A tail is called when a window of at least 8 bp with at
-least 80% A (or T) ends within 5 bp of the trimmed terminus. The result is `polyA=TRUE` or
-`FALSE`; a variant with more than one hit gets `NA` and is not scanned. The three constants are
-fixed in the script.
-<span class="src">`bin/add_polyA.py:22-24,101-148`, `module/main.nf:587`</span>
+the hit is on the `+` strand, or the 5' end for a T-rich tail when it is on `C`. It scans that
+end twice, with the matching copy of `TSD` trimmed off and with it left on, and calls a tail if
+either scan finds a window of at least 8 bp with at least 80% A (or T) ending within 5 bp of the
+terminus. The trim exposes a tail that sits behind the copy; the untrimmed scan keeps a tail that
+the TSD search reported as part of the duplication. The result is `polyA=TRUE` or `FALSE`; a
+variant with more than one hit gets `NA` and is not scanned. The three constants are fixed in the
+script.
+<span class="src">`bin/add_polyA.py:24-26,71-95,109-158`, `module/main.nf:587`</span>
 
 ## The trusted subset
 

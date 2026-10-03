@@ -6,7 +6,7 @@ description: Why TSDs matter for mobile element insertions and how GraffiTE find
 # Target site duplications
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `cc1f3ac`. The
+    Verified against `v1.1dev` at commit `19da5f8`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -151,6 +151,7 @@ bit score; from column 13 on, the right name is one header column to the left.
 - **The variant sequence must be resolved.** A symbolic `<INS>` has no ends to compare;
   Stage A drops those.
 - **PolyA tails can hide a copy.** The 3' end of a plus-strand Alu or L1 is a run of A; a TSD
-  rich in A can be found at the wrong offset inside it. `polyA` is computed after the `TSD` copy
-  is trimmed, in the other direction, for this reason.
-  <span class="src">`bin/add_polyA.py:75-86`</span>
+  rich in A can be found at the wrong offset inside it, or be a run of the tail itself. `polyA`
+  is therefore scanned with the `TSD` copy trimmed and without it, and a tail found either way
+  counts.
+  <span class="src">`bin/add_polyA.py:71-95`</span>
