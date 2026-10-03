@@ -592,7 +592,7 @@ process concat_repeatmask {
   # presence-absence TSV for the full callset
   vcf_to_pa_tsv.py pangenome.vcf -o pangenome.presence-absence.tsv
 
-  if [[ "${params.human}" != "true" ]]; then
+  if [[ "${isOn(params.human)}" != "true" ]]; then
     # trusted subset: variants matching the trusted criteria. By default
     # also requires existing FILTER=="PASS"; bypass with --trusted_ignore_filter.
     bcftools view -Ov -o pangenome.trusted.vcf -i '${trusted_filter_full}' pangenome.vcf
