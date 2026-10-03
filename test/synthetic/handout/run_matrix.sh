@@ -21,7 +21,7 @@ PROJECT="${PROJECT:-cgroza/GraffiTE}"
 REVISION="${REVISION:-v1.1dev}"
 HANDOUT="$PWD"
 
-CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi epi_bam winnowmap tsd_win40 ison vcfs)
+CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi epi_bam winnowmap tsd_win40 ison vcfs breakscaf)
 describe() { case "$1" in
   spine)        echo "--assemblies x4 + --svs + --human + giraffe + genotyping. Pays discovery, RepeatMasker, TSD and the HERV-K stack once; publishes the graph, the alignments and the RM_dir for everything after it.";;
   pangenie)     echo "--graffite_vcf on the spine's pangenome.vcf, pangenie. The -N left-alignment guard and the allele-drop categories in the audit.";;
@@ -39,6 +39,7 @@ describe() { case "$1" in
   tsd_win40)    echo "The spine's discovery at --tsd_win 40, no genotyping. Every verdict, and every PASS's TSD, must match the spine's at 30.";;
   ison)         echo "--human and --genotype passed as strings from a params file (\"false\", \"FALSE\", \"\", \"true\", \"True\"). Each has to switch its stages off or on as isOn() reads it.";;
   vcfs)         echo "--graph_method precomputed with --vcfs: the spine's own vg call VCFs handed back. No alignment, no vg_call, and the spine's merged genotypes.";;
+  breakscaf)    echo "--break_scaffolds on the four haplotypes: cut at the 120 bp N run, keep the insertions that carry single N bases, and find what discovery without it finds.";;
 esac; }
 
 if [[ "${1:-}" == "-l" ]]; then
@@ -203,6 +204,17 @@ for cell in "${SEL[@]}"; do
        --graph_method precomputed --graph "$SPINE/GraffiTE_graph/index" \
        --vcfs "$VC" --genotype_with "$B/reads.csv" || fail=1
     bash "$HANDOUT/check_vcfs.sh" "$SPINE" "$RUNS_DIR/vcfs" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
+  breakscaf)
+    # The haplotypes carry the reference's 120 bp N run on chr1, and single N
+    # bases inside planted insertions. Discovery with --break_scaffolds has to cut
+    # at the run only, so it must find what discovery without it finds.
+    for mode in nobreak break; do
+      args=(--assemblies "$B/assemblies.csv" --genotype false)
+      [[ $mode == break ]] && args+=(--break_scaffolds)
+      nf "breakscaf_$mode" "${args[@]}" -resume || fail=1
+    done
+    python3 "$HANDOUT/check_breakscaf.py" "$RUNS_DIR" "$B/assemblies.csv" "$HANDOUT/work" \
+      "${BREAK_MIN_GAP:-10}" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
   *) echo "unknown cell: $cell (see ./run_matrix.sh -l)" >&2; fail=1 ;;
   esac
 done
