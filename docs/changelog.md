@@ -6,7 +6,7 @@ description: Release history of GraffiTE, from the first beta to the current v1.
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `cc1f3ac`. The
+    Verified against `v1.1dev` at commit `19da5f8`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -147,6 +147,13 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   longer candidate. Through the TSD trim, `polyA` changes on 2 of all 5,819 records, both
   `LTR/ERVK`, for which no filter reads `polyA`. Test: `test/tsd/test_tsd_match.sh`, cases 5
   and 6 (commit `cc1f3ac`).
+- `add_polyA.py` counts a tail found with or without the `TSD` copy trimmed. When the TSD search
+  reported a run of the tail base as the duplication, trimming it removed the tail: from
+  `d1dfd7b` on, the 17 single-hit records above (15 Alu, 1 L1, 1 SVA) read `polyA=FALSE` although
+  each has a tail at the expected end. They keep `polyA=TRUE` again. On the same run, 114 records
+  (96 Alu, 17 L1, 1 SVA) that failed `--human` on `polyA` alone in earlier versions pass once
+  their `TSD` copy is trimmed, and no record of that run's `pangenome.human.vcf` is lost. Test:
+  `test/tsd/test_add_polyA.sh` (commit `19da5f8`).
 
 **PanGenie and Nextflow 26** (PR #101, 2026-09-14)
 

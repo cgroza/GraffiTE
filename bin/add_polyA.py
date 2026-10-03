@@ -9,6 +9,8 @@ Rules:
   - INS: variant sequence = ALT[1:]; DEL: variant sequence = REF[1:]
   - TSD may be absent or truncated at the breakpoint, so we scan a window
     of (len(TSD) + FLANK) bp at the relevant end rather than hard-trimming.
+  - The tail counts whether it is found with the TSD copy trimmed from that
+    end or with the copy left on (see detect_polyA).
 
 A tail is called if a sliding window of length >= MIN_LEN within the scan
 region has A (or T) fraction >= MIN_PURITY.
@@ -21,13 +23,13 @@ from urllib.parse import unquote
 
 MIN_LEN = 8          # minimum tail length
 MIN_PURITY = 0.8     # minimum A/T fraction within the tail window
-MAX_SLACK = 5        # max bp between tail end and the (TSD-trimmed) terminus
+MAX_SLACK = 5        # max bp between tail end and the terminus, TSD trimmed or not
 
 INFO_HEADER = ('##INFO=<ID=polyA,Number=1,Type=String,'
                'Description="TRUE if an imperfect polyA (or polyT on minus '
                'strand) tail is detected anchored to the 3\' (or 5\') end of a '
-               'single-hit TE insertion/deletion after trimming any exact TSD '
-               'suffix/prefix; FALSE if no tail found; NA if n_hits>1. '
+               'single-hit TE insertion/deletion, with or without an exact TSD '
+               'suffix/prefix trimmed; FALSE if no tail found; NA if n_hits>1. '
                f'Params: min_len={MIN_LEN}, '
                f'min_purity={MIN_PURITY}, max_slack={MAX_SLACK}.">')
 
@@ -69,21 +71,27 @@ def has_anchored_tail(seq, base):
 def detect_polyA(variant_seq, strand, tsd):
     """variant_seq: inserted/deleted sequence (without the anchor base).
        strand: '+' or 'C'.
-       tsd: reported TSD sequence (may be empty/'.')."""
+       tsd: reported TSD sequence (may be empty/'.').
+
+    The tail counts if it is found either with the TSD copy trimmed or with
+    the copy left on. Trimming exposes a tail that sits behind the copy, as in
+    [element-AAAAAAAAAA-TSD]. But the search sometimes reports a run of the
+    tail base as the TSD, and trimming that removes the tail itself. On the
+    CaG set, 17 Alu, L1 and SVA insertions with a tail at the expected end
+    would have lost their polyA call this way, and with it their place in the
+    --human set (test/tsd/test_add_polyA.sh)."""
     seq = variant_seq.upper()
     tsd_up = (tsd or '').upper()
     if strand == '+':
-        # polyA at 3' end: trim an exact TSD suffix if present, then scan
-        # anchored to the new 3' terminus.
-        if tsd_up and seq.endswith(tsd_up):
-            seq = seq[:-len(tsd_up)]
-        return has_anchored_tail(seq, 'A')
+        # polyA at 3' end, scanned anchored to the 3' terminus, with and
+        # without an exact TSD suffix.
+        trimmed = seq[:-len(tsd_up)] if tsd_up and seq.endswith(tsd_up) else seq
+        return has_anchored_tail(trimmed, 'A') or has_anchored_tail(seq, 'A')
     elif strand == 'C':
-        # polyT at 5' end: trim an exact TSD prefix, reverse, then scan
-        # anchored to the (reversed) 3' terminus for T.
-        if tsd_up and seq.startswith(tsd_up):
-            seq = seq[len(tsd_up):]
-        return has_anchored_tail(seq[::-1], 'T')
+        # polyT at 5' end: reverse, then scan anchored to the (reversed) 3'
+        # terminus for T, with and without an exact TSD prefix.
+        trimmed = seq[len(tsd_up):] if tsd_up and seq.startswith(tsd_up) else seq
+        return has_anchored_tail(trimmed[::-1], 'T') or has_anchored_tail(seq[::-1], 'T')
     return False
 
 
