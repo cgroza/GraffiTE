@@ -27,7 +27,7 @@ STAMP = re.compile(r"(Verified against `v1\.1dev` at commit `)([0-9a-f]{7,40})(`
 
 # Paths whose changes mean "the pipeline behaves differently": anything else
 # (docs, README, CI, the site config) can change without invalidating a stamp.
-CODE_PATHS = ["main.nf", "module", "bin", "nextflow.config", "GraffiTE.def", "version.txt", "panmethyl"]
+CODE_PATHS = ["main.nf", "module", "bin", "nextflow.config", "Dockerfile", "GraffiTE.def", "version.txt", "panmethyl"]
 
 
 def pages():

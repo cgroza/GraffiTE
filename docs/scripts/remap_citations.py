@@ -21,7 +21,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 DOCS = ROOT / "docs"
-CITE = re.compile(r"`((?:[\w./-]+/)?[\w.-]+\.(?:nf|py|sh|R|config|def|txt|yml|json)):(\d[\d,\s-]*)`")
+CITE = re.compile(r"`((?:[\w./-]+/)?(?:Dockerfile|[\w.-]+\.(?:nf|py|sh|R|config|def|txt|yml|json))):(\d[\d,\s-]*)`")
 
 
 def git_show(sha, path):
