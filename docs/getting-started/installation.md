@@ -8,7 +8,7 @@ description: >-
 # Installation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
@@ -94,13 +94,13 @@ nextflow run cgroza/GraffiTE -r v1.1dev -with-singularity /abs/path/graffite_lat
 `-with-singularity` overrides the image path in `nextflow.config`.
 
 The PAV entry point (`--pav`) uses a second image, `library://becklab/pav/pav:latest`
-<span class="src">`nextflow.config:339`</span>, pulled the same way. What the image contains,
+<span class="src">`nextflow.config:340`</span>, pulled the same way. What the image contains,
 and how the recipe in `GraffiTE.def` relates to it, is on [Container contents](../reference/container.md).
 
 ### Paths and `/tmp`
 
 The config runs every container with `--contain --bind <dir>:/tmp`
-<span class="src">`nextflow.config:175`</span>. Two consequences:
+<span class="src">`nextflow.config:176`</span>. Two consequences:
 
 - The host filesystem is hidden from the container except for what Nextflow mounts: the work
   directory and the files it stages (`singularity.autoMounts = true`

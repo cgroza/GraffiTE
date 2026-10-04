@@ -8,7 +8,7 @@ description: >-
 # Container
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -30,7 +30,7 @@ it to a SIF on first use. On an arm64 host it runs under emulation.
 
 Singularity (or Apptainer) is enabled globally, with automatic mounts. The run options are built
 after the params block, so that `--container_tmp` can be read:
-<span class="src">`nextflow.config:3-4,175`</span>
+<span class="src">`nextflow.config:3-4,176`</span>
 
 ```
 --contain --bind <--container_tmp, or $(pwd)>:/tmp
@@ -38,7 +38,7 @@ after the params block, so that `--container_tmp` can be read:
 
 `--container_tmp` is unset by default, and the bind source is then `$(pwd)`. Pass
 `--container_tmp /scratch/you/tmp` and that directory is bound to `/tmp` instead.
-<span class="src">`nextflow.config:46`</span> See
+<span class="src">`nextflow.config:47`</span> See
 [`--container_tmp`](parameters.md#global-switches) and
 [Paths and `/tmp`](../getting-started/installation.md#paths-and-tmp).
 
@@ -83,7 +83,7 @@ default branch held on the day the image was built. <span class="src">`GraffiTE.
 ## The PAV container
 
 `pav_asm` runs in `library://becklab/pav/pav:latest`, PAV's own image, with 32 CPUs unless
-`--cores` says otherwise. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:338-343`, `module/main.nf:166`</span>
+`--cores` says otherwise. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:339-344`, `module/main.nf:166`</span>
 
 ## The recipe and the published image
 

@@ -8,7 +8,7 @@ description: >-
 # Stage A: discovery
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -86,7 +86,8 @@ and its own sample name.
 **What runs:**
 
 1. *(optional)* `break_scaffold`: if `--break_scaffolds` is set, scaffolds are split into contigs
-   at runs of `N` with `breakgaps.py`. Use this when your input is scaffolded rather than a contig
+   at runs of at least `--break_scaffolds_min_gap` `N` (10 by default) with `breakgaps.py`; a
+   shorter run stays inside its contig. Use this when your input is scaffolded rather than a contig
    assembly. <span class="src">`module/main.nf:25-38`</span>
 2. `map_asm`: aligns to the reference with `minimap2 -a -x asm5 --cs -r2k -K 500M`, piped into
    `samtools sort -m 4G -@ 4`. The `-x` preset is `--asm_divergence`; raise it to `asm10` or
@@ -128,7 +129,7 @@ HG005,/data/HG005.hap1.fa.gz,/data/HG005.hap2.fa.gz
 
 **Resources:** `pav_asm` defaults to **32 CPUs, 120 GB and 12 h**, considerably more than any
 other process. Only `--cores` overrides the CPU count; there is no `--pav_threads`.
-<span class="src">`nextflow.config:338-343`</span>
+<span class="src">`nextflow.config:339-344`</span>
 
 ---
 
@@ -246,7 +247,7 @@ For the multi-sample case:
 
 !!! note "Merging borrows the svim-asm resource knobs"
     `truvari_merge` has no parameters of its own; it uses `--svim_asm_threads`, `--svim_asm_memory`
-    and `--svim_asm_time` <span class="src">`nextflow.config:207-211`</span>. Since the collapse
+    and `--svim_asm_time` <span class="src">`nextflow.config:208-212`</span>. Since the collapse
     is internally parallel, raising the svim-asm thread count speeds up the merge as well.
 
 ---

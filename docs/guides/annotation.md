@@ -6,7 +6,7 @@ description: How candidate SVs are scanned with RepeatMasker and ULTRA, filtered
 # Stage B: repeat annotation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -72,7 +72,7 @@ to the annotation:
   (`^AluY`, `^L1HS`, `^SVA_[DEF]`, `^HERVK-int`), and the L1 and SVA rules key on the classes
   `LINE/L1` and `Retroposon/SVA` and on the subfamily names `SVA_A` to `SVA_F`. A library with
   other conventions still annotates, but those rules will not fire.
-  <span class="src">`nextflow.config:65-76`, `bin/annotate_vcf.R:119,132-140`</span>
+  <span class="src">`nextflow.config:66-77`, `bin/annotate_vcf.R:119,132-140`</span>
 
 The Dfam human library the test set ships (`human_DFAM3.6.fasta`) follows these conventions. For
 another species, a RepeatModeler or Dfam library in RepeatMasker format is what the pipeline
@@ -128,7 +128,7 @@ A variant is kept when `total_repeat_span` is strictly greater than `--repeat_sp
 (default `0.80`, a fraction of the variant length). The test is applied twice with the same
 cutoff: once per contig, which produces `genotypes_repmasked_filtered.vcf`, and once more when
 the contigs are concatenated.
-<span class="src">`module/main.nf:659`, `module/main.nf:577`, `nextflow.config:56`</span>
+<span class="src">`module/main.nf:659`, `module/main.nf:577`, `nextflow.config:57`</span>
 
 Two consequences of using the union rather than the TE span alone. A variant that is a
 polyA-rich Alu with a long tandem stretch passes, because ULTRA covers what RepeatMasker did not.
@@ -146,7 +146,7 @@ looks for an exact duplication of 4 to 20 bp that sits close to the junctions. A
 passes is written as `INFO/TSD`, as its two copies. The search runs on every variant, whatever
 its `n_hits`. The procedure, the scoring and the log format are in
 [Target site duplications](../background/tsd.md).
-<span class="src">`module/main.nf:663-707`, `nextflow.config:49`</span>
+<span class="src">`module/main.nf:663-707`, `nextflow.config:50`</span>
 
 ## polyA annotation
 
@@ -186,7 +186,7 @@ Read as four criteria:
 
 The `FILTER="PASS"` clause is dropped with `--trusted_ignore_filter`, for callers that leave
 `FILTER` empty.
-<span class="src">`nextflow.config:57-59`</span>
+<span class="src">`nextflow.config:58-60`</span>
 
 !!! warning "The negated class test is weaker than it looks"
     `matching_classes!~"SINE"` is true for every record in bcftools, `SINE/Alu` ones included,
@@ -208,12 +208,12 @@ Stage B parallelises twice.
   `repeatmask_VCF` runs on each, with the `repeatmasker_*` resource parameters. A genome with
   thousands of small scaffolds spawns thousands of tasks; `--cores` and
   `--repeatmasker_threads` set what each gets. RepeatMasker's own `-pa` is a quarter of that.
-  <span class="src">`module/main.nf:492-505`, `nextflow.config:222-226`</span>
+  <span class="src">`module/main.nf:492-505`, `nextflow.config:223-227`</span>
 - **By batch of variants for the TSD search.** Each contig's variant list is split into batches
   of `--tsd_batch_size` (default 100 variants) and `tsd_search` runs on each batch with the
   `tsd_*` parameters, so a contig with 5,000 variants is 50 tasks. The batches are gathered
   back per contig by `tsd_report`.
-  <span class="src">`main.nf:149-154`, `nextflow.config:55`</span>
+  <span class="src">`main.nf:149-154`, `nextflow.config:56`</span>
 
 `concat_repeatmask` then joins every contig into `pangenome.vcf`. Everything in this stage is
 recoverable with `-resume`, and a finished Stage B can be re-entered with `--RM_dir` or

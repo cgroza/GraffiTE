@@ -8,7 +8,7 @@ description: >-
 # Resources and scaling
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -68,46 +68,46 @@ See also the
 `--cores N` sets `cpus` to `N` for every process whose CPU count is configurable, in place of all
 the `*_threads` parameters, and replaces the `32` that `pav_asm` asks for. Set it for a quick run
 on one machine; set the individual parameters for a cluster, where a lone `bcftools` step does
-not need the 40 CPUs an alignment does. <span class="src">`nextflow.config:50,178-344`</span>
+not need the 40 CPUs an alignment does. <span class="src">`nextflow.config:51,179-345`</span>
 
 Processes with a hardcoded `cpus` ignore it: `break_scaffold`, `tsd_prep`, `tsd_search`,
 `tsd_report`, `merge_VCFs`, `trusted_genotypes`, `genotyping_audit`, `hervk_reconcile`, and the
 eight methylation processes. All are pinned to one CPU except `bamtags_to_BED`, which asks for two.
-<span class="src">`nextflow.config:179-181,227-241,273-287,293-337`</span>
+<span class="src">`nextflow.config:180-182,228-242,274-288,294-338`</span>
 
 ## Per-process allocation
 
 Each `withName` block in `nextflow.config` reads a `*_threads`, `*_memory` and `*_time`
 parameter. Memory and time are Nextflow strings such as `"40G"` and `"12h"`. A memory default of
 `null` means the process declares no memory requirement at all; on a scheduler that needs one, set
-it. <span class="src">`nextflow.config:123-161,178-344`</span>
+it. <span class="src">`nextflow.config:124-162,179-345`</span>
 
 | Process | CPUs | Memory | Time | Source |
 |---|---|---|---|---|
-| `break_scaffold` | `1` | none | none | <span class="src">`nextflow.config:179-181`</span> |
-| `map_asm` | `--map_asm_threads` `1` | `--map_asm_memory` `null` | `--map_asm_time` `"3h"` | <span class="src">`nextflow.config:135-137,182-186`</span> |
-| `map_longreads` | `--map_longreads_threads` `1` | `--map_longreads_memory` `null` | `--map_longreads_time` `"12h"` | <span class="src">`nextflow.config:138-140,187-191`</span> |
-| `sniffles_sample_call`, `sniffles_population_call` | `--sniffles_threads` `1` | `--sniffles_memory` `null` | `--sniffles_time` `"12h"` | <span class="src">`nextflow.config:149-151,192-201`</span> |
-| `svim_asm`, `truvari_merge` | `--svim_asm_threads` `1` | `--svim_asm_memory` `null` | `--svim_asm_time` `"12h"` | <span class="src">`nextflow.config:154-156,202-211`</span> |
-| `pav_asm` | `32` | `--pav_memory` `"120G"` | `--pav_time` `"12h"` | <span class="src">`nextflow.config:152-153,338-343`</span> |
-| `split_repeatmask`, `repeatmask_VCF`, `concat_repeatmask` | `--repeatmasker_threads` `1` | `--repeatmasker_memory` `"10G"` | `--repeatmasker_time` `"12h"` | <span class="src">`nextflow.config:146-148,212-226`</span> |
-| `tsd_prep`, `tsd_search`, `tsd_report` | `1` | `--tsd_memory` `"10G"` | `--tsd_time` `"1h"` | <span class="src">`nextflow.config:157-158,227-241`</span> |
-| `hervk_annotate` | `--hervk_annotate_threads` `1` | `--hervk_annotate_memory` `"10G"` | `--hervk_annotate_time` `"12h"` | <span class="src">`nextflow.config:127-129,288-292`</span> |
-| `hervk_reconcile` | `1` | `--hervk_reconcile_memory` `"10G"` | `--hervk_reconcile_time` `"1h"` | <span class="src">`nextflow.config:130-131,293-297`</span> |
-| `pangenie_index`, `pangenie` | `--pangenie_threads` `1` | `--pangenie_memory` `null` | `--pangenie_time` `"12h"` | <span class="src">`nextflow.config:143-145,242-251`</span> |
-| `make_graph` | `--make_graph_threads` `1` | `--make_graph_memory` `"40G"` | `--make_graph_time` `"6h"` | <span class="src">`nextflow.config:132-134,252-256`</span> |
-| `bam_to_fastq`, `graph_align_reads` | `--graph_align_threads` `1` | `--graph_align_memory` `null` | `--graph_align_time` `"12h"` | <span class="src">`nextflow.config:124-126,257-267`</span> |
-| `vg_call` | `--vg_call_threads` `1` | `--vg_call_memory` `null` | `--vg_call_time` `"2h"` | <span class="src">`nextflow.config:159-161,268-272`</span> |
-| `merge_VCFs` | `1` | `--merge_vcf_memory` `"10G"` | `--merge_vcf_time` `"1h"` | <span class="src">`nextflow.config:141-142,273-277`</span> |
-| `bamtags_to_BED` | `2` | `50 GB` | `6 h` | <span class="src">`nextflow.config:298-302`</span> |
-| `lift_epigenome`, `merge_CSV` | `1` | `60 GB` | `6 h` | <span class="src">`nextflow.config:303-312`</span> |
-| `index_graph`, `annotate_VCF`, `annotate_BED`, `BED_to_graph`, `merge_BED` | `1` | `40 GB` | `6 h` | <span class="src">`nextflow.config:313-337`</span> |
+| `break_scaffold` | `1` | none | none | <span class="src">`nextflow.config:180-182`</span> |
+| `map_asm` | `--map_asm_threads` `1` | `--map_asm_memory` `null` | `--map_asm_time` `"3h"` | <span class="src">`nextflow.config:136-138,183-187`</span> |
+| `map_longreads` | `--map_longreads_threads` `1` | `--map_longreads_memory` `null` | `--map_longreads_time` `"12h"` | <span class="src">`nextflow.config:139-141,188-192`</span> |
+| `sniffles_sample_call`, `sniffles_population_call` | `--sniffles_threads` `1` | `--sniffles_memory` `null` | `--sniffles_time` `"12h"` | <span class="src">`nextflow.config:150-152,193-202`</span> |
+| `svim_asm`, `truvari_merge` | `--svim_asm_threads` `1` | `--svim_asm_memory` `null` | `--svim_asm_time` `"12h"` | <span class="src">`nextflow.config:155-157,203-212`</span> |
+| `pav_asm` | `32` | `--pav_memory` `"120G"` | `--pav_time` `"12h"` | <span class="src">`nextflow.config:153-154,339-344`</span> |
+| `split_repeatmask`, `repeatmask_VCF`, `concat_repeatmask` | `--repeatmasker_threads` `1` | `--repeatmasker_memory` `"10G"` | `--repeatmasker_time` `"12h"` | <span class="src">`nextflow.config:147-149,213-227`</span> |
+| `tsd_prep`, `tsd_search`, `tsd_report` | `1` | `--tsd_memory` `"10G"` | `--tsd_time` `"1h"` | <span class="src">`nextflow.config:158-159,228-242`</span> |
+| `hervk_annotate` | `--hervk_annotate_threads` `1` | `--hervk_annotate_memory` `"10G"` | `--hervk_annotate_time` `"12h"` | <span class="src">`nextflow.config:128-130,289-293`</span> |
+| `hervk_reconcile` | `1` | `--hervk_reconcile_memory` `"10G"` | `--hervk_reconcile_time` `"1h"` | <span class="src">`nextflow.config:131-132,294-298`</span> |
+| `pangenie_index`, `pangenie` | `--pangenie_threads` `1` | `--pangenie_memory` `null` | `--pangenie_time` `"12h"` | <span class="src">`nextflow.config:144-146,243-252`</span> |
+| `make_graph` | `--make_graph_threads` `1` | `--make_graph_memory` `"40G"` | `--make_graph_time` `"6h"` | <span class="src">`nextflow.config:133-135,253-257`</span> |
+| `bam_to_fastq`, `graph_align_reads` | `--graph_align_threads` `1` | `--graph_align_memory` `null` | `--graph_align_time` `"12h"` | <span class="src">`nextflow.config:125-127,258-268`</span> |
+| `vg_call` | `--vg_call_threads` `1` | `--vg_call_memory` `null` | `--vg_call_time` `"2h"` | <span class="src">`nextflow.config:160-162,269-273`</span> |
+| `merge_VCFs` | `1` | `--merge_vcf_memory` `"10G"` | `--merge_vcf_time` `"1h"` | <span class="src">`nextflow.config:142-143,274-278`</span> |
+| `bamtags_to_BED` | `2` | `50 GB` | `6 h` | <span class="src">`nextflow.config:299-303`</span> |
+| `lift_epigenome`, `merge_CSV` | `1` | `60 GB` | `6 h` | <span class="src">`nextflow.config:304-313`</span> |
+| `index_graph`, `annotate_VCF`, `annotate_BED`, `BED_to_graph`, `merge_BED` | `1` | `40 GB` | `6 h` | <span class="src">`nextflow.config:314-338`</span> |
 
 Three things the table does not show:
 
 - `graph_align_reads` has `errorStrategy = 'finish'`: when one sample's alignment fails, the
   samples already running finish and the run then stops, instead of being killed at once.
-  <span class="src">`nextflow.config:266`</span>
+  <span class="src">`nextflow.config:267`</span>
 - The default thread count is `1` everywhere. A run with defaults aligns each assembly on one CPU.
   Raise `--map_asm_threads`, `--map_longreads_threads`, `--pangenie_threads` and
   `--graph_align_threads` first; those are the steps that scale with CPUs.

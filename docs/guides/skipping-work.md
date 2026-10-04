@@ -8,7 +8,7 @@ description: >-
 # Resuming and skipping work
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -139,7 +139,7 @@ under `--human`. No sample is aligned or called, but `--genotype_with` is still 
 must exist, and any BAM row in it still goes through `bam_to_fastq`
 <span class="src">`main.nf:189`</span>. Pass `--graph` alongside `--vcfs`: the `make_graph` call
 sits outside the `--vcfs` test <span class="src">`main.nf:201-206`</span>, so without it the run
-still builds an index at 40G for up to 6h <span class="src">`nextflow.config:132-134`</span>, and
+still builds an index at 40G for up to 6h <span class="src">`nextflow.config:133-135`</span>, and
 unless `--epigenomes` is on nothing consumes it. `precomputed` requires `--graph` in any case
 <span class="src">`main.nf:53-56`</span>.
 

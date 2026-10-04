@@ -6,7 +6,7 @@ description: Why TSDs matter for mobile element insertions and how GraffiTE find
 # Target site duplications
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -35,7 +35,7 @@ the variant: after `POS` for an insertion, after the deleted interval for a dele
 that runs off the start of a contig is clamped and comes out shorter. Separately, the variant
 sequence itself (ALT for an insertion, REF for a deletion) is trimmed to its first and last
 `--tsd_win` bp; a variant no longer than the window is used whole. The default window is 30 bp.
-<span class="src">`bin/prepTSD.sh:43-56`, `bin/tsd_flanks.py:50-59`, `nextflow.config:49`</span>
+<span class="src">`bin/prepTSD.sh:43-56`, `bin/tsd_flanks.py:50-59`, `nextflow.config:50`</span>
 
 **`TSD_Match_v2.sh` compares two fragments per variant.** The L fragment is the 5' flank followed
 by the first bases of the variant; the R fragment is the last bases of the variant followed by

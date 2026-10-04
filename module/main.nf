@@ -33,7 +33,7 @@ process break_scaffold {
   asm_base_name = asm.getName()
   """
   mkdir broken
-  breakgaps.py ${asm} | gzip > broken/${asm_base_name}.fa.gz
+  breakgaps.py ${asm} ${params.break_scaffolds_min_gap} | gzip > broken/${asm_base_name}.fa.gz
   """
 }
 

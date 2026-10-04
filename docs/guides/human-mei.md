@@ -8,7 +8,7 @@ description: >-
 # Human mobile element insertions
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -50,11 +50,11 @@ whitelists are comma-separated lists of bcftools regexes; each list is expanded 
 
 | `matching_classes` | Parameter | Default | Keeps | Source |
 |---|---|---|---|---|
-| `SINE/Alu` | `--human_alu_ids` | `^AluY` | AluY and its subfamilies (AluYa5, AluYb8, ...); drops AluS and AluJ | <span class="src">`nextflow.config:65`</span> |
-| `LINE/L1` | `--human_l1_ids` | `^L1HS` | L1HS only; add `^L1PA2` to relax | <span class="src">`nextflow.config:66`</span> |
-| `Retroposon/SVA` | `--human_sva_ids` | `^SVA_[DEF]` | SVA_D, SVA_E, SVA_F | <span class="src">`nextflow.config:67`</span> |
+| `SINE/Alu` | `--human_alu_ids` | `^AluY` | AluY and its subfamilies (AluYa5, AluYb8, ...); drops AluS and AluJ | <span class="src">`nextflow.config:66`</span> |
+| `LINE/L1` | `--human_l1_ids` | `^L1HS` | L1HS only; add `^L1PA2` to relax | <span class="src">`nextflow.config:67`</span> |
+| `Retroposon/SVA` | `--human_sva_ids` | `^SVA_[DEF]` | SVA_D, SVA_E, SVA_F | <span class="src">`nextflow.config:68`</span> |
 | `Simple_repeat` | `--human_sva_ids` | `^SVA_[DEF]` | the `SVA_*(VNTR_only)` records that Stage B reclassified as `Simple_repeat`; see [SVA VNTR polymorphisms](../background/sva-vntr.md) | <span class="src">`module/main.nf:540`</span> |
-| `LTR/ERVK` | `--human_hervk_ids` | `^HERVK-int,^HERVK$,^LTR5_Hs,^LTR5A,^LTR5B` | the HML-2 internal region under either library name, and the LTR5 family; `^HERVK$` is anchored at both ends so that HERVK9-int, HERVK11-int and HERVK14-int, which are other lineages, stay out | <span class="src">`nextflow.config:68-76`</span> |
+| `LTR/ERVK` | `--human_hervk_ids` | `^HERVK-int,^HERVK$,^LTR5_Hs,^LTR5A,^LTR5B` | the HML-2 internal region under either library name, and the LTR5 family; `^HERVK$` is anchored at both ends so that HERVK9-int, HERVK11-int and HERVK14-int, which are other lineages, stay out | <span class="src">`nextflow.config:69-77`</span> |
 
 An empty string keeps the whole class <span class="src">`module/main.nf:536`</span>.
 
@@ -82,7 +82,7 @@ abs(SVLEN) >= 250  and  (ULTRA_TR_span < 0.6  or  matching_classes = "Simple_rep
 | `--human_min_svlen` | `250` bp | drops records shorter than a truncated Alu |
 | `--human_max_ultra_span` | `0.6` (fraction of the variant covered by ULTRA tandem repeats) | drops VNTR-dominated records, except the `Simple_repeat` ones that are VNTR by construction |
 
-Source: <span class="src">`nextflow.config:77-78`</span>.
+Source: <span class="src">`nextflow.config:78-79`</span>.
 
 The 250 bp threshold is sized for insertions and is wrong for the `SVA_*(VNTR_only)` records,
 whose unit is about 49 bp. On the 20-genome HPRC set it keeps 102 of 1,141, and
@@ -113,9 +113,9 @@ n_hits <= 3  and  LTR/ERVK  and  Retroposon/SVA  and  repeat_ids ~ "^HERVK-int" 
 
 | Parameter | Default | Source |
 |---|---|---|
-| `--hervk_sva_pair` | `true`; `false` removes the carve-out | <span class="src">`nextflow.config:80`</span> |
-| `--hervk_pair_max_svlen` | `10500` bp, a 9,472 bp provirus plus tolerance | <span class="src">`nextflow.config:81`</span> |
-| `--hervk_pair_max_hits` | `3`; `2` restores the pre-1.1 rule | <span class="src">`nextflow.config:82`</span> |
+| `--hervk_sva_pair` | `true`; `false` removes the carve-out | <span class="src">`nextflow.config:81`</span> |
+| `--hervk_pair_max_svlen` | `10500` bp, a 9,472 bp provirus plus tolerance | <span class="src">`nextflow.config:82`</span> |
+| `--hervk_pair_max_hits` | `3`; `2` restores the pre-1.1 rule | <span class="src">`nextflow.config:83`</span> |
 
 The hit count is a cap rather than an equality because RepeatMasker also splits the internal
 region of a degraded or rearranged provirus. In the CaG cohort, two of the three records at
@@ -207,7 +207,7 @@ genotyped calls <span class="src">`main.nf:278-285`, `module/main.nf:419-490`</s
    path repeats sequence the reference already carries, so reads from the pre-existing copy
    traverse it and non-carriers acquire ALT support; the discovery genotypes come from
    haplotype-resolved alignments and do not have this problem
-   <span class="src">`nextflow.config:98-106`</span>.
+   <span class="src">`nextflow.config:99-107`</span>.
 
 Outputs: `4_Genotyping/GraffiTE.merged.genotypes.human.vcf.gz` (indexed),
 `hervk_unconsolidated_records.vcf` (the member records, archived) and
@@ -246,15 +246,15 @@ refuses `--graffite_vcf --human` unless `--hervk_reconcile false` is also given
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--hervk_config` | `null` | JSON file of overrides for `hervk_classify.py`; keys present replace the script's `DEFAULTS`, nested dictionaries are merged key by key | <span class="src">`nextflow.config:61`, `bin/hervk_classify.py:58-97`</span> |
-| `--hervk_strict` | `false` | drop candidates classed `other` or below `pmap_min` (`0.90`); off because dropping records hid a failure in the previous classifier | <span class="src">`nextflow.config:115`</span> |
-| `--hervk_max_svlen` | `25000` bp | candidacy cap; a complete provirus is 9,472 bp and a 25 Mb artefact once dominated the masking cost | <span class="src">`nextflow.config:84`</span> |
-| `--hervk_ref_flank` | `1500` bp | reference masked either side of each candidate footprint | <span class="src">`nextflow.config:108`</span> |
-| `--hervk_locus_window` | `1200` bp | maximum footprint gap within one locus | <span class="src">`nextflow.config:109`</span> |
-| `--hervk_ref_annotation` | `null` | precomputed reference repeat track; skips the in-pipeline masking | <span class="src">`nextflow.config:113`</span> |
-| `--hervk_mask_graph_gt_at_cnv` | `true` | withhold graph genotypes at copy-number loci; `--hervk_mask_tandem` is the deprecated name | <span class="src">`nextflow.config:98-107`</span> |
-| `--hervk_reconcile` | `true` | run the consolidation after genotyping | <span class="src">`nextflow.config:94`</span> |
-| `--hervk_annotate_threads`, `_memory`, `_time` | `1`, `10G`, `12h` | resources for the masking step | <span class="src">`nextflow.config:127-129`</span> |
+| `--hervk_config` | `null` | JSON file of overrides for `hervk_classify.py`; keys present replace the script's `DEFAULTS`, nested dictionaries are merged key by key | <span class="src">`nextflow.config:62`, `bin/hervk_classify.py:58-97`</span> |
+| `--hervk_strict` | `false` | drop candidates classed `other` or below `pmap_min` (`0.90`); off because dropping records hid a failure in the previous classifier | <span class="src">`nextflow.config:116`</span> |
+| `--hervk_max_svlen` | `25000` bp | candidacy cap; a complete provirus is 9,472 bp and a 25 Mb artefact once dominated the masking cost | <span class="src">`nextflow.config:85`</span> |
+| `--hervk_ref_flank` | `1500` bp | reference masked either side of each candidate footprint | <span class="src">`nextflow.config:109`</span> |
+| `--hervk_locus_window` | `1200` bp | maximum footprint gap within one locus | <span class="src">`nextflow.config:110`</span> |
+| `--hervk_ref_annotation` | `null` | precomputed reference repeat track; skips the in-pipeline masking | <span class="src">`nextflow.config:114`</span> |
+| `--hervk_mask_graph_gt_at_cnv` | `true` | withhold graph genotypes at copy-number loci; `--hervk_mask_tandem` is the deprecated name | <span class="src">`nextflow.config:99-108`</span> |
+| `--hervk_reconcile` | `true` | run the consolidation after genotyping | <span class="src">`nextflow.config:95`</span> |
+| `--hervk_annotate_threads`, `_memory`, `_time` | `1`, `10G`, `12h` | resources for the masking step | <span class="src">`nextflow.config:128-130`</span> |
 
 The keys `--hervk_config` can override, with their defaults, are the `DEFAULTS` dictionary at
 the top of `bin/hervk_classify.py`: `sigmas`, `priors`, `t_min`, `t_max`, `s_range`,

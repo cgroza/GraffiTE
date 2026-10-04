@@ -21,7 +21,7 @@ PROJECT="${PROJECT:-cgroza/GraffiTE}"
 REVISION="${REVISION:-v1.1dev}"
 HANDOUT="$PWD"
 
-CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi epi_bam winnowmap tsd_win40 ison)
+CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi epi_bam winnowmap tsd_win40 ison vcfs breakscaf hervkref)
 describe() { case "$1" in
   spine)        echo "--assemblies x4 + --svs + --human + giraffe + genotyping. Pays discovery, RepeatMasker, TSD and the HERV-K stack once; publishes the graph, the alignments and the RM_dir for everything after it.";;
   pangenie)     echo "--graffite_vcf on the spine's pangenome.vcf, pangenie. The -N left-alignment guard and the allele-drop categories in the audit.";;
@@ -38,6 +38,9 @@ describe() { case "$1" in
   winnowmap)    echo "--aligner winnowmap over the spine's assemblies. Tier 2.";;
   tsd_win40)    echo "The spine's discovery at --tsd_win 40, no genotyping. Every verdict, and every PASS's TSD, must match the spine's at 30.";;
   ison)         echo "--human and --genotype passed as strings from a params file (\"false\", \"FALSE\", \"\", \"true\", \"True\"). Each has to switch its stages off or on as isOn() reads it.";;
+  vcfs)         echo "--graph_method precomputed with --vcfs: the spine's own vg call VCFs handed back. No alignment, no vg_call, and the spine's merged genotypes.";;
+  breakscaf)    echo "--break_scaffolds on the four haplotypes: cut at the 120 bp N run, keep the insertions that carry single N bases, and find what discovery without it finds.";;
+  hervkref)     echo "--hervk_ref_annotation as a RepeatMasker .out, a BED and an empty BED: no masking in hervk_annotate, the spine's reference states from the first two, none from the third.";;
 esac; }
 
 if [[ "${1:-}" == "-l" ]]; then
@@ -184,6 +187,53 @@ for cell in "${SEL[@]}"; do
       echo $? > "$RUNS_DIR/ison_$name.rc"
     done
     bash "$HANDOUT/check_ison.sh" "$RUNS_DIR" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
+  vcfs)
+    # The spine does not publish its per-sample vg call VCFs, so copy them out of
+    # the work directories its trace names. path has to be a glob, as
+    # docs/reference/samplesheets.md says, so the .tbi comes along.
+    VI="$RUNS_DIR/vcfs_inputs"; mkdir -p "$VI"; VC="$RUNS_DIR/vcfs.csv"
+    { echo "sample,path"
+      for h in $(awk -F'\t' 'NR>1 && $4 ~ /^vg_call/ {print $2}' "$SPINE/nextflow_trace.txt"); do
+        for v in "$HANDOUT"/work/${h}*/*.vcf.gz; do
+          [ -f "$v.tbi" ] || continue
+          s=$(basename "$v" .vcf.gz); cp "$v" "$v.tbi" "$VI/"
+          echo "$s,$VI/$s.vcf.gz*"
+        done
+      done
+    } > "$VC"
+    nf vcfs --graffite_vcf "$SPINE/3_TSD_search/pangenome.vcf" \
+       --graph_method precomputed --graph "$SPINE/GraffiTE_graph/index" \
+       --vcfs "$VC" --genotype_with "$B/reads.csv" || fail=1
+    bash "$HANDOUT/check_vcfs.sh" "$SPINE" "$RUNS_DIR/vcfs" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
+  breakscaf)
+    # The haplotypes carry the reference's 120 bp N run on chr1, and single N
+    # bases inside planted insertions. Discovery with --break_scaffolds has to cut
+    # at the run only, so it must find what discovery without it finds.
+    for mode in nobreak break; do
+      args=(--assemblies "$B/assemblies.csv" --genotype false)
+      [[ $mode == break ]] && args+=(--break_scaffolds)
+      nf "breakscaf_$mode" "${args[@]}" -resume || fail=1
+    done
+    python3 "$HANDOUT/check_breakscaf.py" "$RUNS_DIR" "$B/assemblies.csv" "$HANDOUT/work" \
+      "${BREAK_MIN_GAP:-10}" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
+  hervkref)
+    # --hervk_ref_annotation gives hervk_annotate a repeat track for the reference
+    # in place of its own masking. The test set has none, so mask the whole
+    # reference in the pipeline's image with the options hervk_ref_state.py uses,
+    # and pass the result as a .out, as a BED, and as a BED with no hit.
+    HI="$RUNS_DIR/hervkref_inputs"; mkdir -p "$HI/rm"
+    IMG="${GRAFFITE_SIF:-${NXF_SINGULARITY_CACHEDIR:-}/cgroza-graffite-latest.img}"
+    "$(command -v apptainer || command -v singularity)" exec -B "$WORKDIR" "$IMG" \
+      RepeatMasker -lib "$B/lib/synth_TE.fasta" -s -dir "$HI/rm" -pa "$CPUS" "$B/ref/synth.fa" > "$HI/rm.log" 2>&1
+    cp "$HI/rm/synth.fa.out" "$HI/ref.out"
+    awk -v OFS='\t' 'NR > 3 {print $5, $6 - 1, $7, $10, $11, ($9 == "C" ? "-" : "+")}' "$HI/ref.out" > "$HI/ref.bed"
+    : > "$HI/ref.empty.bed"
+    for mode in out bed empty; do
+      case $mode in out) f=$HI/ref.out ;; bed) f=$HI/ref.bed ;; empty) f=$HI/ref.empty.bed ;; esac
+      nf "hervkref_$mode" --assemblies "$B/assemblies.csv" --svs "$B/svs.csv" --human --genotype false \
+         --repeatmasker_memory "${REPEATMASKER_MEMORY:-16G}" --hervk_ref_annotation "$f" -resume || fail=1
+    done
+    python3 "$HANDOUT/check_hervkref.py" "$RUNS_DIR" "$SPINE" "$HANDOUT/work" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
   *) echo "unknown cell: $cell (see ./run_matrix.sh -l)" >&2; fail=1 ;;
   esac
 done

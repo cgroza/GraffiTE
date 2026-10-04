@@ -8,7 +8,7 @@ description: >-
 # Troubleshooting
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `ab44746`. The
+    Verified against `v1.1dev` at commit `2e13c68`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -52,7 +52,7 @@ Each of these stops the run before any process starts. The fix is in the message
 
 ## A process cannot see an input file
 
-Every container runs with `--contain --bind $(pwd):/tmp` <span class="src">`nextflow.config:175`</span>.
+Every container runs with `--contain --bind $(pwd):/tmp` <span class="src">`nextflow.config:176`</span>.
 Files outside the launch directory are only visible if given by absolute path, and `/tmp`
 inside the container is the launch directory. Symptoms are `No such file` inside a process for
 a file that exists on the host, or a full filesystem when the launch directory is small. Use
@@ -85,7 +85,7 @@ or with `--svs`: rename them before the run.
 
 Stage B is split by contig <span class="src">`module/main.nf:492-505`</span> and each piece runs
 with `--repeatmasker_memory` (default `10G`) and `--repeatmasker_time` (default `12h`)
-<span class="src">`nextflow.config:146-148`</span>. Raise them, and raise
+<span class="src">`nextflow.config:147-149`</span>. Raise them, and raise
 `--repeatmasker_threads`, for large contigs or large libraries. Nextflow's message when a job is
 killed by the scheduler can be misleading; check the `.command.log` in the failing work
 directory. For maize-sized, repeat-rich genomes users have needed up to 120 h and 400 GB per
