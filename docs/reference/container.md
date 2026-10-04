@@ -8,7 +8,7 @@ description: >-
 # Container
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2e13c68`. The
+    Verified against `v1.1dev` at commit `2cdb8c4`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -77,7 +77,7 @@ default branch held on the day the image was built. <span class="src">`GraffiTE.
 | vg | `make_graph`, `graph_align_reads`, `vg_call`, `BED_to_graph` | GitHub release binary | `v1.70.0` <span class="src">`GraffiTE.def:284-285`</span> |
 | pypy3 | `subset_gaf.py` (its shebang is `/opt/pypy3/bin/pypy3`) | tarball to `/opt/pypy3` | `7.3.17` (Python 3.10) <span class="src">`GraffiTE.def:287-292`</span> |
 | GraphAligner | `graph_align_reads` with `--graph_method graphaligner` | bioconda through a throwaway Miniconda | unpinned <span class="src">`GraffiTE.def:294-299`</span> |
-| tagtobed | `bamtags_to_BED` | built from the panmethyl repository, default branch | unpinned <span class="src">`GraffiTE.def:302-307`</span> |
+| tagtobed | `bamtags_to_BED` | built from the panmethyl repository at the submodule's commit | `f0aa2c0` <span class="src">`GraffiTE.def:302-310`</span> |
 | bedtools, ncbi-blast+, tabix, pigz, bc, python3-h5py, r-base-core | various | Ubuntu 20.04 apt | distribution versions <span class="src">`GraffiTE.def:9-25,279`</span> |
 
 ## The PAV container

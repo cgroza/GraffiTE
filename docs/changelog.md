@@ -6,7 +6,7 @@ description: Release history of GraffiTE, from the first beta to the current v1.
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2e13c68`. The
+    Verified against `v1.1dev` at commit `2cdb8c4`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -120,6 +120,13 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 - `--break_scaffolds` splits only at runs of at least `--break_scaffolds_min_gap` `N`, 10 by
   default. It used to split at every `N`, which cut any insertion carrying one; on the synthetic
   test set it lost 14 of 29 records (`2e13c68`).
+- `--epigenomes`: the panmethyl submodule moves to `f0aa2c0` (`0fba182`). `annotate_vcf.py`
+  stopped with a `TypeError` on a record whose genotype is missing altogether (`GT` is `.`); it
+  now leaves that record out of the sample's annotated VCF. `tagtobed` exited before its writer
+  thread had finished, so `bamtags_to_BED` kept a different subset of each BAM's calls from run
+  to run. The `tagtobed` fix ([panmethyl#3](https://github.com/cgroza/panmethyl/pull/3)) is in
+  the image. `Dockerfile` and `GraffiTE.def` now check out the submodule's commit after cloning
+  panmethyl, where they used to build from its default branch (`2cdb8c4`).
 
 **TSD chain**
 
