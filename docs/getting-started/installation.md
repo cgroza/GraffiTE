@@ -95,7 +95,7 @@ nextflow run cgroza/GraffiTE -r v1.1dev -with-singularity /abs/path/graffite_lat
 
 The PAV entry point (`--pav`) uses a second image, `library://becklab/pav/pav:latest`
 <span class="src">`nextflow.config:340`</span>, pulled the same way. What the image contains,
-and how the recipe in `GraffiTE.def` relates to it, is on [Container contents](../reference/container.md).
+and which recipe it is built from, is on [Container contents](../reference/container.md).
 
 ### Paths and `/tmp`
 
