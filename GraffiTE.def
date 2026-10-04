@@ -299,9 +299,12 @@ From: ubuntu:20.04
     rm -rf ~/miniconda
 
 
+    # Same commit as the panmethyl submodule: change both together.
     git clone https://github.com/cgroza/panmethyl
-    cd panmethyl/tagtobed
-    cargo build --release 
+    cd panmethyl
+    git checkout f0aa2c0ccf689e4a48c52888eff4c756c2dbaa13
+    cd tagtobed
+    cargo build --release
     cp target/release/tagtobed /usr/local/bin
     cd ${HOME}
     rm -rf panmethyl

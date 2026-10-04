@@ -208,8 +208,13 @@ set -eux
 curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.85.0
 export PATH="${HOME}/.cargo/bin:${PATH}"
 cd "${HOME}"
+# Same commit as the panmethyl submodule: change both together. Docker
+# rebuilds this layer when the hash changes, rather than reusing a cached
+# clone of an older commit.
 git clone https://github.com/cgroza/panmethyl
-cd panmethyl/tagtobed
+cd panmethyl
+git checkout f0aa2c0ccf689e4a48c52888eff4c756c2dbaa13
+cd tagtobed
 cargo build --release
 cp \
     target/release/lift_mods \
