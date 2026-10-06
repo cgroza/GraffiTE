@@ -62,6 +62,14 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
     error "--graffite_vcf skips discovery, and HERV-K reconciliation needs the hervk_annotate outputs discovery produces. Pass --hervk_reconcile false, or start from --RM_dir instead of --graffite_vcf."
   }
 
+  // hervk_reconcile reads vg call genotypes, which giraffe, graphaligner and
+  // precomputed produce and PanGenie does not. The reconciler refuses PanGenie's
+  // VCF, and used to do so after genotyping, at the end of the run (issue #100).
+  if(isOn(params.genotype) && isOn(params.human) && isOn(params.hervk_reconcile)
+     && !params.hervk_reconcile_vcf && params.graph_method == "pangenie") {
+    error "With --human, hervk_reconcile consolidates HERV-K loci in vg call genotypes, and --graph_method pangenie does not produce them. Pass --hervk_reconcile false to genotype with PanGenie, or choose --graph_method giraffe, graphaligner or precomputed."
+  }
+
   // initiate channels that will provide the reference genome to processes
   Channel.fromPath(params.reference, checkIfExists:true).set{ref_asm_ch}
 
@@ -273,8 +281,8 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
     }
 
     // HERV-K locus consolidation on the human subset of the genotyped calls.
-    // Only giraffe is validated; the reconciler refuses other back ends rather
-    // than producing an unchecked answer.
+    // The reconciler accepts the vg call back ends (giraffe, graphaligner,
+    // precomputed); the launch check above refuses a PanGenie run with --human.
     if(isOn(params.human) && isOn(params.hervk_reconcile) && !params.hervk_reconcile_vcf) {
       hervk_reconcile(merge_VCFs.out.typeref_outputs,
                       hervk_annotate.out.human_vcf_ch,

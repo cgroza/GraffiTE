@@ -17,6 +17,8 @@ expect() {  # expect <label> <substring> <args...>
 expect "no input at all" "No input given" --reference "$B/ref/synth.fa"
 expect "--graffite_vcf with --human and reconciliation" "HERV-K reconciliation needs" \
   --graffite_vcf "$B/vcf/merged.vcf.gz" --reference "$B/ref/synth.fa" --human
+expect "--human with PanGenie genotyping and reconciliation" "pangenie does not produce them" \
+  --assemblies "$B/assemblies.csv" --reference "$B/ref/synth.fa" --human --genotype_with "$B/reads.csv"
 expect "unsupported --graph_method" "graph_method must be" \
   --graffite_vcf "$B/vcf/merged.vcf.gz" --reference "$B/ref/synth.fa" --graph_method nope
 echo "guards fail=$fail"; exit $fail

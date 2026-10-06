@@ -428,7 +428,10 @@ def cmd_flag(args):
         sys.stderr.write(f'    {r["locus_id"]}: {r["record_ids"]} [{r["flags"]}]\n')
 
 
-SUPPORTED_GENOTYPERS = ('giraffe',)
+# The back ends that genotype through vg call. giraffe was validated on CaG;
+# graphaligner and precomputed are checked against it in the synthetic suite
+# (cells human_graphaligner and human_precomputed).
+SUPPORTED_GENOTYPERS = ('giraffe', 'graphaligner', 'precomputed')
 
 
 def detect_genotyper(vcf_path):

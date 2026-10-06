@@ -8,7 +8,7 @@ description: >-
 # Human mobile element insertions
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2e13c68`. The
+    Verified against `v1.1dev` at commit `25e417a`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -143,7 +143,7 @@ Alu, L1 and SVA records are done once they pass the filter. HML-2 records are no
 and a full provirus at the same site are two different alleles of one locus, and a structural
 variant call only ever describes the difference between two of a locus's states. `hervk_annotate`
 works out which two, for every `LTR/ERVK` record in `pangenome.vcf`, and writes the result into
-`pangenome.human.vcf` <span class="src">`main.nf:163-174`, `module/main.nf:297-411`</span>. The
+`pangenome.human.vcf` <span class="src">`main.nf:171-182`, `module/main.nf:297-411`</span>. The
 biology is on the [HERV-K background page](../background/hervk-hml2.md); this is the procedure.
 
 1. **Candidates.** Every record with `LTR/ERVK` among its classes and `|SVLEN|` at most
@@ -197,7 +197,7 @@ The field-by-field definitions are in [VCF fields](../reference/vcf-fields.md).
 
 Genotyping does not preserve the HERV-K annotation, because `merge_VCFs` copies INFO from the
 un-annotated `pangenome.vcf`. `hervk_reconcile` restores it and consolidates the loci in the
-genotyped calls <span class="src">`main.nf:278-285`, `module/main.nf:419-490`</span>:
+genotyped calls <span class="src">`main.nf:286-293`, `module/main.nf:419-490`</span>:
 
 1. `GraffiTE.merged.genotypes.vcf.gz` is subset to the IDs in `pangenome.human.vcf`.
 2. Every `HERVK_*` INFO field is copied across from the discovery VCF with `bcftools annotate`.
@@ -213,19 +213,21 @@ Outputs: `4_Genotyping/GraffiTE.merged.genotypes.human.vcf.gz` (indexed),
 `hervk_unconsolidated_records.vcf` (the member records, archived) and
 `hervk_reconciliation_report.md`. The full `GraffiTE.merged.genotypes.vcf.gz` is never rewritten.
 
-!!! warning "Giraffe is the only validated back end"
-    The reconciler refuses any other genotyper rather than produce an unchecked answer
-    <span class="src">`bin/hervk_reconcile.py:431,769-773`</span>. With `--graph_method
-    pangenie` or `graphaligner`, `hervk_reconcile` exits with an error at the end of an otherwise
-    complete run; pass `--hervk_reconcile false` to skip it. When the VCF comes in through
-    `--hervk_reconcile_vcf`, the back end is detected from the header, and any `vg call` header is
-    reported as `giraffe`.
+!!! warning "vg call genotypes only"
+    The reconciler reads genotypes from `vg call`, which the giraffe, graphaligner and
+    precomputed methods all use <span class="src">`bin/hervk_reconcile.py:431-434,772-776`</span>.
+    We validated it on giraffe genotypes from the CaG cohort; the synthetic test suite checks
+    graphaligner and precomputed against giraffe. The pipeline refuses PanGenie genotypes: a
+    `--human` run that genotypes with `--graph_method pangenie` stops at launch unless you pass
+    `--hervk_reconcile false` <span class="src">`main.nf:65-71`</span>. When the VCF comes in
+    through `--hervk_reconcile_vcf`, `hervk_reconcile` reads the back end from the header and
+    accepts any `vg call` VCF.
 
 ### Re-running the HERV-K stages without genotyping
 
 Graph genotyping is the expensive stage, and the HERV-K work does not depend on how the calls
 were made. To repeat stages 1 to 6 and the consolidation against a genotyped VCF from an earlier
-run <span class="src">`main.nf:288-306`</span>:
+run <span class="src">`main.nf:296-314`</span>:
 
 ```bash
 nextflow run cgroza/GraffiTE -r v1.1dev -latest \

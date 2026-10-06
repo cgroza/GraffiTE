@@ -8,7 +8,7 @@ description: >-
 # Installation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2e13c68`. The
+    Verified against `v1.1dev` at commit `25e417a`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
@@ -144,7 +144,7 @@ V. 1.1.0 - v1.1dev
 No input given. Pass one of --longreads, --bams, --assemblies, --pav, --svs (discovery), --vcf (a merged SV VCF), --RM_dir (RepeatMasker output of an earlier run) or --graffite_vcf (a pangenome.vcf from an earlier run).
 ```
 
-<span class="src">`main.nf:143`</span>. The container is only pulled when a process runs, so
+<span class="src">`main.nf:151`</span>. The container is only pulled when a process runs, so
 the [Quickstart](quickstart.md) is the first check of the image.
 
 ---

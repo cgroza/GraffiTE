@@ -6,7 +6,7 @@ description: Every file GraffiTE publishes, which process produces it, and what 
 # Output files
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2e13c68`. The
+    Verified against `v1.1dev` at commit `25e417a`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -120,7 +120,7 @@ One directory per contig of `SVs.vcf`, numbered by task index, so `1/` is not ne
 chromosome 1. Each holds the RepeatMasker and ULTRA run on that contig's variants and the
 intermediate tables the span filter was computed from. The whole directory is what `--RM_dir`
 reads back in to skip Stage B's masking step.
-<span class="src">`module/main.nf:636-650`, `main.nf:125-134`</span>
+<span class="src">`module/main.nf:636-650`, `main.nf:133-142`</span>
 
 | File | Contents | Source |
 |---|---|---|
@@ -147,7 +147,7 @@ under `--human`, `hervk_annotate` writes its own files into the same directory a
 |---|---|---|
 | `pangenome.vcf` | Every variant from every contig that passed the span filter, with REF and ALT re-read from the reference, `TSD` and `polyA` added, and the caller's `FILTER` kept. This file induces the pangenome graph, so nothing downstream modifies it. | <span class="src">`module/main.nf:575-590`</span> |
 | `pangenome.trusted.vcf` | Default runs only. The records of `pangenome.vcf` that pass the trusted-subset expression in [Stage B](../guides/annotation.md). Not written under `--human`. | <span class="src">`module/main.nf:13-22,595-599`</span> |
-| `pangenome.human.vcf` | `--human` only. The records that pass the pME filter in [Human MEIs](../guides/human-mei.md), with the HERV-K classifier fields and locus flags added by `hervk_annotate`. `make_graph` and `pangenie_index` take `pangenome.vcf`, not this file, so the graph is the same under `--human`. `hervk_reconcile` reads this file to consolidate HERV-K loci in the genotyped VCF. | <span class="src">`module/main.nf:605`, `module/main.nf:309,381-385`, `main.nf:159,193,205,280`</span> |
+| `pangenome.human.vcf` | `--human` only. The records that pass the pME filter in [Human MEIs](../guides/human-mei.md), with the HERV-K classifier fields and locus flags added by `hervk_annotate`. `make_graph` and `pangenie_index` take `pangenome.vcf`, not this file, so the graph is the same under `--human`. `hervk_reconcile` reads this file to consolidate HERV-K loci in the genotyped VCF. | <span class="src">`module/main.nf:605`, `module/main.nf:309,381-385`, `main.nf:167,201,213,288`</span> |
 | `pangenome.human.consolidated.vcf` | `--human` only. `pangenome.human.vcf` with each HERV-K locus collapsed onto one multi-allelic record, genotypes taken from the assemblies. | <span class="src">`module/main.nf:398-404`</span> |
 | `pangenome.presence-absence.tsv`, `..._trusted.tsv`, `..._human.tsv` | Flat tables of the matching VCF; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:593,599,606`</span> |
 | `human_filter_summary.txt` | `--human` only. The exact `bcftools view -i` expression that was applied, record counts before and after, and the kept and dropped `(matching_classes, repeat_ids)` combinations with their counts. | <span class="src">`module/main.nf:608-623`</span> |
@@ -159,7 +159,7 @@ under `--human`, `hervk_annotate` writes its own files into the same directory a
 | `hervk_arch.tsv` | `--human` only. The architecture read from the RepeatMasker fragments of each candidate: signature, permutation points, LTR family, termini, fragment count, LTR, internal and other bp, strand, internal gaps, architecture string. | <span class="src">`bin/hervk_arch.py:399-401`</span> |
 | `hervk_refstate.tsv` | `--human` only. What the masked reference window holds at each candidate: state, unit count and period, LTR and internal bp, distance, the reference element's interval, flags, architecture. | <span class="src">`bin/hervk_ref_state.py:382-384`</span> |
 | `hervk_polymorphism_summary.md` | `--human` only. Counts per class and per evidence type, the permutation points seen, and the unresolved candidates. | <span class="src">`bin/hervk_classify.py:649`</span> |
-| `hervk_discovery_consolidation_report.md` | `--human` only. Per locus, the alleles and counts after consolidating the assembly genotypes, and the loci that were skipped and why. | <span class="src">`bin/hervk_reconcile.py:1246`</span> |
+| `hervk_discovery_consolidation_report.md` | `--human` only. Per locus, the alleles and counts after consolidating the assembly genotypes, and the loci that were skipped and why. | <span class="src">`bin/hervk_reconcile.py:1249`</span> |
 
 ## 4_Genotyping
 
@@ -175,7 +175,7 @@ Stage C's deliverables, present when `--genotype` is true (the default).
 | `genotyping_record_audit.tsv` | One row per ALT allele of `pangenome.vcf`, saying whether the graph genotyped it, whether the annotation reached it, and which stage dropped it (`lost_at`). Counts summarised in `#` lines at the top. | <span class="src">`module/main.nf:907-927`</span> |
 | `GraffiTE.merged.genotypes.human.vcf.gz`, `.tbi` | `--human` only. The human subset of the merged genotypes, HERV-K annotation carried over from `pangenome.human.vcf`, and each HERV-K locus consolidated onto one record. Graph genotypes at copy-number loci are withheld unless `--hervk_mask_graph_gt_at_cnv false`. | <span class="src">`module/main.nf:420,431-432,446-488`</span> |
 | `hervk_unconsolidated_records.vcf` | `--human` only. The member records each consolidated record was built from, as they were before consolidation. | <span class="src">`module/main.nf:433,484`</span> |
-| `hervk_reconciliation_report.md` | `--human` only. Per locus, alleles, `AC`, `AN` against `2N`, resolved and partial samples; then the loci with ploidy exceeded, with `AN` below `2N`, and skipped. | <span class="src">`bin/hervk_reconcile.py:1246`</span> |
+| `hervk_reconciliation_report.md` | `--human` only. Per locus, alleles, `AC`, `AN` against `2N`, resolved and partial samples; then the loci with ploidy exceeded, with `AN` below `2N`, and skipped. | <span class="src">`bin/hervk_reconcile.py:1249`</span> |
 
 The per-sample `vg call` VCFs of the giraffe and graphaligner methods are not published; they can
 be supplied back with `--vcfs` only if you keep them from `work/`.
@@ -184,7 +184,7 @@ be supplied back with `--vcfs` only if you keep them from `work/`.
 
 Giraffe and graphaligner methods only, unless `--graph` pointed at an existing directory. The
 `index/` directory is what `--graph` takes.
-<span class="src">`module/main.nf:771-804`, `main.nf:202-204`</span>
+<span class="src">`module/main.nf:771-804`, `main.nf:210-212`</span>
 
 | File | Method | Contents | Source |
 |---|---|---|---|
@@ -197,7 +197,7 @@ Giraffe and graphaligner methods only, unless `--graph` pointed at an existing d
 
 Giraffe and graphaligner methods only, unless `--graph_alignments` supplied them. One pair per
 read set, and exactly what `--graph_alignments` takes back.
-<span class="src">`module/main.nf:825-833`, `main.nf:215-217`</span>
+<span class="src">`module/main.nf:825-833`, `main.nf:223-225`</span>
 
 | File | Contents | Source |
 |---|---|---|
