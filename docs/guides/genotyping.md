@@ -8,14 +8,14 @@ description: >-
 # Stage C: genotyping
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2e13c68`. The
+    Verified against `v1.1dev` at commit `25e417a`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
 Stage C takes `pangenome.vcf` from [Stage B](annotation.md) and the read sets listed in
 `--genotype_with`, builds a graph in which every polymorphism is a bubble, and genotypes each
 sample at each bubble. It runs by default; `--genotype false` stops after Stage B
-<span class="src">`main.nf:180`</span>.
+<span class="src">`main.nf:188`</span>.
 
 ---
 
@@ -40,7 +40,7 @@ ALT allele means *TE present* for `INS` records and *TE absent* for `DEL` record
 
 `--genotype_with` is a samplesheet with `sample`, `path` and `type` columns
 (see [Samplesheets](../reference/samplesheets.md)). The `type` column selects a Giraffe
-parameter preset <span class="src">`main.nf:181-183`</span>:
+parameter preset <span class="src">`main.nf:189-191`</span>:
 
 | `type` | preset | used by |
 |---|---|---|
@@ -58,7 +58,7 @@ Two details follow from that table:
 
 A `path` ending in `.bam` goes through `bam_to_fastq` first: alignment tags are stripped, the
 file is name-sorted and converted back to FASTQ with `samtools fastq`
-<span class="src">`main.nf:184-189`, `module/main.nf:806-822`</span>. The alignments in the BAM
+<span class="src">`main.nf:192-197`, `module/main.nf:806-822`</span>. The alignments in the BAM
 are not used; only the reads are. Methylation tags in such a BAM are read separately, see
 [Methylation](methylation.md).
 
@@ -68,12 +68,12 @@ are not used; only the reads are. Methylation tags in such a BAM are read separa
 
 | `--graph_method` | Graph | Reads are | Genotyper | When |
 |---|---|---|---|---|
-| `pangenie` (default) | `PanGenie-index` on a merged VCF | counted as k-mers | PanGenie | k-mer counting, no alignment step |
+| `pangenie` (default) | `PanGenie-index` on a merged VCF | counted as k-mers | PanGenie | k-mer counting, no alignment step; stops at launch with `--human` unless `--hervk_reconcile false` |
 | `giraffe` | `vg autoindex` (GBZ) | aligned with `vg giraffe` | `vg call` | short or long reads; the back end the HERV-K consolidation is validated on |
 | `graphaligner` | `vg construct` (GFA) | aligned with `GraphAligner` | `vg call` | long reads |
 | `precomputed` | supplied with `--graph` | supplied with `--graph_alignments`, or skipped with `--vcfs` | `vg call`, or none | re-genotyping an existing graph |
 
-Source: <span class="src">`main.nf:192-256`</span>, <span class="src">`nextflow.config:34`</span>.
+Source: <span class="src">`main.nf:200-264`</span>, <span class="src">`nextflow.config:34`</span>.
 
 Anything else stops the run:
 
@@ -132,7 +132,7 @@ turns on left-alignment as well as splitting and a realigned insertion matches n
 merge <span class="src">`module/main.nf:746-767`</span>.
 The result is published as `4_Genotyping/<sample>_genotyping.vcf.gz` with its index. The
 reference is passed as a value channel; as a queue channel it held one item, and PanGenie ran
-for one sample and stopped <span class="src">`main.nf:194-197`</span>.
+for one sample and stopped <span class="src">`main.nf:202-205`</span>.
 
 **Resources:** `--pangenie_threads`, `--pangenie_memory`, `--pangenie_time` for both processes
 <span class="src">`nextflow.config:243-252`</span>.
@@ -155,7 +155,7 @@ in `pangenome.vcf`, then:
 
 `index.gfa` is the graph as GFA, `index.pb` the snarl (bubble) decomposition `vg call` needs.
 The directory is published as `GraffiTE_graph/index/` and is what `--graph` takes on a later
-run. Skipped entirely when `--graph` is given <span class="src">`main.nf:202-206`</span>.
+run. Skipped entirely when `--graph` is given <span class="src">`main.nf:210-214`</span>.
 
 **Resources:** `--make_graph_threads`, `--make_graph_memory` (default `40G`), `--make_graph_time`
 (default `6h`) <span class="src">`nextflow.config:253-257`</span>.

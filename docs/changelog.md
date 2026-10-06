@@ -6,7 +6,7 @@ description: Release history of GraffiTE, from the first beta to the current v1.
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2e13c68`. The
+    Verified against `v1.1dev` at commit `25e417a`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -181,6 +181,13 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   with no `##contig` lines, and the `bcftools norm -Oz` on the next line cannot BCF-encode a
   record whose CHROM is not in the header. `samtools faidx` and `bcftools reheader -f` now run
   first (`5ad9bea`).
+
+**HERV-K consolidation and the genotyping back end** (issue #100)
+
+- `hervk_reconcile` accepted giraffe genotypes only, so a `--human` run on any other back end
+  genotyped every sample and then stopped at the consolidation. It now accepts graphaligner and
+  precomputed genotypes, which come from `vg call` as giraffe's do, and a `--human` run with
+  PanGenie genotyping stops at launch unless it has `--hervk_reconcile false` (`25e417a`).
 
 **Fixes on the documentation branch**
 
