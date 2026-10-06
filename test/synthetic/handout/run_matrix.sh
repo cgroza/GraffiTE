@@ -21,7 +21,7 @@ PROJECT="${PROJECT:-cgroza/GraffiTE}"
 REVISION="${REVISION:-v1.1dev}"
 HANDOUT="$PWD"
 
-CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi epi_bam winnowmap tsd_win40 ison vcfs breakscaf hervkref)
+CELLS=(spine pangenie graphaligner precomputed longreads bams vcf svs duallib guards epi epi_bam winnowmap tsd_win40 ison vcfs breakscaf hervkref human_graphaligner human_precomputed)
 describe() { case "$1" in
   spine)        echo "--assemblies x4 + --svs + --human + giraffe + genotyping. Pays discovery, RepeatMasker, TSD and the HERV-K stack once; publishes the graph, the alignments and the RM_dir for everything after it.";;
   pangenie)     echo "--graffite_vcf on the spine's pangenome.vcf, pangenie. The -N left-alignment guard and the allele-drop categories in the audit.";;
@@ -41,6 +41,8 @@ describe() { case "$1" in
   vcfs)         echo "--graph_method precomputed with --vcfs: the spine's own vg call VCFs handed back. No alignment, no vg_call, and the spine's merged genotypes.";;
   breakscaf)    echo "--break_scaffolds on the four haplotypes: cut at the 120 bp N run, keep the insertions that carry single N bases, and find what discovery without it finds.";;
   hervkref)     echo "--hervk_ref_annotation as a RepeatMasker .out, a BED and an empty BED: no masking in hervk_annotate, the spine's reference states from the first two, none from the third.";;
+  human_graphaligner) echo "The spine's discovery and --human, genotyped by GraphAligner on the long reads. hervk_reconcile has to accept the back end and consolidate the spine's loci with the spine's genotypes.";;
+  human_precomputed)  echo "The spine's discovery and --human, genotyped as precomputed from the spine's graph and alignments. hervk_reconcile has to accept the back end and write the spine's consolidated VCF and report.";;
 esac; }
 
 if [[ "${1:-}" == "-l" ]]; then
@@ -89,6 +91,16 @@ nf() {  # nf <cell> <extra args...>
 }
 
 SPINE="$RUNS_DIR/spine"
+spine_alignments_csv() {  # spine_alignments_csv <out.csv>: the gaf,pack pairs the spine published
+  { echo "sample,gaf,pack"
+    for g in "$SPINE"/GraffiTE_alignments/*.gaf.gz; do
+      [ -e "$g" ] || continue
+      s=$(basename "$g" .gaf.gz)
+      [ -f "$SPINE/GraffiTE_alignments/$s.pack" ] && \
+        echo "$s,$g,$SPINE/GraffiTE_alignments/$s.pack"
+    done
+  } > "$1"
+}
 fail=0
 for cell in "${SEL[@]}"; do
   case "$cell" in
@@ -109,15 +121,7 @@ for cell in "${SEL[@]}"; do
     # (measured: rc=1 in 6 s). run_matrix.sh -l already describes this cell as
     # "--graph and --graph_alignments from the spine"; the CSV is built here from
     # what the spine published, since the generator does not write one.
-    GA="$RUNS_DIR/precomputed_alignments.csv"
-    { echo "sample,gaf,pack"
-      for g in "$SPINE"/GraffiTE_alignments/*.gaf.gz; do
-        [ -e "$g" ] || continue
-        s=$(basename "$g" .gaf.gz)
-        [ -f "$SPINE/GraffiTE_alignments/$s.pack" ] && \
-          echo "$s,$g,$SPINE/GraffiTE_alignments/$s.pack"
-      done
-    } > "$GA"
+    GA="$RUNS_DIR/precomputed_alignments.csv"; spine_alignments_csv "$GA"
     nf precomputed --graffite_vcf "$SPINE/3_TSD_search/pangenome.vcf" \
        --graph_method precomputed --graph "$SPINE/GraffiTE_graph/index" \
        --graph_alignments "$GA" \
@@ -234,6 +238,27 @@ for cell in "${SEL[@]}"; do
          --repeatmasker_memory "${REPEATMASKER_MEMORY:-16G}" --hervk_ref_annotation "$f" -resume || fail=1
     done
     python3 "$HANDOUT/check_hervkref.py" "$RUNS_DIR" "$SPINE" "$HANDOUT/work" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
+  human_graphaligner)
+    # The spine's discovery and --human, genotyped by GraphAligner instead of
+    # giraffe. L1 and L2 are long reads off h2 and h4, which carry the sites of
+    # h1 and h3, the haplotypes behind the spine's S1 and S2, so the consolidated
+    # HERV-K genotypes have to match the spine's sample for sample.
+    nf human_graphaligner --assemblies "$B/assemblies.csv" --svs "$B/svs.csv" \
+       --human --genotype_with "$B/reads_long.csv" --graph_method graphaligner \
+       --repeatmasker_memory "${REPEATMASKER_MEMORY:-16G}" || fail=1
+    python3 "$HANDOUT/check_human_backends.py" "$SPINE" "$RUNS_DIR/human_graphaligner" graphaligner \
+      "$HANDOUT/work" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
+  human_precomputed)
+    # The same, genotyped as precomputed from the spine's graph and alignments.
+    # vg call reads the spine's own packs, so the consolidation has to come out
+    # as the spine's did.
+    GA="$RUNS_DIR/human_precomputed_alignments.csv"; spine_alignments_csv "$GA"
+    nf human_precomputed --assemblies "$B/assemblies.csv" --svs "$B/svs.csv" \
+       --human --graph_method precomputed --graph "$SPINE/GraffiTE_graph/index" \
+       --graph_alignments "$GA" --genotype_with "$B/reads.csv" \
+       --repeatmasker_memory "${REPEATMASKER_MEMORY:-16G}" || fail=1
+    python3 "$HANDOUT/check_human_backends.py" "$SPINE" "$RUNS_DIR/human_precomputed" precomputed \
+      "$HANDOUT/work" 2>&1 | tee -a "$HANDOUT/MATRIX.log" || fail=1 ;;
   *) echo "unknown cell: $cell (see ./run_matrix.sh -l)" >&2; fail=1 ;;
   esac
 done
