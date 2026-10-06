@@ -8,7 +8,7 @@ description: >-
 # Installation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `25e417a`. The
+    Verified against `v1.1dev` at commit `e687712`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
@@ -95,7 +95,7 @@ nextflow run cgroza/GraffiTE -r v1.1dev -with-singularity /abs/path/graffite_lat
 
 The PAV entry point (`--pav`) uses a second image, `library://becklab/pav/pav:latest`
 <span class="src">`nextflow.config:340`</span>, pulled the same way. What the image contains,
-and how the recipe in `GraffiTE.def` relates to it, is on [Container contents](../reference/container.md).
+and which recipe it is built from, is on [Container contents](../reference/container.md).
 
 ### Paths and `/tmp`
 

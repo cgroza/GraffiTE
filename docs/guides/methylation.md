@@ -8,14 +8,14 @@ description: >-
 # Methylation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `25e417a`. The
+    Verified against `v1.1dev` at commit `e687712`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
 !!! warning "Documented from the wiring, not from a run"
     This page describes what `main.nf` and the panmethyl module do when `--epigenomes` is set.
     No methylation run was executed while writing it. Process behaviour is read from
-    `panmethyl/module/main.nf` at submodule commit `bd1c383`.
+    `panmethyl/module/main.nf` at submodule commit `f0aa2c0`.
 
 With `--epigenomes`, GraffiTE reads the base-modification tags (`MM`/`ML`) of the BAMs it is
 genotyping, lifts each modified base onto the graph node it maps to, and reports per-allele
@@ -60,9 +60,15 @@ sample ([Stage C](genotyping.md)). The alignment inside the BAM is not used; the
    the levels on the nodes of that path, and writes `out/annotation/<sample>.mods.vcf.gz` plus a
    long-format `<sample>.mods.tsv` with one row per allele
    <span class="src">`panmethyl/module/main.nf:1-15`, `panmethyl/module/resources/usr/bin/annotate_vcf.py:44-46`</span>.
+   It leaves a record whose genotype is missing altogether (`GT` is `.`) out of both files
+   <span class="src">`panmethyl/module/resources/usr/bin/annotate_vcf.py:54-55`</span>.
 
 The annotated per-sample VCFs replace the plain `vg call` VCFs going into `merge_VCFs`, so the
 merged genotypes carry the methylation FORMAT fields <span class="src">`main.nf:251`</span>.
+`merge_VCFs` writes a missing genotype for a sample whose VCF lacks a record, and a record left
+out for every sample does not reach `GraffiTE.merged.genotypes.vcf.gz`. Without `--epigenomes`
+that record stays, with no genotype in any column
+<span class="src">`main.nf:260`, `module/main.nf:892`</span>.
 
 ### The FORMAT fields
 

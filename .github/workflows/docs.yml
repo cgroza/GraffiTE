@@ -3,9 +3,9 @@ name: Documentation
 on:
   push:
     branches: [main, v1.1dev]
-    paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs.yml', 'main.nf', 'module/**', 'bin/**', 'nextflow.config', 'GraffiTE.def']
+    paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs.yml', 'main.nf', 'module/**', 'bin/**', 'nextflow.config', 'Dockerfile', 'GraffiTE.def']
   pull_request:
-    paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs.yml', 'main.nf', 'module/**', 'bin/**', 'nextflow.config', 'GraffiTE.def']
+    paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs.yml', 'main.nf', 'module/**', 'bin/**', 'nextflow.config', 'Dockerfile', 'GraffiTE.def']
   workflow_dispatch:
 
 permissions:
