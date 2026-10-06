@@ -8,7 +8,7 @@ description: >-
 # Troubleshooting
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2cdb8c4`. The
+    Verified against `v1.1dev` at commit `25e417a`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -41,11 +41,12 @@ Each of these stops the run before any process starts. The fix is in the message
 
 | Message | Cause | What to do |
 |---|---|---|
-| `No input given. Pass one of --longreads, --bams, --assemblies, --pav, --svs (discovery), --vcf (a merged SV VCF), --RM_dir (RepeatMasker output of an earlier run) or --graffite_vcf (a pangenome.vcf from an earlier run).` <span class="src">`main.nf:143`</span> | No entry flag on the command line. | Pick one on [Choosing your inputs](getting-started/choosing-your-inputs.md). |
+| `No input given. Pass one of --longreads, --bams, --assemblies, --pav, --svs (discovery), --vcf (a merged SV VCF), --RM_dir (RepeatMasker output of an earlier run) or --graffite_vcf (a pangenome.vcf from an earlier run).` <span class="src">`main.nf:151`</span> | No entry flag on the command line. | Pick one on [Choosing your inputs](getting-started/choosing-your-inputs.md). |
 | `--vcf cannot be combined with --assemblies. Pass --vcf alone, or drop it and use --svs to add your own per-sample VCFs to the discovery merge.` <span class="src">`main.nf:46-49`</span> | `--vcf` replaces the discovery merge, so a discovery flag beside it has nothing to feed. | Use `--svs` if you want your VCF merged with caller output. |
 | `--graph_method precomputed builds nothing itself: it needs --graph (...) and either --vcfs (...) or --graph_alignments (...).` <span class="src">`main.nf:53-56`</span> | `precomputed` reuses a graph and alignments from an earlier run and was given neither. | Pass `--graph` plus `--vcfs` or `--graph_alignments`, or choose another method. |
-| `Unsupported --graph_method. --graph_method must be pangenie, giraffe, graphaligner or precomputed.` <span class="src">`main.nf:255`</span> | A misspelt method. | One of the four. |
+| `Unsupported --graph_method. --graph_method must be pangenie, giraffe, graphaligner or precomputed.` <span class="src">`main.nf:263`</span> | A misspelt method. | One of the four. |
 | `--graffite_vcf skips discovery, and HERV-K reconciliation needs the hervk_annotate outputs discovery produces. Pass --hervk_reconcile false, or start from --RM_dir instead of --graffite_vcf.` <span class="src">`main.nf:61-63`</span> | `--human` consolidation reads files that only the annotation stage writes. | Either option in the message. |
+| `With --human, hervk_reconcile consolidates HERV-K loci in vg call genotypes, and --graph_method pangenie does not produce them. Pass --hervk_reconcile false to genotype with PanGenie, or choose --graph_method giraffe, graphaligner or precomputed.` <span class="src">`main.nf:65-71`</span> | `--human` with PanGenie genotyping, the default `--graph_method`; the reconciler reads `vg call` genotypes only. | Either option in the message. |
 | `Error main.nf:12:1: Invalid include source: '<dir>/panmethyl/module.nf'` <span class="src">`main.nf:12`</span> | A clone made without `--recurse-submodules`; the `panmethyl` submodule directory is empty. This one is Nextflow's own message. | `git submodule update --init` in the clone. `nextflow pull` clones do not hit this. |
 
 ---

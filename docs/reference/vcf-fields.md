@@ -6,7 +6,7 @@ description: Every INFO and FORMAT tag GraffiTE writes, its meaning, and the cod
 # VCF fields
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2cdb8c4`. The
+    Verified against `v1.1dev` at commit `25e417a`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -148,34 +148,34 @@ or a deletion and an insertion describing opposite directions of the same event.
 `.consolidated.` and `.human.` VCFs collapse each locus onto one multi-allelic record and add the
 fields below. A `##hervk_consolidation=source:...` header line says whether the genotypes came
 from discovery or from the graph.
-<span class="src">`bin/hervk_reconcile.py:1164`</span>
+<span class="src">`bin/hervk_reconcile.py:1167`</span>
 
 | Field | Number | Type | Meaning | Source |
 |---|---|---|---|---|
-| `SVTYPE` | A | String | Redefined per ALT, since one consolidated record can hold an insertion and a deletion. | <span class="src">`bin/hervk_reconcile.py:528`</span> |
-| `SVLEN` | A | Integer | Redefined per ALT for the same reason. | <span class="src">`bin/hervk_reconcile.py:529`</span> |
-| `HERVK_MEMBERS` | . | String | Record IDs consolidated into the locus. | <span class="src">`bin/hervk_reconcile.py:535`</span> |
-| `HERVK_AC` | . | Integer | Allele count per ALT after dosage resolution across the members. | <span class="src">`bin/hervk_reconcile.py:537`</span> |
-| `HERVK_AN` | 1 | Integer | Alleles called at the locus. Below `2N` it means members were structurally uncalled for some samples, since the graph can find every carrier and still fail to confirm the non-carriers. | <span class="src">`bin/hervk_reconcile.py:539`</span> |
-| `HERVK_N_RESOLVED` | 1 | Integer | Samples fully resolved by dosage. | <span class="src">`bin/hervk_reconcile.py:542`</span> |
-| `HERVK_N_PARTIAL` | 1 | Integer | Samples with some haplotypes unaccounted for; those haplotypes are reported missing. | <span class="src">`bin/hervk_reconcile.py:544`</span> |
-| `HERVK_N_PLOIDY_EXCEEDED` | 1 | Integer | Samples whose summed ALT dosage exceeds their ploidy, which happens when a third allele was lost to `bcftools norm -m-`. Their genotypes are set missing. | <span class="src">`bin/hervk_reconcile.py:546`</span> |
-| `HERVK_AC_DISC` | . | Integer | Allele count per ALT from the discovery (assembly) callset, an independent check on `HERVK_AC`. | <span class="src">`bin/hervk_reconcile.py:549`</span> |
-| `HERVK_AN_DISC` | 1 | Integer | Alleles in the discovery callset. | <span class="src">`bin/hervk_reconcile.py:551`</span> |
-| `HERVK_DISC_CONCORDANT` | 0 | Flag | Graph and discovery agree on every ALT count. | <span class="src">`bin/hervk_reconcile.py:553`</span> |
-| `HERVK_GT_MASKED` | 0 | Flag | Graph genotypes were withheld at a copy-number locus (see the warning below). | <span class="src">`bin/hervk_reconcile.py:555`</span> |
-| `HERVK_ALLELE_NOGT` | . | String | Alleles the graph cannot genotype, for which `HERVK_AC` reports 0. Their counts are in `HERVK_AC_DISC`. | <span class="src">`bin/hervk_reconcile.py:561`</span> |
-| `HERVK_DISC_PLOIDY_MISMATCH` | 0 | Flag | Discovery and graph disagree on ploidy, so the discovery counts are withheld rather than reported on a denominator the two do not share. Expected on hemizygous chromosomes and with a haploid discovery caller such as svim-asm run per haplotype. | <span class="src">`bin/hervk_reconcile.py:567`</span> |
-| `HERVK_MEMBERS_MASKED` | . | String | Members whose genotypes were withheld. | <span class="src">`bin/hervk_reconcile.py:572`</span> |
-| `HERVK_ALLELE_SET` | . | String | Every allele state segregating at the locus, including states carried by members that are not in this file. | <span class="src">`bin/hervk_reconcile.py:574`</span> |
-| `HERVK_MEMBERS_ABSENT` | . | String | Members the `--human` filter removed, whose alleles cannot be counted here. | <span class="src">`bin/hervk_reconcile.py:578`</span> |
-| `HERVK_LOCUS_INCOMPLETE` | 0 | Flag | Some member is absent from this file, so the frequencies do not cover every allele. | <span class="src">`bin/hervk_reconcile.py:581`</span> |
-| `HERVK_MEMBERS_UNRESOLVED` | . | String | Members with no usable allele state. | <span class="src">`bin/hervk_reconcile.py:584`</span> |
-| `HERVK_POLARITY_FLIPPED` | . | String | Members whose own polarity disagreed with the locus REF state and were re-expressed against it. | <span class="src">`bin/hervk_reconcile.py:586`</span> |
+| `SVTYPE` | A | String | Redefined per ALT, since one consolidated record can hold an insertion and a deletion. | <span class="src">`bin/hervk_reconcile.py:531`</span> |
+| `SVLEN` | A | Integer | Redefined per ALT for the same reason. | <span class="src">`bin/hervk_reconcile.py:532`</span> |
+| `HERVK_MEMBERS` | . | String | Record IDs consolidated into the locus. | <span class="src">`bin/hervk_reconcile.py:538`</span> |
+| `HERVK_AC` | . | Integer | Allele count per ALT after dosage resolution across the members. | <span class="src">`bin/hervk_reconcile.py:540`</span> |
+| `HERVK_AN` | 1 | Integer | Alleles called at the locus. Below `2N` it means members were structurally uncalled for some samples, since the graph can find every carrier and still fail to confirm the non-carriers. | <span class="src">`bin/hervk_reconcile.py:542`</span> |
+| `HERVK_N_RESOLVED` | 1 | Integer | Samples fully resolved by dosage. | <span class="src">`bin/hervk_reconcile.py:545`</span> |
+| `HERVK_N_PARTIAL` | 1 | Integer | Samples with some haplotypes unaccounted for; those haplotypes are reported missing. | <span class="src">`bin/hervk_reconcile.py:547`</span> |
+| `HERVK_N_PLOIDY_EXCEEDED` | 1 | Integer | Samples whose summed ALT dosage exceeds their ploidy, which happens when a third allele was lost to `bcftools norm -m-`. Their genotypes are set missing. | <span class="src">`bin/hervk_reconcile.py:549`</span> |
+| `HERVK_AC_DISC` | . | Integer | Allele count per ALT from the discovery (assembly) callset, an independent check on `HERVK_AC`. | <span class="src">`bin/hervk_reconcile.py:552`</span> |
+| `HERVK_AN_DISC` | 1 | Integer | Alleles in the discovery callset. | <span class="src">`bin/hervk_reconcile.py:554`</span> |
+| `HERVK_DISC_CONCORDANT` | 0 | Flag | Graph and discovery agree on every ALT count. | <span class="src">`bin/hervk_reconcile.py:556`</span> |
+| `HERVK_GT_MASKED` | 0 | Flag | Graph genotypes were withheld at a copy-number locus (see the warning below). | <span class="src">`bin/hervk_reconcile.py:558`</span> |
+| `HERVK_ALLELE_NOGT` | . | String | Alleles the graph cannot genotype, for which `HERVK_AC` reports 0. Their counts are in `HERVK_AC_DISC`. | <span class="src">`bin/hervk_reconcile.py:564`</span> |
+| `HERVK_DISC_PLOIDY_MISMATCH` | 0 | Flag | Discovery and graph disagree on ploidy, so the discovery counts are withheld rather than reported on a denominator the two do not share. Expected on hemizygous chromosomes and with a haploid discovery caller such as svim-asm run per haplotype. | <span class="src">`bin/hervk_reconcile.py:570`</span> |
+| `HERVK_MEMBERS_MASKED` | . | String | Members whose genotypes were withheld. | <span class="src">`bin/hervk_reconcile.py:575`</span> |
+| `HERVK_ALLELE_SET` | . | String | Every allele state segregating at the locus, including states carried by members that are not in this file. | <span class="src">`bin/hervk_reconcile.py:577`</span> |
+| `HERVK_MEMBERS_ABSENT` | . | String | Members the `--human` filter removed, whose alleles cannot be counted here. | <span class="src">`bin/hervk_reconcile.py:581`</span> |
+| `HERVK_LOCUS_INCOMPLETE` | 0 | Flag | Some member is absent from this file, so the frequencies do not cover every allele. | <span class="src">`bin/hervk_reconcile.py:584`</span> |
+| `HERVK_MEMBERS_UNRESOLVED` | . | String | Members with no usable allele state. | <span class="src">`bin/hervk_reconcile.py:587`</span> |
+| `HERVK_POLARITY_FLIPPED` | . | String | Members whose own polarity disagreed with the locus REF state and were re-expressed against it. | <span class="src">`bin/hervk_reconcile.py:589`</span> |
 
 `HERVK_LOCUS`, `HERVK_ALLELE_REF`, `HERVK_ALLELE` and the four locus flags are written again on
 consolidated records with the same meaning.
-<span class="src">`bin/hervk_reconcile.py:506-511,530-533`</span>
+<span class="src">`bin/hervk_reconcile.py:509-514,533-536`</span>
 
 !!! warning "A copy-number allele cannot be genotyped from short reads"
     Its ALT path repeats sequence the REF path already carries, so a read from the pre-existing

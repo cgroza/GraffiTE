@@ -8,7 +8,7 @@ description: >-
 # Choosing your inputs
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2cdb8c4`. The
+    Verified against `v1.1dev` at commit `25e417a`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
@@ -26,7 +26,7 @@ given point. Choose the flag by asking what you already have.
 | **C, genotyping** | Which samples carry each polymorphism? | `--graffite_vcf`, `--graph`, `--graph_alignments`, `--vcfs` | `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz` |
 
 A fourth, optional step lifts methylation onto the graph (`--epigenomes`), only on the
-`giraffe`, `graphaligner` and `precomputed` methods <span class="src">`main.nf:198,226`</span>. See
+`giraffe`, `graphaligner` and `precomputed` methods <span class="src">`main.nf:206,234`</span>. See
 [Methylation](../guides/methylation.md).
 
 ---
@@ -85,10 +85,10 @@ unless you pass `--genotype false`.
 | `--hervk_reconcile_vcf` | a genotyped VCF from an earlier run, with `--human --genotype false` | A, B, then HERV-K consolidation against that VCF | C |
 | `--genotype false` | | A and B | C |
 
-Lines in `main.nf`: the discovery block <span class="src">`main.nf:68-118`</span>, the
-annotation entry points <span class="src">`main.nf:121-148`</span>, `--graffite_vcf`
-<span class="src">`main.nf:175-178`</span>, the genotyping block
-<span class="src">`main.nf:180-286`</span>. Samplesheet columns are on
+Lines in `main.nf`: the discovery block <span class="src">`main.nf:76-126`</span>, the
+annotation entry points <span class="src">`main.nf:129-156`</span>, `--graffite_vcf`
+<span class="src">`main.nf:183-186`</span>, the genotyping block
+<span class="src">`main.nf:188-294`</span>. Samplesheet columns are on
 [Samplesheet formats](../reference/samplesheets.md).
 
 ---
@@ -97,7 +97,7 @@ annotation entry points <span class="src">`main.nf:121-148`</span>, `--graffite_
 
 **Discovery flags add up.** `--assemblies`, `--pav`, `--longreads`, `--bams` and `--svs` can be
 passed together in any combination; every caller's output goes into one truvari merge
-<span class="src">`main.nf:117`</span>. This is how the paper's `GT-svsn` mode is run.
+<span class="src">`main.nf:125`</span>. This is how the paper's `GT-svsn` mode is run.
 
 **`--vcf` stands alone.** It replaces the merge, so pairing it with a discovery flag is refused
 before anything runs:

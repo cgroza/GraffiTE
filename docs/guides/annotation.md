@@ -6,7 +6,7 @@ description: How candidate SVs are scanned with RepeatMasker and ULTRA, filtered
 # Stage B: repeat annotation
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2cdb8c4`. The
+    Verified against `v1.1dev` at commit `25e417a`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -213,7 +213,7 @@ Stage B parallelises twice.
   of `--tsd_batch_size` (default 100 variants) and `tsd_search` runs on each batch with the
   `tsd_*` parameters, so a contig with 5,000 variants is 50 tasks. The batches are gathered
   back per contig by `tsd_report`.
-  <span class="src">`main.nf:149-154`, `nextflow.config:56`</span>
+  <span class="src">`main.nf:157-162`, `nextflow.config:56`</span>
 
 `concat_repeatmask` then joins every contig into `pangenome.vcf`. Everything in this stage is
 recoverable with `-resume`, and a finished Stage B can be re-entered with `--RM_dir` or

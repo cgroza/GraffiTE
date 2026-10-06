@@ -8,7 +8,7 @@ description: >-
 # Resuming and skipping work
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2cdb8c4`. The
+    Verified against `v1.1dev` at commit `25e417a`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -37,15 +37,15 @@ machines, or with different downstream parameters.
 
 | Flag | What you supply | Skips | Source |
 |---|---|---|---|
-| `--svs` | per-sample SV VCFs | the callers, not the merge | <span class="src">`main.nf:112-117`</span> |
-| `--vcf` | one merged SV VCF | all of Stage A | <span class="src">`main.nf:140-141`</span> |
-| `--RM_dir` | the `2_Repeat_Filtering/` directory of an earlier run | RepeatMasker and ULTRA | <span class="src">`main.nf:125-134`</span> |
-| `--graffite_vcf` | a `pangenome.vcf` | all of Stages A and B | <span class="src">`main.nf:121,175-178`</span> |
-| `--graph` | a `GraffiTE_graph/index/` directory | `make_graph` | <span class="src">`main.nf:202-206`</span> |
-| `--graph_alignments` | per-sample GAF and pack files | `graph_align_reads` | <span class="src">`main.nf:215-221`</span> |
-| `--vcfs` | per-sample `vg call` VCFs | alignment and `vg_call` | <span class="src">`main.nf:210-212`</span> |
-| `--hervk_reconcile_vcf` | a genotyped VCF | genotyping, with `--genotype false` | <span class="src">`main.nf:288-306`</span> |
-| `--genotype false` | nothing | all of Stage C | <span class="src">`main.nf:180`</span> |
+| `--svs` | per-sample SV VCFs | the callers, not the merge | <span class="src">`main.nf:120-125`</span> |
+| `--vcf` | one merged SV VCF | all of Stage A | <span class="src">`main.nf:148-149`</span> |
+| `--RM_dir` | the `2_Repeat_Filtering/` directory of an earlier run | RepeatMasker and ULTRA | <span class="src">`main.nf:133-142`</span> |
+| `--graffite_vcf` | a `pangenome.vcf` | all of Stages A and B | <span class="src">`main.nf:129,183-186`</span> |
+| `--graph` | a `GraffiTE_graph/index/` directory | `make_graph` | <span class="src">`main.nf:210-214`</span> |
+| `--graph_alignments` | per-sample GAF and pack files | `graph_align_reads` | <span class="src">`main.nf:223-229`</span> |
+| `--vcfs` | per-sample `vg call` VCFs | alignment and `vg_call` | <span class="src">`main.nf:218-220`</span> |
+| `--hervk_reconcile_vcf` | a genotyped VCF | genotyping, with `--genotype false` | <span class="src">`main.nf:296-314`</span> |
+| `--genotype false` | nothing | all of Stage C | <span class="src">`main.nf:188`</span> |
 
 Each rung is described below with what must exist on disk and what still runs.
 
@@ -57,7 +57,7 @@ Each rung is described below with what must exist on disk and what still runs.
 **Runs:** the merge (`truvari_merge`) and everything after it. Combines with `--assemblies`,
 `--longreads`, `--bams` and `--pav`; the VCFs are mixed into the same merge. GraffiTE does not
 filter what you supply by size or type, so restrict to `INS` and `DEL` yourself
-<span class="src">`main.nf:112-117`</span>.
+<span class="src">`main.nf:120-125`</span>.
 
 ### `--vcf`: one merged VCF
 
@@ -76,7 +76,7 @@ GraffiTE's own calls.
 **On disk:** a directory holding one subdirectory per Stage B batch, each with
 `genotypes_repmasked_filtered.vcf` and a `repeatmasker_dir/`. That is exactly the layout of
 `out/2_Repeat_Filtering/`, where the subdirectories are numbered by task
-<span class="src">`main.nf:126-128`, `module/main.nf:636-642`</span>.
+<span class="src">`main.nf:134-136`, `module/main.nf:636-642`</span>.
 
 ```text
 out/2_Repeat_Filtering/
@@ -90,7 +90,7 @@ out/2_Repeat_Filtering/
 **Runs:** the TSD search, polyA annotation, the repeat-span filter, the trusted or human
 subset, and, with `--human`, the HERV-K classifier, which reads the raw RepeatMasker tables from
 `repeatmasker_dir/`. `--TE_library` is still required under `--human`, because the classifier
-masks reference windows with it <span class="src">`main.nf:164-167`</span>.
+masks reference windows with it <span class="src">`main.nf:172-175`</span>.
 
 This is the entry point for changing anything downstream of RepeatMasker: `--tsd_win`,
 `--repeat_span_cutoff`, the `--trusted_*` and `--human*` parameters, or the HERV-K parameters.
@@ -101,7 +101,7 @@ This is the entry point for changing anything downstream of RepeatMasker: `--tsd
 fields.
 
 **Runs:** Stage C only, which builds the graph from the VCF as-is
-<span class="src">`main.nf:175-178`</span>.
+<span class="src">`main.nf:183-186`</span>.
 
 **Cannot be combined** with `--human` unless `--hervk_reconcile false` is also given: the HERV-K
 consolidation after genotyping needs tables that only the skipped stage writes
@@ -116,13 +116,13 @@ companions for the `giraffe` method <span class="src">`module/main.nf:786-799`</
 
 **Runs:** alignment and calling for every sample in `--genotype_with`. Requires
 `--graph_method giraffe`, `graphaligner` or `precomputed`; the PanGenie path has its own index
-and ignores `--graph` <span class="src">`main.nf:198-206`</span>.
+and ignores `--graph` <span class="src">`main.nf:206-214`</span>.
 
 ### `--graph_alignments`: aligned reads
 
 **On disk:** a samplesheet with `sample`, `gaf` and `pack` columns pointing at the
 `<sample>.gaf.gz` and `<sample>.pack` files from `GraffiTE_alignments/`
-<span class="src">`main.nf:215-217`</span>.
+<span class="src">`main.nf:223-225`</span>.
 
 **Runs:** `vg_call` for each row, against the graph from `--graph` or a fresh `make_graph`.
 The rows here decide which samples are called; `--genotype_with` is still read, and every path
@@ -131,14 +131,14 @@ in it must exist, but its samples are not aligned.
 ### `--vcfs`: called samples
 
 **On disk:** a samplesheet with `sample` and `path` columns pointing at per-sample `vg call`
-VCFs (`.vcf.gz` with index), as `vg_call` writes them <span class="src">`main.nf:210-212`</span>.
+VCFs (`.vcf.gz` with index), as `vg_call` writes them <span class="src">`main.nf:218-220`</span>.
 
-**Runs:** `merge_VCFs`, then `genotyping_audit` <span class="src">`main.nf:263-265`</span>, and
-`trusted_genotypes` unless `--human` <span class="src">`main.nf:271-272`</span>; `hervk_reconcile`
+**Runs:** `merge_VCFs`, then `genotyping_audit` <span class="src">`main.nf:271-273`</span>, and
+`trusted_genotypes` unless `--human` <span class="src">`main.nf:279-280`</span>; `hervk_reconcile`
 under `--human`. No sample is aligned or called, but `--genotype_with` is still read, its paths
 must exist, and any BAM row in it still goes through `bam_to_fastq`
-<span class="src">`main.nf:189`</span>. Pass `--graph` alongside `--vcfs`: the `make_graph` call
-sits outside the `--vcfs` test <span class="src">`main.nf:201-206`</span>, so without it the run
+<span class="src">`main.nf:197`</span>. Pass `--graph` alongside `--vcfs`: the `make_graph` call
+sits outside the `--vcfs` test <span class="src">`main.nf:209-214`</span>, so without it the run
 still builds an index at 40G for up to 6h <span class="src">`nextflow.config:133-135`</span>, and
 unless `--epigenomes` is on nothing consumes it. `precomputed` requires `--graph` in any case
 <span class="src">`main.nf:53-56`</span>.
@@ -150,13 +150,13 @@ unless `--epigenomes` is on nothing consumes it. `precomputed` requires `--graph
 
 **Runs:** Stage B from the RepeatMasker output, `hervk_annotate`, then `hervk_reconcile`
 against the supplied VCF, whose back end is read from its header
-<span class="src">`main.nf:294-306`</span>. See [Human MEIs](human-mei.md) for the command
+<span class="src">`main.nf:302-314`</span>. See [Human MEIs](human-mei.md) for the command
 line.
 
 ### `--genotype false`
 
 Stops after Stage B. `--genotype_with` is not read and need not exist
-<span class="src">`main.nf:180`</span>.
+<span class="src">`main.nf:188`</span>.
 
 ---
 
@@ -169,4 +169,4 @@ The one refusal is `--vcf` beside a discovery flag.
 
 Rungs at the same stage do not stack: `--graph_alignments` and `--vcfs` together means `--vcfs`
 wins, because the alignment branch is inside the `else` of the `--vcfs` test
-<span class="src">`main.nf:210-224`</span>.
+<span class="src">`main.nf:218-232`</span>.

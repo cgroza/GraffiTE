@@ -8,7 +8,7 @@ description: >-
 # Pipeline processes
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `2cdb8c4`. The
+    Verified against `v1.1dev` at commit `25e417a`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -158,7 +158,7 @@ one. Other names for the sex chromosomes get ploidy two. <span class="src">`modu
 
 Imported from `panmethyl/module/main.nf` at submodule commit `f0aa2c0`; `--epigenomes` only, and
 only inside the giraffe, graphaligner or precomputed branch. Their resources are fixed in
-`nextflow.config` and have no parameter. <span class="src">`main.nf:12,226-250`</span>
+`nextflow.config` and have no parameter. <span class="src">`main.nf:12,234-258`</span>
 
 | Process | What it runs | Outputs | Published to | Resources |
 |---|---|---|---|---|
