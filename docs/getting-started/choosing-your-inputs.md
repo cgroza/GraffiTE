@@ -21,11 +21,11 @@ given point. Choose the flag by asking what you already have.
 
 | Stage | What it finds | Enters with | Produces |
 |---|---|---|---|
-| **A, discovery** | Where the sequence-resolved insertions and deletions sit relative to the reference | `--assemblies`, `--pav`, `--longreads`, `--bams`, `--svs` | `1_SV_search/SVs.vcf` |
-| **B, annotation** | Which of those SVs are transposable elements, and what they are | `--vcf`, `--RM_dir` | `3_TSD_search/pangenome.vcf` and its subsets |
-| **C, genotyping** | Which samples carry each polymorphism | `--graffite_vcf`, `--graph`, `--graph_alignments`, `--vcfs` | `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz` |
+| **1, SV search** | Where the sequence-resolved insertions and deletions sit relative to the reference | `--assemblies`, `--pav`, `--longreads`, `--bams`, `--svs` | `1_SV_search/SVs.vcf` |
+| **2, TE annotation** | Which of those SVs are transposable elements, and what they are | `--vcf`, `--RM_dir` | `3_TSD_search/pangenome.vcf` and its subsets |
+| **3.1, genotyping** | Which samples carry each polymorphism | `--graffite_vcf`, `--graph`, `--graph_alignments`, `--vcfs` | `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz` |
 
-A fourth, optional step lifts methylation onto the graph (`--epigenomes`), only on the
+The optional Stage 3.2 lifts methylation onto the graph (`--epigenomes`), only on the
 `giraffe`, `graphaligner` and `precomputed` methods <span class="src">`main.nf:206,234`</span>. See
 [Epigenetic mapping](../guides/methylation.md).
 
@@ -71,19 +71,19 @@ unless you pass `--genotype false`.
 
 | Flag | Takes | Runs | Skips |
 |---|---|---|---|
-| `--assemblies` | CSV `sample,path` of haploid assemblies | minimap2 or winnowmap under `--aligner`, svim-asm, then B and C | nothing |
-| `--pav` | CSV read by position, first line skipped as a header, `sample,hap1[,hap2...]` | PAV in its own container, then B and C | nothing |
-| `--longreads` | CSV `sample,path,type` | minimap2 or winnowmap, Sniffles2, then B and C | nothing |
-| `--bams` | CSV `sample,path` of long-read alignments | Sniffles2, then B and C | read alignment |
-| `--svs` | CSV `sample,path` of per-sample VCFs | the truvari merge, then B and C | all callers |
-| `--vcf` | one sequence-resolved VCF | B and C | the callers and the truvari collapse |
-| `--RM_dir` | a `2_Repeat_Filtering` directory | TSD search onwards, then C | A and RepeatMasker |
-| `--graffite_vcf` | a `pangenome.vcf` | C only | A and B |
+| `--assemblies` | CSV `sample,path` of haploid assemblies | minimap2 or winnowmap under `--aligner`, svim-asm, then Stages 2 and 3 | nothing |
+| `--pav` | CSV read by position, first line skipped as a header, `sample,hap1[,hap2...]` | PAV in its own container, then Stages 2 and 3 | nothing |
+| `--longreads` | CSV `sample,path,type` | minimap2 or winnowmap, Sniffles2, then Stages 2 and 3 | nothing |
+| `--bams` | CSV `sample,path` of long-read alignments | Sniffles2, then Stages 2 and 3 | read alignment |
+| `--svs` | CSV `sample,path` of per-sample VCFs | the truvari merge, then Stages 2 and 3 | all callers |
+| `--vcf` | one sequence-resolved VCF | Stages 2 and 3 | the callers and the truvari collapse |
+| `--RM_dir` | a `2_Repeat_Filtering` directory | TSD search onwards, then Stage 3 | Stage 1 and RepeatMasker |
+| `--graffite_vcf` | a `pangenome.vcf` | Stage 3 only | Stages 1 and 2 |
 | `--graph` | a `GraffiTE_graph/index` directory | read alignment and calling | graph construction |
 | `--graph_alignments` | CSV `sample,gaf,pack` | `vg call` and the merge | graph alignment |
 | `--vcfs` | CSV `sample,path` of per-sample `vg call` VCFs | the merge | alignment and calling |
-| `--hervk_reconcile_vcf` | a genotyped VCF from an earlier run, with `--human --genotype false` | A, B, then HERV-K consolidation against that VCF | C |
-| `--genotype false` | | A and B | C |
+| `--hervk_reconcile_vcf` | a genotyped VCF from an earlier run, with `--human --genotype false` | Stages 1 and 2, then HERV-K consolidation against that VCF | Stage 3 |
+| `--genotype false` | | Stages 1 and 2 | Stage 3 |
 
 Lines in `main.nf`: the discovery block <span class="src">`main.nf:76-126`</span>, the
 annotation entry points <span class="src">`main.nf:129-156`</span>, `--graffite_vcf`
