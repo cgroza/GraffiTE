@@ -33,8 +33,8 @@ uses only exact matches. Three scripts do the work, one process each.
 of reference ending at `POS` (the anchor base included) and `--tsd_win` bp starting just after
 the variant: after `POS` for an insertion, after the deleted interval for a deletion. A window
 that runs off the start of a contig is clamped and comes out shorter. Separately, the variant
-sequence itself (ALT for an insertion, REF for a deletion) is trimmed to its first and last
-`--tsd_win` bp; a variant no longer than the window is used whole. The default window is 30 bp.
+sequence itself (ALT for an insertion, REF for a deletion), minus its anchor base, is trimmed to
+its first and last `--tsd_win` bp; a variant no longer than the window is used whole. The default window is 30 bp.
 <span class="src">`bin/prepTSD.sh:43-56`, `bin/tsd_flanks.py:50-59`, `nextflow.config:50`</span>
 
 **`TSD_Match_v2.sh` compares two fragments per variant.** The L fragment is the 5' flank followed
@@ -49,7 +49,7 @@ and L on the plus strand, in BLAST tabular form, and matches longer than 20 bp a
 <figcaption>
 The two fragments, a duplication in the configuration that scores 0, and the score. In the
 other snug configuration the two copies <em>start</em> at the junction, one at the beginning of
-the variant and one at the beginning of the 3′ flank; it scores 0 too.
+the variant and one at the beginning of the 3' flank; it scores 0 too.
 </figcaption>
 </figure>
 
@@ -122,7 +122,7 @@ One row per variant searched. A row with a hit has 21 tab-separated columns:
 | 19, 20 | the sequence of the L copy and of the R copy |
 | 21 | `PASS` or `FAIL` |
 
-A variant with no exact match of 4 bp or more gets a shorter row: the ID, twelve `NA`, `no_hit`,
+A variant with no exact match of 4 to 20 bp gets a shorter row: the ID, twelve `NA`, `no_hit`,
 `no_hit`, `FAIL`. Read the file from the right (`$NF`, `$(NF-1)`, `$(NF-2)`) rather than by
 column number, as `tsd_annotate_vcf.sh` does.
 <span class="src">`bin/TSD_Match_v2.sh:69,76,142`, `bin/exact_match.py:92-109`</span>
@@ -149,7 +149,7 @@ bit score; from column 13 on, the right name is one header column to the left.
   `--tsd_win` widens the search and, since the score is measured from the junction, does not
   change what a snug duplication scores.
 - **The variant sequence must be resolved.** A symbolic `<INS>` has no ends to compare;
-  Stage 1 drops those.
+  GraffiTE drops those before the search.
 - **PolyA tails can hide a copy.** The 3' end of a plus-strand Alu or L1 is a run of A; a TSD
   rich in A can be found at the wrong offset inside it, or be a run of the tail itself. `polyA`
   is therefore scanned with the `TSD` copy trimmed and without it, and a tail found either way

@@ -12,12 +12,12 @@ description: The exact CSV columns each GraffiTE samplesheet parameter reads, wi
 
 Every samplesheet is a CSV read by `main.nf`. With one exception (`--pav`) the file has a header row
 and columns are picked by name, so their order does not matter and extra columns are ignored. The
-column names below are the ones the code reads; with a misspelt header the value is empty and the
+column names below are the ones the code reads; with a misspelled header the value is empty and the
 run stops when it tries to open the file.
 
 !!! warning "Use absolute paths"
     Nextflow resolves a relative path against the directory you launched from, whatever directory
-    the CSV sits in. Absolute paths remove the question.
+    the CSV sits in.
 
 ---
 
@@ -80,7 +80,7 @@ HG002,/data/HG002.sv.vcf.gz
 ```
 
 Nothing on this path filters by `SVTYPE`, so anything other than insertions and deletions
-reaches RepeatMasker. Of the other discovery backends, Sniffles2 and svim-asm keep `INS` and `DEL`
+reaches Stage 2. Of the other discovery backends, Sniffles2 and svim-asm keep `INS` and `DEL`
 only; `pav_asm` filters on `|SVLEN| > 50` alone, so PAV records of any other type above that size
 reach the merge as well.
 <span class="src">`module/main.nf:129,167,184`</span>
@@ -99,7 +99,7 @@ to a read preset and anything else, including an empty value, means short reads:
 <span class="src">`main.nf:189-191`, `module/main.nf:835-842`</span>
 
 `pangenie` and `graphaligner` ignore the preset. A `.bam` path is converted to FASTQ first by
-`bam_to_fastq`; a BAM is also what `--epigenomes` reads its modification tags from.
+`bam_to_fastq`; with `--epigenomes`, GraffiTE also reads modification tags from it.
 <span class="src">`main.nf:192-197,244`</span>
 
 ```csv title="reads.csv"
@@ -113,8 +113,8 @@ HG005,/data/HG005.hifi.bam,hifi
 Columns `sample`, `path`. Per-sample `vg call` VCFs from an earlier run, bgzipped with the
 `.vcf.gz` suffix, because `merge_VCFs` collects every `*vcf.gz` it is given. `path` has to be a
 glob such as `HG002.vcf.gz*`: the code sorts the files it matches, and a plain path is taken apart
-into its directory components instead (checked with Nextflow 26.04.6). The glob also brings the
-`.tbi` index along. <span class="src">`main.nf:218-220`, `module/main.nf:891`</span>
+into its directory components instead (checked with Nextflow 26.04.6). The glob also matches the
+`.tbi` index. <span class="src">`main.nf:218-220`, `module/main.nf:891`</span>
 
 ```csv title="vcfs.csv"
 sample,path

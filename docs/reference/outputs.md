@@ -103,11 +103,11 @@ flowchart LR
 ## 1_SV_search
 
 Stage 1 output. Present whenever discovery ran, and with `--vcf`, where the directory holds
-only `SVs.vcf`. Absent with `--RM_dir` and `--graffite_vcf`: neither runs the merge.
+only `SVs.vcf`. Absent with `--RM_dir` and `--graffite_vcf`, which skip the merge.
 
 | File | Contents | Source |
 |---|---|---|
-| `SVs.vcf` | The merged, non-redundant set of insertions and deletions from every caller and sample, sorted, with `SVLEN` recomputed from the alleles and IDs shortened to `<caller id>_<n>`. Missing genotypes are set to `0`. This is the file Stage 2 annotates. With `--vcf`, it is a copy of the input. | <span class="src">`module/main.nf:190,198,275-277`</span> |
+| `SVs.vcf` | The merged, non-redundant set of SVs from every caller and sample, sorted, with `SVLEN` recomputed from the alleles and IDs shortened to `<caller id>_<n>`. Missing genotypes are set to `0`. This is the file Stage 2 annotates. With `--vcf` or a single input VCF, it is a copy of the input. | <span class="src">`module/main.nf:190,198,275-277`</span> |
 | `svim-asm_individual_VCFs/<sample>.vcf.gz` | One file per assembly: svim-asm calls of at least 100 bp, insertions and deletions only, sorted. | <span class="src">`module/main.nf:172,184-185`</span> |
 | `sniffles2_individual_VCFs/<sample>.vcf.gz` | One file per read set, split from the Sniffles2 population call of at least 100 bp, insertions and deletions only, symbolic alleles dropped. | <span class="src">`module/main.nf:115,128-132`</span> |
 | `pav_individual_VCFs/sv_<sample>.vcf.gz` | One file per sample: PAV calls with `abs(SVLEN)` above 50 bp. PAV's own filters (`TRIM`, `COMPOUND`) stay in `FILTER`. | <span class="src">`module/main.nf:138,168`</span> |
@@ -125,7 +125,7 @@ reads back in to skip Stage 2's masking step.
 | File | Contents | Source |
 |---|---|---|
 | `genotypes_repmasked_filtered.vcf` | The contig's records that passed `total_repeat_span > --repeat_span_cutoff`, with the repeat annotation fields. The TSD search reads this file. | <span class="src">`module/main.nf:659`</span> |
-| `genotypes_repmasked.vcf.gz` | The same records before the span filter, so a dropped variant can be inspected. | <span class="src">`module/main.nf:658`</span> |
+| `genotypes_repmasked.vcf.gz` | The same records before the span filter, so you can inspect a dropped variant. | <span class="src">`module/main.nf:658`</span> |
 | `repeatmasker_dir/` | RepeatMasker's own output on `indels.fa`, the FASTA of every variant's inserted or deleted sequence: `indels.fa.out` is the table `annotate_vcf.R` parses, and the `RM_hit_IDs` field points into its last column. | <span class="src">`bin/repmask_vcf.sh:37-39,47-48,75,77,108`</span> |
 | `ultra_out.bed` | ULTRA's tandem repeat intervals, one BED line per repeat, the variant ID as the sequence name. | <span class="src">`bin/repmask_vcf.sh:92-98`</span> |
 | `ultra_out.span` | Non-redundant tandem-repeat bases per variant. | <span class="src">`bin/repmask_vcf.sh:102-104`</span> |
@@ -137,23 +137,22 @@ reads back in to skip Stage 2's masking step.
 
 ## 3_TSD_search
 
-Stage 2's deliverables. `concat_repeatmask` writes everything except the `hervk_*` files, then,
+Stage 2's deliverables. `concat_repeatmask` writes everything except the `hervk_*` files and the consolidated VCF, then,
 under `--human`, `hervk_annotate` writes its own files into the same directory and overwrites
-`pangenome.human.vcf` and `pangenome.presence-absence_human.tsv` with annotated versions. The
-`pangenome.human.vcf` you find on disk is therefore the HERV-K-annotated one.
+`pangenome.human.vcf` and `pangenome.presence-absence_human.tsv` with annotated versions.
 <span class="src">`module/main.nf:508-524`, `module/main.nf:298-318`</span>
 
 | File | Contents | Source |
 |---|---|---|
 | `pangenome.vcf` | Every variant from every contig that passed the span filter, with REF and ALT re-read from the reference, `TSD` and `polyA` added, and the caller's `FILTER` kept. This file induces the pangenome graph, so nothing downstream modifies it. | <span class="src">`module/main.nf:575-590`</span> |
-| `pangenome.trusted.vcf` | Default runs only. The records of `pangenome.vcf` that pass the trusted-subset expression in [Stage 2](../guides/annotation.md). Not written under `--human`. | <span class="src">`module/main.nf:13-22,595-599`</span> |
+| `pangenome.trusted.vcf` | The records of `pangenome.vcf` that pass the trusted-subset expression in [Stage 2](../guides/annotation.md). Not written under `--human`. | <span class="src">`module/main.nf:13-22,595-599`</span> |
 | `pangenome.human.vcf` | `--human` only. The records that pass the pME filter in [Human MEIs](../guides/human-mei.md), with the HERV-K classifier fields and locus flags added by `hervk_annotate`. `make_graph` and `pangenie_index` take `pangenome.vcf`, not this file, so the graph is the same under `--human`. `hervk_reconcile` reads this file to consolidate HERV-K loci in the genotyped VCF. | <span class="src">`module/main.nf:605`, `module/main.nf:309,381-385`, `main.nf:167,201,213,288`</span> |
 | `pangenome.human.consolidated.vcf` | `--human` only. `pangenome.human.vcf` with each HERV-K locus collapsed onto one multi-allelic record, genotypes taken from the assemblies. | <span class="src">`module/main.nf:398-404`</span> |
 | `pangenome.presence-absence.tsv`, `..._trusted.tsv`, `..._human.tsv` | Flat tables of the matching VCF; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:593,599,606`</span> |
 | `human_filter_summary.txt` | `--human` only. The exact `bcftools view -i` expression that was applied, record counts before and after, and the kept and dropped `(matching_classes, repeat_ids)` combinations with their counts. | <span class="src">`module/main.nf:608-623`</span> |
 | `TSD_summary.txt` | One row per variant searched, the best duplication found and whether it passed. Columns are in [Target site duplications](../background/tsd.md). | <span class="src">`module/main.nf:573`, `bin/TSD_Match_v2.sh:146`</span> |
 | `TSD_full_log.txt` | The full search log: both fragments with a ruler, every candidate duplication and the chosen one, per variant. | <span class="src">`module/main.nf:574`, `bin/TSD_Match_v2.sh:156`</span> |
-| `hervk_candidates.vcf` | `--human` only. Every `LTR/ERVK` record of `pangenome.vcf` up to `--hervk_max_svlen`, classified, with its discovery genotypes. Wider than the human subset: a locus the `--human` filter split keeps all its members here. | <span class="src">`module/main.nf:346-374`</span> |
+| `hervk_candidates.vcf` | `--human` only. The HERV-K candidates among the `LTR/ERVK` records of `pangenome.vcf` up to `--hervk_max_svlen`, classified, with their discovery genotypes. Wider than the human subset: this file has every member of a locus the `--human` filter split. | <span class="src">`module/main.nf:346-374`</span> |
 | `hervk_calls.tsv` | `--human` only. The per-candidate call table: id, position, `SVLEN`, class, allele states, evidence, `k`, `j`, reference units and period, reference state, `lambda`, `nu`, coverage, `pmap`, architecture, notes. | <span class="src">`bin/hervk_classify.py:478-480`</span> |
 | `hervk_loci.tsv` | `--human` only. One row per locus: id, interval, member records, how many are in the human subset and which are not, reference state, allele set, locus type, the three flags, per-record class, evidence and `k`, architecture, and flags such as `LOCUS_SPLIT_BY_HUMAN_FILTER`. | <span class="src">`bin/hervk_reconcile.py:127-131`</span> |
 | `hervk_arch.tsv` | `--human` only. The architecture read from the RepeatMasker fragments of each candidate: signature, permutation points, LTR family, termini, fragment count, LTR, internal and other bp, strand, internal gaps, architecture string. | <span class="src">`bin/hervk_arch.py:399-401`</span> |
@@ -172,13 +171,13 @@ Stage 3's deliverables, present when `--genotype` is true (the default).
 | `GraffiTE.merged.genotypes.vcf.gz` | All read sets merged into one VCF, one column per sample, with every INFO field of `pangenome.vcf` copied onto the matching record by position and alleles. The headline genotyped file. No `.tbi` is published for it; run `tabix -p vcf` on it before random access. | <span class="src">`module/main.nf:880-902`</span> |
 | `GraffiTE.merged.genotypes.trusted.vcf.gz`, `.tbi` | Not written under `--human`. The records of the merged genotypes whose `pangenome.vcf` counterpart passes the trusted-subset expression, so every record has one repeat class. Subset by ID, because the expression tests `FILTER` and `merge_VCFs` does not transfer it. | <span class="src">`module/main.nf:929-959`</span> |
 | `GraffiTE.merged.genotypes.presence-absence_trusted.tsv` | Not written under `--human`. Flat table of the file above, same schema as the discovery TSVs; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:929-959`</span> |
-| `genotyping_record_audit.tsv` | One row per ALT allele of `pangenome.vcf`, saying whether the graph genotyped it, whether the annotation reached it, and which stage dropped it (`lost_at`). Counts summarised in `#` lines at the top. | <span class="src">`module/main.nf:907-927`</span> |
+| `genotyping_record_audit.tsv` | One row per ALT allele of `pangenome.vcf`, saying whether the graph genotyped it, whether the annotation reached it, and which stage dropped it (`lost_at`). Counts summarized in `#` lines at the top. | <span class="src">`module/main.nf:907-927`</span> |
 | `GraffiTE.merged.genotypes.human.vcf.gz`, `.tbi` | `--human` only. The human subset of the merged genotypes, HERV-K annotation carried over from `pangenome.human.vcf`, and each HERV-K locus consolidated onto one record. Graph genotypes at copy-number loci are withheld unless `--hervk_mask_graph_gt_at_cnv false`. | <span class="src">`module/main.nf:420,431-432,446-488`</span> |
 | `hervk_unconsolidated_records.vcf` | `--human` only. The member records each consolidated record was built from, as they were before consolidation. | <span class="src">`module/main.nf:433,484`</span> |
 | `hervk_reconciliation_report.md` | `--human` only. Per locus, alleles, `AC`, `AN` against `2N`, resolved and partial samples; then the loci with ploidy exceeded, with `AN` below `2N`, and skipped. | <span class="src">`bin/hervk_reconcile.py:1249`</span> |
 
-The per-sample `vg call` VCFs of the giraffe and graphaligner methods are not published; they can
-be supplied back with `--vcfs` only if you keep them from `work/`.
+The per-sample `vg call` VCFs of the giraffe and graphaligner methods are not published; you can
+pass them back with `--vcfs` only if you keep them from `work/`.
 
 ## GraffiTE_graph
 
@@ -195,8 +194,8 @@ Giraffe and graphaligner methods only, unless `--graph` pointed at an existing d
 
 ## GraffiTE_alignments
 
-Giraffe and graphaligner methods only, unless `--graph_alignments` supplied them. One pair per
-read set, and exactly what `--graph_alignments` takes back.
+Giraffe and graphaligner methods only, unless you supplied them with `--graph_alignments`. One pair per
+read set, which `--graph_alignments` takes back.
 <span class="src">`module/main.nf:825-833`, `main.nf:223-225`</span>
 
 | File | Contents | Source |
@@ -206,7 +205,7 @@ read set, and exactly what `--graph_alignments` takes back.
 
 ## Presence-absence TSVs
 
-Each `pangenome*.vcf` in `3_TSD_search/` has a flat companion written by `vcf_to_pa_tsv.py`.
+`pangenome.vcf`, `pangenome.trusted.vcf` and `pangenome.human.vcf` each have a flat companion written by `vcf_to_pa_tsv.py`.
 The first 21 columns are fixed, then one column per sample:
 
 ```text

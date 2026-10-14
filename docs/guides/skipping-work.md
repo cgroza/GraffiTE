@@ -14,8 +14,8 @@ description: >-
 
 Two mechanisms avoid recomputing. Nextflow's `-resume` reuses cached tasks from the same launch
 directory when nothing upstream changed. GraffiTE's own entry-point flags go further: they take
-a file an earlier run published, or that you produced elsewhere, and skip every process before
-it. The flags form a ladder, from the earliest stage to the latest.
+a file an earlier run published, or that you produced elsewhere, and skip the processes that
+would have produced it. The flags form a ladder, from the earliest stage to the latest.
 
 ---
 
@@ -47,8 +47,6 @@ machines, or with different downstream parameters.
 | `--hervk_reconcile_vcf` | a genotyped VCF | genotyping, with `--genotype false` | <span class="src">`main.nf:296-314`</span> |
 | `--genotype false` | nothing | all of Stage 3 | <span class="src">`main.nf:188`</span> |
 
-Each rung is described below with what must exist on disk and what still runs.
-
 ### `--svs`: your own per-sample calls
 
 **On disk:** a samplesheet with `sample` and `path` columns, one VCF per row; see
@@ -62,19 +60,19 @@ filter what you supply by size or type, so restrict to `INS` and `DEL` yourself
 ### `--vcf`: one merged VCF
 
 **On disk:** one VCF or `.vcf.gz` of insertions and deletions, with sequence-resolved alleles.
-Multi-allelic records should be split first (`bcftools norm -m-`).
+Split multi-allelic records first (`bcftools norm -m-`).
 
 **Runs:** `truvari_merge` in pass-through mode (decompress only, IDs preserved), then all of
 Stages 2 and 3 <span class="src">`module/main.nf:202-209`</span>.
 
-**Cannot be combined** with any discovery flag; the run stops with a message naming the flag it
-saw <span class="src">`main.nf:46-49`</span>. Use `--svs` when you want your VCF merged with
+**Cannot be combined** with any discovery flag; the run stops with a message naming the
+discovery flags you passed <span class="src">`main.nf:46-49`</span>. Use `--svs` when you want your VCF merged with
 GraffiTE's own calls.
 
 ### `--RM_dir`: RepeatMasker output of an earlier run
 
 **On disk:** a directory holding one subdirectory per Stage 2 batch, each with
-`genotypes_repmasked_filtered.vcf` and a `repeatmasker_dir/`. That is exactly the layout of
+`genotypes_repmasked_filtered.vcf` and a `repeatmasker_dir/`. That is the layout of
 `out/2_Repeat_Filtering/`, where the subdirectories are numbered by task
 <span class="src">`main.nf:134-136`, `module/main.nf:636-642`</span>.
 
@@ -93,7 +91,7 @@ subset, and, with `--human`, the HERV-K classifier, which reads the raw RepeatMa
 masks reference windows with it <span class="src">`main.nf:172-175`</span>.
 
 This is the entry point for changing anything downstream of RepeatMasker: `--tsd_win`,
-`--repeat_span_cutoff`, the `--trusted_*` and `--human*` parameters, or the HERV-K parameters.
+a higher `--repeat_span_cutoff`, the `--trusted_*` and `--human*` parameters, or the HERV-K parameters.
 
 ### `--graffite_vcf`: a finished `pangenome.vcf`
 
@@ -125,8 +123,8 @@ and ignores `--graph` <span class="src">`main.nf:206-214`</span>.
 <span class="src">`main.nf:223-225`</span>.
 
 **Runs:** `vg_call` for each row, against the graph from `--graph` or a fresh `make_graph`.
-The rows here decide which samples are called; `--genotype_with` is still read, and every path
-in it must exist, but its samples are not aligned.
+Only the samples listed here are called; `--genotype_with` is still read, and every path in it
+must exist, but its samples are not aligned.
 
 ### `--vcfs`: called samples
 
@@ -167,6 +165,6 @@ Rungs at different stages combine: `--RM_dir` with `--graph`, or `--graffite_vcf
 its input and leaves the rest running, so any combination that leaves a connected pipeline works.
 The one refusal is `--vcf` beside a discovery flag.
 
-Rungs at the same stage do not stack: `--graph_alignments` and `--vcfs` together means `--vcfs`
+Rungs that replace the same process do not stack: `--graph_alignments` and `--vcfs` together means `--vcfs`
 wins, because the alignment branch is inside the `else` of the `--vcfs` test
 <span class="src">`main.nf:218-232`</span>.

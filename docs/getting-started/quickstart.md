@@ -60,7 +60,7 @@ nextflow run cgroza/GraffiTE -r v1.1dev \
 Pass the four data arguments as shown; the defaults for `--reference` and `--TE_library` are
 placeholder filenames that do not exist <span class="src">`nextflow.config:46-48`</span>.
 `--genotype_with` is the parameter name as declared <span class="src">`nextflow.config:39`</span>.
-The README on `main` writes it with a hyphen, and that form does nothing: Nextflow turns
+The hyphenated form does nothing: Nextflow turns
 `--genotype-with` into a parameter named `genotypeWith`, and the pipeline reads the default
 `reads.csv` instead (checked with Nextflow 26.04.6). Add `-profile cluster` on SLURM, and
 `-with-singularity /abs/path/graffite_latest.sif` if you pulled the image by hand
@@ -103,7 +103,7 @@ out_v1.1/
     └── GraffiTE.merged.genotypes.presence-absence_trusted.tsv
 ```
 
-Each directory is one stage. `pangenome.vcf` is the annotated callset,
+`pangenome.vcf` is the annotated callset,
 `pangenome.trusted.vcf` its conservative subset, and `GraffiTE.merged.genotypes.vcf.gz` the
 genotypes of `short_test1`. That last file does not carry every `pangenome.vcf` allele: on the
 default `--graph_method pangenie`, `merge_vcfs.py` leaves out alleles that overlap another at the
@@ -128,4 +128,4 @@ file. It is safe to delete once you have what you need, and it is what `-resume`
 - [Choosing your inputs](choosing-your-inputs.md) maps your own data to the entry flags.
 - [Stage 1: SV search](../guides/discovery.md) explains what happened to the assembly.
 - [Resources and scaling](../guides/resources.md) covers whole genomes and clusters.
-- [Human MEIs](../guides/human-mei.md) is the `--human` filter you will want on human data.
+- [Human MEIs](../guides/human-mei.md) covers the `--human` filter for human data.

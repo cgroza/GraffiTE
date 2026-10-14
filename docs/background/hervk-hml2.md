@@ -43,8 +43,8 @@ haplotype carries <span class="src">`bin/hervk_reconcile.py:136-170`</span>.
 An 8,504 bp insertion is equally consistent with `LTR + INT` entering a solo LTR and with a
 complete provirus entering an empty site whose internal region carries a deletion. GraffiTE
 therefore does not classify on size. It reads the **architecture** of the variant allele out of
-the raw RepeatMasker fragments, and where that is ambiguous it **masks the reference** at the
-locus and reads off what is there.
+the raw RepeatMasker fragments, and where that is ambiguous it reads the state off the **masked
+reference** at the locus.
 
 Two architectures name the allele pair directly <span class="src">`bin/hervk_arch.py:254-356`</span>:
 
@@ -53,35 +53,35 @@ Two architectures name the allele pair directly <span class="src">`bin/hervk_arc
   the family's: 968 bp for `LTR5_Hs`, `LTR5B` and `LTR5`, 1,033 bp for `LTR5A`
   <span class="src">`bin/hervk_arch.py:56,75,328-338`</span>. Nothing was consumed by the
   alignment, so the variant carries a whole provirus. Reported as `ARCH_2LTR`.
-- **One LTR split across the termini**: the 5′ fragment covering consensus `k+1..L` and the 3′
+- **One LTR split across the termini**: the 5' fragment covering consensus `k+1..L` and the 3'
   fragment `1..k`, complementary and summing to one LTR. The aligner broke a reference LTR at
   position `k`, so the reference held one. Reported as `ARCH_PERM`. The same split inside the
   internal region is `ARCH_INT_PERM`, with its point in `HERVK_J`.
 
-Which side of the pair the variant carries depends on its polarity. For an insertion the
+The variant's polarity sets which side of the pair it carries. For an insertion the
 architecture describes the allele being added; for a deletion it describes reference sequence
 being removed, so `ARCH_2LTR` reads `provirus -> null` on a `DEL` and `null -> provirus` on an
 `INS`. Where the masked reference already holds a provirus, the classifier overrides that `INS`
 reading and calls one unit gained, `provirus -> prov_x2`, keeping `HERVK_EVIDENCE` at `ARCH_2LTR`
-and adding `CNV_UNITS:1->2,UNIT_COUNT_ASSUMED` to `HERVK_NOTE`. `ARCH_PERM` does the same
+and adding `CNV_UNITS:1->2,UNIT_COUNT_ASSUMED` to `HERVK_NOTE`. It does the same for `ARCH_PERM`
 <span class="src">`bin/hervk_classify.py:322-363`</span>.
 
 `HERVK_K` records `k`. It is a property of the **alignment**, not of the biology: the inserted
 length is the same for every `k`, so the gap penalty cancels and the handful of substitutions
-separating the two LTR copies decides the placement. It varies between haplotypes and
-between callers, and nothing should key on its value.
+separating the two LTR copies sets the placement. It varies between haplotypes and
+between callers, so do not key on its value.
 
 At `k = 0` the split is degenerate: one whole LTR and nothing at the other end, which is
 indistinguishable from a one-LTR-truncated provirus. The reference check is therefore the main
-mechanism, not a fallback: the classifier masks the reference in a window of `--hervk_ref_flank`
+mechanism: the classifier masks the reference in a window of `--hervk_ref_flank`
 (1,500 bp) either side of the candidate, widens it when an element runs into the edge, and calls
 the state from the LTR and internal-region base pairs the window holds
 <span class="src">`bin/hervk_ref_state.py:46-72, 272-292`</span>.
 
 ## The classes
 
-`HERVK_ALLELE_REF` and `HERVK_ALLELE` give the states directly and are what downstream analysis
-should read. `HERVK_CLASS` names the pair, not the direction
+`HERVK_ALLELE_REF` and `HERVK_ALLELE` give the states directly; read those in downstream
+analysis. `HERVK_CLASS` names the pair, not the direction
 <span class="src">`bin/hervk_classify.py:274-288, 424-467`</span>:
 
 | `HERVK_CLASS` | states | |
@@ -94,9 +94,9 @@ should read. `HERVK_CLASS` names the pair, not the direction
 | `other` | | not resolved to two HML-2 states |
 
 `HERVK_EVIDENCE` says what settled the call: `ARCH_2LTR`, `ARCH_PERM`, `ARCH_INT_PERM`,
-`ARCH_SOLO`, `CNV_PERIOD`, `REF_ANNOT` (the reference decided), `UNRESOLVED`, or `NON_HML2` (a
+`ARCH_SOLO`, `CNV_PERIOD`, `REF_ANNOT` (from the reference state), `UNRESOLVED`, or `NON_HML2` (a
 candidate with fewer than 50 bp of HML-2 sequence) <span class="src">`bin/hervk_classify.py:434-436`</span>.
-`HERVK_PMAP` is a confidence under a size model and never decides a class.
+`HERVK_PMAP` is a confidence under a size model and never determines a class.
 
 ## Copy-number loci
 
@@ -118,11 +118,11 @@ copies share, is what unequal exchange between misaligned units produces. Hughes
 (2004, *PNAS* 101:1668-1672) proposed that mechanism for the tandem HERV-K108 allele and
 suggested a solo LTR they found was its reciprocal product.
 
-**Graph genotypes at these loci are withheld** (`HERVK_GT_MASKED`). The ALT path repeats
+**`hervk_reconcile` withholds graph genotypes at these loci** (`HERVK_GT_MASKED`). The ALT path repeats
 sequence the reference already carries, so reads from the pre-existing copy traverse it and
 non-carriers pick up ALT support; in the CaG run the ALT fraction at such a locus tracked
 provirus dosage rather than carriage. Discovery genotypes come from haplotype-resolved
-alignments, do not have this problem, and carry the allele frequencies
+alignments, do not have this problem, and carry the allele counts
 (`HERVK_AC_DISC`, `HERVK_AN_DISC`). Set `--hervk_mask_graph_gt_at_cnv false` to keep the graph
 calls <span class="src">`nextflow.config:99-107`</span>.
 
@@ -139,11 +139,11 @@ once <span class="src">`bin/hervk_arch.py:69-84, 201-233`</span>. The same homol
 ## Library naming
 
 The internal region is named `HERVK` by Dfam and `HERVK-int` by RepBase-derived sets;
-`HERVK_int` and `HERVKint` also occur. The classifier recognises all of them, so no modified
+`HERVK_int` and `HERVKint` also occur. The classifier recognizes all of them, so no modified
 library is needed <span class="src">`bin/hervk_arch.py:65`</span>. `HERVK9-int`, `HERVK11-int`,
 `HERVK14-int` and `HERVKC4-int` are deliberately *not* matched: they are separate ERV lineages.
-The LTR families recognised are `LTR5_Hs`, `LTR5A`, `LTR5B` and `LTR5`
+The LTR families recognized are `LTR5_Hs`, `LTR5A`, `LTR5B` and `LTR5`
 <span class="src">`bin/hervk_arch.py:56`</span>.
 
-One place in the pipeline is stricter than the classifier: the carve-out in the `--human` filter
-requires the literal name `HERVK-int`; see the note in [Human MEIs](../guides/human-mei.md).
+The carve-out in the `--human` filter is stricter than the classifier: it requires the literal
+name `HERVK-int`; see the note in [Human MEIs](../guides/human-mei.md).

@@ -85,13 +85,13 @@ column out of the published image, `sha256:47836cda` (pushed 2026-09-30), on 202
 ## The PAV container
 
 `pav_asm` runs in `library://becklab/pav/pav:latest`, PAV's own image, with 32 CPUs unless
-`--cores` says otherwise. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:339-344`, `module/main.nf:166`</span>
+`--cores` is set. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:339-344`, `module/main.nf:166`</span>
 
 ## The recipe and the published image
 
 The published image matches `Dockerfile`: Debian 12, vg `v1.77.0` and the `lift_*` binaries, none
 of which `GraffiTE.def` gives. `GraffiTE.def` is the Apptainer recipe that came before it, on
-Ubuntu 20.04. We have not built it; read from the recipe, an image built from it would differ from
+Ubuntu 20.04. We have not built it; going by the recipe, an image built from it would differ from
 the published one:
 
 - vg `v1.70.0` rather than `v1.77.0`, and RepeatMasker set up from the TETools sources with the

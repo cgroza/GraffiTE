@@ -10,10 +10,10 @@ description: How candidate SVs are scanned with RepeatMasker and ULTRA, filtered
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
-Stage 2 takes the merged SV set from [Stage 1](discovery.md) (or the VCF you gave it) and answers
-two questions about each variant: is its sequence mostly repeat, and if so, what repeat. Variants
-that fail the first question are discarded. The rest come out as `pangenome.vcf` with the
-annotation fields described in [VCF fields](../reference/vcf-fields.md), plus a filtered subset.
+Stage 2 takes the merged SV set from [Stage 1](discovery.md) (or the VCF you gave it), measures how
+much of each variant's sequence is repeat, and names the repeat. Variants that are not mostly
+repeat are discarded. The rest come out as `pangenome.vcf` with the annotation fields described in
+[VCF fields](../reference/vcf-fields.md), plus a filtered subset.
 
 ## What Stage 2 does
 
@@ -57,9 +57,9 @@ flowchart TD
 
 ## The TE library
 
-`--TE_library` is a FASTA of repeat consensus sequences passed to RepeatMasker as `-lib`. It is
-the only thing that decides what a variant is called, so the names and classes in it are the
-names and classes you get back in `repeat_ids` and `matching_classes`. Two things in it matter
+`--TE_library` is a FASTA of repeat consensus sequences passed to RepeatMasker as `-lib`. It alone
+determines what a variant is called, so the names and classes in it are the names and classes
+you get back in `repeat_ids` and `matching_classes`. Two things in it matter
 to the annotation:
 
 - **The class in the header.** RepeatMasker reads `#class/family` after the name
@@ -71,17 +71,17 @@ to the annotation:
 - **The names.** `--human` matches its whitelists against `repeat_ids` with anchored prefixes
   (`^AluY`, `^L1HS`, `^SVA_[DEF]`, `^HERVK-int`), and the L1 and SVA rules key on the classes
   `LINE/L1` and `Retroposon/SVA` and on the subfamily names `SVA_A` to `SVA_F`. A library with
-  other conventions still annotates, but those rules will not fire.
+  other conventions still works for annotation, but those rules will not fire.
   <span class="src">`nextflow.config:66-77`, `bin/annotate_vcf.R:119,132-140`</span>
 
 The Dfam human library the test set ships (`human_DFAM3.6.fasta`) follows these conventions. For
-another species, a RepeatModeler or Dfam library in RepeatMasker format is what the pipeline
-expects; see [Choosing your inputs](../getting-started/choosing-your-inputs.md).
+another species, use a RepeatModeler or Dfam library in RepeatMasker format; see
+[Choosing your inputs](../getting-started/choosing-your-inputs.md).
 
 ## RepeatMasker and ULTRA
 
-`repeatmask_VCF` runs once per contig of the merged VCF. It writes every variant's inserted
-sequence (the ALT of an insertion, the REF of a deletion) to `indels.fa`, named by variant ID, and
+`repeatmask_VCF` runs once per contig of the merged VCF. It writes each indel's sequence
+(the ALT of an insertion, the REF of a deletion) to `indels.fa`, named by variant ID, and
 runs two tools on that file.
 <span class="src">`bin/repmask_vcf.sh:38-39`</span>
 
@@ -94,7 +94,7 @@ RepeatMasker -lib ${TE_library} -s -dir repeatmasker_dir -pa $(( $(nproc) / 4 ))
 ```
 
 v1.0 passed `-nolow` here. It was removed on 2025-10-01 because it produced spurious
-low-complexity hits; simple repeats are still masked, then set aside by the annotation.
+TE hits on tandem repeats; simple repeats are still masked, then set aside by the annotation.
 
 **ULTRA**, on every core, to find tandem repeats whether or not RepeatMasker called them
 something:
@@ -104,14 +104,14 @@ something:
 ultra --bed -t $(nproc) -o ultra_temp/ultra_out indels.fa
 ```
 
-RepeatMasker's `.out` table is then parsed by `annotate_vcf.R`. Fragments that share a
-RepeatMasker link ID are grouped into one **hit**, named after the highest-scoring fragment;
+`annotate_vcf.R` then parses RepeatMasker's `.out` table. It groups fragments that share a
+RepeatMasker link ID into one **hit**, named after the highest-scoring fragment;
 that is where `n_hits`, `fragmts`, `repeat_ids`, `matching_classes`, `RM_hit_strands` and
 `RM_hit_IDs` come from. v1.0 used OneCodeToFindThemAll for this grouping; v1.1 reads the `.out`
 file directly.
 <span class="src">`bin/repmask_vcf.sh:108`, `bin/annotate_vcf.R:97-114`</span>
 
-Two rules run on the grouped hits before they are written out: the L1 twin-priming signature that
+Two rules run on the grouped hits before they are written out: the L1 twin-priming rule that
 sets `L1_5PINV`, and the SVA VNTR rule that renames a hit lying inside the VNTR and moves it to
 `Simple_repeat`. Both are described on their own pages,
 [L1 5' inversions](../background/l1-5prime-inversion.md) and
@@ -130,10 +130,10 @@ cutoff: once per contig, which produces `genotypes_repmasked_filtered.vcf`, and 
 the contigs are concatenated.
 <span class="src">`module/main.nf:659`, `module/main.nf:577`, `nextflow.config:57`</span>
 
-Two consequences of using the union rather than the TE span alone. A variant that is a
-polyA-rich Alu with a long tandem stretch passes, because ULTRA covers what RepeatMasker did not.
-And a variant that is nothing but a tandem repeat also passes the span filter, with `n_hits=0`;
-it is the trusted and human subsets, downstream, that require a TE hit.
+Because the filter uses the union rather than the TE span alone, a polyA-rich Alu with a long
+tandem stretch passes: ULTRA covers what RepeatMasker did not. A variant that is nothing but a
+tandem repeat also passes the span filter, with `n_hits=0`; it is the trusted and human subsets,
+downstream, that require a TE hit.
 
 `total_match_span`, the v1.0 metric (TE intervals only, no ULTRA), is still written but no longer
 tested.
@@ -150,7 +150,7 @@ its `n_hits`. The procedure, the scoring and the log format are in
 
 ## polyA annotation
 
-`add_polyA.py` runs on the concatenated VCF after the reference alleles have been re-read. For a
+`add_polyA.py` runs on the concatenated VCF after `fix_vcf.py` has re-read the reference alleles. For a
 variant with exactly one hit it scans the 3' end of the variant sequence for an A-rich tail when
 the hit is on the `+` strand, or the 5' end for a T-rich tail when it is on `C`. It scans that
 end twice, with the matching copy of `TSD` trimmed off and with it left on, and calls a tail if
@@ -181,7 +181,7 @@ Read as four criteria:
 |---|---|---|
 | One RepeatMasker hit, so the variant is one element and not a nested or composite one. | none | |
 | Long enough to be a full-length element rather than a fragment. | `--trusted_min_svlen` | `250` bp |
-| Not dominated by tandem repeat, unless RepeatMasker itself called it a simple repeat (the SVA VNTR case). | `--trusted_max_ultra_span` | `0.6` (fraction of variant length) |
+| Not dominated by tandem repeat, unless the SVA VNTR rule moved its hit to `Simple_repeat`. | `--trusted_max_ultra_span` | `0.6` (fraction of variant length) |
 | If it is a non-LTR element (LINE, SINE, SVA), it has a polyA tail. | none | |
 
 The `FILTER="PASS"` clause is dropped with `--trusted_ignore_filter`, for callers that leave
@@ -194,7 +194,7 @@ The `FILTER="PASS"` clause is dropped with `--trusted_ignore_filter`, for caller
     requires `polyA="TRUE"` only when the clause with the negations is false, which it never
     is, so the trusted subset does **not** require a polyA tail of non-LTR elements. The
     `--human` filter is written with positive matches to avoid this. See
-    [VCF fields](../reference/vcf-fields.md) for the bcftools behaviour.
+    [VCF fields](../reference/vcf-fields.md) for the bcftools behavior.
     <span class="src">`module/main.nf:543-547`</span>
 
 For human data, `--human` replaces this subset with a filter on recent subfamilies; see
@@ -202,17 +202,17 @@ For human data, `--human` replaces this subset with a filter on recent subfamili
 
 ## Parallelism and batching
 
-Stage 2 parallelises twice.
+Stage 2 parallelizes twice.
 
 - **By contig.** `split_repeatmask` writes one VCF per contig of the merged set and
-  `repeatmask_VCF` runs on each, with the `repeatmasker_*` resource parameters. A genome with
-  thousands of small scaffolds spawns thousands of tasks; `--cores` and
+  `repeatmask_VCF` runs on each, with the `repeatmasker_*` resource parameters. With variants on
+  thousands of small scaffolds, that is thousands of tasks; `--cores` and
   `--repeatmasker_threads` set what each gets. RepeatMasker's own `-pa` is a quarter of that.
   <span class="src">`module/main.nf:492-505`, `nextflow.config:223-227`</span>
 - **By batch of variants for the TSD search.** Each contig's variant list is split into batches
   of `--tsd_batch_size` (default 100 variants) and `tsd_search` runs on each batch with the
-  `tsd_*` parameters, so a contig with 5,000 variants is 50 tasks. The batches are gathered
-  back per contig by `tsd_report`.
+  `tsd_*` parameters, so a contig with 5,000 variants is 50 tasks. `tsd_report` gathers the
+  batches back per contig.
   <span class="src">`main.nf:157-162`, `nextflow.config:56`</span>
 
 `concat_repeatmask` then joins every contig into `pangenome.vcf`. Everything in this stage is

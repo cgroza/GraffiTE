@@ -27,12 +27,12 @@ sample at each bubble. It runs by default; `--genotype false` stops after Stage 
 Each polymorphism becomes two paths between the same flanks. For an <code>INS</code> record the
 reference path skips the element and the ALT path runs through it. For a <code>DEL</code> record
 it is the other way round. Each read counts for whichever path it traverses, so reads through
-the TE node always come from haplotypes that carry the element, whichever allele that is.
+the TE node come from haplotypes that carry the element, whichever allele that is.
 </figcaption>
 </figure>
 
-The consequence for reading the output is the one stated on the [home page](../index.md): the
-ALT allele means *TE present* for `INS` records and *TE absent* for `DEL` records.
+As the [home page](../index.md) says, the ALT allele means *TE present* for `INS` records and
+*TE absent* for `DEL` records.
 
 ---
 
@@ -51,13 +51,13 @@ parameter preset <span class="src">`main.nf:189-191`</span>:
 Two details follow from that table:
 
 - With the `default` preset, `vg giraffe` is given `-i`, so the FASTQ is read as
-  **interleaved paired-end** <span class="src">`module/main.nf:835-837,842`</span>. Short-read
-  samples must be supplied as a single interleaved file, not as two mate files.
+  **interleaved paired-end** <span class="src">`module/main.nf:835-837,842`</span>. Supply
+  short-read samples as a single interleaved file, not as two mate files.
 - PanGenie ignores the preset: it counts k-mers and never aligns
   <span class="src">`module/main.nf:746`</span>.
 
-A `path` ending in `.bam` goes through `bam_to_fastq` first: alignment tags are stripped, the
-file is name-sorted and converted back to FASTQ with `samtools fastq`
+A `path` ending in `.bam` goes through `bam_to_fastq` first, which strips the alignment tags,
+name-sorts the file and converts it back to FASTQ with `samtools fastq`
 <span class="src">`main.nf:192-197`, `module/main.nf:806-822`</span>. The alignments in the BAM
 are not used; only the reads are. Methylation tags in such a BAM are read separately, see
 [Epigenetic mapping](methylation.md).
@@ -109,8 +109,8 @@ Two processes <span class="src">`module/main.nf:712-769`</span>.
    (`;`, `,`, `:`, `=`, `|`, space). Without this, `merge_vcfs.py` stopped on such records
    ([issue #93](https://github.com/cgroza/GraffiTE/issues/93))
    <span class="src">`bin/pangenie_graph_vcf.py:8-16`</span>.
-3. Records at the same position are joined into multi-allelic sites (`bcftools sort`,
-   `bcftools norm -m+`).
+3. `bcftools sort` and `bcftools norm -m+` join records at the same position into multi-allelic
+   sites.
 4. `merge_vcfs.py merge -ploidy 2` (PanGenie's own helper, shipped in `bin/`) turns the file into
    the multi-sample graph VCF PanGenie reads, with an `INFO/ID` field naming the graph variant
    behind each ALT allele. It leaves out alleles that overlap another at the same site.
@@ -119,8 +119,8 @@ Two processes <span class="src">`module/main.nf:712-769`</span>.
 
 The table is published as `4_Genotyping/pangenie_graph_variants.tsv`, columns `record`,
 `CHROM`, `POS`, `pangenome_ID`, `allele`, `graph_ID`, `in_graph`, `note`. PanGenie writes each
-allele's `graph_ID` to `INFO/ID` of the genotyped VCFs, so the table is how a `pangenome.vcf`
-record is found in them <span class="src">`bin/pangenie_graph_vcf.py:18-21,25`</span>.
+allele's `graph_ID` to `INFO/ID` of the genotyped VCFs, so you use the table to find a
+`pangenome.vcf` record in them <span class="src">`bin/pangenie_graph_vcf.py:18-21,25`</span>.
 
 **`pangenie`**, once per sample: `PanGenie -s <sample> -i <(zcat -f reads) -f pangenie_index`.
 PanGenie writes no `##contig` lines, so `samtools faidx <ref>` and `bcftools reheader -f
@@ -155,7 +155,7 @@ in `pangenome.vcf`, then:
 
 `index.gfa` is the graph as GFA, `index.pb` the snarl (bubble) decomposition `vg call` needs.
 The directory is published as `GraffiTE_graph/index/` and is what `--graph` takes on a later
-run. Skipped entirely when `--graph` is given <span class="src">`main.nf:210-214`</span>.
+run. With `--graph`, `make_graph` does not run <span class="src">`main.nf:210-214`</span>.
 
 **Resources:** `--make_graph_threads`, `--make_graph_memory` (default `40G`), `--make_graph_time`
 (default `6h`) <span class="src">`nextflow.config:253-257`</span>.
@@ -176,8 +176,8 @@ string, then sorted by read name and gzipped. The GAM is deleted. Published as
 `GraffiTE_alignments/<sample>.gaf.gz` and `<sample>.pack`, which is the pair
 `--graph_alignments` takes on a later run.
 
-This process runs with `errorStrategy = 'finish'`: a failed sample lets the other samples
-complete before the run stops <span class="src">`nextflow.config:263-268`</span>.
+This process runs with `errorStrategy = 'finish'`: when a sample fails, the tasks already
+submitted or running finish before the run stops <span class="src">`nextflow.config:263-268`</span>.
 
 **Resources:** `--graph_align_threads`, `--graph_align_memory`, `--graph_align_time` (default
 `12h`); `bam_to_fastq` uses the same three.
@@ -200,7 +200,7 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
   <span class="src">`nextflow.config:122`</span>.
 - `-R chrX:1,chrY:1` sets ploidy 1 on the contigs named **exactly** `chrX` and `chrY`. Every other
   contig is called diploid, so a reference that names them `X` and `Y`, or `NC_000023.11`, gets
-  diploid calls on the sex chromosomes. `vg call` has no other ploidy input.
+  diploid calls on the sex chromosomes. GraffiTE passes no other ploidy option to `vg call`.
 - `bcftools norm -m-` splits multi-allelic calls into one record per ALT.
 
 **Resources:** `--vg_call_threads`, `--vg_call_memory`, `--vg_call_time` (default `2h`)
@@ -215,8 +215,8 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
 1. `bcftools merge -m none` joins them into one multi-sample VCF without creating multi-allelic
    records.
 2. `bcftools annotate -a pangenome.vcf -c CHROM,POS,ID,REF,ALT,INFO` copies every INFO field of
-   the matching `pangenome.vcf` record, so the repeat annotation, TSD and polyA fields travel
-   with the genotypes. The match is on `CHROM`, `POS`, `REF` and at least one shared `ALT`; `ID`
+   the matching `pangenome.vcf` record, so the genotyped records carry the repeat annotation, TSD
+   and polyA fields. The match is on `CHROM`, `POS`, `REF` and at least one shared `ALT`; `ID`
    is one of the columns being *copied*, not part of the key (matching on it would need `~ID`).
    Allele comparison ignores case, which matters because `pangenome.vcf` carries soft-masked
    lowercase bases and the graph upper-cases them. A record that matches nothing keeps whatever
@@ -246,9 +246,8 @@ Every record in it has `n_hits=1`, so every record has one repeat class. See
 files.
 
 The expression is evaluated on `pangenome.vcf` and the genotyped calls are subset by the IDs it
-returns. It tests `FILTER`, and step 2 above copies `INFO` without `FILTER`, so the `FILTER`
-column of the merged VCF is the genotyper's; running the expression against that file would
-answer a different question.
+returns. It tests `FILTER`, and step 2 above copies `INFO` without `FILTER`, so on the merged VCF it
+would test the genotyper's `FILTER` instead.
 
 Not written under `--human`. There the subset of interest is the pME one, and
 [`hervk_reconcile`](human-mei.md) writes `GraffiTE.merged.genotypes.human.vcf.gz` instead.
@@ -259,7 +258,7 @@ Not written under `--human`. There the subset of interest is the pME one, and
 
 `genotyping_audit` writes `4_Genotyping/genotyping_record_audit.tsv`, one row per ALT allele of
 `pangenome.vcf`, with a `lost_at` column naming the first stage that dropped it and the counts
-summarised at the top of the file.
+summarized at the top of the file.
 
 | `lost_at` | meaning |
 |---|---|
@@ -269,7 +268,7 @@ summarised at the top of the file.
 | `no_match_in_merge` | the graph genotyped it, and the annotate step in `merge_VCFs` could not find it |
 | `not_genotyped` | absent from the merged VCF |
 
-`genotyped` and `annotated` are separate columns because they answer different questions. On the
+`genotyped` and `annotated` are separate columns. On the
 PanGenie path `INFO/ID` names the graph variant behind each record, so a record that was
 genotyped and then missed by the annotate step is visible as `genotyped=yes, annotated=no`. The
 vg back ends carry no such field, the audit joins on the ID column instead, and the report says

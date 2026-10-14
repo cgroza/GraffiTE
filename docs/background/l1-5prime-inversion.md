@@ -23,7 +23,7 @@ junction between them.
 
 <figure markdown="span">
 ![Twin priming: a second nick primes reverse transcription upstream on the same L1 RNA, in the opposite direction, so the integrated copy carries an inverted 5' segment ahead of the 3' segment](../assets/l1-twin-priming.png)
-<figcaption>Twin priming. The 5′ segment is copied by a second priming event and integrates inverted.</figcaption>
+<figcaption>Twin priming. The 5' segment is copied by a second priming event and integrates inverted.</figcaption>
 </figure>
 
 For a variant caller such an insertion is one event. For RepeatMasker it is two fragments of the
@@ -46,13 +46,13 @@ strand it sits on comes from the consensus coordinates instead, below.
 ## How GraffiTE detects it
 
 `annotate_vcf.R` groups the fragments of each RepeatMasker link ID into one hit and records the
-strands of its fragments, in query order, as one string (`C+`, `+`, `C`, `+C`). A hit is flagged
+distinct strands of its fragments, in query order, as one string (`C+`, `+`, `C`, `+C`). A hit is flagged
 as an L1 5' inversion when its class is `LINE/L1` and that string is exactly `C+`. The rule does
 not count the fragments: a `C` piece followed by two `+` pieces also qualifies.
 <span class="src">`bin/annotate_vcf.R:104,119`</span>
 
-The strand of the element as a whole is then inferred, because neither fragment's strand is the
-answer. The consensus coordinate where each fragment begins is compared: if the `C` fragment
+`annotate_vcf.R` then derives the strand of the element as a whole, because neither fragment's
+strand is the answer. It compares the consensus coordinate where each fragment begins: if the `C` fragment
 begins at a lower consensus position than the `+` fragment, the element is on the `+` strand;
 otherwise it is on `C`. That inferred value is what `RM_hit_strands` reports for the hit, and
 `polyA` is scanned on the end that strand implies. Every other hit reports its fragments'

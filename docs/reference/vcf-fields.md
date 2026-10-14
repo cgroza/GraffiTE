@@ -34,7 +34,7 @@ chr1  18081  chr1-18082-INS-315_10  t  tAGAAGGAATAAGACGGGCCGGGT...  .  PASS
 
 | Column | What GraffiTE puts there | Source |
 |---|---|---|
-| `ID` column | The caller's ID, with `_<n>` appended after the truvari merge (`n` is the record's zero-based position in `SVs.vcf`, so the first record gets `_0`): `chr1-18082-INS-315_10` above is PAV's `chr1-18082-INS-315`, the eleventh record in the merge. svim-asm IDs are prefixed with the assembly name (`HG002_mat.svim_asm.INS.12`). With `--vcf` the IDs pass through unchanged. An ID longer than 50 characters stops Stage 2. | <span class="src">`module/main.nf:185,277`, `bin/shorten_ids.py:21`, `bin/repmask_vcf.sh:42-45`</span> |
+| `ID` column | The caller's ID, with `_<n>` appended after the truvari merge (`n` is the record's zero-based position in `SVs.vcf`, so the first record gets `_0`): `chr1-18082-INS-315_10` above is PAV's `chr1-18082-INS-315`, the eleventh record in the merge. svim-asm IDs are prefixed with the assembly name (`HG002_mat.svim_asm.INS.12`). With `--vcf` the IDs pass through unchanged. An ID of 50 characters or more stops Stage 2. | <span class="src">`module/main.nf:185,277`, `bin/shorten_ids.py:21`, `bin/repmask_vcf.sh:42-45`</span> |
 | `REF` and `ALT` columns | Sequence-resolved. For an insertion `REF` is the anchor base and `ALT` is that base plus the inserted sequence; for a deletion `REF` is the anchor base plus the deleted reference interval, re-read from the reference FASTA, and `ALT` is the anchor base. Symbolic `<INS>` and `<DEL>` records from Sniffles2 are dropped in Stage 1. | <span class="src">`bin/fix_vcf.py:33-44`, `module/main.nf:129`</span> |
 | `FILTER` column | Whatever the SV caller wrote. GraffiTE defines no FILTER of its own; see [Fields inherited from upstream callers](#fields-inherited-from-upstream-callers). | <span class="src">`module/main.nf:589`</span> |
 | Sample columns | In `pangenome.vcf`, one column per Stage 1 sample, holding the genotype its caller wrote (PAV writes phased diploid calls, as above). A genotype missing after the merge is set to `0`. In `GraffiTE.merged.genotypes.vcf.gz`, one column per read set from `--genotype_with`. | <span class="src">`module/main.nf:275`, `module/main.nf:892`</span> |
@@ -86,14 +86,14 @@ unless ULTRA covers them.
 
 ## TSD and polyA fields
 
-Added by `tsd_report` and `concat_repeatmask` to `pangenome.vcf`, and carried by every record
-downstream, including the genotyped VCFs. A consolidated HERV-K record is built from scratch and
+Added by `tsd_report` and `concat_repeatmask` to `pangenome.vcf`, and carried
+downstream, including into the genotyped VCFs. A consolidated HERV-K record is built from scratch and
 does not carry them.
 
 | Field | Number | Type | Meaning | Source |
 |---|---|---|---|---|
 | `TSD` | 2 | String | The target site duplication as its 5' copy and its 3' copy, comma-separated and upper-cased: `GATTACAG,GATTACAG`. The two copies are exact matches. Absent when the search found no duplication of 4 to 20 bp whose ends sit, on average, within 5 bp of the breakpoints. How the search works is in [Target site duplications](../background/tsd.md). In output from before commit `d1dfd7b` the header says `Number=1` and the comma reads `%2C` (`GATTACAG%2CGATTACAG`); decode it before splitting. | <span class="src">`bin/tsd_annotate_vcf.sh:23,32`</span> |
-| `polyA` | 1 | String | `TRUE` when a tail of at least 8 bp with at least 80% A ends within 5 bp of the 3' end of a plus-strand hit, or the same with T at the 5' end of a minus-strand hit, with or without the matching `TSD` copy trimmed off. `FALSE` otherwise, including when the single hit has a mixed strand. `NA` when `n_hits` is greater than 1. Before commit `d1dfd7b` the pipeline trimmed no `TSD` copy, and from `d1dfd7b` to `19da5f8` it scanned only the trimmed end; see the [changelog](../changelog.md). | <span class="src">`bin/add_polyA.py:24-34,71-95,111-158`</span> |
+| `polyA` | 1 | String | `TRUE` when a tail of at least 8 bp with at least 80% A ends within 5 bp of the variant's 3' end for a plus-strand hit, or the same with T at its 5' end for a minus-strand hit, with or without the matching `TSD` copy trimmed off. `FALSE` otherwise, including when the single hit has a mixed strand. `NA` when `n_hits` is greater than 1. Before commit `d1dfd7b` the pipeline trimmed no `TSD` copy, and from `d1dfd7b` to `19da5f8` it scanned only the trimmed end; see the [changelog](../changelog.md). | <span class="src">`bin/add_polyA.py:24-34,71-95,111-158`</span> |
 
 ## HERV-K classifier fields
 
@@ -109,7 +109,7 @@ and in the two consolidated VCFs. What the states mean is in
 | `HERVK_ALLELE` | . | String | State of each ALT allele, in ALT order, same vocabulary. | <span class="src">`bin/hervk_classify.py:432`</span> |
 | `HERVK_EVIDENCE` | 1 | String | What resolved the states: `ARCH_2LTR`, `ARCH_PERM`, `ARCH_INT_PERM`, `CNV_PERIOD`, `ARCH_SOLO`, `REF_ANNOT`, `DENOVO_LTR`, `UNRESOLVED` or `NON_HML2`. | <span class="src">`bin/hervk_classify.py:434`</span> |
 | `HERVK_ARCH` | 1 | String | 5' to 3' architecture of the variant allele with consensus intervals, for example `LTR:575-968/INT:1-7536/LTR:1-574`. | <span class="src">`bin/hervk_classify.py:437`</span> |
-| `HERVK_K` | 1 | Integer | Where the aligner broke the reference solo LTR. An alignment property that varies between haplotypes and callers; nothing should key on its value. | <span class="src">`bin/hervk_classify.py:440`</span> |
+| `HERVK_K` | 1 | Integer | Where the aligner broke the reference solo LTR. An alignment property that varies between haplotypes and callers; do not key on its value. | <span class="src">`bin/hervk_classify.py:440`</span> |
 | `HERVK_J` | 1 | Integer | The same for the internal region, the `ARCH_INT_PERM` counterpart of `HERVK_K`. | <span class="src">`bin/hervk_classify.py:443`</span> |
 | `HERVK_N_UNITS_REF` | 1 | Integer | Proviral units in the masked reference element, a junction LTR counted once. | <span class="src">`bin/hervk_classify.py:446`</span> |
 | `HERVK_UNIT_BP` | 1 | Integer | Period of the reference array in bp: one internal region plus one LTR. A copy-number change moves a whole number of these. | <span class="src">`bin/hervk_classify.py:448`</span> |
@@ -117,15 +117,15 @@ and in the two consolidated VCFs. What the states mean is in
 | `HERVK_LAMBDA` | 1 | Float | bp of HML-2 LTR sequence on the variant allele. | <span class="src">`bin/hervk_classify.py:453`</span> |
 | `HERVK_NU` | 1 | Float | bp of HML-2 internal (`HERVK-int`) sequence on the variant allele. | <span class="src">`bin/hervk_classify.py:455`</span> |
 | `HERVK_COV` | 1 | Float | Fraction of the variant allele that is HML-2 sequence. | <span class="src">`bin/hervk_classify.py:457`</span> |
-| `HERVK_PMAP` | 1 | Float | Confidence in the class under the size model. Reporting only; it does not decide the class. | <span class="src">`bin/hervk_classify.py:459`</span> |
+| `HERVK_PMAP` | 1 | Float | Confidence in the class under the size model, used by `--hervk_strict`; it does not determine the class. | <span class="src">`bin/hervk_classify.py:459`</span> |
 | `HERVK_NOTE` | . | String | Diagnostics: `REF_ARCH_CONFLICT` (architecture and masked reference imply different REF states), `CNV_UNITS:a->b` (units on REF and ALT), `UNIT_COUNT_ASSUMED` (the count came from the architecture, since the reference did not resolve into counted units). | <span class="src">`bin/hervk_classify.py:462`</span> |
 
 ## HERV-K locus flags
 
 Added by `hervk_reconcile.py flag` to `pangenome.human.vcf` after classification, and carried
 onto the genotyped human VCF. They group records that describe the same element and say what
-varies there. Records are never merged at this stage; the graph is induced from this file, so its
-structure has to stay.
+varies there. Records are never merged at this stage; the genotyped calls are matched to this file
+by ID, so its structure has to stay.
 
 | Field | Number | Type | Meaning | Source |
 |---|---|---|---|---|
@@ -134,18 +134,18 @@ structure has to stay.
 | `HERVK_MEI` | 0 | Flag | A null allele segregates: the element is absent from some haplotypes, so a transposition produced the difference. This is the flag that separates an insertion polymorphism, comparable to an *Alu*, L1 or SVA insertion, from structural variation in an element every haplotype carries. | <span class="src">`bin/hervk_reconcile.py:100`</span> |
 | `HERVK_SOLO_PROV` | 0 | Flag | A solo LTR and a provirus both segregate. Can be set beside the other two flags. | <span class="src">`bin/hervk_reconcile.py:106`</span> |
 | `HERVK_CNV` | 0 | Flag | Some allele carries two or more proviral units. Can be set beside the other two flags. | <span class="src">`bin/hervk_reconcile.py:109`</span> |
-| `HERVK_LOCUS_TYPE` | 1 | String | One label derived from the flags: `null_vs_present` when `HERVK_MEI` is set, else `copy_number`, else `solo_vs_provirus`, else `unresolved`. A locus that is two things at once keeps only the first in this field; the flags are the precise statement. | <span class="src">`bin/hervk_reconcile.py:113`</span> |
+| `HERVK_LOCUS_TYPE` | 1 | String | One label derived from the flags: `null_vs_present` when `HERVK_MEI` is set, else `copy_number`, else `solo_vs_provirus`, else `unresolved`. For a locus that is two things at once, this field holds only the first; the flags are the precise statement. | <span class="src">`bin/hervk_reconcile.py:113`</span> |
 | `HERVK_MERGE_FLAG` | 0 | Flag | The locus holds more than one record. | <span class="src">`bin/hervk_reconcile.py:118`</span> |
 | `HERVK_POLARITY_CONFLICT` | 0 | Flag | Records at the locus imply different REF states. The masked reference wins, and consolidation resolves it. | <span class="src">`bin/hervk_reconcile.py:122`</span> |
 
 In the CaG cohort chr6:78,894,316 segregates a solo LTR, a provirus and a two-unit allele. It is
-labelled `copy_number` and carries both `HERVK_SOLO_PROV` and `HERVK_CNV`.
+labeled `copy_number` and carries both `HERVK_SOLO_PROV` and `HERVK_CNV`.
 
 ## Consolidated HERV-K records
 
 GraffiTE can emit several records for one HERV-K locus: two breakpoints for the same insertion,
 or a deletion and an insertion describing opposite directions of the same event. The two
-`.consolidated.` and `.human.` VCFs collapse each locus onto one multi-allelic record and add the
+`.consolidated.` and `.human.` VCFs hold each locus as one multi-allelic record, with the
 fields below. A `##hervk_consolidation=source:...` header line says whether the genotypes came
 from discovery or from the graph.
 <span class="src">`bin/hervk_reconcile.py:1167`</span>
@@ -156,7 +156,7 @@ from discovery or from the graph.
 | `SVLEN` | A | Integer | Redefined per ALT for the same reason. | <span class="src">`bin/hervk_reconcile.py:532`</span> |
 | `HERVK_MEMBERS` | . | String | Record IDs consolidated into the locus. | <span class="src">`bin/hervk_reconcile.py:538`</span> |
 | `HERVK_AC` | . | Integer | Allele count per ALT after dosage resolution across the members. | <span class="src">`bin/hervk_reconcile.py:540`</span> |
-| `HERVK_AN` | 1 | Integer | Alleles called at the locus. Below `2N` it means members were structurally uncalled for some samples, since the graph can find every carrier and still fail to confirm the non-carriers. | <span class="src">`bin/hervk_reconcile.py:542`</span> |
+| `HERVK_AN` | 1 | Integer | Alleles called at the locus. Below `2N` it means members were structurally uncalled for some samples, since graph genotyping can call every carrier and still leave some non-carriers uncalled. | <span class="src">`bin/hervk_reconcile.py:542`</span> |
 | `HERVK_N_RESOLVED` | 1 | Integer | Samples fully resolved by dosage. | <span class="src">`bin/hervk_reconcile.py:545`</span> |
 | `HERVK_N_PARTIAL` | 1 | Integer | Samples with some haplotypes unaccounted for; those haplotypes are reported missing. | <span class="src">`bin/hervk_reconcile.py:547`</span> |
 | `HERVK_N_PLOIDY_EXCEEDED` | 1 | Integer | Samples whose summed ALT dosage exceeds their ploidy, which happens when a third allele was lost to `bcftools norm -m-`. Their genotypes are set missing. | <span class="src">`bin/hervk_reconcile.py:549`</span> |
@@ -194,7 +194,7 @@ consolidated records with the same meaning.
     the locus id and the full `HERVK_ALLELE_SET`, but its counts cover only the alleles still
     present. `hervk_candidates.vcf` has all the records with their assembly genotypes.
 
-Three habits when reading these records. Quote `HERVK_AC` and `HERVK_AN` together rather than a
+When reading these records, quote `HERVK_AC` and `HERVK_AN` together rather than a
 frequency alone, because `AN` below `2N` deflates the denominator without touching `AC`. Treat
 `HERVK_N_PLOIDY_EXCEEDED` above zero as a sign of a lost third allele. Do not key on `HERVK_K`.
 
@@ -202,7 +202,7 @@ frequency alone, because `AN` below `2N` deflates the denominator without touchi
 
 | Field | Number | Type | Meaning | Source |
 |---|---|---|---|---|
-| `GT` | 1 | String | Genotype. In `pangenome.vcf` it is the discovery genotype: `1` or `0` per haploid assembly, or the diploid call from Sniffles2. In the genotyped VCFs it is what PanGenie or `vg call` wrote for each read set. | <span class="src">`bin/repmask_vcf.sh:34`, `bin/merge_vcfs.py:521`</span> |
+| `GT` | 1 | String | Genotype. In `pangenome.vcf` it is the discovery genotype: `1` or `0` per haploid assembly, or the diploid call from Sniffles2 or PAV. In the genotyped VCFs it is what PanGenie or `vg call` wrote for each read set. | <span class="src">`bin/repmask_vcf.sh:34`, `bin/merge_vcfs.py:521`</span> |
 
 PanGenie and `vg call` add their own FORMAT fields (genotype quality, depth, likelihoods) with
 their own header lines; GraffiTE passes them through unchanged. Which ones appear depends on the
@@ -210,8 +210,8 @@ version of those tools in the container, so they are not listed here.
 
 ## Fields inherited from upstream callers
 
-`SVTYPE`, `SVLEN` and `END` come from the SV caller. With more than one input VCF every upstream
-INFO field is stripped before the truvari merge, `truvari collapse` adds `NumCollapsed`,
+On a single-input run, `SVTYPE`, `SVLEN` and `END` come from the SV caller. With more than one
+input VCF every upstream INFO field is stripped before the truvari merge, `truvari collapse` adds `NumCollapsed`,
 `NumConsolidated` and `CollapseId`, and `bcftools +fill-tags` recomputes `SVLEN` as
 `strlen(ALT) - strlen(REF)` after the collapse, so it is negative for a deletion; with a single
 input VCF the caller's INFO fields (PAV's `HAP`, `QRY_REGION` and so on) are kept. On a
@@ -244,11 +244,11 @@ One field is defined for the PanGenie graph and comes back in the genotyped VCFs
 
 ## Filtering GraffiTE VCFs with bcftools
 
-The multi-valued fields (`repeat_ids`, `matching_classes`, `RM_hit_strands`, everything with
-`Number=.`) behave in two ways worth knowing before writing an expression. `~` is evaluated on
-each element, and `^` anchors each element, so `repeat_ids~"^LTR5_Hs"` is true for a record
-whose value is `SVA_A,LTR5_Hs`. And `!~` does not negate reliably on these fields:
-`matching_classes!~"SINE"` is true for every record, `SINE/Alu` ones included. GraffiTE's own
+On the multi-valued fields (`repeat_ids`, `matching_classes`, `RM_hit_strands`, everything with
+`Number=.`), `~` is evaluated on each element, and `^` anchors each element, so
+`repeat_ids~"^LTR5_Hs"` is true for a record whose value is `SVA_A,LTR5_Hs`. `!~` does not
+negate reliably on these fields: `matching_classes!~"SINE"` is true for every record, `SINE/Alu`
+ones included. GraffiTE's own
 `--human` expression is written with positive matches only for that reason. bcftools regular
 expressions also have no alternation, which is why the whitelist parameters are comma-separated
 lists rather than `A|B`.

@@ -19,11 +19,11 @@ given point. Choose the flag by asking what you already have.
 
 ## The three stages
 
-| Stage | Question it answers | Enters with | Produces |
+| Stage | What it finds | Enters with | Produces |
 |---|---|---|---|
-| **A, discovery** | Where do the sequence-resolved insertions and deletions sit relative to the reference? | `--assemblies`, `--pav`, `--longreads`, `--bams`, `--svs` | `1_SV_search/SVs.vcf` |
-| **B, annotation** | Which of those SVs are transposable elements, and what are they? | `--vcf`, `--RM_dir` | `3_TSD_search/pangenome.vcf` and its subsets |
-| **C, genotyping** | Which samples carry each polymorphism? | `--graffite_vcf`, `--graph`, `--graph_alignments`, `--vcfs` | `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz` |
+| **A, discovery** | Where the sequence-resolved insertions and deletions sit relative to the reference | `--assemblies`, `--pav`, `--longreads`, `--bams`, `--svs` | `1_SV_search/SVs.vcf` |
+| **B, annotation** | Which of those SVs are transposable elements, and what they are | `--vcf`, `--RM_dir` | `3_TSD_search/pangenome.vcf` and its subsets |
+| **C, genotyping** | Which samples carry each polymorphism | `--graffite_vcf`, `--graph`, `--graph_alignments`, `--vcfs` | `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz` |
 
 A fourth, optional step lifts methylation onto the graph (`--epigenomes`), only on the
 `giraffe`, `graphaligner` and `precomputed` methods <span class="src">`main.nf:206,234`</span>. See
@@ -95,11 +95,11 @@ annotation entry points <span class="src">`main.nf:129-156`</span>, `--graffite_
 
 ## Combining flags
 
-**Discovery flags add up.** `--assemblies`, `--pav`, `--longreads`, `--bams` and `--svs` can be
-passed together in any combination; every caller's output goes into one truvari merge
-<span class="src">`main.nf:125`</span>. This is how the paper's `GT-svsn` mode is run.
+**Discovery flags add up.** You can pass `--assemblies`, `--pav`, `--longreads`, `--bams` and
+`--svs` together in any combination; every caller's output goes into one truvari merge
+<span class="src">`main.nf:125`</span>. The paper's `GT-svsn` mode is one such combination.
 
-**`--vcf` stands alone.** It replaces the merge, so pairing it with a discovery flag is refused
+**`--vcf` stands alone.** It replaces the merge, so GraffiTE refuses any discovery flag beside it
 before anything runs:
 
 ```
@@ -109,8 +109,8 @@ before anything runs:
 <span class="src">`main.nf:46-49`</span>.
 
 **`--graffite_vcf` skips the HERV-K annotation.** With `--human`, the consolidation step needs
-files that only discovery writes, so `--graffite_vcf --human` needs `--hervk_reconcile false`,
-or start from `--RM_dir` instead <span class="src">`main.nf:61-63`</span>.
+files that only the annotation stage writes, so with `--graffite_vcf --human` pass
+`--hervk_reconcile false`, or start from `--RM_dir` instead <span class="src">`main.nf:61-63`</span>.
 
 **`--graph_method precomputed` needs its inputs.** It builds nothing, so it requires `--graph`
 and one of `--vcfs` or `--graph_alignments` <span class="src">`main.nf:53-56`</span>.

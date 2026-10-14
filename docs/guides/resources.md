@@ -51,9 +51,9 @@ allocation on a failure that will repeat.
 
 Two defaults to check against your site:
 
-- `process.scratch = '$SLURM_TMPDIR'` <span class="src">`nextflow.config:16`</span> assumes the
-  scheduler defines that variable, and many sites do not. Where it is unset, set `process.scratch`
-  to a path of your own or to `false`.
+- `process.scratch = '$SLURM_TMPDIR'` <span class="src">`nextflow.config:16`</span> names a
+  variable that many sites do not define. Where it is unset, set `process.scratch` to a path of
+  your own or to `false`.
 - Several `*_memory` parameters default to `null`, so the pipeline requests no `--mem`. On a
   scheduler that needs one, set them; see [Per-process allocation](#per-process-allocation).
 
@@ -66,19 +66,19 @@ See also the
 ## The `--cores` shortcut
 
 `--cores N` sets `cpus` to `N` for every process whose CPU count is configurable, in place of all
-the `*_threads` parameters, and replaces the `32` that `pav_asm` asks for. Set it for a quick run
+the `*_threads` parameters, and replaces `pav_asm`'s default of `32`. Set it for a quick run
 on one machine; set the individual parameters for a cluster, where a lone `bcftools` step does
 not need the 40 CPUs an alignment does. <span class="src">`nextflow.config:51,179-345`</span>
 
 Processes with a hardcoded `cpus` ignore it: `break_scaffold`, `tsd_prep`, `tsd_search`,
 `tsd_report`, `merge_VCFs`, `trusted_genotypes`, `genotyping_audit`, `hervk_reconcile`, and the
-eight methylation processes. All are pinned to one CPU except `bamtags_to_BED`, which asks for two.
+eight methylation processes. Each gets one CPU except `bamtags_to_BED`, which gets two.
 <span class="src">`nextflow.config:180-182,228-242,274-288,294-338`</span>
 
 ## Per-process allocation
 
-Each `withName` block in `nextflow.config` reads a `*_threads`, `*_memory` and `*_time`
-parameter. Memory and time are Nextflow strings such as `"40G"` and `"12h"`. A memory default of
+The `withName` blocks in `nextflow.config` read the `*_threads`, `*_memory` and `*_time`
+parameters. Memory and time are Nextflow strings such as `"40G"` and `"12h"`. A memory default of
 `null` means the process declares no memory requirement at all; on a scheduler that needs one, set
 it. <span class="src">`nextflow.config:124-162,179-345`</span>
 
@@ -108,15 +108,15 @@ Three things the table does not show:
 - `graph_align_reads` has `errorStrategy = 'finish'`: when one sample's alignment fails, the
   samples already running finish and the run then stops, instead of being killed at once.
   <span class="src">`nextflow.config:267`</span>
-- The default thread count is `1` everywhere. A run with defaults aligns each assembly on one CPU.
+- Every `*_threads` parameter defaults to `1`. A run with defaults aligns each assembly on one CPU.
   Raise `--map_asm_threads`, `--map_longreads_threads`, `--pangenie_threads` and
   `--graph_align_threads` first; those are the steps that scale with CPUs.
 - `repmask_vcf.sh` sizes RepeatMasker and ULTRA from `nproc`, not from the `cpus` you allocate.
   On a shared node that reports every core, request a whole node for `repeatmask_VCF` or accept
   the oversubscription. <span class="src">`bin/repmask_vcf.sh:67,92`</span>
 
-What drives each step, as the v1.0 README put it: discovery scales with genome size, the merge
-with the number of assemblies, and genotyping with genome size and the size of the read sets. We
+As the v1.0 README put it, discovery scales with genome size, the merge with the number of
+assemblies, and genotyping with genome size and the size of the read sets. We
 have no measurements for RepeatMasker or the graph steps.
 
 `-with-report` writes an HTML report with the peak CPU and memory of every task. Run once with
@@ -126,10 +126,10 @@ generous values, read the report, then trim.
 
 The defaults, in particular for memory and wall time, can be too small for large, repeat-rich
 genomes such as maize. Nextflow's error message for a job that ran out of memory or time is often
-about something else, so a run that fails with a confusing message on a large genome is worth
-retrying with more of both before looking for another cause. Maize runs have been reported to
-complete with requests of the order of 120 h and 400 GB per process, the long-read alignment being
-the most demanding step; those are requested values, not measured peaks.
+about something else, so if a run on a large genome fails with a confusing message, retry it with
+more of both before looking for another cause. The v1.0 README reports maize runs that completed
+with requests of the order of 120 h and 400 GB per process, the long-read alignment being the most
+demanding step; those are requested values, not measured peaks.
 
 ## Measured resource usage
 

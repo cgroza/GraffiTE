@@ -12,7 +12,7 @@ description: >-
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
-GraffiTE is a Nextflow pipeline. Every tool it calls lives in one container image, so the host
+GraffiTE is a Nextflow pipeline. Every tool it calls lives in a container image, so the host
 needs Nextflow, a Java runtime for it, and a container engine. It runs on any Linux machine or
 cluster; the `cluster` profile targets SLURM.
 
@@ -44,7 +44,7 @@ Two ways, depending on whether you want a local copy of the code.
 
 === "Let Nextflow fetch it"
 
-    Nextflow downloads and caches the pipeline the first time you run it, and initialises the
+    Nextflow downloads and caches the pipeline the first time you run it, and initializes the
     `panmethyl` submodule for you:
 
     ```bash
@@ -62,24 +62,24 @@ Two ways, depending on whether you want a local copy of the code.
     git switch v1.1dev
     ```
 
-    `--recurse-submodules` matters. `main.nf` includes the `panmethyl` submodule unconditionally
-    <span class="src">`main.nf:12`</span>, and a plain clone leaves that directory empty, so
-    Nextflow stops at compile time with:
+    `main.nf` includes the `panmethyl` submodule unconditionally
+    <span class="src">`main.nf:12`</span>, and a clone made without `--recurse-submodules` leaves
+    that directory empty, so Nextflow stops at compile time with:
 
     ```
     Error main.nf:12:1: Invalid include source: '<dir>/panmethyl/module.nf'
     ```
 
-    Run `git submodule update --init` in the clone and start again. `nextflow pull` clones
-    fetch the submodule themselves.
+    Run `git submodule update --init` in the clone and start again. `nextflow pull` fetches the
+    submodule itself.
 
 ---
 
 ## Get the container image
 
-The config points every process at `docker://cgroza/graffite:latest`
+The config points every process but `pav_asm` at `docker://cgroza/graffite:latest`
 <span class="src">`nextflow.config:10,15,21`</span>, and Nextflow pulls it on first use.
-Apptainer converts the Docker image to a SIF itself, so nothing else has to be registered.
+Apptainer converts the Docker image to a SIF itself, so you have nothing else to register.
 
 The image is `linux/amd64` only. On an arm64 machine it runs under emulation, slowly.
 
@@ -94,12 +94,13 @@ nextflow run cgroza/GraffiTE -r v1.1dev -with-singularity /abs/path/graffite_lat
 `-with-singularity` overrides the image path in `nextflow.config`.
 
 The PAV entry point (`--pav`) uses a second image, `library://becklab/pav/pav:latest`
-<span class="src">`nextflow.config:340`</span>, pulled the same way. What the image contains,
-and which recipe it is built from, is on [Container contents](../reference/container.md).
+<span class="src">`nextflow.config:340`</span>, pulled the same way.
+[Container contents](../reference/container.md) lists what the image contains and which recipe it
+is built from.
 
 ### Paths and `/tmp`
 
-The config runs every container with `--contain --bind <dir>:/tmp`
+Nextflow runs every container with `--contain --bind <dir>:/tmp`
 <span class="src">`nextflow.config:176`</span>. Two consequences:
 
 - The host filesystem is hidden from the container except for what Nextflow mounts: the work
@@ -118,7 +119,7 @@ The config runs every container with `--contain --bind <dir>:/tmp`
   variable, `--container_tmp $SLURM_TMPDIR` works too.
 
 !!! warning "Do not edit the cached config to do this"
-    Before v1.1 the only route was to edit `singularity.runOptions` in
+    Before v1.1 the README's fix was to edit `singularity.runOptions` in
     `~/.nextflow/assets/cgroza/GraffiTE/nextflow.config`. That works once and then makes
     `nextflow pull` and `-latest` fail with `contains uncommitted changes`
     <span class="src">[#93](https://github.com/cgroza/GraffiTE/issues/93)</span>. Use
@@ -144,8 +145,8 @@ V. 1.1.0 - v1.1dev
 No input given. Pass one of --longreads, --bams, --assemblies, --pav, --svs (discovery), --vcf (a merged SV VCF), --RM_dir (RepeatMasker output of an earlier run) or --graffite_vcf (a pangenome.vcf from an earlier run).
 ```
 
-<span class="src">`main.nf:151`</span>. The container is only pulled when a process runs, so
-the [Quickstart](quickstart.md) is the first check of the image.
+<span class="src">`main.nf:151`</span>. Nextflow pulls the container only when a process runs,
+so the [Quickstart](quickstart.md) is the first check of the image.
 
 ---
 
@@ -155,7 +156,7 @@ the [Quickstart](quickstart.md) is the first check of the image.
 nextflow pull cgroza/GraffiTE -r v1.1dev
 ```
 
-or add `-latest` to any `nextflow run` command. If Nextflow answers
+or add `-latest` to any `nextflow run` command. If Nextflow prints
 
 ```
 cgroza/GraffiTE contains uncommitted changes -- cannot pull from repository
@@ -168,10 +169,10 @@ rm -rf ~/.nextflow/assets/cgroza/GraffiTE/
 nextflow pull cgroza/GraffiTE -r v1.1dev
 ```
 
-The image and the code are updated separately. After a code update that changes a tool, pull
+You update the image and the code separately. After a code update that changes a tool, pull
 the image again as well; the [Changelog](../changelog.md) says when that is needed.
 
-Nextflow will not notice a rebuilt image on its own. Its Singularity cache is keyed on the
+Nextflow does not check for a rebuilt image. Its Singularity cache is keyed on the
 image **name**, so it reuses a `cgroza-graffite-latest.img` left by an earlier run however many
 times `:latest` has been rebuilt since, and nothing in the log says the file is old. Delete it
 to force a fresh pull:
@@ -189,7 +190,7 @@ it with the registry:
 apptainer inspect /path/to/cgroza-graffite-latest.img | grep base.digest
 ```
 
-Comparing checksums of the `.img` files themselves does not answer the question: Apptainer's
+Do not compare checksums of the `.img` files themselves: Apptainer's
 conversion from the Docker image is not byte-reproducible, so two conversions of one image have
 different checksums.
 
@@ -199,8 +200,8 @@ different checksums.
 
 `-profile standard` runs everything on the local machine and `-profile cluster` submits each
 process to SLURM with the per-process CPU, memory and time parameters. `-profile cloud` sets
-`process.executor = 'aws'` <span class="src">`nextflow.config:7-24`</span>, which Nextflow does
-not recognise, so the run stops with `Unknown executor name: aws`. The AWS Batch executor is
+`process.executor = 'aws'` <span class="src">`nextflow.config:7-24`</span>, which is not a
+Nextflow executor, so the run stops with `Unknown executor name: aws`. The AWS Batch executor is
 called `awsbatch`, and needs your own AWS settings in a config passed with `-c`. All three
-profiles name the same image. How to size the requests is on
-[Resources and scaling](../guides/resources.md).
+profiles name the same image. [Resources and scaling](../guides/resources.md) covers how to size
+the requests.
