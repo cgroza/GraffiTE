@@ -1,8 +1,9 @@
 ---
 title: "Stage 3.1: genotyping"
 description: >-
-  How GraffiTE builds a pangenome graph from the annotated polymorphisms, maps read sets onto
-  it with PanGenie, Giraffe or GraphAligner, and merges the per-sample genotypes.
+  How GraffiTE builds a pangenome graph from the annotated polymorphisms, genotypes each read
+  set against it with PanGenie, or with Giraffe or GraphAligner and vg call, and merges the
+  per-sample genotypes.
 ---
 
 # Stage 3.1: genotyping

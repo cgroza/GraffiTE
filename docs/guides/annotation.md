@@ -1,6 +1,6 @@
 ---
 title: "Stage 2: TE annotation"
-description: How candidate SVs are scanned with RepeatMasker and ULTRA, filtered by repeat span, and annotated with TSDs and polyA tails.
+description: How GraffiTE scans candidate SVs with RepeatMasker and ULTRA, filters them by repeat span, and annotates their TSDs and polyA tails.
 ---
 
 # Stage 2: TE annotation

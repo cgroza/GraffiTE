@@ -1,8 +1,8 @@
 ---
 title: HERV-K (HML-2) biology
 description: >-
-  Proviral and solo-LTR architecture, copy-number arrays, and how GraffiTE decides which two
-  states of a locus a variant call compares.
+  Proviral and solo-LTR architecture, copy-number arrays, and how GraffiTE assigns the two
+  states of a locus that a variant call compares.
 ---
 
 # HERV-K (HML-2) biology
