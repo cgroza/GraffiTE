@@ -21,7 +21,7 @@ of samples can be genotyped at each one.
 - Genotyping: PanGenie, Giraffe, or GraphAligner and `vg call`, one merged VCF plus
   presence/absence tables per sample.
 - Methylation: with `--epigenomes`, methylation tags carried by the read BAMs are lifted onto the
-  graph and added to the genotyped calls (panmethyl submodule, Giraffe and GraphAligner only).
+  graph and added to the genotyped calls (panmethyl submodule; every graph method except PanGenie).
 
 ```mermaid
 flowchart LR
@@ -34,23 +34,70 @@ flowchart LR
 Each stage can be skipped by handing GraffiTE the output of the previous one, and the pipeline can
 be used as a plain SV annotator (`--vcf`).
 
-## Quickstart
+## What's new in 1.1
+
+- Discovery from PAV (`--pav`) or from your own per-sample SV calls (`--svs`), and Winnowmap as an
+  alternative assembly aligner.
+- Annotation: ULTRA tandem repeats and the `total_repeat_span` filter, polyA tails, an exact-match
+  TSD search on every record the repeat filter keeps, and the L1 5′ inversion and SVA VNTR checks
+  on every data set (`--mammal` is no longer needed).
+- A conservative `pangenome.trusted.vcf` subset, or with `--human` a subset of recent human mobile
+  elements and an HERV-K (HML-2) classifier, with each locus consolidated into one record.
+- Genotyping: an audit table recording what became of every allele, a trusted subset of the
+  genotyped calls, and fixes to the PanGenie path.
+- Methylation lifted onto the graph with `--epigenomes`.
+
+The command line changed in a few places (`--reads` is now `--genotype_with`). The full list is in
+[v1.0 vs v1.1](https://cgroza.github.io/GraffiTE/getting-started/v1.0-vs-v1.1/) and the
+[changelog](https://cgroza.github.io/GraffiTE/changelog/).
+
+## Requirements
+
+- Linux on x86-64. The container image is built for `linux/amd64`; on arm64 it runs under emulation.
+- Java 17 or newer and [Nextflow](https://www.nextflow.io/docs/latest/install.html). The test suite
+  runs on Nextflow 24.10.5, and `main.nf` also compiles under the strict syntax of Nextflow 26.04.
+- [Apptainer](https://apptainer.org/docs/admin/main/installation.html) or Singularity, the default,
+  or Docker with a config change.
+- The first run downloads the container image, about 2.8 GB compressed. Some steps of a genome-scale
+  run ask for 40 GB of memory or more by default; see
+  [Resources](https://cgroza.github.io/GraffiTE/guides/resources/).
+
+## Check your installation
 
 ```bash
-git clone --recurse-submodules https://github.com/cgroza/GraffiTE.git
+nextflow pull cgroza/GraffiTE -r v1.1.0.0
+tar xzf ~/.nextflow/assets/cgroza/GraffiTE/test/quick_test.tar.gz && cd graffite_quick_test
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -params-file quick_test.yaml
+bash check.sh
+```
+
+The test runs discovery, annotation and genotyping on a 195 kb synthetic genome with four
+assemblies and two short-read samples, and ends with `GraffiTE quick test: PASS`. On a machine
+where Nextflow could use 4 CPUs and 12 GB of memory, the run took 72 seconds once the image was
+downloaded. The test genotypes with giraffe, because PanGenie, the default back end, uses about
+23 GB of memory for each sample it genotypes at once.
+
+## A real-data example
+
+The repository also ships the maternal assembly of HG002 chromosome 22, with a reference, a Dfam
+library and a short-read set:
+
+```bash
+git clone --branch v1.1.0.0 --recurse-submodules https://github.com/cgroza/GraffiTE.git
 tar xzf GraffiTE/test/human_test_set.tar.gz && cd GraffiTE_testset
 nextflow run ../GraffiTE/main.nf \
   --assemblies assemblies.csv --reference hs37d5.chr22.fa \
   --TE_library human_DFAM3.6.fasta --genotype_with reads.csv
 ```
 
-Nextflow pulls the container image from `docker://cgroza/graffite:latest` on first
-use. Installation, execution profiles and the walk-through are in the documentation.
+Nextflow pulls the container image `docker://cgroza/graffite:1.1.0.0` on first use. Installation,
+execution profiles and a walk-through of this example are in the documentation.
 
 ## Documentation
 
-The documentation is at **[https://cgroza.github.io/GraffiTE](https://cgroza.github.io/GraffiTE/)**, written against the `v1.1dev`
-branch. The README on the `main` branch documents v1.0, the version described in the paper.
+The documentation is at **[https://cgroza.github.io/GraffiTE](https://cgroza.github.io/GraffiTE/)**. The v1.0 README,
+for the version described in the paper, is at the
+[`publication`](https://github.com/cgroza/GraffiTE/tree/publication) tag.
 
 | I want to… | Read |
 |---|---|
