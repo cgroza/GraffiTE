@@ -143,10 +143,10 @@ nav:
       - guides/discovery.md
       - guides/annotation.md
       - guides/genotyping.md
+      - guides/methylation.md
       - guides/human-mei.md
       - guides/skipping-work.md
       - guides/resources.md
-      - guides/methylation.md
   - Reference:
       - reference/parameters.md
       - reference/samplesheets.md

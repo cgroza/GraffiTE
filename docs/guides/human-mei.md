@@ -12,7 +12,7 @@ description: >-
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
-`--human` does two things. In Stage B it writes `pangenome.human.vcf`, a subset of
+`--human` does two things. In Stage 2 it writes `pangenome.human.vcf`, a subset of
 `pangenome.vcf` restricted to the mobile element subfamilies still active in humans, **instead
 of** `pangenome.trusted.vcf` <span class="src">`module/main.nf:595-606`</span>. Then it runs the
 HERV-K (HML-2) classifier over the callset, and after genotyping it consolidates the HERV-K loci
@@ -53,7 +53,7 @@ whitelists are comma-separated lists of bcftools regexes; each list is expanded 
 | `SINE/Alu` | `--human_alu_ids` | `^AluY` | AluY and its subfamilies (AluYa5, AluYb8, ...); drops AluS and AluJ | <span class="src">`nextflow.config:66`</span> |
 | `LINE/L1` | `--human_l1_ids` | `^L1HS` | L1HS only; add `^L1PA2` to relax | <span class="src">`nextflow.config:67`</span> |
 | `Retroposon/SVA` | `--human_sva_ids` | `^SVA_[DEF]` | SVA_D, SVA_E, SVA_F | <span class="src">`nextflow.config:68`</span> |
-| `Simple_repeat` | `--human_sva_ids` | `^SVA_[DEF]` | the `SVA_*(VNTR_only)` records that Stage B reclassified as `Simple_repeat`; see [SVA VNTR polymorphisms](../background/sva-vntr.md) | <span class="src">`module/main.nf:540`</span> |
+| `Simple_repeat` | `--human_sva_ids` | `^SVA_[DEF]` | the `SVA_*(VNTR_only)` records that Stage 2 reclassified as `Simple_repeat`; see [SVA VNTR polymorphisms](../background/sva-vntr.md) | <span class="src">`module/main.nf:540`</span> |
 | `LTR/ERVK` | `--human_hervk_ids` | `^HERVK-int,^HERVK$,^LTR5_Hs,^LTR5A,^LTR5B` | the HML-2 internal region under either library name, and the LTR5 family; `^HERVK$` is anchored at both ends so that HERVK9-int, HERVK11-int and HERVK14-int, which are other lineages, stay out | <span class="src">`nextflow.config:69-77`</span> |
 
 An empty string keeps the whole class <span class="src">`module/main.nf:536`</span>.

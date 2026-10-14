@@ -25,7 +25,7 @@ repository's `bin/` on `PATH` inside every task. <span class="src">`nextflow.con
 
 ```mermaid
 flowchart TD
-    subgraph SA["Stage A · discovery"]
+    subgraph SA["Stage 1 · SV search"]
         direction TB
         bs["break_scaffold"] --> ma["map_asm"] --> sv["svim_asm"]
         ml["map_longreads"] --> ssc["sniffles_sample_call"] --> spc["sniffles_population_call"]
@@ -44,7 +44,7 @@ flowchart TD
     svsIn(["--svs"]) --> tm
     vcfIn(["--vcf"]) --> tm
 
-    subgraph SB["Stage B · annotation"]
+    subgraph SB["Stage 2 · TE annotation"]
         direction TB
         spl["split_repeatmask"] --> rm["repeatmask_VCF"]
         rm --> tp["tsd_prep"] --> ts["tsd_search"] --> tr["tsd_report"] --> cr["concat_repeatmask"]
@@ -54,7 +54,7 @@ flowchart TD
     tm --> spl
     rmdIn(["--RM_dir"]) --> tp
 
-    subgraph SC["Stage C · genotyping"]
+    subgraph SC["Stage 3 · graph mapping"]
         direction TB
         b2f["bam_to_fastq"]
         pi["pangenie_index"] --> pg["pangenie"]
@@ -105,7 +105,7 @@ Dashed edges are taken only when the labelled parameter is set. `--graph`, `--gr
 
 ---
 
-## Stage A: discovery
+## Stage 1: SV search
 
 | Process | What it runs | Outputs | Published to | Resources |
 |---|---|---|---|---|
@@ -120,7 +120,7 @@ Dashed edges are taken only when the labelled parameter is set. `--graph`, `--gr
 
 ---
 
-## Stage B: annotation
+## Stage 2: TE annotation
 
 | Process | What it runs | Outputs | Published to | Resources |
 |---|---|---|---|---|
@@ -134,7 +134,7 @@ Dashed edges are taken only when the labelled parameter is set. `--graph`, `--gr
 
 ---
 
-## Stage C: genotyping
+## Stage 3: graph mapping and genotyping
 
 | Process | What it runs | Outputs | Published to | Resources |
 |---|---|---|---|---|
@@ -154,7 +154,7 @@ one. Other names for the sex chromosomes get ploidy two. <span class="src">`modu
 
 ---
 
-## Methylation processes
+## Stage 3.2: epigenetic mapping processes
 
 Imported from `panmethyl/module/main.nf` at submodule commit `f0aa2c0`; `--epigenomes` only, and
 only inside the giraffe, graphaligner or precomputed branch. Their resources are fixed in
@@ -172,7 +172,7 @@ only inside the giraffe, graphaligner or precomputed branch. Their resources are
 | `merge_BED` <span class="src">`panmethyl/module/main.nf:45`</span> | Pastes the per-sample columns into one table. | `merged_epiannoation.bed` | `annotation/` | `cpus 1`, `40 GB`, `6 h` <span class="src">`nextflow.config:334-338`</span> |
 
 The methylation directories are published directly under `--out`, next to the numbered stage
-directories. See [Methylation](../guides/methylation.md) and
+directories. See [Epigenetic mapping](../guides/methylation.md) and
 [Output files](outputs.md).
 
 ---

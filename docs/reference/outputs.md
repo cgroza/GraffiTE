@@ -64,10 +64,10 @@ Which subset appears depends on the entry point and the graph method:
 
 ```mermaid
 flowchart LR
-    A["Stage A"] --> D1["1_SV_search/"]
-    B["Stage B"] --> D2["2_Repeat_Filtering/"]
+    A["Stage 1"] --> D1["1_SV_search/"]
+    B["Stage 2"] --> D2["2_Repeat_Filtering/"]
     B --> D3["3_TSD_search/"]
-    C["Stage C"] --> D4["4_Genotyping/"]
+    C["Stage 3"] --> D4["4_Genotyping/"]
     C -.->|"giraffe · graphaligner"| D5["GraffiTE_graph/"]
     C -.->|"giraffe · graphaligner"| D6["GraffiTE_alignments/"]
 
@@ -102,12 +102,12 @@ flowchart LR
 
 ## 1_SV_search
 
-Stage A output. Present whenever discovery ran, and with `--vcf`, where the directory holds
+Stage 1 output. Present whenever discovery ran, and with `--vcf`, where the directory holds
 only `SVs.vcf`. Absent with `--RM_dir` and `--graffite_vcf`: neither runs the merge.
 
 | File | Contents | Source |
 |---|---|---|
-| `SVs.vcf` | The merged, non-redundant set of insertions and deletions from every caller and sample, sorted, with `SVLEN` recomputed from the alleles and IDs shortened to `<caller id>_<n>`. Missing genotypes are set to `0`. This is the file Stage B annotates. With `--vcf`, it is a copy of the input. | <span class="src">`module/main.nf:190,198,275-277`</span> |
+| `SVs.vcf` | The merged, non-redundant set of insertions and deletions from every caller and sample, sorted, with `SVLEN` recomputed from the alleles and IDs shortened to `<caller id>_<n>`. Missing genotypes are set to `0`. This is the file Stage 2 annotates. With `--vcf`, it is a copy of the input. | <span class="src">`module/main.nf:190,198,275-277`</span> |
 | `svim-asm_individual_VCFs/<sample>.vcf.gz` | One file per assembly: svim-asm calls of at least 100 bp, insertions and deletions only, sorted. | <span class="src">`module/main.nf:172,184-185`</span> |
 | `sniffles2_individual_VCFs/<sample>.vcf.gz` | One file per read set, split from the Sniffles2 population call of at least 100 bp, insertions and deletions only, symbolic alleles dropped. | <span class="src">`module/main.nf:115,128-132`</span> |
 | `pav_individual_VCFs/sv_<sample>.vcf.gz` | One file per sample: PAV calls with `abs(SVLEN)` above 50 bp. PAV's own filters (`TRIM`, `COMPOUND`) stay in `FILTER`. | <span class="src">`module/main.nf:138,168`</span> |
@@ -119,7 +119,7 @@ The `--svs` input is passed straight to the merge and is not copied here.
 One directory per contig of `SVs.vcf`, numbered by task index, so `1/` is not necessarily
 chromosome 1. Each holds the RepeatMasker and ULTRA run on that contig's variants and the
 intermediate tables the span filter was computed from. The whole directory is what `--RM_dir`
-reads back in to skip Stage B's masking step.
+reads back in to skip Stage 2's masking step.
 <span class="src">`module/main.nf:636-650`, `main.nf:133-142`</span>
 
 | File | Contents | Source |
@@ -137,7 +137,7 @@ reads back in to skip Stage B's masking step.
 
 ## 3_TSD_search
 
-Stage B's deliverables. `concat_repeatmask` writes everything except the `hervk_*` files, then,
+Stage 2's deliverables. `concat_repeatmask` writes everything except the `hervk_*` files, then,
 under `--human`, `hervk_annotate` writes its own files into the same directory and overwrites
 `pangenome.human.vcf` and `pangenome.presence-absence_human.tsv` with annotated versions. The
 `pangenome.human.vcf` you find on disk is therefore the HERV-K-annotated one.
@@ -146,7 +146,7 @@ under `--human`, `hervk_annotate` writes its own files into the same directory a
 | File | Contents | Source |
 |---|---|---|
 | `pangenome.vcf` | Every variant from every contig that passed the span filter, with REF and ALT re-read from the reference, `TSD` and `polyA` added, and the caller's `FILTER` kept. This file induces the pangenome graph, so nothing downstream modifies it. | <span class="src">`module/main.nf:575-590`</span> |
-| `pangenome.trusted.vcf` | Default runs only. The records of `pangenome.vcf` that pass the trusted-subset expression in [Stage B](../guides/annotation.md). Not written under `--human`. | <span class="src">`module/main.nf:13-22,595-599`</span> |
+| `pangenome.trusted.vcf` | Default runs only. The records of `pangenome.vcf` that pass the trusted-subset expression in [Stage 2](../guides/annotation.md). Not written under `--human`. | <span class="src">`module/main.nf:13-22,595-599`</span> |
 | `pangenome.human.vcf` | `--human` only. The records that pass the pME filter in [Human MEIs](../guides/human-mei.md), with the HERV-K classifier fields and locus flags added by `hervk_annotate`. `make_graph` and `pangenie_index` take `pangenome.vcf`, not this file, so the graph is the same under `--human`. `hervk_reconcile` reads this file to consolidate HERV-K loci in the genotyped VCF. | <span class="src">`module/main.nf:605`, `module/main.nf:309,381-385`, `main.nf:167,201,213,288`</span> |
 | `pangenome.human.consolidated.vcf` | `--human` only. `pangenome.human.vcf` with each HERV-K locus collapsed onto one multi-allelic record, genotypes taken from the assemblies. | <span class="src">`module/main.nf:398-404`</span> |
 | `pangenome.presence-absence.tsv`, `..._trusted.tsv`, `..._human.tsv` | Flat tables of the matching VCF; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:593,599,606`</span> |
@@ -163,7 +163,7 @@ under `--human`, `hervk_annotate` writes its own files into the same directory a
 
 ## 4_Genotyping
 
-Stage C's deliverables, present when `--genotype` is true (the default).
+Stage 3's deliverables, present when `--genotype` is true (the default).
 
 | File | Contents | Source |
 |---|---|---|
@@ -231,7 +231,7 @@ rewritten by `hervk_annotate` with the classifier's columns appended.
 
 These stay in `work/` and vanish with it:
 
-- The alignments of Stage A: `map_asm` and `map_longreads` BAMs, and the `.snf` files of `sniffles_sample_call`.
+- The alignments of Stage 1: `map_asm` and `map_longreads` BAMs, and the `.snf` files of `sniffles_sample_call`.
 - `truvari_merge`'s intermediates: the stripped and merged inputs, the shards, the collapsed shards.
 - The per-contig split of `SVs.vcf` and the TSD working files (`indels.fa`, the flank and end FASTAs, per-batch summaries).
 - The PanGenie index (`pangenie_index/`) and the multi-allelic graph VCF it was built from.

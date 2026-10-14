@@ -26,10 +26,10 @@ cd GraffiTE_testset
 
 | File | Role |
 |---|---|
-| `HG002.mat.cur.20211005_chr22.fasta.gz` | The maternal HG002 assembly, chromosome 22 only. Stage A input. |
+| `HG002.mat.cur.20211005_chr22.fasta.gz` | The maternal HG002 assembly, chromosome 22 only. Stage 1 input. |
 | `hs37d5.chr22.fa` | Reference, chromosome 22 of hs37d5. |
 | `human_DFAM3.6.fasta` | TE consensus library for RepeatMasker. |
-| `HG002.100k.set1.Illumina.fastq.gz` | 100 k Illumina reads from HG002. Stage C input. |
+| `HG002.100k.set1.Illumina.fastq.gz` | 100 k Illumina reads from HG002. Stage 3 input. |
 | `assemblies.csv` | `path,sample` samplesheet naming the assembly `HG002.mat`. |
 | `reads.csv` | `path,sample` samplesheet naming the read set `short_test1`. |
 | `out/` | Output of a run made before v1.1. See the warning below. |
@@ -126,6 +126,6 @@ file. It is safe to delete once you have what you need, and it is what `-resume`
 ## Next steps
 
 - [Choosing your inputs](choosing-your-inputs.md) maps your own data to the entry flags.
-- [Stage A: discovery](../guides/discovery.md) explains what happened to the assembly.
+- [Stage 1: SV search](../guides/discovery.md) explains what happened to the assembly.
 - [Resources and scaling](../guides/resources.md) covers whole genomes and clusters.
 - [Human MEIs](../guides/human-mei.md) is the `--human` filter you will want on human data.

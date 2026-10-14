@@ -27,7 +27,7 @@ given point. Choose the flag by asking what you already have.
 
 A fourth, optional step lifts methylation onto the graph (`--epigenomes`), only on the
 `giraffe`, `graphaligner` and `precomputed` methods <span class="src">`main.nf:206,234`</span>. See
-[Methylation](../guides/methylation.md).
+[Epigenetic mapping](../guides/methylation.md).
 
 ---
 
@@ -122,7 +122,7 @@ flags are for runs whose work directory is gone. See [Resuming and skipping work
 
 ## Where to read next
 
-- [Stage A: discovery](../guides/discovery.md) for the callers and the merge.
-- [Stage B: repeat annotation](../guides/annotation.md) for RepeatMasker, ULTRA, TSDs and the filters.
-- [Stage C: genotyping](../guides/genotyping.md) for PanGenie, Giraffe and GraphAligner.
+- [Stage 1: SV search](../guides/discovery.md) for the callers and the merge.
+- [Stage 2: TE annotation](../guides/annotation.md) for RepeatMasker, ULTRA, TSDs and the filters.
+- [Stage 3.1: genotyping](../guides/genotyping.md) for PanGenie, Giraffe and GraphAligner.
 - [Parameters](../reference/parameters.md) for every flag and its default.

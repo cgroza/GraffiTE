@@ -1,25 +1,25 @@
 ---
-title: Stage B, repeat annotation
+title: "Stage 2: TE annotation"
 description: How candidate SVs are scanned with RepeatMasker and ULTRA, filtered by repeat span, and annotated with TSDs and polyA tails.
 ---
 
-# Stage B: repeat annotation
+# Stage 2: TE annotation
 
 !!! info "Applies to GraffiTE v1.1"
     Verified against `v1.1dev` at commit `e687712`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
-Stage B takes the merged SV set from [Stage A](discovery.md) (or the VCF you gave it) and answers
+Stage 2 takes the merged SV set from [Stage 1](discovery.md) (or the VCF you gave it) and answers
 two questions about each variant: is its sequence mostly repeat, and if so, what repeat. Variants
 that fail the first question are discarded. The rest come out as `pangenome.vcf` with the
 annotation fields described in [VCF fields](../reference/vcf-fields.md), plus a filtered subset.
 
-## What Stage B does
+## What Stage 2 does
 
 ```mermaid
 flowchart TD
-    IN["SVs.vcf<br/><small>all INS/DEL from Stage A</small>"]
+    IN["SVs.vcf<br/><small>all INS/DEL from Stage 1</small>"]
     RM["RepeatMasker<br/><small>vs --TE_library</small>"]
     UL["ULTRA<br/><small>tandem repeats</small>"]
     UN["Union of intervals<br/><small>non-redundant, per variant</small>"]
@@ -202,7 +202,7 @@ For human data, `--human` replaces this subset with a filter on recent subfamili
 
 ## Parallelism and batching
 
-Stage B parallelises twice.
+Stage 2 parallelises twice.
 
 - **By contig.** `split_repeatmask` writes one VCF per contig of the merged set and
   `repeatmask_VCF` runs on each, with the `repeatmasker_*` resource parameters. A genome with
@@ -216,5 +216,5 @@ Stage B parallelises twice.
   <span class="src">`main.nf:157-162`, `nextflow.config:56`</span>
 
 `concat_repeatmask` then joins every contig into `pangenome.vcf`. Everything in this stage is
-recoverable with `-resume`, and a finished Stage B can be re-entered with `--RM_dir` or
+recoverable with `-resume`, and a finished Stage 2 can be re-entered with `--RM_dir` or
 `--graffite_vcf`; see [Resuming and skipping work](skipping-work.md).

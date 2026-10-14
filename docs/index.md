@@ -29,66 +29,104 @@ you which of them are TEs.
 
 ## The three stages
 
-Every GraffiTE run is some subset of three stages in series, plus an optional fourth. Which stages
-run depends on which inputs you supply.
+Every GraffiTE run is some part of three stages in series. The third has two parts: genotyping,
+and an optional epigenetic mapping. Which stages run depends on the inputs you supply.
 
-```mermaid
-flowchart TB
-    subgraph A["Stage A · Discovery"]
-        direction TB
-        A1["Assemblies<br/><code>--assemblies</code> · <code>--pav</code>"]
-        A2["Long reads<br/><code>--longreads</code> · <code>--bams</code>"]
-        A3["Existing SV calls<br/><code>--svs</code>"]
-        A1 --> AM["Merge<br/><small>truvari collapse</small>"]
-        A2 --> AM
-        A3 --> AM
-    end
+<div class="gt-pipeline">
 
-    subgraph B["Stage B · Annotation"]
-        direction TB
-        B1["RepeatMasker + ULTRA<br/><small>what repeat is it?</small>"]
-        B2["Repeat-span filter<br/><small>is it mostly repeat?</small>"]
-        B3["TSD + polyA<br/><small>does it look like a real MEI?</small>"]
-        B1 --> B2 --> B3
-    end
+<div class="gt-band gt-input">
+<p class="gt-band-label"><span class="gt-kicker">Input</span> Your data</p>
+<div class="gt-cards">
+<div class="gt-card"><b>Long reads</b><span>ONT or PacBio, FASTQ</span><code>--longreads</code></div>
+<div class="gt-card"><b>Aligned long reads</b><span>BAM, already mapped to the reference</span><code>--bams</code></div>
+<div class="gt-card"><b>Genome assemblies</b><span>One FASTA per sample or haplotype</span><code>--assemblies</code></div>
+<div class="gt-card"><b>Phased assemblies</b><span>Haplotype pairs, called with PAV</span><code>--pav</code><em class="gt-new">new in v1.1</em></div>
+<div class="gt-card gt-optional"><b>SV calls you already have</b><span>Sequence-resolved VCFs: one per sample joins the merge; one merged set skips stage 1</span><code>--svs</code> <code>--vcf</code><em class="gt-new">--svs new in v1.1</em></div>
+</div>
+</div>
 
-    subgraph C["Stage C · Genotyping"]
-        direction TB
-        C1["Build pangenome graph"]
-        C2["Compare reads to graph<br/><small>k-mers or alignment</small>"]
-        C3["Call genotypes"]
-        C1 --> C2 --> C3
-    end
+<div class="gt-band gt-stage gt-s1">
+<p class="gt-band-label"><span class="gt-pill">Stage 1</span> SV search</p>
+<p class="gt-band-sub">Find insertions and deletions against a reference.</p>
+<div class="gt-cards">
+<div class="gt-card"><b>Map reads to the reference</b><code>minimap2</code> <code>winnowmap</code><span>BAMs enter here, already mapped</span></div>
+<div class="gt-card"><b>Call SVs per sample, then jointly</b><code>Sniffles2</code></div>
+<div class="gt-card"><b>Align assemblies to the reference</b><code>minimap2</code> <code>winnowmap</code></div>
+<div class="gt-card"><b>Call SVs from each assembly</b><code>svim-asm</code></div>
+<div class="gt-card"><b>Call haplotype-resolved SVs</b><code>PAV</code><span>PAV aligns and calls</span><em class="gt-new">new in v1.1</em></div>
+</div>
+<div class="gt-card gt-wide"><b>Merge and collapse redundant calls across samples and callers</b><code>truvari collapse</code><span>replaces SURVIVOR</span><em class="gt-new">new in v1.1</em></div>
+<p class="gt-files"><code class="gt-file">SVs.vcf</code></p>
+</div>
 
-    V["Merged SV VCF<br/><code>--vcf</code>"]
+<div class="gt-band gt-stage gt-s2">
+<p class="gt-band-label"><span class="gt-pill">Stage 2</span> TE annotation</p>
+<p class="gt-band-sub">Keep the SVs made of transposable elements, and describe them.</p>
+<div class="gt-cards gt-steps">
+<div class="gt-card"><b>Annotate each SV with your TE library</b><code>RepeatMasker</code> <code>ULTRA</code></div>
+<div class="gt-card"><b>Keep SVs mostly covered by repeats</b><span>more than 80 % of the length by default</span><code>--repeat_span_cutoff</code></div>
+<div class="gt-card"><b>Look for hallmarks of transposition</b><span>target site duplication, poly-A tail</span></div>
+</div>
+<div class="gt-cards">
+<div class="gt-card gt-optional"><b>Default</b><span>every TE polymorphism, plus a trusted subset: one TE hit, at least 250 bp, little tandem repeat, a poly-A tail on LINE, SINE and SVA</span></div>
+<div class="gt-card gt-optional"><b>Human mode</b><span>filters for young Alu, L1, SVA and HERV-K (HML-2) insertions</span><code>--human</code><em class="gt-new">new in v1.1</em></div>
+</div>
+<p class="gt-files"><code class="gt-file">pangenome.vcf</code> <code class="gt-file">pangenome.trusted.vcf</code> or, with <code>--human</code>, <code class="gt-file">pangenome.human.vcf</code>, each with presence-absence tables</p>
+</div>
 
-    AM --> B1
-    V --> B1
-    B3 --> C1
+<p class="gt-constant">Stages 1 and 2 also read the reference genome (FASTA, <code>--reference</code>) and a TE consensus library (FASTA in RepeatMasker format, <code>&gt;Family#Class/Superfamily</code>, <code>--TE_library</code>).</p>
 
-    A ~~~ B ~~~ C
-```
+<div class="gt-band gt-stage gt-s3">
+<p class="gt-band-label"><span class="gt-pill">Stage 3</span> Graph mapping</p>
+<p class="gt-band-sub">Build a pangenome graph of the TE polymorphisms and map any read set onto it.</p>
+<div class="gt-card gt-wide"><b>Build a variation graph: the reference plus every TE polymorphism as an alternative path</b><code>vg autoindex</code> <code>vg construct</code> <code>PanGenie-index</code><span>reads to genotype: any number of samples, short or long reads, FASTQ or BAM, <code>--genotype_with</code></span></div>
+<div class="gt-sub">
+<div class="gt-subpanel gt-s31">
+<p class="gt-band-label"><span class="gt-pill">3.1</span> Genotyping</p>
+<div class="gt-card"><b>Map each sample's reads to the graph</b><code>vg giraffe</code> <code>GraphAligner</code><span>or count k-mers with <code>PanGenie</code>, without alignment</span></div>
+<div class="gt-card"><b>Call presence or absence of every TE allele per sample</b><code>vg call</code></div>
+<div class="gt-card"><b>Merge the samples into one genotype VCF that keeps the stage 2 annotations</b></div>
+<div class="gt-card gt-optional"><b>Consolidate each HERV-K locus into one record</b><code>--human</code></div>
+</div>
+<div class="gt-subpanel gt-s32">
+<p class="gt-band-label"><span class="gt-pill">3.2</span> Epigenetic mapping with panmethyl <em class="gt-new">new in v1.1</em></p>
+<div class="gt-card"><b>Reuse the graph alignments of 3.1</b><span>giraffe, GraphAligner or precomputed, from BAMs carrying MM/ML tags; 5mC by default</span><code>--epigenomes</code></div>
+<div class="gt-card"><b>Lift each read's modification calls onto the graph nodes it covers</b><span>including TE sequence absent from the reference</span></div>
+<div class="gt-card"><b>Summarise methylation per TE allele and sample in the genotype VCF</b><span>level, modified sites and depth; optional BED regions</span></div>
+</div>
+</div>
+</div>
 
-**Stage A, discovery.** Each assembly or read set is aligned to the reference, structural
+<div class="gt-band gt-output">
+<p class="gt-band-label"><span class="gt-kicker">Output</span> One VCF for every sample</p>
+<p>The presence or absence of every TE polymorphism in every sample, with the stage 2 annotations: <code class="gt-file">GraffiTE.merged.genotypes.vcf.gz</code>, and with <code>--human</code> <code class="gt-file">GraffiTE.merged.genotypes.human.vcf.gz</code>. With methylation mapped, each genotype also carries its methylation level, number of modified sites and depth.</p>
+</div>
+
+<p class="gt-legend"><em class="gt-new">new in v1.1</em> <span class="gt-legend-dash">dashed: optional, or a shortcut</span> <code>--flag</code> command-line option</p>
+
+</div>
+
+**Stage 1, SV search.** Each assembly or read set is aligned to the reference, structural
 variants are called, and only insertions and deletions are kept. Multiple callers and multiple
 input types can be mixed in one run; everything is merged into a single non-redundant SV set.
 
-**Stage B, annotation.** Every candidate SV allele is scanned against your TE library with
+**Stage 2, TE annotation.** Every candidate SV allele is scanned against your TE library with
 RepeatMasker and against itself with ULTRA (tandem repeats). Variants that are not mostly repeat
 are discarded. Survivors are annotated with their repeat identity, target site duplications and
 polyA tails.
 
-**Stage C, genotyping.** The annotated polymorphisms are induced into a pangenome graph as
+**Stage 3.1, genotyping.** The annotated polymorphisms are induced into a pangenome graph as
 bubbles, and each sample is genotyped at every polymorphism. The default back end,
 `--graph_method pangenie`, counts k-mers against a PanGenie index and never aligns; `giraffe`
 and `graphaligner` map the reads onto the graph and call genotypes with `vg call`.
 
-**Methylation, optional.** With `--epigenomes`, on the `giraffe`, `graphaligner` and
-`precomputed` graph methods (every method but `pangenie`), the base modifications carried by the
-genotyping BAMs are lifted onto the graph and summarised per polymorphism. This step lives in the
-`panmethyl` submodule. See [Methylation](guides/methylation.md).
+**Stage 3.2, epigenetic mapping, optional.** With `--epigenomes`, on the `giraffe`,
+`graphaligner` and `precomputed` graph methods (every method but `pangenie`), the base
+modifications carried by the genotyping BAMs are lifted onto the graph and summarised per
+polymorphism. This step lives in the `panmethyl` submodule. See
+[Epigenetic mapping](guides/methylation.md).
 
-Stage C is optional (`--genotype false`). Stages A and B can each be skipped by supplying their
+Stage 3 is optional (`--genotype false`). Stages 1 and 2 can each be skipped by supplying their
 outputs directly; see [Resuming and skipping work](guides/skipping-work.md).
 
 ---
@@ -141,7 +179,7 @@ Where the codebase uses a term loosely, this table states the meaning that appli
 | **Locus** (HERV-K) | With `--human`, the set of records that describe the same HML-2 element. Two records share a locus when they touch the same reference HML-2 element, or when their footprints lie within `--hervk_locus_window` (`1200` bp) of each other. Named by the `HERVK_LOCUS` INFO field. |
 | **Consolidated VCF** | With `--human`, a VCF in which each HERV-K locus is one record with per-allele states (`pangenome.human.consolidated.vcf`, and `GraffiTE.merged.genotypes.human.vcf.gz` after genotyping). |
 | **Precomputed** | The `--graph_method precomputed` mode: no graph is built and no reads are mapped; the run reuses a `--graph` directory with `--vcfs` or `--graph_alignments` from an earlier run. |
-| **Stage A / B / C** | Discovery / annotation / genotyping, as above. |
+| **Stage 1 / 2 / 3** | SV search / TE annotation / graph mapping (3.1 genotyping, 3.2 epigenetic mapping), as above. |
 
 ---
 
@@ -173,7 +211,7 @@ Where the codebase uses a term loosely, this table states the meaning that appli
 
     The `--human` filter and the HERV-K classifier.
 
-- :material-flask-outline: **[Methylation](guides/methylation.md)**
+- :material-flask-outline: **[Epigenetic mapping](guides/methylation.md)**
 
     Lift base modifications from the genotyping BAMs onto the graph with `--epigenomes`.
 

@@ -1,20 +1,20 @@
 ---
-title: Stage C: genotyping
+title: "Stage 3.1: genotyping"
 description: >-
   How GraffiTE builds a pangenome graph from the annotated polymorphisms, maps read sets onto
   it with PanGenie, Giraffe or GraphAligner, and merges the per-sample genotypes.
 ---
 
-# Stage C: genotyping
+# Stage 3.1: genotyping
 
 !!! info "Applies to GraffiTE v1.1"
     Verified against `v1.1dev` at commit `e687712`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
-Stage C takes `pangenome.vcf` from [Stage B](annotation.md) and the read sets listed in
+Stage 3 takes `pangenome.vcf` from [Stage 2](annotation.md) and the read sets listed in
 `--genotype_with`, builds a graph in which every polymorphism is a bubble, and genotypes each
-sample at each bubble. It runs by default; `--genotype false` stops after Stage B
+sample at each bubble. It runs by default; `--genotype false` stops after Stage 2
 <span class="src">`main.nf:188`</span>.
 
 ---
@@ -60,7 +60,7 @@ A `path` ending in `.bam` goes through `bam_to_fastq` first: alignment tags are 
 file is name-sorted and converted back to FASTQ with `samtools fastq`
 <span class="src">`main.nf:192-197`, `module/main.nf:806-822`</span>. The alignments in the BAM
 are not used; only the reads are. Methylation tags in such a BAM are read separately, see
-[Methylation](methylation.md).
+[Epigenetic mapping](methylation.md).
 
 ---
 
@@ -195,7 +195,7 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
   included.
 - `-a` and `-A` request a call at every snarl, reference calls and nested snarls included, so that
   every sample has a genotype at every bubble and the merge lines up. Check `vg call --help` for
-  the exact wording in your vg version; the container ships vg 1.70.0.
+  the exact wording in your vg version; the container ships vg 1.77.0.
 - `-m 2,4` is `--min_support`, passed to vg as its minimum allele and site support
   <span class="src">`nextflow.config:122`</span>.
 - `-R chrX:1,chrY:1` sets ploidy 1 on the contigs named **exactly** `chrX` and `chrY`. Every other
@@ -299,6 +299,6 @@ FORMAT fields beyond `GT` are whatever `vg call` or PanGenie wrote; see
 ## Next
 
 - [Human MEIs](human-mei.md): the HERV-K consolidation that follows genotyping under `--human`
-- [Methylation](methylation.md): lifting base-modification calls onto the graph
+- [Epigenetic mapping](methylation.md): lifting base-modification calls onto the graph
 - [Resuming and skipping work](skipping-work.md): `--graph`, `--graph_alignments`, `--vcfs`
 - [Output files](../reference/outputs.md)

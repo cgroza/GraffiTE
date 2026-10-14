@@ -1,18 +1,18 @@
 ---
-title: Stage A: discovery
+title: "Stage 1: SV search"
 description: >-
   How GraffiTE finds candidate structural variants from assemblies, long reads,
   PAV, or SV calls you already have, and how they are merged.
 ---
 
-# Stage A: discovery
+# Stage 1: SV search
 
 !!! info "Applies to GraffiTE v1.1"
     Verified against `v1.1dev` at commit `e687712`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
-Stage A turns your input data into **one non-redundant set of insertion and deletion calls relative
+Stage 1 turns your input data into **one non-redundant set of insertion and deletion calls relative
 to the reference genome**. Everything downstream operates on that set.
 
 Four backends can produce those calls, plus two ways to supply calls you already have. They are
@@ -35,14 +35,14 @@ flowchart TD
     Q1 -->|"Yes, PAV's caller"| PV["<code>--pav</code><br/><small>PAV, own container</small>"]
 
     Q2 -->|"Per sample, want them merged"| SV["<code>--svs</code><br/><small>straight to merge</small>"]
-    Q2 -->|"A single merged VCF"| VC["<code>--vcf</code><br/><small>skips Stage A entirely</small>"]
+    Q2 -->|"A single merged VCF"| VC["<code>--vcf</code><br/><small>skips Stage 1 entirely</small>"]
 
     SA --> M["<b>truvari merge</b><br/><small>SVs.vcf</small>"]
     PV --> M
     LR --> M
     BM --> M
     SV --> M
-    M --> B["Stage B · annotation"]
+    M --> B["Stage 2 · TE annotation"]
     VC --> B
 
     classDef entry fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
@@ -52,7 +52,7 @@ flowchart TD
 ```
 
 !!! warning "`--vcf` is not additive"
-    Every other entry point above can be combined freely. `--vcf` cannot: it bypasses Stage A, so
+    Every other entry point above can be combined freely. `--vcf` cannot: it bypasses Stage 1, so
     the workflow refuses it beside any discovery flag before anything runs
     <span class="src">`main.nf:46-49`</span>:
 
@@ -194,13 +194,13 @@ path,sample
 
 No process runs: the VCFs go straight into the merge. GraffiTE does not re-filter them by size or
 type, so **filter to `INS`/`DEL` yourself** if your caller emits other SV classes; anything else
-will be carried into Stage B and annotated as if it were an indel.
+will be carried into Stage 2 and annotated as if it were an indel.
 
 ---
 
 ## From a single merged VCF: `--vcf`
 
-Skips Stage A. The VCF is passed through `truvari_merge` in pass-through mode (no collapsing, IDs
+Skips Stage 1. The VCF is passed through `truvari_merge` in pass-through mode (no collapsing, IDs
 preserved) and goes directly to annotation. This is the "use GraffiTE purely as a TE annotator"
 entry point.
 
@@ -242,7 +242,7 @@ For the multi-sample case:
 !!! note "Genotypes at this stage are discovery genotypes"
     `SVs.vcf` carries per-sample genotypes derived from *which assembly or read set the call came
     from*, with missing calls set to `0`. They are not the product of read-level genotyping. That
-    is Stage C. Absence in this VCF means "not called in that sample", which is not the same as
+    is Stage 3. Absence in this VCF means "not called in that sample", which is not the same as
     "confidently absent".
 
 !!! note "Merging borrows the svim-asm resource knobs"
@@ -252,12 +252,12 @@ For the multi-sample case:
 
 ---
 
-## What Stage A does not do
+## What Stage 1 does not do
 
 - **No size ceiling.** The 100 bp floor comes from svim-asm and Sniffles2; on the PAV path the
   floor is GraffiTE's own \|SVLEN\| > 50 filter. Nothing caps the top end.
-- **No repeat awareness.** Stage A is a plain SV caller pipeline. Nothing here knows what a TE is.
-  That is entirely [Stage B](annotation.md).
+- **No repeat awareness.** Stage 1 is a plain SV caller pipeline. Nothing here knows what a TE is.
+  That is entirely [Stage 2](annotation.md).
 - **INS and DEL only from svim-asm and Sniffles2.** `svim_asm` runs svim-asm with
   `--types INS,DEL` <span class="src">`module/main.nf:184`</span>, and
   `sniffles_population_call` keeps only `SVTYPE == INS` or `SVTYPE == DEL`
@@ -270,6 +270,6 @@ For the multi-sample case:
 
 ## Next
 
-- [Stage B: repeat annotation](annotation.md), what happens to these calls next
+- [Stage 2: TE annotation](annotation.md), what happens to these calls next
 - [Samplesheet formats](../reference/samplesheets.md), the exact column schemas
 - [Parameters](../reference/parameters.md), every discovery parameter

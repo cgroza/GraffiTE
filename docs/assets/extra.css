@@ -102,3 +102,71 @@
 .gt-masthead img { max-width: min(560px, 90%); height: auto; }
 .gt-tagline { text-align: center; font-size: 1.05rem; font-weight: 700; margin-bottom: 1.6rem; }
 [data-md-color-scheme="slate"] .gt-masthead img { content: url("graffite-logo-dark.png"); }
+
+/* The pipeline on the home page, laid out like the v1.1 poster: the input, the three stages in
+   their colors (1 orange, 2 coral, 3 navy with 3.2 in teal), then the output. Text and card
+   colors come from Material's variables, so the panels follow the theme toggle. */
+.md-typeset .gt-pipeline { margin: 1rem 0 1.6rem; font-size: .72rem; line-height: 1.45; }
+.md-typeset .gt-pipeline p { margin: 0; }
+.gt-band { position: relative; border-radius: .6rem; padding: .7rem .8rem; margin: 0 0 1.2rem; }
+.gt-band:not(:first-child)::before {
+  content: ""; position: absolute; top: -1rem; left: 50%; margin-left: -.35rem;
+  border: .35rem solid transparent; border-top-color: var(--md-default-fg-color--lighter);
+}
+.gt-input, .gt-output { border: 1px solid var(--md-default-fg-color--lightest); }
+.gt-s1 { background: rgba(245, 133, 31, .10); }
+.gt-s2 { background: rgba(242, 82, 63, .10); }
+.gt-s3 { background: rgba(35, 69, 154, .05); border: 1px solid rgba(35, 69, 154, .35); }
+.gt-s31 { background: rgba(35, 69, 154, .10); }
+.gt-s32 { background: rgba(47, 179, 179, .14); }
+[data-md-color-scheme="slate"] .gt-s1 { background: rgba(245, 133, 31, .16); }
+[data-md-color-scheme="slate"] .gt-s2 { background: rgba(242, 82, 63, .16); }
+[data-md-color-scheme="slate"] .gt-s3 { background: rgba(110, 140, 220, .06); border-color: rgba(110, 140, 220, .45); }
+[data-md-color-scheme="slate"] .gt-s31 { background: rgba(110, 140, 220, .16); }
+[data-md-color-scheme="slate"] .gt-s32 { background: rgba(47, 179, 179, .18); }
+.md-typeset .gt-band-label {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+  font-size: .95rem; font-weight: 700; margin-bottom: .25rem;
+}
+.gt-kicker { font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--md-default-fg-color--light); }
+.gt-pill {
+  font-size: .62rem; letter-spacing: .06em; text-transform: uppercase;
+  padding: .12rem .55rem; border-radius: 999px; color: #111;
+}
+.gt-s1 > .gt-band-label .gt-pill { background: var(--gt-orange); }
+.gt-s2 > .gt-band-label .gt-pill { background: var(--gt-coral); }
+.gt-s3 > .gt-band-label .gt-pill, .gt-s31 .gt-pill { background: var(--gt-navy); color: #fff; }
+.gt-s32 .gt-pill { background: var(--gt-teal); }
+.md-typeset .gt-band-sub { color: var(--md-default-fg-color--light); margin-bottom: .55rem; }
+.gt-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .5rem; margin-bottom: .5rem; }
+.gt-card {
+  position: relative; min-width: 0; padding: .45rem .55rem;
+  background: var(--md-default-bg-color); border: 1px solid var(--md-default-fg-color--lightest); border-radius: .4rem;
+}
+.gt-card b, .gt-card > span { display: block; }
+.gt-card > span { color: var(--md-default-fg-color--light); }
+.md-typeset .gt-card code { font-size: .66rem; margin: .15rem .2rem .1rem 0; display: inline-block; }
+.gt-optional { border-style: dashed; border-color: var(--md-default-fg-color--lighter); }
+.gt-wide { margin-bottom: .5rem; }
+.gt-steps .gt-card:not(:first-child)::before {
+  content: ""; position: absolute; left: -.48rem; top: 50%; margin-top: -.25rem;
+  border: .25rem solid transparent; border-left-color: var(--md-default-fg-color--light);
+}
+@media screen and (max-width: 44em) { .gt-steps .gt-card:not(:first-child)::before { display: none; } }
+.gt-new {
+  display: inline-block; margin-top: .2rem; padding: .04rem .45rem; border-radius: 999px;
+  font-style: normal; font-size: .58rem; font-weight: 700; letter-spacing: .02em;
+  background: var(--gt-yellow); color: #111;
+}
+.md-typeset .gt-files { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-top: .35rem; }
+.md-typeset code.gt-file { background: #1d1d1d; color: #f2f2f2; border-radius: .3rem; }
+[data-md-color-scheme="slate"] .md-typeset code.gt-file { background: #e6e6e6; color: #111; }
+.md-typeset .gt-constant { margin: -.5rem 0 1.2rem; padding: 0 .3rem; font-size: .68rem; color: var(--md-default-fg-color--light); }
+.gt-sub { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .6rem; }
+.gt-subpanel { display: flex; flex-direction: column; gap: .4rem; padding: .55rem .6rem; border-radius: .5rem; }
+.md-typeset .gt-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1rem;
+  font-size: .66rem; color: var(--md-default-fg-color--light);
+}
+.gt-legend .gt-new { margin-top: 0; }
+.gt-legend-dash { border: 1px dashed var(--md-default-fg-color--light); border-radius: .3rem; padding: 0 .4rem; }

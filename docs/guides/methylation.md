@@ -1,11 +1,11 @@
 ---
-title: Methylation
+title: "Stage 3.2: epigenetic mapping"
 description: >-
   Lifting base-modification calls from long-read BAMs onto the pangenome graph with the
   panmethyl submodule, and reading methylation levels per allele in the genotyped VCF.
 ---
 
-# Methylation
+# Stage 3.2: epigenetic mapping
 
 !!! info "Applies to GraffiTE v1.1"
     Verified against `v1.1dev` at commit `e687712`. The
@@ -35,7 +35,7 @@ methylation levels in the genotyped VCF. The processes come from
 | `MM`/`ML` tags in those BAMs | what `tagtobed` extracts | <span class="src">`panmethyl/module/main.nf:146`</span> |
 
 The reads of a BAM sample are also extracted to FASTQ and aligned to the graph as for any other
-sample ([Stage C](genotyping.md)). The alignment inside the BAM is not used; the graph alignment
+sample ([Stage 3.1](genotyping.md)). The alignment inside the BAM is not used; the graph alignment
 (`<sample>.gaf.gz`) is what the modifications are lifted through.
 
 ---

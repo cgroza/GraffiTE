@@ -84,7 +84,7 @@ or with `--svs`: rename them before the run.
 
 ## RepeatMasker runs out of memory or time
 
-Stage B is split by contig <span class="src">`module/main.nf:492-505`</span> and each piece runs
+Stage 2 is split by contig <span class="src">`module/main.nf:492-505`</span> and each piece runs
 with `--repeatmasker_memory` (default `10G`) and `--repeatmasker_time` (default `12h`)
 <span class="src">`nextflow.config:147-149`</span>. Raise them, and raise
 `--repeatmasker_threads`, for large contigs or large libraries. Nextflow's message when a job is
@@ -102,7 +102,7 @@ pipeline skips them and still reports success. `/tmp` inside the container is th
 directory by default; point `--container_tmp` at a writable directory instead, see
 [Paths and `/tmp`](getting-started/installation.md#paths-and-tmp).
 
-The other way to get here is a run where no chunk survived annotation. Stage B is split one piece
+The other way to get here is a run where no chunk survived annotation. Stage 2 is split one piece
 per contig <span class="src">`module/main.nf:492-505`</span>, and a chunk whose records all fail
 `--repeat_span_cutoff` drops out by design. If every chunk drops out, `concat_repeatmask` never
 runs and nothing says so. `2_Repeat_Filtering/*/genotypes_repmasked_filtered.vcf` holds the

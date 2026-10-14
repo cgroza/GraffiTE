@@ -38,14 +38,14 @@ machines, or with different downstream parameters.
 | Flag | What you supply | Skips | Source |
 |---|---|---|---|
 | `--svs` | per-sample SV VCFs | the callers, not the merge | <span class="src">`main.nf:120-125`</span> |
-| `--vcf` | one merged SV VCF | all of Stage A | <span class="src">`main.nf:148-149`</span> |
+| `--vcf` | one merged SV VCF | all of Stage 1 | <span class="src">`main.nf:148-149`</span> |
 | `--RM_dir` | the `2_Repeat_Filtering/` directory of an earlier run | RepeatMasker and ULTRA | <span class="src">`main.nf:133-142`</span> |
-| `--graffite_vcf` | a `pangenome.vcf` | all of Stages A and B | <span class="src">`main.nf:129,183-186`</span> |
+| `--graffite_vcf` | a `pangenome.vcf` | all of Stages 1 and 2 | <span class="src">`main.nf:129,183-186`</span> |
 | `--graph` | a `GraffiTE_graph/index/` directory | `make_graph` | <span class="src">`main.nf:210-214`</span> |
 | `--graph_alignments` | per-sample GAF and pack files | `graph_align_reads` | <span class="src">`main.nf:223-229`</span> |
 | `--vcfs` | per-sample `vg call` VCFs | alignment and `vg_call` | <span class="src">`main.nf:218-220`</span> |
 | `--hervk_reconcile_vcf` | a genotyped VCF | genotyping, with `--genotype false` | <span class="src">`main.nf:296-314`</span> |
-| `--genotype false` | nothing | all of Stage C | <span class="src">`main.nf:188`</span> |
+| `--genotype false` | nothing | all of Stage 3 | <span class="src">`main.nf:188`</span> |
 
 Each rung is described below with what must exist on disk and what still runs.
 
@@ -65,7 +65,7 @@ filter what you supply by size or type, so restrict to `INS` and `DEL` yourself
 Multi-allelic records should be split first (`bcftools norm -m-`).
 
 **Runs:** `truvari_merge` in pass-through mode (decompress only, IDs preserved), then all of
-Stage B and C <span class="src">`module/main.nf:202-209`</span>.
+Stages 2 and 3 <span class="src">`module/main.nf:202-209`</span>.
 
 **Cannot be combined** with any discovery flag; the run stops with a message naming the flag it
 saw <span class="src">`main.nf:46-49`</span>. Use `--svs` when you want your VCF merged with
@@ -73,7 +73,7 @@ GraffiTE's own calls.
 
 ### `--RM_dir`: RepeatMasker output of an earlier run
 
-**On disk:** a directory holding one subdirectory per Stage B batch, each with
+**On disk:** a directory holding one subdirectory per Stage 2 batch, each with
 `genotypes_repmasked_filtered.vcf` and a `repeatmasker_dir/`. That is exactly the layout of
 `out/2_Repeat_Filtering/`, where the subdirectories are numbered by task
 <span class="src">`main.nf:134-136`, `module/main.nf:636-642`</span>.
@@ -100,7 +100,7 @@ This is the entry point for changing anything downstream of RepeatMasker: `--tsd
 **On disk:** a `pangenome.vcf` from `3_TSD_search/`, or any VCF carrying the GraffiTE INFO
 fields.
 
-**Runs:** Stage C only, which builds the graph from the VCF as-is
+**Runs:** Stage 3 only, which builds the graph from the VCF as-is
 <span class="src">`main.nf:183-186`</span>.
 
 **Cannot be combined** with `--human` unless `--hervk_reconcile false` is also given: the HERV-K
@@ -148,14 +148,14 @@ unless `--epigenomes` is on nothing consumes it. `precomputed` requires `--graph
 **On disk:** a `GraffiTE.merged.genotypes.vcf.gz` from an earlier run, and the inputs for
 `--RM_dir` and `--human`.
 
-**Runs:** Stage B from the RepeatMasker output, `hervk_annotate`, then `hervk_reconcile`
+**Runs:** Stage 2 from the RepeatMasker output, `hervk_annotate`, then `hervk_reconcile`
 against the supplied VCF, whose back end is read from its header
 <span class="src">`main.nf:302-314`</span>. See [Human MEIs](human-mei.md) for the command
 line.
 
 ### `--genotype false`
 
-Stops after Stage B. `--genotype_with` is not read and need not exist
+Stops after Stage 2. `--genotype_with` is not read and need not exist
 <span class="src">`main.nf:188`</span>.
 
 ---

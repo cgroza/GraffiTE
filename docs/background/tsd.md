@@ -149,7 +149,7 @@ bit score; from column 13 on, the right name is one header column to the left.
   `--tsd_win` widens the search and, since the score is measured from the junction, does not
   change what a snug duplication scores.
 - **The variant sequence must be resolved.** A symbolic `<INS>` has no ends to compare;
-  Stage A drops those.
+  Stage 1 drops those.
 - **PolyA tails can hide a copy.** The 3' end of a plus-strand Alu or L1 is a run of A; a TSD
   rich in A can be found at the wrong offset inside it, or be a run of the tail itself. `polyA`
   is therefore scanned with the `TSD` copy trimmed and without it, and a tail found either way

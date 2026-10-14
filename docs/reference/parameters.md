@@ -55,12 +55,12 @@ launch directory and stops if they are absent.
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
 | `--reference` | `"reference.fa"` | Reference genome FASTA. Everything is called relative to it. Its existence is checked at launch. Plain or BGZF-compressed; a plain gzip is re-compressed with bgzip where an index is needed. | <span class="src">`nextflow.config:46`, `module/main.nf:578-585`</span> |
-| `--TE_library` | `"TE_library.fa"` | FASTA of repeat consensus sequences, passed to RepeatMasker as `-lib`. Needed for Stage B, and again by the HERV-K step under `--human`, even with `--RM_dir`. | <span class="src">`nextflow.config:48`, `main.nf:144,175`</span> |
+| `--TE_library` | `"TE_library.fa"` | FASTA of repeat consensus sequences, passed to RepeatMasker as `-lib`. Needed for Stage 2, and again by the HERV-K step under `--human`, even with `--RM_dir`. | <span class="src">`nextflow.config:48`, `main.nf:144,175`</span> |
 | `--genotype_with` | `"reads.csv"` | Samplesheet of the read sets to genotype. Read when `--genotype` is true (the default). See [Samplesheets](samplesheets.md). | <span class="src">`nextflow.config:39`, `main.nf:189`</span> |
 
 ---
 
-## Stage A: discovery inputs
+## Stage 1: SV search inputs
 
 Supply at least one of these unless you enter further downstream with `--vcf`, `--RM_dir` or
 `--graffite_vcf`. They add up: pass several and all of their calls go into one truvari merge.
@@ -76,7 +76,7 @@ Supply at least one of these unless you enter further downstream with `--vcf`, `
 `--vcf` is the one input that does not combine. Passing it beside any of the five above stops the
 run at launch with a message naming the flags. <span class="src">`main.nf:46-49`</span>
 
-See [Stage A: discovery](../guides/discovery.md) for what each backend does.
+See [Stage 1: SV search](../guides/discovery.md) for what each backend does.
 
 ### Discovery tuning
 
@@ -92,7 +92,7 @@ See [Stage A: discovery](../guides/discovery.md) for what each backend does.
 
 ---
 
-## Stage B: repeat annotation
+## Stage 2: TE annotation
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
@@ -115,7 +115,7 @@ genotyping run to fill the `trusted` column of `genotyping_record_audit.tsv`.
 | `--trusted_ignore_filter` | `false` | When true, the record no longer needs `FILTER=PASS` from the upstream caller. | <span class="src">`nextflow.config:60`, `module/main.nf:22`</span> |
 
 The full expression also requires `n_hits==1`, and requires `polyA="TRUE"` for the LINE, SINE and
-Retroposon classes. See [Stage B: annotation](../guides/annotation.md).
+Retroposon classes. See [Stage 2: TE annotation](../guides/annotation.md).
 
 ---
 
@@ -175,11 +175,11 @@ precomputed. <span class="src">`main.nf:65-71`</span>
 
 ---
 
-## Stage C: genotyping
+## Stage 3: graph mapping and genotyping
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--genotype` | `true` | Run Stage C. Set `false` to stop after annotation. | <span class="src">`nextflow.config:33`, `main.nf:188`</span> |
+| `--genotype` | `true` | Run Stage 3. Set `false` to stop after annotation. | <span class="src">`nextflow.config:33`, `main.nf:188`</span> |
 | `--graph_method` | `"pangenie"` | One of `pangenie`, `giraffe`, `graphaligner`, `precomputed`. See below. | <span class="src">`nextflow.config:34`, `main.nf:200-206,263`</span> |
 | `--min_mapq` | `0` | `vg pack -Q`, the lowest mapping quality a read needs to contribute coverage. Ignored by `pangenie`. | <span class="src">`nextflow.config:121`, `module/main.nf:843,851`</span> |
 | `--min_support` | `"2,4"` | `vg call -m`, minimum support to call an allele, as `ref,alt`. Ignored by `pangenie`. | <span class="src">`nextflow.config:122`, `module/main.nf:872`</span> |
@@ -199,8 +199,8 @@ Each of these replaces the process that would produce it.
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--graffite_vcf` | `false` | Skip Stages A and B and genotype this `pangenome.vcf` from an earlier run. | <span class="src">`nextflow.config:30`, `main.nf:183-186`</span> |
-| `--vcf` | `false` | Skip Stage A. Annotate this one merged SV VCF. Cannot be combined with a discovery flag. | <span class="src">`nextflow.config:31`, `main.nf:46-49,148-149`</span> |
+| `--graffite_vcf` | `false` | Skip Stages 1 and 2 and genotype this `pangenome.vcf` from an earlier run. | <span class="src">`nextflow.config:30`, `main.nf:183-186`</span> |
+| `--vcf` | `false` | Skip Stage 1. Annotate this one merged SV VCF. Cannot be combined with a discovery flag. | <span class="src">`nextflow.config:31`, `main.nf:46-49,148-149`</span> |
 | `--RM_dir` | `false` | Skip RepeatMasker. Reuse a `2_Repeat_Filtering/` directory whose subdirectories each hold `genotypes_repmasked_filtered.vcf` and `repeatmasker_dir/`. | <span class="src">`nextflow.config:32`, `main.nf:133-142`</span> |
 | `--graph` | `false` | A graph index directory as `make_graph` writes it (`index.gfa`, `index.pb`, and `index.giraffe.gbz` for giraffe). Skips `make_graph`. | <span class="src">`nextflow.config:36`, `main.nf:210-214`</span> |
 | `--graph_alignments` | `false` | Samplesheet of graph alignments (`sample,gaf,pack`). Skips `graph_align_reads`. | <span class="src">`nextflow.config:37`, `main.nf:223-225`</span> |
@@ -210,7 +210,7 @@ See [Resuming and skipping work](../guides/skipping-work.md).
 
 ---
 
-## Methylation (`--epigenomes`)
+## Stage 3.2: epigenetic mapping (`--epigenomes`)
 
 Needs the `panmethyl` submodule and one of the `giraffe`, `graphaligner` or `precomputed` methods;
 the branch sits inside that block. <span class="src">`main.nf:12,234`</span>
@@ -223,7 +223,7 @@ the branch sits inside that block. <span class="src">`main.nf:12,234`</span>
 | `--lifted` | `false` | Samplesheet of modification tables already lifted onto the graph; skips extraction and lifting. | <span class="src">`nextflow.config:167`, `main.nf:239-241`</span> |
 | `--bed` | `false` | A BED file to project onto the graph and annotate with methylation levels. | <span class="src">`nextflow.config:168`, `main.nf:253-256`</span> |
 
-See [Methylation](../guides/methylation.md).
+See [Epigenetic mapping](../guides/methylation.md).
 
 ---
 
