@@ -171,31 +171,27 @@ this `bcftools view -i` expression, with the defaults filled in:
 n_hits==1
 & abs(SVLEN)>=250
 & (ULTRA_TR_span<0.6 | matching_classes="Simple_repeat")
-& ((matching_classes!~"LINE" & matching_classes!~"SINE" & matching_classes!~"Retroposon") | polyA="TRUE")
 & FILTER="PASS"
 ```
 
-Read as four criteria:
+Read as three criteria:
 
 | Criterion | Parameter | Default |
 |---|---|---|
 | One RepeatMasker hit, so the variant is one element and not a nested or composite one. | none | |
 | Long enough to be a full-length element rather than a fragment. | `--trusted_min_svlen` | `250` bp |
 | Not dominated by tandem repeat, unless the SVA VNTR rule moved its hit to `Simple_repeat`. | `--trusted_max_ultra_span` | `0.6` (fraction of variant length) |
-| If it is a non-LTR element (LINE, SINE, SVA), it has a polyA tail. | none | |
 
 The `FILTER="PASS"` clause is dropped with `--trusted_ignore_filter`, for callers that leave
 `FILTER` empty.
 <span class="src">`nextflow.config:58-60`</span>
 
-!!! warning "Negated class tests are true for every record"
-    `matching_classes!~"SINE"` is true for every record in bcftools, `SINE/Alu` ones included,
-    because `!~` does not negate reliably on `Number=.` fields. In practice the expression
-    requires `polyA="TRUE"` only when the clause with the negations is false, which it never
-    is, so the trusted subset does **not** require a polyA tail of non-LTR elements. The
-    `--human` filter is written with positive matches to avoid this. See
-    [VCF fields](../reference/vcf-fields.md) for the bcftools behavior.
-    <span class="src">`module/main.nf:543-547`</span>
+!!! note "No polyA requirement"
+    The trusted subset has no polyA requirement: with an uncurated library, an element filed
+    under the wrong class would lose its record. The `--human` filter requires a polyA tail of
+    Alu, L1 and SVA records, and is written with positive matches because bcftools `!~` does not
+    negate reliably on these fields; see [VCF fields](../reference/vcf-fields.md).
+    <span class="src">`module/main.nf:10-18,546-550`</span>
 
 For human data, `--human` replaces this subset with a filter on recent subfamilies; see
 [Human MEIs](human-mei.md).

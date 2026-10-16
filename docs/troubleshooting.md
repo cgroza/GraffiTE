@@ -55,8 +55,9 @@ Each of these stops the run before any process starts.
 
 Every container runs with `--contain --bind $(pwd):/tmp` <span class="src">`nextflow.config:176`</span>.
 Files outside the launch directory are only visible if given by absolute path, and `/tmp`
-inside the container is the launch directory. Symptoms are `No such file` inside a process for
-a file that exists on the host, or a full filesystem when the launch directory is small. Use
+inside the container is the directory the task runs in. Symptoms are `No such file` inside a
+process for a file that exists on the host, or a full filesystem when the filesystem holding
+`work/` is small. Use
 absolute paths, and bind a larger scratch directory to `/tmp` if needed; see
 [Installation](getting-started/installation.md).
 
@@ -98,7 +99,7 @@ process, with long-read alignment the most demanding step. See
 ## `3_TSD_search/pangenome.vcf` missing after a finished run
 
 Check whether `tsd_search` and `tsd_report` ran. When the container cannot write to `/tmp` the
-pipeline can skip them and still report success. `/tmp` inside the container is the launch
+pipeline can skip them and still report success. `/tmp` inside the container is the task's own
 directory by default; point `--container_tmp` at a writable directory instead, see
 [Paths and `/tmp`](getting-started/installation.md#paths-and-tmp).
 

@@ -67,12 +67,23 @@ The `v1.1dev` branch. You need both a code update and an image update to see eve
 - `--container_tmp` binds a directory of your choice to `/tmp` inside the container, in place of
   editing `singularity.runOptions` in the cached copy of `nextflow.config` (which then breaks
   `nextflow pull` and `-latest`).
+- The image is pinned: every process but `pav_asm` runs `docker://cgroza/graffite:1.1.0.0`, built
+  from `Dockerfile`. Each release has its own tag, and `latest` follows the newest release.
+  `GraffiTE.def` is unmaintained.
+- `-profile cloud` runs on AWS Batch, with the `awsbatch` executor and Docker in place of
+  Singularity. Before, it named an executor, `aws`, that Nextflow does not have. `pav_asm`
+  cannot run there. Not tested.
+- `--pangenie_memory` defaults to `32G` (was unset), so Nextflow starts only as many PanGenie
+  tasks at once as the memory allows.
+- A quick install test ships in `test/quick_test.tar.gz`; see
+  [Installation](getting-started/installation.md#quick-install-test).
 
 **Subsets**
 
 - `pangenome.trusted.vcf` and matching `*.presence-absence*.tsv` tables next to
   `pangenome.vcf`; trusted records carry `FILTER=PASS`. Parameters `--trusted_min_svlen`
-  (250), `--trusted_max_ultra_span` (0.6), `--trusted_ignore_filter`.
+  (250), `--trusted_max_ultra_span` (0.6), `--trusted_ignore_filter`. The trusted subset has no
+  polyA requirement, and the `--human` subset has one.
 - `--human` rebuilt from `pangenome.vcf` by its own filter, output `pangenome.human.vcf` (was
   `pangenome.trusted.human.vcf`); `pangenome.trusted.vcf` is not written on `--human` runs. The
   filter keeps `AluY*`, `L1HS`, `SVA_D/E/F` and the HML-2 lineage, and admits the

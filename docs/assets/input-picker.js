@@ -49,7 +49,11 @@
     },
     {
       key: "profile", type: "radio", title: "Where will it run?",
-      options: [{ value: "standard", label: "This machine" }, { value: "cluster", label: "A SLURM cluster" }],
+      options: [
+        { value: "standard", label: "This machine" },
+        { value: "cluster", label: "A SLURM cluster" },
+        { value: "cloud", label: "AWS Batch, with your own AWS settings" },
+      ],
     },
   ].filter(Boolean);
 
@@ -59,7 +63,12 @@
   function build(s, rev) {
     const args = [], notes = [];
     const human = s.human === "yes";
-    args.push(`-profile ${s.profile}`, "--reference reference.fa");
+    args.push(`-profile ${s.profile}`);
+    if (s.profile === "cloud") {
+      args.push("-c aws.config", "-w s3://your-bucket/work");
+      notes.push(["aws.config holds your AWS Batch queue (process.queue) and region (aws.region). -profile cloud runs the image with Docker on AWS Batch; we have not tested it. ", ["Execution profiles", "install", "#execution-profiles"]]);
+    }
+    args.push("--reference reference.fa");
     // Stage 2 reads the TE library unless the run enters after RepeatMasker; hervk_annotate reads it under --human (main.nf:144,175).
     if (s.start !== "gvcf" && (s.start !== "rmdir" || human)) args.push("--TE_library TE_library.fa");
     if (s.start === "discovery") {
@@ -69,6 +78,7 @@
       const sheets = ["Samplesheet columns: "];
       picked.forEach((d, i) => sheets.push(i ? ", " : "", [d.flag, "sheets", "#" + d.flag.slice(1)]));
       notes.push(sheets.concat("."));
+      if (s.inputs.includes("pav") && s.profile === "cloud") notes.push(["pav_asm cannot run under -profile cloud: its image is a Sylabs library image."]);
       if (s.inputs.includes("pav")) notes.push(["PAV 2 runs in its own container and is slow. We are working to add PAV 3, which is much faster. ", ["PAV", "discovery", "#from-assemblies-with-pav-pav"]]);
       if (s.inputs.includes("svs")) notes.push(["GraffiTE does not filter your VCFs: keep only insertions and deletions with sequence-resolved alleles. ", ["--svs", "skipping", "#-svs-your-own-per-sample-calls"]]);
     } else if (s.start === "vcf") {

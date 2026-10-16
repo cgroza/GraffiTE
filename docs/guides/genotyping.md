@@ -14,8 +14,9 @@ description: >-
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
 Stage 3 takes `pangenome.vcf` from [Stage 2](annotation.md) and the read sets listed in
-`--genotype_with`, builds a graph in which every polymorphism is a bubble, and genotypes each
-sample at each bubble. It runs by default; `--genotype false` stops after Stage 2
+`--genotype_with`, builds a graph with the polymorphisms as bubbles, and genotypes each sample at
+each bubble. On the PanGenie path some alleles never reach the graph; see [PanGenie](#pangenie).
+It runs by default; `--genotype false` stops after Stage 2
 <span class="src">`main.nf:188`</span>.
 
 ---
@@ -114,7 +115,17 @@ Two processes <span class="src">`module/main.nf:712-769`</span>.
    sites.
 4. `merge_vcfs.py merge -ploidy 2` (PanGenie's own helper, shipped in `bin/`) turns the file into
    the multi-sample graph VCF PanGenie reads, with an `INFO/ID` field naming the graph variant
-   behind each ALT allele. It leaves out alleles that overlap another at the same site.
+   behind each ALT allele. Three kinds of allele never reach the graph, so PanGenie gives
+   them no genotype ([issue #102](https://github.com/cgroza/GraffiTE/issues/102)):
+    - an allele that overlaps another at the same site, because the pseudo-sample carries every
+      allele on one haplotype <span class="src">`bin/merge_vcfs.py:425-430`</span>;
+    - the third and later alleles at one position, because step 3 joins them into one site and a
+      diploid genotype holds two;
+    - every allele of a site whose REF or ALT holds a base other than A, C, G or T, such as `N`
+      <span class="src">`bin/merge_vcfs.py:468-470`</span>.
+
+   On the synthetic test set PanGenie genotyped 15 of 29 alleles, and the 14 it missed all held a
+   base other than A, C, G or T; giraffe and GraphAligner genotyped all 29.
 5. `pangenie_graph_vcf.py report` fills the table's `in_graph` column from that output.
 6. `PanGenie-index` builds the k-mer index.
 
@@ -136,7 +147,9 @@ reference is passed as a value channel; as a queue channel it held one item, and
 for one sample and stopped <span class="src">`main.nf:202-205`</span>.
 
 **Resources:** `--pangenie_threads`, `--pangenie_memory`, `--pangenie_time` for both processes
-<span class="src">`nextflow.config:243-252`</span>.
+<span class="src">`nextflow.config:243-252`</span>. `--pangenie_memory` defaults to `32G`, so Nextflow
+starts only as many PanGenie tasks at once as the memory allows. Each task peaked at about 23 GB
+on the synthetic test set and on the chr22 example.
 
 ---
 

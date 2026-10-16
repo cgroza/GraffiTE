@@ -114,8 +114,8 @@ genotyping run to fill the `trusted` column of `genotyping_record_audit.tsv`.
 | `--trusted_max_ultra_span` | `0.6` (fraction of variant length) | Maximum `ULTRA_TR_span`; rejects variants that are mostly tandem repeat. Records whose class is `Simple_repeat` bypass it. | <span class="src">`nextflow.config:59`, `module/main.nf:14`</span> |
 | `--trusted_ignore_filter` | `false` | When true, the record no longer needs `FILTER=PASS` from the upstream caller. | <span class="src">`nextflow.config:60`, `module/main.nf:22`</span> |
 
-The full expression also requires `n_hits==1`, and requires `polyA="TRUE"` for the LINE, SINE and
-Retroposon classes. See [Stage 2: TE annotation](../guides/annotation.md).
+The full expression also requires `n_hits==1`. It has no polyA requirement; the `--human` subset
+has one. See [Stage 2: TE annotation](../guides/annotation.md#trusted-subset).
 
 ---
 
@@ -235,7 +235,7 @@ See [Epigenetic mapping](../guides/methylation.md).
 |---|---|---|---|
 | `--cores` | `false` | An integer here overrides the `cpus` of every process that reads a `*_threads` parameter, and the `32` of `pav_asm`. The processes fixed at one CPU are unaffected. | <span class="src">`nextflow.config:51,179-345`</span> |
 | `--out` | `"out"` | Root of the published output tree. | <span class="src">`nextflow.config:49`</span> |
-| `--container_tmp` | `false` | Directory bound to `/tmp` inside the container. The launch directory when unset. Set it when the launch filesystem is small, slow, or unwritable from the container. | <span class="src">`nextflow.config:47,176`</span> |
+| `--container_tmp` | `false` | Directory bound to `/tmp` inside the container. When unset, the directory each task runs in: its directory under `work/`, or its scratch directory under `-profile cluster`. Set it when that filesystem is small, slow, or unwritable from the container. | <span class="src">`nextflow.config:47,176`</span> |
 
 ### Per-process allocation
 
@@ -272,7 +272,7 @@ Memory and time values are Nextflow strings (`"10G"`, `"12h"`). Where one parame
 | `--hervk_reconcile_memory` | `"10G"` | `hervk_reconcile` (one CPU) | <span class="src">`nextflow.config:131,296`</span> |
 | `--hervk_reconcile_time` | `"1h"` | `hervk_reconcile` | <span class="src">`nextflow.config:132,297`</span> |
 | `--pangenie_threads` | `1` | `pangenie_index`, `pangenie` | <span class="src">`nextflow.config:145,244,249`</span> |
-| `--pangenie_memory` | `null` | same | <span class="src">`nextflow.config:144,245,250`</span> |
+| `--pangenie_memory` | `"32G"` | same | <span class="src">`nextflow.config:144,245,250`</span> |
 | `--pangenie_time` | `"12h"` | same | <span class="src">`nextflow.config:146,246,251`</span> |
 | `--make_graph_threads` | `1` | `make_graph` | <span class="src">`nextflow.config:134,254`</span> |
 | `--make_graph_memory` | `"40G"` | `make_graph` | <span class="src">`nextflow.config:133,255`</span> |

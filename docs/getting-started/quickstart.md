@@ -32,17 +32,15 @@ cd GraffiTE_testset
 | `HG002.100k.set1.Illumina.fastq.gz` | 100 k Illumina reads from HG002. Stage 3 input. |
 | `assemblies.csv` | `path,sample` samplesheet naming the assembly `HG002.mat`. |
 | `reads.csv` | `path,sample` samplesheet naming the read set `short_test1`. |
-| `out/` | Output of a run made before v1.1. See the warning below. |
+| `out/` | The output of the command below, made with GraffiTE 1.1.0.0, to compare with yours. |
 
 `reads.csv` has no `type` column. The workflow reads `row.type`, finds nothing, and falls to
 the `default` preset <span class="src">`main.nf:190`</span>; PanGenie, the default
 genotyper, does not use the preset.
 
-!!! warning "Do not compare your run with the bundled `out/`"
-    That directory was produced by a pre-1.1 release. It contains `svim-asm_variants.vcf`,
-    `vcfs.txt` and the OneCode files under `repeatmasker_dir/`, none of which v1.1 writes, and
-    it has no `pangenome.trusted.vcf`, no presence-absence TSVs and no ULTRA or polyA fields.
-    Use it to see the shape of the older output, not to diff against your run.
+!!! note "Compare your run with the bundled `out/`"
+    `out/` holds the output of the command below, made with GraffiTE 1.1.0.0 on 2026-10-16.
+    Your `out_v1.1/` should hold the same records; the `##fileDate` header lines differ.
 
 ---
 
@@ -63,7 +61,7 @@ placeholder filenames that do not exist <span class="src">`nextflow.config:46-48
 The hyphenated form does nothing: Nextflow turns
 `--genotype-with` into a parameter named `genotypeWith`, and the pipeline reads the default
 `reads.csv` instead (checked with Nextflow 26.04.6). Add `-profile cluster` on SLURM, and
-`-with-singularity /abs/path/graffite_latest.sif` if you pulled the image by hand
+`-with-singularity /abs/path/graffite_1.1.0.0.sif` if you pulled the image by hand
 ([Installation](installation.md)).
 
 `--out out_v1.1` keeps the results apart from the bundled `out/`.
@@ -72,8 +70,9 @@ The hyphenated form does nothing: Nextflow turns
 
 ## What you should see
 
-This page was written from the code, not from a run, so it lists files and not record counts.
-When the run completes, `out_v1.1/` holds:
+When the run completes, `out_v1.1/` holds the files below. With GraffiTE 1.1.0.0,
+`1_SV_search/SVs.vcf` has 263 records, `pangenome.vcf` 221, `pangenome.trusted.vcf` 25 and
+`GraffiTE.merged.genotypes.vcf.gz` 218. The run took 152 seconds with `--cores 8`.
 
 ```
 out_v1.1/

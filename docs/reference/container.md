@@ -14,10 +14,11 @@ description: >-
 
 ## Container image
 
-Every process runs in `docker://cgroza/graffite:latest`, pulled from Docker Hub, except
-`pav_asm`. All three profiles name the same image. `standard` and `cloud` differ
-only in the executor; `cluster` also sets `process.scratch = '$SLURM_TMPDIR'`.
-<span class="src">`nextflow.config:7-23`</span>
+Every process runs in `docker://cgroza/graffite:1.1.0.0`, pulled from Docker Hub, except
+`pav_asm`. Each release has its own tag, and `latest` follows the newest release. `standard` and
+`cluster` run the image with Apptainer; `cluster` also sets `process.scratch = '$SLURM_TMPDIR'`.
+`cloud` runs the same image with Docker on AWS Batch.
+<span class="src">`nextflow.config:7-29`</span>
 
 The image is `linux/amd64` only, 39 layers and about 2.8 GB compressed. Apptainer converts
 it to a SIF on first use. On an arm64 host it runs under emulation.
@@ -26,7 +27,7 @@ it to a SIF on first use. On an arm64 host it runs under emulation.
 |---|---|---|
 | `standard` | `local` | |
 | `cluster` | `slurm` | `process.scratch = '$SLURM_TMPDIR'` |
-| `cloud` | `aws` | `aws` is not a Nextflow executor name; the profile stops at launch. See [Resources and scaling](../guides/resources.md). |
+| `cloud` | `awsbatch` | Docker instead of Apptainer, `cgroza/graffite:1.1.0.0`. Needs your AWS settings in a config passed with `-c`; `pav_asm` cannot run. Not tested. See [Installation](../getting-started/installation.md#execution-profiles). |
 
 Singularity (or Apptainer) is enabled globally, with automatic mounts. The run options are built
 after the params block, so that `--container_tmp` can be read:
@@ -53,7 +54,7 @@ task directory or at `--container_tmp`. Two consequences:
   point `--container_tmp` at storage that suits the traffic.
 
 To run it under Docker rather than Apptainer, turn `singularity.enabled` off in a config of
-your own and pass `-with-docker cgroza/graffite:latest`.
+your own and pass `-with-docker cgroza/graffite:1.1.0.0`.
 
 ## What is inside
 
@@ -89,8 +90,9 @@ column out of the published image, `sha256:47836cda` (pushed 2026-09-30), on 202
 
 ## Build recipe and published image
 
-The published image matches `Dockerfile`: Debian 12, vg `v1.77.0` and the `lift_*` binaries, none
-of which `GraffiTE.def` gives. `GraffiTE.def` is the Apptainer recipe that came before it, on
+We build the published image from `Dockerfile`, and `GraffiTE.def` is unmaintained. The
+published image matches `Dockerfile`: Debian 12, vg `v1.77.0` and the `lift_*` binaries, none of
+which `GraffiTE.def` gives. `GraffiTE.def` is the Apptainer recipe that came before it, on
 Ubuntu 20.04. We have not built it; going by the recipe, an image built from it would differ from
 the published one:
 

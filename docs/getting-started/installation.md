@@ -77,8 +77,9 @@ Two ways, depending on whether you want a local copy of the code.
 
 ## Get the container image
 
-The config points every process but `pav_asm` at `docker://cgroza/graffite:latest`
-<span class="src">`nextflow.config:10,15,21`</span>, and Nextflow pulls it on first use.
+The config points every process but `pav_asm` at `docker://cgroza/graffite:1.1.0.0`
+<span class="src">`nextflow.config:10,15`</span>, and Nextflow pulls it on first use. Each release
+has its own image tag; `latest` follows the newest release.
 Apptainer converts the Docker image to a SIF itself, so you have nothing else to register.
 
 The image is `linux/amd64` only. On an arm64 machine it runs under emulation, slowly.
@@ -87,8 +88,8 @@ If the compute nodes have no internet access, pull the image once on a node that
 the run at the file:
 
 ```bash
-apptainer pull graffite_latest.sif docker://cgroza/graffite:latest
-nextflow run cgroza/GraffiTE -r v1.1dev -with-singularity /abs/path/graffite_latest.sif ...
+apptainer pull graffite_1.1.0.0.sif docker://cgroza/graffite:1.1.0.0
+nextflow run cgroza/GraffiTE -r v1.1dev -with-singularity /abs/path/graffite_1.1.0.0.sif ...
 ```
 
 `-with-singularity` overrides the image path in `nextflow.config`.
@@ -107,9 +108,10 @@ Nextflow runs every container with `--contain --bind <dir>:/tmp`
   directory and the files it stages (`singularity.autoMounts = true`
   <span class="src">`nextflow.config:4`</span>). Give input files, including the paths inside
   samplesheets, as absolute paths.
-- `/tmp` inside the container is the launch directory unless you say otherwise. Where that
-  filesystem is small, slow, or not writable from inside the container, point `--container_tmp`
-  at one that is:
+- `/tmp` inside the container is the directory the task runs in, unless you say otherwise: its
+  directory under `work/`, or, under `-profile cluster`, its scratch directory in `$SLURM_TMPDIR`
+  on the node. Where that filesystem is small, slow, or not writable from inside the container,
+  point `--container_tmp` at one that is:
 
   ```bash
   nextflow run cgroza/GraffiTE -r v1.1dev --container_tmp /scratch/you/tmp ...
@@ -146,7 +148,25 @@ No input given. Pass one of --longreads, --bams, --assemblies, --pav, --svs (dis
 ```
 
 <span class="src">`main.nf:151`</span>. Nextflow pulls the container only when a process runs,
-so the [Quickstart](quickstart.md) is the first check of the image.
+so the quick install test below is the first check of the image.
+
+### Quick install test
+
+`test/quick_test.tar.gz` holds the inputs of a small run that uses the container: a 195 kb
+synthetic genome in 8 contigs, 4 haploid assemblies and 2 short-read samples. The run goes through
+discovery, annotation and genotyping, and `check.sh` compares the output with what GraffiTE 1.1
+writes for this data set:
+
+```bash
+nextflow pull cgroza/GraffiTE -r v1.1dev
+tar xzf ~/.nextflow/assets/cgroza/GraffiTE/test/quick_test.tar.gz && cd graffite_quick_test
+nextflow run cgroza/GraffiTE -r v1.1dev -params-file quick_test.yaml
+bash check.sh
+```
+
+The last line it prints is `GraffiTE quick test: PASS`. Where Nextflow could use 4 CPUs and
+12 GB of memory, the run took 72 seconds once the image was downloaded. The test genotypes with
+giraffe, because GraffiTE requests 32 GB for each task of PanGenie, the default back end.
 
 ---
 
@@ -173,9 +193,10 @@ You update the image and the code separately. After a code update that changes a
 the image again as well; the [Changelog](../changelog.md) says when that is needed.
 
 Nextflow does not check for a rebuilt image. Its Singularity cache is keyed on the
-image **name**, so it reuses a `cgroza-graffite-latest.img` left by an earlier run however many
-times `:latest` has been rebuilt since, and nothing in the log says the file is old. Delete it
-to force a fresh pull:
+image **name**, so it reuses a `cgroza-graffite-1.1.0.0.img` left by an earlier run. A new
+release names a new tag, and Nextflow pulls that one. If you point a run at `:latest` yourself,
+the cached `cgroza-graffite-latest.img` stays whatever `:latest` was on the day you first pulled
+it, and nothing in the log says the file is old. Delete it to force a fresh pull:
 
 ```bash
 rm -f "${NXF_SINGULARITY_CACHEDIR:-$NXF_HOME/singularity}"/cgroza-graffite-latest.img
@@ -199,9 +220,11 @@ different checksums.
 ## Execution profiles
 
 `-profile standard` runs everything on the local machine and `-profile cluster` submits each
-process to SLURM with the per-process CPU, memory and time parameters. `-profile cloud` sets
-`process.executor = 'aws'` <span class="src">`nextflow.config:7-24`</span>, which is not a
-Nextflow executor, so the run stops with `Unknown executor name: aws`. The AWS Batch executor is
-called `awsbatch`, and needs your own AWS settings in a config passed with `-c`. All three
-profiles name the same image. [Resources and scaling](../guides/resources.md) covers how to size
-the requests.
+process to SLURM with the per-process CPU, memory and time parameters. `-profile cloud` submits
+each process to AWS Batch (`process.executor = 'awsbatch'`) with Docker in place of Singularity,
+because AWS Batch runs Docker images only <span class="src">`nextflow.config:7-29`</span>. It needs
+your own AWS settings in a config passed with `-c`: at least a Batch queue (`process.queue`), a
+region (`aws.region`) and a work directory on S3 (`-w s3://...`); see Nextflow's
+[AWS Batch documentation](https://www.nextflow.io/docs/latest/aws.html). `pav_asm` cannot run
+there, since its image is a Sylabs library image. We have not tested this profile.
+[Resources and scaling](../guides/resources.md) covers how to size the requests.

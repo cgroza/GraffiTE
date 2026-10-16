@@ -82,6 +82,7 @@ below.</p>
 [Stage 1: SV search](../guides/discovery.md){ data-key="discovery" hidden }
 [Human mobile element insertions](../guides/human-mei.md){ data-key="human" hidden }
 [Stage 3.2: epigenetic mapping](../guides/methylation.md){ data-key="methylation" hidden }
+[Installation](installation.md){ data-key="install" hidden }
 
 </div>
 
