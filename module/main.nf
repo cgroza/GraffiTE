@@ -361,7 +361,7 @@ process hervk_annotate {
         --out hervk_refstate.tsv
   fi
 
-  # Calls over the full candidate set, and a VCF of it. The --human pME
+  # Calls over the full candidate set, and a VCF of it. The --human MEI
   # filter is narrower than the HERV-K candidate list on purpose -- it defines
   # the paper's TE set and is not ours to widen -- so a locus can lose
   # members to it. chr7:4.70 Mb loses two of three, including the one carrying
@@ -529,7 +529,7 @@ process concat_repeatmask {
   script:
   def trusted_filter_full = trustedFilterFull()
 
-  // --human pME filter, applied directly to pangenome.vcf (not to the trusted
+  // --human MEI filter, applied directly to pangenome.vcf (not to the trusted
   // subset, which is a species-agnostic heuristic for non-model organisms).
   // Each whitelist param is a comma-separated list of regexes because bcftools
   // regexes have no alternation; ~ is matched element-wise on these Number=.
@@ -608,7 +608,7 @@ process concat_repeatmask {
     vcf_to_pa_tsv.py pangenome.human.vcf -o pangenome.presence-absence_human.tsv
 
     {
-      echo "# GraffiTE --human pME filter"
+      echo "# GraffiTE --human MEI filter"
       echo
       echo "filter expression:"
       echo '  ${human_filter}'
@@ -619,7 +619,7 @@ process concat_repeatmask {
       echo "kept (count, matching_classes, repeat_ids):"
       bcftools query -f '%INFO/matching_classes\\t%INFO/repeat_ids\\n' pangenome.human.vcf | sort | uniq -c | sort -rn
       echo
-      echo "dropped pME-class records (count, matching_classes, repeat_ids):"
+      echo "dropped MEI-class records (count, matching_classes, repeat_ids):"
       bcftools query -e '${human_filter}' -f '%INFO/matching_classes\\t%INFO/repeat_ids\\n' pangenome.vcf | \\
         awk -F'\\t' '\$1 ~ /Alu|L1|SVA|Simple_repeat|ERVK/' | sort | uniq -c | sort -rn
     } > human_filter_summary.txt
