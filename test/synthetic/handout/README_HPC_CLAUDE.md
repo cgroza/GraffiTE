@@ -27,9 +27,11 @@ handout is Tier 1 and Tier 2 of it.
 
 The goal is a test set that **goes red when anything the pipeline depends on
 moves** — the code, a parameter default, or the container. That is why
-`GRAFFITE_SIF` is left empty and the mutable `docker://cgroza/graffite:latest`
-tag is used on purpose. A pinned image would hide the class of change this
-exists to catch.
+`GRAFFITE_SIF` is left empty: the run uses the image `nextflow.config` names.
+From 1.1.0.0 that is a release tag (`docker://cgroza/graffite:1.1.0.0`), so a
+new image reaches the suite only through a commit that changes that tag, and
+the matrix on that commit is where the change shows. Before 1.1.0.0 the config
+named the mutable `latest` tag.
 
 Getting there means two different activities, and keeping them apart is the
 whole discipline:
