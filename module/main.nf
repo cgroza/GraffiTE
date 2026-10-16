@@ -9,9 +9,12 @@ def isOn(v) {
 
 // The trusted subset: one RepeatMasker hit, long enough, and not mostly tandem
 // repeat. Shared so that pangenome.trusted.vcf and the trusted subset of the
-// genotyped calls cannot drift apart.
+// genotyped calls cannot drift apart. It has no polyA clause: with an
+// uncurated library, an element filed under the wrong class would lose its
+// record. The --human filter, which names its subfamilies, requires a polyA
+// tail of Alu, L1 and SVA records (human_single).
 def trustedFilter() {
-  return "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & (ULTRA_TR_span<${params.trusted_max_ultra_span} | matching_classes=\"Simple_repeat\") & ((matching_classes!~\"LINE\" & matching_classes!~\"SINE\" & matching_classes!~\"Retroposon\") | polyA=\"TRUE\")"
+  return "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & (ULTRA_TR_span<${params.trusted_max_ultra_span} | matching_classes=\"Simple_repeat\")"
 }
 
 // FILTER is the caller's, so this expression only means anything on
@@ -543,8 +546,7 @@ process concat_repeatmask {
   // polyA (TPRT signature) is required for Alu/L1/SVA but not for HML-2 or for
   // SVA-VNTR expansions. Stated positively: bcftools "!~" does not negate
   // reliably on these Number=. fields (matching_classes!~"SINE" is true for
-  // every record, including SINE/Alu ones), so the trusted filter's
-  // "!~LINE & !~SINE & !~Retroposon" idiom must not be reused here.
+  // every record, including SINE/Alu ones).
   def human_single = "n_hits==1 & (matching_classes=\"LTR/ERVK\" | matching_classes=\"Simple_repeat\" | polyA=\"TRUE\")"
   // HML-2 proviral SVs where RepeatMasker splits a small SVA hit off the LTR
   // (SVA/LTR5_Hs homology). OR-ed at the n_hits level so it also bypasses the
