@@ -27,7 +27,7 @@ which of them are TEs.
 
 ---
 
-## The three stages
+## GraffiTE workflow
 
 A GraffiTE run covers some or all of three stages in series. The third has two parts: genotyping,
 and an optional epigenetic mapping. Which stages run depends on the inputs you supply.
@@ -165,14 +165,14 @@ Where the codebase uses a term loosely, this table states the meaning that appli
 
 | Term | Meaning |
 |---|---|
-| **pME** | Polymorphic mobile element. A mobile element insertion that is present in some haplotypes and absent in others. |
+| **MEI** | Mobile element insertion; on these pages, one that is present in some haplotypes and absent from others. The v1.0 README calls them pMEs, polymorphic mobile elements. We use MEI, the more common term. |
 | **Non-reference insertion** | TE present in the sample, absent from the reference. ALT longer than REF, `SVLEN` positive. |
 | **Reference insertion** | TE present in the reference, absent from the sample. REF longer than ALT, `SVLEN` negative. |
 | **Hit** | One RepeatMasker match after fragment grouping, a single element. Counted by the `n_hits` INFO field. |
 | **Fragment** | One raw line of RepeatMasker output. Several fragments may be grouped into one hit. Counted by `fragmts`. |
 | **Repeat span** | The fraction of a variant's sequence covered by the non-redundant union of RepeatMasker TE hits and ULTRA tandem repeats. The `total_repeat_span` INFO field; the main quality filter. |
 | **Trusted subset** | A conservative subset of `pangenome.vcf`: single-hit, at least 250 bp, not dominated by tandem repeat, and polyA-supported if it is a non-LTR retrotransposon. Written to `pangenome.trusted.vcf`. |
-| **Human pME subset** | With `--human`, a subset filtered to recent human mobile element subfamilies (AluY, L1HS, SVA_D/E/F, HML-2). Written to `pangenome.human.vcf`, **instead of** the trusted subset. |
+| **Human MEI subset** | With `--human`, a subset filtered to recent human mobile element subfamilies (AluY, L1HS, SVA_D/E/F, HML-2). Written to `pangenome.human.vcf`, **instead of** the trusted subset. |
 | **TSD** | Target site duplication. A short direct repeat flanking a genuine mobile element insertion, created by the integration mechanism. |
 | **Locus** (HERV-K) | With `--human`, the set of records that describe the same HML-2 element. Two records share a locus when they touch the same reference HML-2 element, or when their footprints lie within `--hervk_locus_window` (`1200` bp) of each other. Named by the `HERVK_LOCUS` INFO field. |
 | **Consolidated VCF** | With `--human`, a VCF in which each HERV-K locus is one record with per-allele states (`pangenome.human.consolidated.vcf`, and `GraffiTE.merged.genotypes.human.vcf.gz` after genotyping). |

@@ -209,7 +209,7 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
 
 ---
 
-## The merged genotypes
+## Merged genotypes
 
 `merge_VCFs` <span class="src">`module/main.nf:879-905`</span> takes every per-sample VCF and:
 
@@ -232,7 +232,7 @@ index written earlier in the script belongs to the pre-annotation file, which is
 **Resources:** `--merge_vcf_memory` (default `10G`), `--merge_vcf_time` (default `1h`)
 <span class="src">`nextflow.config:274-278`</span>.
 
-## The trusted subset of the genotypes
+## Trusted subset of the genotypes
 
 `trusted_genotypes` <span class="src">`module/main.nf:929-959`</span> writes the counterpart of
 `pangenome.trusted.vcf` for the genotyped calls:
@@ -250,7 +250,7 @@ The expression is evaluated on `pangenome.vcf` and the genotyped calls are subse
 returns. It tests `FILTER`, and step 2 above copies `INFO` without `FILTER`, so on the merged VCF it
 would test the genotyper's `FILTER` instead.
 
-Not written under `--human`. There the subset of interest is the pME one, and
+Not written under `--human`. There the subset of interest is the human MEI one, and
 [`hervk_reconcile`](human-mei.md) writes `GraffiTE.merged.genotypes.human.vcf.gz` instead.
 
 ---

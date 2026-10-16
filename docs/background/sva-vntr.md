@@ -90,7 +90,7 @@ To count SVA insertion polymorphisms alone, exclude them:
 bcftools view -e 'INFO/repeat_ids~"VNTR_only"' pangenome.human.vcf
 ```
 
-## The subsets truncate this set
+## VNTR records in the subsets
 
 !!! warning "`pangenome.trusted.vcf` and `pangenome.human.vcf` are not a VNTR catalog"
     On the dataset below they keep one VNTR-only record in eleven, and the ones they keep are

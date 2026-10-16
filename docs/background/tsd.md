@@ -24,7 +24,7 @@ In a variant call, the two copies straddle the breakpoint. The reference genome 
 (the original target site), and the inserted sequence carries the other at one of its ends,
 depending on where the caller placed the breakpoint. GraffiTE looks for that pair.
 
-## The search procedure
+## Search procedure
 
 The search runs on every record that passed the repeat-span filter, whatever its `n_hits`, and
 uses only exact matches. Three scripts do the work, one process each.
@@ -92,15 +92,15 @@ otherwise beat the real copy. At 1.5 the two copies can sit up to three bases of
 between them.
 <span class="src">`bin/TSD_Match_v2.sh:61-68,104-116`, `test/tsd/test_tsd_match.sh`</span>
 
-The rule for short candidates comes from a null test on the CaG set (20 genomes, CHM13v2.0). We
-replaced each insertion's R window with that of another insertion of the same family, strand and
-SV type, so that no duplication could span the pair, and ran the search unchanged. Without the
-rule it passed a match in 72% of swapped Alu, L1 and SVA pairs, most of them 4 or 5 bp long and
-off the junction, while real calls of 9 bp or more scored 0 or 0.5 in 97% of cases. With it,
-36% of swapped pairs pass, and 53 calls on 5,614 real Alu, L1 and SVA records are lost, all
-short and off the junction. Swapped pairs still get a call of 9 bp or more 1.6% of the time, so a
-long TSD is good evidence of transposition and a short one is weak even when it sits on the
-junction.
+The rule for short candidates comes from a null test on a cohort of 20 diploid human genomes, with
+CHM13v2.0 as the reference. We replaced each insertion's R window with that of another insertion of
+the same family, strand and SV type, so that no duplication could span the pair, and ran the search
+unchanged. Without the rule it passed a match in 72% of swapped Alu, L1 and SVA pairs, most of them
+4 or 5 bp long and off the junction, while real calls of 9 bp or more scored 0 or 0.5 in 97% of
+cases. With it, 36% of swapped pairs pass, and 53 calls on 5,614 real Alu, L1 and SVA records are
+lost, all short and off the junction. Swapped pairs still get a call of 9 bp or more 1.6% of the
+time, so a long TSD is good evidence of transposition and a short one is weak even when it sits on
+the junction.
 <span class="src">`bin/TSD_Match_v2.sh:50-60,115-116,142`, `test/tsd/test_tsd_match.sh`</span>
 
 ## Reading TSD_summary.txt

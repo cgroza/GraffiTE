@@ -95,7 +95,7 @@ process, with long-read alignment the most demanding step. See
 
 ---
 
-## The run finishes but there is no `3_TSD_search/pangenome.vcf`
+## `3_TSD_search/pangenome.vcf` missing after a finished run
 
 Check whether `tsd_search` and `tsd_report` ran. When the container cannot write to `/tmp` the
 pipeline can skip them and still report success. `/tmp` inside the container is the launch
@@ -131,7 +131,7 @@ hits listed. A library entry that holds the full element as one consensus gives 
 
 ---
 
-## The run is slow
+## Slow runs
 
 Two steps dominate: `samtools sort` after minimap2, whose threads and memory are set by
 `--stSort_t` and `--stSort_m`, and RepeatMasker with a large library and many SVs. `-with-report report.html`

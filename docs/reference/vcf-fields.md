@@ -49,7 +49,7 @@ stamp `pangenome.vcf`, `pangenome.trusted.vcf`, `pangenome.human.vcf`,
 none.
 <span class="src">`module/main.nf:406-408,628-631,901`</span>
 
-!!! warning "The ALT allele is not the element"
+!!! warning "An ALT allele does not mean the TE is present"
     For a `DEL` record the transposable element is in the reference and an `ALT` genotype means
     the sample lacks it. The presence-absence TSVs in `3_TSD_search/` fold this polarity for you;
     see [Output files](outputs.md).
@@ -138,7 +138,7 @@ by ID, so its structure has to stay.
 | `HERVK_MERGE_FLAG` | 0 | Flag | The locus holds more than one record. | <span class="src">`bin/hervk_reconcile.py:118`</span> |
 | `HERVK_POLARITY_CONFLICT` | 0 | Flag | Records at the locus imply different REF states. The masked reference wins, and consolidation resolves it. | <span class="src">`bin/hervk_reconcile.py:122`</span> |
 
-In the CaG cohort chr6:78,894,316 segregates a solo LTR, a provirus and a two-unit allele. It is
+In a cohort of 20 diploid human genomes, chr6:78,894,316 segregates a solo LTR, a provirus and a two-unit allele. It is
 labeled `copy_number` and carries both `HERVK_SOLO_PROV` and `HERVK_CNV`.
 
 ## Consolidated HERV-K records
@@ -188,7 +188,7 @@ consolidated records with the same meaning.
 
 !!! warning "`HERVK_LOCUS_INCOMPLETE` means the frequencies are partial"
     The `--human` filter is narrower than the HERV-K candidate list, so it can remove some
-    members of a locus and keep others. Three CaG loci are in that state. At chr7:4,699,714 it
+    members of a locus and keep others. In a cohort of 20 diploid human genomes, three loci are in that state. At chr7:4,699,714 it
     keeps one of three; all three describe the same 8.5 kb unit, and the two it removes carry a
     third RepeatMasker fragment the HERV-K clause does not admit. The surviving record carries
     the locus id and the full `HERVK_ALLELE_SET`, but its counts cover only the alleles still

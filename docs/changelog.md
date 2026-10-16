@@ -90,7 +90,7 @@ The `v1.1dev` branch. You need both a code update and an image update to see eve
   subfamily for 35% of records, so the default drops VNTR changes inside old SVAs and makes the
   subfamilies look more different than they are.
 - Neither filter touches `pangenome.vcf` or the merged genotyped VCF, so the full set is
-  available; see [SVA VNTR polymorphisms](background/sva-vntr.md#the-subsets-truncate-this-set).
+  available; see [SVA VNTR polymorphisms](background/sva-vntr.md#vntr-records-in-the-subsets).
 - A later release will size the VNTR-only records in VNTR units and stop `--human_sva_ids`
   from gating them.
 

@@ -212,7 +212,7 @@ nextflow run cgroza/GraffiTE -r v1.1dev -latest \
 
 ---
 
-## The merge
+## Merging calls with truvari
 
 Whatever the sources, all calls converge on `truvari_merge`, which behaves in one of three ways:
 
@@ -244,7 +244,7 @@ For the multi-sample case:
     happens in Stage 3. Absence in this VCF means "not called in that sample", which is not the same as
     "confidently absent".
 
-!!! note "The merge uses the svim-asm resource parameters"
+!!! note "Merge resources come from the svim-asm parameters"
     `truvari_merge` has no parameters of its own; it uses `--svim_asm_threads`, `--svim_asm_memory`
     and `--svim_asm_time` <span class="src">`nextflow.config:208-212`</span>. Since the collapse
     is internally parallel, raising the svim-asm thread count speeds up the merge as well.

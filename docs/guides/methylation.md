@@ -70,7 +70,7 @@ out for every sample does not reach `GraffiTE.merged.genotypes.vcf.gz`. Without 
 that record stays, with no genotype in any column
 <span class="src">`main.nf:260`, `module/main.nf:892`</span>.
 
-### The FORMAT fields
+### FORMAT fields
 
 Added by `annotate_vcf.py` <span class="src">`panmethyl/module/resources/usr/bin/annotate_vcf.py:44-46`</span>, one value per allele of the genotype:
 

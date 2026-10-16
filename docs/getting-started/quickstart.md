@@ -17,7 +17,7 @@ chromosome 22, the matching reference, a Dfam library, and a short-read set to g
 
 ---
 
-## The test dataset
+## Test dataset
 
 ```bash
 tar xzf test/human_test_set.tar.gz
@@ -38,7 +38,7 @@ cd GraffiTE_testset
 the `default` preset <span class="src">`main.nf:190`</span>; PanGenie, the default
 genotyper, does not use the preset.
 
-!!! warning "The bundled `out/` is not a comparison target"
+!!! warning "Do not compare your run with the bundled `out/`"
     That directory was produced by a pre-1.1 release. It contains `svim-asm_variants.vcf`,
     `vcfs.txt` and the OneCode files under `repeatmasker_dir/`, none of which v1.1 writes, and
     it has no `pangenome.trusted.vcf`, no presence-absence TSVs and no ULTRA or polyA fields.

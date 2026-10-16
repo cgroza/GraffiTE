@@ -63,7 +63,7 @@ can; see [Paths and `/tmp`](../getting-started/installation.md#paths-and-tmp).
 See also the
 [Nextflow executor documentation](https://www.nextflow.io/docs/latest/executor.html).
 
-## The `--cores` shortcut
+## `--cores` shortcut
 
 `--cores N` sets `cpus` to `N` for every process whose CPU count is configurable, in place of all
 the `*_threads` parameters, and replaces `pav_asm`'s default of `32`. Set it for a quick run

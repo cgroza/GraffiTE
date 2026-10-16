@@ -29,7 +29,7 @@ junction between them.
 For a variant caller such an insertion is one event. For RepeatMasker it is two fragments of the
 same L1 on opposite strands, and without a rule to join them the element reads as two hits.
 
-## The strand signature
+## Strand signature
 
 RepeatMasker reports each fragment's strand as `+` or `C`. An L1 with a 5' inversion appears as
 a `C` fragment followed, along the variant sequence, by a `+` fragment, both belonging to the
@@ -67,7 +67,7 @@ strands as they came.
 The rule runs on every dataset, not only human ones. It needs the library to name the class
 `LINE/L1`, and it applies to any L1 subfamily in it.
 
-## The L1_5PINV field
+## L1_5PINV field
 
 | Value | Meaning |
 |---|---|

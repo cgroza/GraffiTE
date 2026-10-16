@@ -78,7 +78,7 @@ mechanism: the classifier masks the reference in a window of `--hervk_ref_flank`
 the state from the LTR and internal-region base pairs the window holds
 <span class="src">`bin/hervk_ref_state.py:46-72, 272-292`</span>.
 
-## The classes
+## `HERVK_CLASS` values
 
 `HERVK_ALLELE_REF` and `HERVK_ALLELE` give the states directly; read those in downstream
 analysis. `HERVK_CLASS` names the pair, not the direction
@@ -100,7 +100,7 @@ candidate with fewer than 50 bp of HML-2 sequence) <span class="src">`bin/hervk_
 
 ## Copy-number loci
 
-An HML-2 locus is not always one provirus. In the CaG cohort, the locus at chr7:4.70 Mb carries
+An HML-2 locus is not always one provirus. In a cohort of 20 diploid human genomes, the locus at chr7:4.70 Mb carries
 two units in tandem sharing a central LTR, and one, two and three units all segregate
 <span class="src">`module/main.nf:553-560`</span>. The reference step counts the units of a
 proviral reference element and measures their period, one internal region plus one LTR
@@ -120,7 +120,7 @@ suggested a solo LTR they found was its reciprocal product.
 
 **`hervk_reconcile` withholds graph genotypes at these loci** (`HERVK_GT_MASKED`). The ALT path repeats
 sequence the reference already carries, so reads from the pre-existing copy traverse it and
-non-carriers pick up ALT support; in the CaG run the ALT fraction at such a locus tracked
+non-carriers pick up ALT support; in our run on the 20-genome cohort the ALT fraction at such a locus tracked
 provirus dosage rather than carriage. Discovery genotypes come from haplotype-resolved
 alignments, do not have this problem, and carry the allele counts
 (`HERVK_AC_DISC`, `HERVK_AN_DISC`). Set `--hervk_mask_graph_gt_at_cnv false` to keep the graph

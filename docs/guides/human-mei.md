@@ -42,7 +42,7 @@ Read that file first when a record you expected is missing.
 
 ---
 
-## The subfamily whitelists
+## Subfamily whitelists
 
 A record of a class passes only when one of its `repeat_ids` matches that class's whitelist regex. The
 whitelists are comma-separated lists of bcftools regexes; each list is expanded into an `OR` of
@@ -88,7 +88,7 @@ The 250 bp threshold is sized for insertions and is wrong for the `SVA_*(VNTR_on
 whose unit is about 49 bp. On the 20-genome HPRC set it keeps 102 of 1,141, and
 `--human_sva_ids` removes most of the rest, so do not read the VNTR content of
 `pangenome.human.vcf` as a catalog. See
-[SVA VNTR polymorphisms](../background/sva-vntr.md#the-subsets-truncate-this-set).
+[SVA VNTR polymorphisms](../background/sva-vntr.md#vntr-records-in-the-subsets).
 
 ---
 
@@ -118,7 +118,7 @@ n_hits <= 3  and  LTR/ERVK  and  Retroposon/SVA  and  repeat_ids ~ "^HERVK-int" 
 | `--hervk_pair_max_hits` | `3`; `2` restores the pre-1.1 rule | <span class="src">`nextflow.config:83`</span> |
 
 The hit count is a cap rather than an equality because RepeatMasker also splits the internal
-region of a degraded or rearranged provirus. In the CaG cohort, two of the three records at
+region of a degraded or rearranged provirus. In a cohort of 20 diploid human genomes, two of the three records at
 chr7:4,699,714 came back with three hits (`LTR5_Hs,SVA_A,HERVK-int` and
 `HERVK-int,SVA_A,HERVK-int`), where the third hit is that split. At `n_hits == 2` the filter
 kept one record of the locus and dropped the two carrying its common allele, so the locus
@@ -128,7 +128,7 @@ the one-hit rule admits records that are an LTR5 fragment beside something else,
 satellite and HERVK9 among them
 <span class="src">`module/main.nf:553-567`</span>.
 
-!!! note "The carve-out spells the internal region `HERVK-int`"
+!!! note "Carve-out matches the name `HERVK-int` only"
     The clause matches `repeat_ids~"^HERVK-int"` literally, not the `--human_hervk_ids` list. A
     library that names the internal region `HERVK`, as Dfam does, satisfies the whitelist but not
     the carve-out, so its split proviral records fall back on the one-hit rule.
@@ -138,7 +138,7 @@ SV caller <span class="src">`module/main.nf:571`</span>.
 
 ---
 
-## The HERV-K classifier
+## HERV-K classifier
 
 Alu, L1 and SVA records are done once they pass the filter. HML-2 records are not: a solo LTR
 and a full provirus at the same site are two different alleles of one locus, and a structural
@@ -218,7 +218,7 @@ Outputs: `4_Genotyping/GraffiTE.merged.genotypes.human.vcf.gz` (indexed),
 !!! warning "vg call genotypes only"
     The reconciler reads genotypes from `vg call`, which the giraffe, graphaligner and
     precomputed methods all use <span class="src">`bin/hervk_reconcile.py:431-434,772-776`</span>.
-    We validated it on giraffe genotypes from the CaG cohort; the synthetic test suite checks
+    We validated it on giraffe genotypes from a cohort of 20 diploid human genomes; the synthetic test suite checks
     graphaligner and precomputed against giraffe. The pipeline refuses PanGenie genotypes: a
     `--human` run that genotypes with `--graph_method pangenie` stops at launch unless you pass
     `--hervk_reconcile false` <span class="src">`main.nf:65-71`</span>. When the VCF comes in

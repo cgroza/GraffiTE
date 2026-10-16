@@ -30,7 +30,7 @@ flowchart TD
     PG["<b>pangenome.vcf</b><br/><small>every surviving variant</small>"]
     T{"--human ?"}
     TR["<b>pangenome.trusted.vcf</b><br/><small>conservative subset</small>"]
-    HU["<b>pangenome.human.vcf</b><br/><small>recent human pME subset</small>"]
+    HU["<b>pangenome.human.vcf</b><br/><small>recent human MEI subset</small>"]
     HK["HERV-K classifier"]
 
     IN --> RM --> UN
@@ -55,7 +55,7 @@ flowchart TD
     `pangenome.trusted.human.vcf` as a subset of the trusted set.
     <span class="src">`module/main.nf:595-606`</span>
 
-## The TE library
+## TE library
 
 `--TE_library` is a FASTA of repeat consensus sequences passed to RepeatMasker as `-lib`. It alone
 determines what a variant is called, so the names and classes in it are the names and classes
@@ -117,7 +117,7 @@ sets `L1_5PINV`, and the SVA VNTR rule that renames a hit lying inside the VNTR 
 [L1 5' inversions](../background/l1-5prime-inversion.md) and
 [SVA VNTR polymorphisms](../background/sva-vntr.md).
 
-## The repeat-span filter
+## Repeat-span filter
 
 Each variant gets one number, `total_repeat_span`: the fraction of its sequence covered by the
 union of RepeatMasker TE intervals (simple repeats and low complexity excluded) and ULTRA
@@ -161,7 +161,7 @@ variant with more than one hit gets `NA` and is not scanned. The three constants
 script.
 <span class="src">`bin/add_polyA.py:24-26,71-95,109-158`, `module/main.nf:587`</span>
 
-## The trusted subset
+## Trusted subset
 
 Without `--human`, `concat_repeatmask` also writes `pangenome.trusted.vcf`, the records that pass
 this `bcftools view -i` expression, with the defaults filled in:
@@ -188,7 +188,7 @@ The `FILTER="PASS"` clause is dropped with `--trusted_ignore_filter`, for caller
 `FILTER` empty.
 <span class="src">`nextflow.config:58-60`</span>
 
-!!! warning "The negated class test is weaker than it looks"
+!!! warning "Negated class tests are true for every record"
     `matching_classes!~"SINE"` is true for every record in bcftools, `SINE/Alu` ones included,
     because `!~` does not negate reliably on `Number=.` fields. In practice the expression
     requires `polyA="TRUE"` only when the clause with the negations is false, which it never

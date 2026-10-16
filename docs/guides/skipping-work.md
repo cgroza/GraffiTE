@@ -33,7 +33,7 @@ machines, or with different downstream parameters.
 
 ---
 
-## The ladder
+## Entry points
 
 | Flag | What you supply | Skips | Source |
 |---|---|---|---|

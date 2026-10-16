@@ -12,7 +12,7 @@ description: >-
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
-## The image
+## Container image
 
 Every process runs in `docker://cgroza/graffite:latest`, pulled from Docker Hub, except
 `pav_asm`. All three profiles name the same image. `standard` and `cloud` differ
@@ -82,12 +82,12 @@ column out of the published image, `sha256:47836cda` (pushed 2026-09-30), on 202
 | tagtobed, lift_mods, lift_offsets, lift_edges | `bamtags_to_BED` runs `tagtobed` and `lift_epigenome` runs `lift_mods`; the other two belong to panmethyl processes GraffiTE does not import | built from the panmethyl repository with Rust 1.85.0 | `f0aa2c0`, the submodule's commit | not recorded; its `tagtobed` has the panmethyl#3 fix, first in `f0aa2c0` <span class="src">`Dockerfile:206-227`</span> |
 | bedtools, ncbi-blast+, pigz, gawk, bc, r-base-core | various | Debian 12 apt | no | bedtools 2.30.0, BLAST 2.12.0+, pigz 2.6, gawk 5.2.1, bc 1.07.1 <span class="src">`Dockerfile:6-31,175`</span> |
 
-## The PAV container
+## PAV container
 
 `pav_asm` runs in `library://becklab/pav/pav:latest`, PAV's own image, with 32 CPUs unless
 `--cores` is set. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:339-344`, `module/main.nf:166`</span>
 
-## The recipe and the published image
+## Build recipe and published image
 
 The published image matches `Dockerfile`: Debian 12, vg `v1.77.0` and the `lift_*` binaries, none
 of which `GraffiTE.def` gives. `GraffiTE.def` is the Apptainer recipe that came before it, on

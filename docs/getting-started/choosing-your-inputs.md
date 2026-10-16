@@ -17,7 +17,7 @@ given point. Choose the flag by asking what you already have.
 
 ---
 
-## The three stages
+## Stages and entry flags
 
 | Stage | What it finds | Enters with | Produces |
 |---|---|---|---|

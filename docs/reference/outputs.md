@@ -77,7 +77,7 @@ flowchart LR
     class D5,D6 maybe;
 ```
 
-!!! note "The headline file"
+!!! note "Main output files"
     For most users the file that matters is `3_TSD_search/pangenome.vcf` (all annotated
     polymorphisms) or its filtered companion: `pangenome.trusted.vcf` by default, or
     `pangenome.human.vcf` with `--human`. If you genotyped, it is
@@ -146,7 +146,7 @@ under `--human`, `hervk_annotate` writes its own files into the same directory a
 |---|---|---|
 | `pangenome.vcf` | Every variant from every contig that passed the span filter, with REF and ALT re-read from the reference, `TSD` and `polyA` added, and the caller's `FILTER` kept. This file induces the pangenome graph, so nothing downstream modifies it. | <span class="src">`module/main.nf:575-590`</span> |
 | `pangenome.trusted.vcf` | The records of `pangenome.vcf` that pass the trusted-subset expression in [Stage 2](../guides/annotation.md). Not written under `--human`. | <span class="src">`module/main.nf:13-22,595-599`</span> |
-| `pangenome.human.vcf` | `--human` only. The records that pass the pME filter in [Human MEIs](../guides/human-mei.md), with the HERV-K classifier fields and locus flags added by `hervk_annotate`. `make_graph` and `pangenie_index` take `pangenome.vcf`, not this file, so the graph is the same under `--human`. `hervk_reconcile` reads this file to consolidate HERV-K loci in the genotyped VCF. | <span class="src">`module/main.nf:605`, `module/main.nf:309,381-385`, `main.nf:167,201,213,288`</span> |
+| `pangenome.human.vcf` | `--human` only. The records that pass the MEI filter in [Human MEIs](../guides/human-mei.md), with the HERV-K classifier fields and locus flags added by `hervk_annotate`. `make_graph` and `pangenie_index` take `pangenome.vcf`, not this file, so the graph is the same under `--human`. `hervk_reconcile` reads this file to consolidate HERV-K loci in the genotyped VCF. | <span class="src">`module/main.nf:605`, `module/main.nf:309,381-385`, `main.nf:167,201,213,288`</span> |
 | `pangenome.human.consolidated.vcf` | `--human` only. `pangenome.human.vcf` with each HERV-K locus collapsed onto one multi-allelic record, genotypes taken from the assemblies. | <span class="src">`module/main.nf:398-404`</span> |
 | `pangenome.presence-absence.tsv`, `..._trusted.tsv`, `..._human.tsv` | Flat tables of the matching VCF; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:593,599,606`</span> |
 | `human_filter_summary.txt` | `--human` only. The exact `bcftools view -i` expression that was applied, record counts before and after, and the kept and dropped `(matching_classes, repeat_ids)` combinations with their counts. | <span class="src">`module/main.nf:608-623`</span> |
