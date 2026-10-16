@@ -1,0 +1,41 @@
+# observed: /xdisk/cgoubert/cgoubert/GraffiTE1.1/synthetic/OBSERVED.tsv
+# observed_sha256: 0eae46866cdd471db458aaf6
+# observed_mtime: 2026-10-16T15:51:10
+# build_manifest_sha256: 6d2ad996026d7f5d55c16886
+# spine_pangenome_vcf: /xdisk/cgoubert/cgoubert/GraffiTE1.1/synthetic/wd/runs/spine/3_TSD_search/pangenome.vcf
+# spine_mtime: 2026-10-16T15:27:20
+name	kind	contig	pos	truth_svlen	in_svs	in_prefilter	in_postfilter	in_pangenome	in_trusted	in_human	n_hits	repeat_ids	matching_classes	fragmts	strands	L1_5PINV	total_repeat_span	ULTRA_TR_span	TSD	polyA	rm_n_rows	rm_link_ids	rm_best_sw	rm_repeat_ids	rm_target_start	rm_target_end	rm_strands	vcf_svlen
+A01_alu_tsd_polyA	canonical	chr1	2500	337	yes	yes	yes	yes	no	yes	1	AluY	SINE/Alu	1	+	None	0.952663	0.121302	AGTATCTC,AGTATCTC	TRUE	1	7	2540	AluY	1	307	+	337
+A02_alu_no_polyA_no_tsd	trusted_noop_probe	chr1	5000	281	yes	yes	yes	yes	no	no	1	AluY	SINE/Alu	1	+	None	0.996454	0.0	None	FALSE	1	17	2172	AluY	1	281	+	281
+A03_alu_polyA_too_short	polyA_below_min	chr1	7500	303	yes	yes	yes	yes	no	no	1	AluY	SINE/Alu	1	+	None	0.944079	0.0	TGCT,TGCT	FALSE	1	1	2281	AluY	1	287	+	303
+A04_alu_polyA_beyond_slack	polyA_beyond_slack	chr1	10000	322	yes	yes	yes	yes	no	no	1	AluY	SINE/Alu	1	+	None	0.947368	0.0773994	ACCCGGACGGC,ACCCGGACGGC	FALSE	1	18	2374	AluY	1	296	+	322
+A05_alu_revcomp	strand_C_polyT	chr1	12500	337	yes	yes	yes	yes	no	yes	1	AluY	SINE/Alu	1	C	None	0.949704	0.118343	CTTATGGCT,CTTATGGCT	TRUE	1	8	2175	AluY	1	311	C	337
+A06_alusx_trusted_not_human	subfamily_gate	chr1	15000	338	yes	yes	yes	yes	no	no	1	AluSx	SINE/Alu	1	+	None	0.955752	0.123894	CTTAAC,CTTAAC	TRUE	1	2	2398	AluSx	1	309	+	338
+A07_alu_full_length_clean	canonical_low_div	chr1	17500	327	yes	yes	yes	yes	no	yes	1	AluY	SINE/Alu	1	+	None	0.948171	0.0914634	ATTCGGGATG,ATTCGGGATG	TRUE	1	9	2759	AluY	1	311	+	327
+A08_alu_no_tsd	tsd_fail	chr1	20000	321	yes	yes	yes	yes	no	yes	1	AluY	SINE/Alu	1	+	None	0.996894	0.121118	None	TRUE	1	19	2486	AluY	1	306	+	321
+A09_l1_twin_primed_Cplus	L1_5PINV_positive	chr1	22500	2784	yes	yes	yes	yes	no	yes	1	L1HS	LINE/L1	2	+	10	0.993896	0.0588869	TATGCATG,TATGCATG	TRUE	2	10	13124	L1HS,L1HS	196,1501	1400,3038	C+	2784
+A10_l1_plusC_negative	L1_5PINV_negative	chr1	25000	2784	yes	yes	yes	yes	no	no	2	L1HS,L1HS	LINE/L1,LINE/L1	1,1	+,C	None	0.993896	0.0506284	AAGTCCATAT,AAGTCCATAT	NA	3	20,21,22	13035	L1HS,L1HS,(A)n	1501,198,1	3038,1400,27	+C+	2784
+A11_l1_full	L1_full	chr1	27500	3056	yes	yes	yes	yes	no	yes	1	L1HS	LINE/L1	1	+	None	0.994766	0.0242067	ATCTGATC,ATCTGATC	TRUE	1	11	25065	L1HS	1	3038	+	3056
+A12_sva_vntr_only	SVA_VNTR_only	chr1	30000	426	yes	yes	yes	yes	no	yes	1	SVA_E(VNTR_only)	Simple_repeat	1	+	None	0.964871	0.81733	CCACATCA,CCACATCA	FALSE	1	23	2647	SVA_E	441	852	+	426
+A13_sva_full	SVA_full	chr1	32500	1438	yes	yes	yes	yes	no	yes	1	SVA_E	Retroposon/SVA	1	+	None	0.989576	0.339124	ATTTATGAC,ATTTATGAC	TRUE	3	12,13,14	10779	(CCTCTC)n,SVA_E,(A)n	1,57,1	58,1382,40	+++	1438
+A14_span_95	span_ladder	chr1	35000	332	yes	yes	yes	yes	no	no	1	AluY	SINE/Alu	1	+	None	0.900901	0.0	AGTTGCTC,AGTTGCTC	FALSE	1	24	2303	AluY	1	300	+	332
+A15_span_90	span_ladder	chr1	37500	349	yes	yes	yes	yes	no	no	1	AluY	SINE/Alu	1	+	None	0.862857	0.0542857	TTAGCGGGG,TTAGCGGGG	FALSE	1	15	2331	AluY	1	302	+	349
+A16_span_85	span_ladder	chr1	40000	369	yes	yes	yes	yes	no	no	1	AluY	SINE/Alu	1	+	None	0.810811	0.0486486	TCATATCA,TCATATCA	FALSE	1	25	2233	AluY	1	300	+	369
+A17_span_82	span_ladder	chr1	42500	382	yes	yes	no	no	no	no	1	AluY	SINE/Alu	1	+	None	0.780679	0.0469974	None	None	1	3	2335	AluY	1	299	+	382
+A18_span_78	span_ladder	chr1	45000	401	yes	yes	no	no	no	no	1	AluY	SINE/Alu	1	+	None	0.746269	0.0472637	None	None	1	4	2281	AluY	1	300	+	401
+A19_span_70	span_ladder	chr1	47500	445	yes	yes	no	no	no	no	1	AluY	SINE/Alu	1	+	None	0.697309	0.0560538	None	None	1	5	2343	AluY	1	311	+	445
+A20_span_60	span_ladder	chr1	50000	516	yes	yes	no	no	no	no	1	AluY	SINE/Alu	1	+	None	0.580271	0.0367505	None	None	1	16	2265	AluY	1	300	+	516
+A21_span_45	span_ladder	chr1	52500	683	yes	yes	no	no	no	no	1	AluY	SINE/Alu	1	+	None	0.438596	0.0277778	None	None	1	6	2311	AluY	1	300	+	683
+H01_solo_ltr	hervk_solo	chr2	2500	984	yes	yes	yes	yes	no	yes	1	LTR5_Hs	LTR/ERVK	1	+	None	0.982741	0.0335025	CTGTAACT,CTGTAACT	FALSE	1	13	8709	LTR5_Hs	1	968	+	984
+H02_provirus	hervk_provirus	chr2	5000	9488	yes	yes	yes	yes	no	yes	2	HERVK-int(x),SVA_E	LTR/ERVK,Retroposon/SVA	3,1	+,+	None	0.998208	0.0191801	CCTCTCTG,CCTCTCTG	NA	4	6,7	65413	LTR5_Hs,HERVK-int,SVA_E,LTR5_Hs	1,1,869,3	968,7536,936,968	++++	9488
+H03_provirus_two_unit	hervk_cnv	chr2	7500	17992	yes	yes	yes	yes	no	no	2	HERVK-int(x),SVA_E	LTR/ERVK,Retroposon/SVA	5,2	+,+	None	0.999	0.00766965	CCAAGTGC,CCAAGTGC	NA	7	14,15	65510	LTR5_Hs,HERVK-int,SVA_E,LTR5_Hs,HERVK-int,SVA_E,LTR5_Hs	1,1,869,1,1,869,1	968,7536,934,968,7536,934,967	+++++++	17992
+H04_truncated_int	hervk_partial	chr2	10000	3984	yes	yes	yes	yes	no	yes	1	HERVK-int(x)	LTR/ERVK	2	+	None	0.995985	0.00928482	GGCT,GGCT	FALSE	2	8	25265	LTR5_Hs,HERVK-int	1,1	968,3001	++	3984
+H05_hervk9_decoy	non_hml2_decoy	chr2	12500	6037	yes	yes	yes	yes	no	no	1	HERVK9-int	LTR/ERVK	1	+	None	0.997184	0.0	TACCGGAGA,TACCGGAGA	FALSE	1	1	48712	HERVK9-int	1	6021	+	6037
+H06_ltr5_sva_pair	hervk_sva_pair	chr2	15000	9888	yes	yes	yes	yes	no	yes	3	HERVK-int(x),SVA_E,LTR5_Hs	LTR/ERVK,Retroposon/SVA,LTR/ERVK	2,1,1	+,+,+	None	0.99727	0.023157	CGATTCAA,CGATTCAA	NA	5	10,11,12,9	65374	LTR5_Hs,HERVK-int,(TCTCCC)n,SVA_E,LTR5_Hs	1,1,1,57,1	968,7535,50,400,968	+++++	9888
+H07_locus_pair_a	hervk_locus_pair	chr2	17500	984	yes	yes	yes	yes	no	yes	1	LTR5_Hs	LTR/ERVK	1	+	None	0.982741	0.0375635	TTATCTATT,TTATCTATT	FALSE	1	2	8697	LTR5_Hs	1	968	+	984
+H07_locus_pair_b	hervk_locus_pair	chr2	18400	984	yes	yes	yes	yes	no	yes	1	LTR5_Hs	LTR/ERVK	1	+	None	0.982741	0.0375635	AAAGATACAT,AAAGATACAT	FALSE	1	3	8482	LTR5_Hs	1	968	+	984
+H08_beside_ref_solo	hervk_ref_state_probe	chr2	51568	9488	yes	yes	yes	yes	no	yes	2	HERVK-int(x),SVA_E	LTR/ERVK,Retroposon/SVA	3,1	+,+	None	0.998208	0.0105385	CTTT,CTTT	NA	4	4,5	65439	LTR5_Hs,HERVK-int,SVA_E,LTR5_Hs	1,1,888,1	968,7536,934,968	++++	9488
+P_X_aluY	ploidy_probe	X	2500	357	yes	yes	yes	yes	no	yes	1	AluY	SINE/Alu	1	+	None	0.972067	0.178771	AGGAGGGGT,AGGAGGGGT	TRUE	1	1	2531	AluY	1	311	+	357
+P_chrX_aluY	ploidy_probe	chrX	2500	357	yes	yes	yes	yes	no	yes	1	AluY	SINE/Alu	1	+	None	0.952514	0.167598	AAGCCAGGGT,AAGCCAGGGT	TRUE	1	1	2346	AluY	1	311	+	357
+P_chrX_alt_aluY	ploidy_probe	chrX_alt	2500	357	yes	yes	yes	yes	no	yes	1	AluY	SINE/Alu	1	+	None	0.952514	0.156425	GGCTC,GGCTC	TRUE	1	1	2259	AluY	1	311	+	357
+P_chrY_aluY	ploidy_probe	chrY	2500	357	yes	yes	yes	yes	no	yes	1	AluY	SINE/Alu	1	+	None	0.958101	0.173184	AAGGTAGT,AAGGTAGT	TRUE	2	1,2	2576	AluY,(A)n	1,1	311,32	++	357
