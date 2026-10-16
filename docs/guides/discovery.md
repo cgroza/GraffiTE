@@ -110,6 +110,11 @@ An alternative assembly-based caller that takes all haplotypes of a sample toget
 one haploid assembly at a time. Runs in its own container
 (`library://becklab/pav/pav:latest`), not the GraffiTE image.
 
+!!! note "PAV 2 is slow"
+    `pav_asm` runs PAV 2 through its `files/docker/run` script
+    <span class="src">`module/main.nf:166`</span>, and PAV 2 is slow. We are working to add
+    PAV 3, which is much faster, as soon as we can.
+
 !!! note "Positional samplesheet"
     Unlike every other GraffiTE samplesheet, the `--pav` sheet is parsed **positionally**. The
     first line is skipped as a header regardless of what it says; column 1 is the sample name and
