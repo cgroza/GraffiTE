@@ -2,7 +2,7 @@ name: Documentation
 
 on:
   push:
-    branches: [main, v1.1dev]
+    branches: [main, dev, v1.1dev]   # drop v1.1dev once 1.1 is on main
     paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs.yml', 'main.nf', 'module/**', 'bin/**', 'nextflow.config', 'Dockerfile', 'GraffiTE.def']
   pull_request:
     paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs.yml', 'main.nf', 'module/**', 'bin/**', 'nextflow.config', 'Dockerfile', 'GraffiTE.def']
