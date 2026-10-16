@@ -210,7 +210,7 @@ preserved), then directly to annotation. This is the "use GraffiTE purely as a T
 entry point.
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev -latest \
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -latest \
   --reference ref.fa --TE_library TEs.fa \
   --vcf my_svs.vcf.gz --genotype false
 ```

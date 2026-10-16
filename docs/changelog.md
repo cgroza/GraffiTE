@@ -1,6 +1,6 @@
 ---
 title: Changelog
-description: Release history of GraffiTE, from the first beta to the current v1.1 development branch.
+description: Release history of GraffiTE, from the first beta to v1.1.0.0.
 ---
 
 # Changelog
@@ -10,14 +10,18 @@ description: Release history of GraffiTE, from the first beta to the current v1.
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
-Entries before v1.1 are the README's, kept with their original dates. Since beta 0.2.5,
-releases are identified by commit; give the commit you run when asking for help.
+Entries before v1.1 are the README's, kept with their original dates. From beta 0.2.5 to v1.1,
+releases were identified by commit. From v1.1.0.0, each release is a git tag, `vW.X.Y.Z`;
+give the version you run when asking for help.
 
 ---
 
-## v1.1 (development)
+## v1.1.0.0
 
-The `v1.1dev` branch. You need both a code update and an image update to see every change.
+Versions now have four numbers, W.X.Y.Z;
+[CONTRIBUTING.md](https://github.com/cgroza/GraffiTE/blob/main/CONTRIBUTING.md) says what each
+one means. This release names its own image, `cgroza/graffite:1.1.0.0`, so a run of it pulls the
+image it needs.
 
 **Annotation**
 

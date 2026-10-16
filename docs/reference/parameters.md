@@ -25,7 +25,7 @@ Nextflow distinguishes two kinds of option by the number of leading dashes:
 | `-name value` | Nextflow itself | `-resume`, `-profile cluster`, `-with-report` |
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev -latest \
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -latest \
   -profile cluster \
   --reference hs37d5.fa \
   --assemblies assemblies.csv \
@@ -33,7 +33,7 @@ nextflow run cgroza/GraffiTE -r v1.1dev -latest \
   --genotype_with reads.csv
 ```
 
-Defaults live in [`nextflow.config`](https://github.com/cgroza/GraffiTE/blob/v1.1dev/nextflow.config).
+Defaults live in [`nextflow.config`](https://github.com/cgroza/GraffiTE/blob/v1.1.0.0/nextflow.config).
 Override them on the command line, in a local copy of the config passed with `-c`, or in a
 `-params-file`.
 
@@ -154,7 +154,7 @@ tables; `hervk_reconcile` runs after `merge_VCFs`.
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--hervk_config` | `null` | JSON file overriding the classifier's thresholds. Template at [`utils/HERVK.config.json`](https://github.com/cgroza/GraffiTE/blob/v1.1dev/utils/HERVK.config.json). | <span class="src">`nextflow.config:62`, `module/main.nf:321`</span> |
+| `--hervk_config` | `null` | JSON file overriding the classifier's thresholds. Template at [`utils/HERVK.config.json`](https://github.com/cgroza/GraffiTE/blob/v1.1.0.0/utils/HERVK.config.json). | <span class="src">`nextflow.config:62`, `module/main.nf:321`</span> |
 | `--hervk_max_svlen` | `25000` (bp) | \|SVLEN\| ceiling for HERV-K candidacy. Applied when the candidate list is built, before the reference windows are masked, so an oversized record costs no masking. | <span class="src">`nextflow.config:85`, `module/main.nf:345`</span> |
 | `--hervk_ref_flank` | `1500` (bp) | Reference sequence masked on each side of a candidate footprint to establish the REF state. | <span class="src">`nextflow.config:109`, `module/main.nf:353,357`</span> |
 | `--hervk_ref_annotation` | `null` | A precomputed RepeatMasker `.out` or BED for the reference. When set, the in-pipeline masking is skipped. | <span class="src">`nextflow.config:114`, `module/main.nf:350-353`</span> |

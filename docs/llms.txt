@@ -1,6 +1,6 @@
 # GraffiTE
 
-> GraffiTE is a Nextflow pipeline that finds transposable element insertion polymorphisms in genome assemblies and long reads, annotates them with RepeatMasker and ULTRA, and genotypes them in read sets through a pangenome graph. This site documents v1.1 (branch v1.1dev); the 2024 Nature Communications paper describes v1.0.
+> GraffiTE is a Nextflow pipeline that finds transposable element insertion polymorphisms in genome assemblies and long reads, annotates them with RepeatMasker and ULTRA, and genotypes them in read sets through a pangenome graph. This site documents v1.1.0.0; the 2024 Nature Communications paper describes v1.0.
 
 ## Documentation
 

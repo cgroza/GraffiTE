@@ -232,7 +232,7 @@ the calls. To repeat steps 1 to 6 and the consolidation against a genotyped VCF 
 run <span class="src">`main.nf:296-314`</span>:
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev -latest \
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -latest \
   --RM_dir earlier/out/2_Repeat_Filtering \
   --reference ref.fa --TE_library TEs.fa --human \
   --genotype false \

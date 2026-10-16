@@ -48,18 +48,17 @@ Two ways, depending on whether you want a local copy of the code.
     `panmethyl` submodule for you:
 
     ```bash
-    nextflow pull cgroza/GraffiTE -r v1.1dev
+    nextflow pull cgroza/GraffiTE -r v1.1.0.0
     ```
 
     The cached copy lives under `~/.nextflow/assets/cgroza/GraffiTE/`. Later runs use
-    `nextflow run cgroza/GraffiTE -r v1.1dev ...`.
+    `nextflow run cgroza/GraffiTE -r v1.1.0.0 ...`.
 
 === "Clone the repository"
 
     ```bash
-    git clone --recurse-submodules https://github.com/cgroza/GraffiTE.git
+    git clone --branch v1.1.0.0 --recurse-submodules https://github.com/cgroza/GraffiTE.git
     cd GraffiTE
-    git switch v1.1dev
     ```
 
     `main.nf` includes the `panmethyl` submodule unconditionally
@@ -89,7 +88,7 @@ the run at the file:
 
 ```bash
 apptainer pull graffite_1.1.0.0.sif docker://cgroza/graffite:1.1.0.0
-nextflow run cgroza/GraffiTE -r v1.1dev -with-singularity /abs/path/graffite_1.1.0.0.sif ...
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -with-singularity /abs/path/graffite_1.1.0.0.sif ...
 ```
 
 `-with-singularity` overrides the image path in `nextflow.config`.
@@ -114,7 +113,7 @@ Nextflow runs every container with `--contain --bind <dir>:/tmp`
   point `--container_tmp` at one that is:
 
   ```bash
-  nextflow run cgroza/GraffiTE -r v1.1dev --container_tmp /scratch/you/tmp ...
+  nextflow run cgroza/GraffiTE -r v1.1.0.0 --container_tmp /scratch/you/tmp ...
   ```
 
   The directory must exist before the run starts. On SLURM sites that set a per-job scratch
@@ -138,11 +137,11 @@ Without inputs the workflow prints its banner and stops with the input message, 
 that Nextflow and the submodule are in order:
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev -preview
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -preview
 ```
 
 ```
-V. 1.1.0 - v1.1dev
+V. 1.1.0.0 - v1.1.0.0
 ...
 No input given. Pass one of --longreads, --bams, --assemblies, --pav, --svs (discovery), --vcf (a merged SV VCF), --RM_dir (RepeatMasker output of an earlier run) or --graffite_vcf (a pangenome.vcf from an earlier run).
 ```
@@ -158,14 +157,14 @@ discovery, annotation and genotyping, and `check.sh` compares the output with wh
 writes for this data set:
 
 ```bash
-nextflow pull cgroza/GraffiTE -r v1.1dev
+nextflow pull cgroza/GraffiTE -r v1.1.0.0
 tar xzf ~/.nextflow/assets/cgroza/GraffiTE/test/quick_test.tar.gz && cd graffite_quick_test
-nextflow run cgroza/GraffiTE -r v1.1dev -params-file quick_test.yaml
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -params-file quick_test.yaml
 bash check.sh
 ```
 
 The last line it prints is `GraffiTE quick test: PASS`. Where Nextflow could use 4 CPUs and
-12 GB of memory, the run took 72 seconds once the image was downloaded. The test genotypes with
+12 GB of memory, the run took about 70 seconds once the image was downloaded. The test genotypes with
 giraffe, because GraffiTE requests 32 GB for each task of PanGenie, the default back end.
 
 ---
@@ -173,7 +172,7 @@ giraffe, because GraffiTE requests 32 GB for each task of PanGenie, the default 
 ## Updating
 
 ```bash
-nextflow pull cgroza/GraffiTE -r v1.1dev
+nextflow pull cgroza/GraffiTE -r v1.1.0.0
 ```
 
 or add `-latest` to any `nextflow run` command. If Nextflow prints
@@ -186,11 +185,11 @@ the cached copy was edited in place (usually `nextflow.config`). Remove it and p
 
 ```bash
 rm -rf ~/.nextflow/assets/cgroza/GraffiTE/
-nextflow pull cgroza/GraffiTE -r v1.1dev
+nextflow pull cgroza/GraffiTE -r v1.1.0.0
 ```
 
-You update the image and the code separately. After a code update that changes a tool, pull
-the image again as well; the [Changelog](../changelog.md) says when that is needed.
+Each release names its own image tag in `nextflow.config`, so the first run of a new release
+pulls the image built for it.
 
 Nextflow does not check for a rebuilt image. Its Singularity cache is keyed on the
 image **name**, so it reuses a `cgroza-graffite-1.1.0.0.img` left by an earlier run. A new

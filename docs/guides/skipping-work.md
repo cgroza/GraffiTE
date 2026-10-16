@@ -22,7 +22,7 @@ would have produced it. The flags form a ladder, from the earliest stage to the 
 ## Nextflow `-resume`
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev -latest -resume --assemblies assemblies.csv ...
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -latest -resume --assemblies assemblies.csv ...
 ```
 
 Nextflow keys each task on its inputs and script, so a task reruns only when one of those

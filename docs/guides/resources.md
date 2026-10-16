@@ -24,7 +24,7 @@ Pass one with `-profile` (single dash). All three run the same container.
 | `cloud` | `aws` | Does not launch: Nextflow 26.04.6 stops with `Unknown executor name: aws`. The AWS Batch executor is called `awsbatch`, and needs your own AWS settings in a config passed with `-c`. |
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev -profile cluster ...
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -profile cluster ...
 ```
 
 Site-specific settings (a partition, an account, a container cache) go in a config file of your
@@ -42,7 +42,7 @@ process {
 ```
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev -profile cluster -c site.config ...
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -profile cluster -c site.config ...
 ```
 
 137 and 143 are SIGKILL and SIGTERM, which is how SLURM ends a job that ran past its time or

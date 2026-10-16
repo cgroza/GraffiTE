@@ -41,7 +41,7 @@ def render(path):
 
 def main():
     parts = ["# GraffiTE documentation, all pages\n",
-             "Source: https://cgroza.github.io/GraffiTE/ (built from docs/ on the v1.1dev branch).\n"]
+             "Source: https://cgroza.github.io/GraffiTE/ (built from docs/ on the main branch).\n"]
     n = 0
     for p in nav_pages():
         if not p.exists():

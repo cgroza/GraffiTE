@@ -47,7 +47,7 @@ genotyper, does not use the preset.
 ## Run it
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev \
+nextflow run cgroza/GraffiTE -r v1.1.0.0 \
   --assemblies assemblies.csv \
   --reference hs37d5.chr22.fa \
   --TE_library human_DFAM3.6.fasta \

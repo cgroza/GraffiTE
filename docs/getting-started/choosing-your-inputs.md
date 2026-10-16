@@ -73,7 +73,7 @@ unless you pass `--genotype false`.
 Answer the questions to get a starting command. Its file names are those of the examples on
 [Samplesheet formats](../reference/samplesheets.md); replace them with your own paths.
 
-<div class="gt-picker" data-revision="v1.1dev" markdown>
+<div class="gt-picker" data-revision="v1.1.0.0" markdown>
 <p>The command builder needs JavaScript; without it, use the diagram above and the tables
 below.</p>
 

@@ -58,7 +58,7 @@ your own and pass `-with-docker cgroza/graffite:1.1.0.0`.
 
 ## What is inside
 
-Built from [`Dockerfile`](https://github.com/cgroza/GraffiTE/blob/v1.1dev/Dockerfile) on top of
+Built from [`Dockerfile`](https://github.com/cgroza/GraffiTE/blob/v1.1.0.0/Dockerfile) on top of
 `dfam/tetools:latest`, which is Debian 12. The recipe pins few versions; most tools are whatever
 the upstream repository, or the base image, held on the day the image was built. We read the last
 column out of the published image, `sha256:47836cda` (pushed 2026-09-30), on 2026-10-03.
