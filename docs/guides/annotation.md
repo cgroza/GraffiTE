@@ -20,15 +20,15 @@ repeat are discarded. The rest come out as `pangenome.vcf` with the annotation f
 ```mermaid
 flowchart TD
     IN["SVs.vcf<br/><small>all INS/DEL from Stage 1</small>"]
-    RM["RepeatMasker<br/><small>vs --TE_library</small>"]
+    RM["RepeatMasker<br/><small>vs <code>--TE_library</code></small>"]
     UL["ULTRA<br/><small>tandem repeats</small>"]
     UN["Union of intervals<br/><small>non-redundant, per variant</small>"]
-    F1{"total_repeat_span<br/>&gt; --repeat_span_cutoff<br/><small>default 0.80</small>"}
+    F1{"total_repeat_span<br/>&gt; <code>--repeat_span_cutoff</code><br/><small>default 0.80</small>"}
     DROP["discarded"]
     TSD["TSD search<br/><small>flanking windows</small>"]
     PA["polyA detection"]
     PG["<b>pangenome.vcf</b><br/><small>every surviving variant</small>"]
-    T{"--human ?"}
+    T{"<code>--human</code> ?"}
     TR["<b>pangenome.trusted.vcf</b><br/><small>conservative subset</small>"]
     HU["<b>pangenome.human.vcf</b><br/><small>recent human MEI subset</small>"]
     HK["HERV-K classifier"]
@@ -42,8 +42,8 @@ flowchart TD
     T -->|"no (default)"| TR
     T -->|yes| HU --> HK
 
-    classDef out fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
-    classDef bad fill:none,stroke:#b0b8c0,color:#8b95a1,stroke-dasharray:4 3;
+    classDef out fill:#f2523f2e,stroke:#f2523f;
+    classDef bad fill:none,stroke:#888888,stroke-dasharray:4 3;
     class PG,TR,HU out;
     class DROP bad;
 ```

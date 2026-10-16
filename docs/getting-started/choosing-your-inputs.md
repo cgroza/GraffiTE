@@ -34,33 +34,34 @@ The optional Stage 3.2 lifts methylation onto the graph (`--epigenomes`), only o
 ## What data do you have?
 
 ```mermaid
-flowchart TD
-    Q0{"What do you have?"}
-
-    Q0 -->|"Genome assemblies"| Q1{"Want PAV's caller?"}
+%%{init: {"flowchart": {"nodeSpacing": 14, "rankSpacing": 26, "padding": 8}}}%%
+flowchart LR
+    Q0("What do you<br/>start from?")
+    Q0 -->|"Genome<br/>assemblies"| Q1("Call them<br/>with PAV?")
     Q1 -->|No| SA["<code>--assemblies</code>"]
     Q1 -->|Yes| PV["<code>--pav</code>"]
-
-    Q0 -->|"Long reads"| Q2{"Already aligned?"}
+    Q0 -->|"Long reads"| Q2("Already aligned?")
     Q2 -->|No| LR["<code>--longreads</code>"]
     Q2 -->|Yes| BM["<code>--bams</code>"]
-
-    Q0 -->|"SV calls with REF and ALT sequences"| Q3{"One VCF per sample,<br/>or one merged VCF?"}
+    Q0 -->|"SV calls with<br/>REF and ALT<br/>sequences"| Q3("One VCF per sample,<br/>or one merged VCF?")
     Q3 -->|"Per sample"| SV["<code>--svs</code>"]
-    Q3 -->|"One merged VCF"| VC["<code>--vcf</code>"]
-
-    Q0 -->|"A GraffiTE run that stopped"| Q4{"Which stage finished?"}
+    Q3 -->|"Merged"| VC["<code>--vcf</code>"]
+    Q0 -->|"An earlier<br/>GraffiTE run"| Q4("What did<br/>it finish?")
     Q4 -->|"RepeatMasker"| RM["<code>--RM_dir</code>"]
-    Q4 -->|"Annotation<br/>(pangenome.vcf)"| GV["<code>--graffite_vcf</code>"]
-    Q4 -->|"Graph, or alignments"| PC["<code>--graph</code><br/><code>--graph_alignments</code> / <code>--vcfs</code>"]
+    Q4 -->|"pangenome.vcf"| GV["<code>--graffite_vcf</code>"]
+    Q4 -->|"Graph, alignments<br/>or vg call VCFs"| PC["<code>--graph</code><br/><code>--graph_alignments</code><br/><code>--vcfs</code>"]
 
-    classDef a fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
-    classDef b fill:#5c7cfa,stroke:#5c7cfa,color:#fff;
-    classDef c fill:#f2523f,stroke:#f2523f,color:#fff;
-    class SA,PV,LR,BM,SV a;
-    class VC,RM b;
-    class GV,PC c;
+    classDef q fill:#8888881a,stroke:#888888;
+    classDef s1 fill:#f5851f2e,stroke:#f5851f;
+    classDef s2 fill:#f2523f2e,stroke:#f2523f;
+    classDef s3 fill:#3d63c92e,stroke:#3d63c9;
+    class Q0,Q1,Q2,Q3,Q4 q;
+    class SA,PV,LR,BM,SV s1;
+    class VC,RM s2;
+    class GV,PC s3;
 ```
+
+<p class="gt-key"><span class="gt-key-s1">enters at Stage 1</span> <span class="gt-key-s2">at Stage 2</span> <span class="gt-key-s3">at Stage 3</span></p>
 
 Every discovery input needs `--reference` and `--TE_library`. Genotyping needs `--genotype_with`
 unless you pass `--genotype false`.

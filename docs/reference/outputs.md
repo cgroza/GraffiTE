@@ -71,8 +71,14 @@ flowchart LR
     C -.->|"giraffe · graphaligner"| D5["GraffiTE_graph/"]
     C -.->|"giraffe · graphaligner"| D6["GraffiTE_alignments/"]
 
-    classDef always fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
-    classDef maybe fill:none,stroke:#7a1fa2,stroke-dasharray:4 3;
+    classDef s1 fill:#f5851f2e,stroke:#f5851f;
+    classDef s2 fill:#f2523f2e,stroke:#f2523f;
+    classDef s3 fill:#3d63c92e,stroke:#3d63c9;
+    classDef always fill:#8888881a,stroke:#888888;
+    classDef maybe fill:none,stroke:#888888,stroke-dasharray:4 3;
+    class A s1;
+    class B s2;
+    class C s3;
     class D1,D2,D3,D4 always;
     class D5,D6 maybe;
 ```

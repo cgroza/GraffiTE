@@ -23,32 +23,32 @@ Four backends can produce those calls, plus two ways to supply calls you already
 ## Which entry point do you want?
 
 ```mermaid
-flowchart TD
-    Q0{"What do you have?"}
-
-    Q0 -->|Genome assemblies| Q1{"Phased,<br/>multi-haplotype?"}
-    Q0 -->|Long reads, unaligned| LR["<code>--longreads</code><br/><small>minimap2 → Sniffles2</small>"]
-    Q0 -->|Long reads, already aligned| BM["<code>--bams</code><br/><small>Sniffles2 only</small>"]
-    Q0 -->|SV calls you made yourself| Q2{"One VCF or<br/>one per sample?"}
-
-    Q1 -->|"No, one contig set per sample"| SA["<code>--assemblies</code><br/><small>minimap2 → svim-asm</small>"]
-    Q1 -->|"Yes, PAV's caller"| PV["<code>--pav</code><br/><small>PAV, own container</small>"]
-
-    Q2 -->|"Per sample, want them merged"| SV["<code>--svs</code><br/><small>straight to merge</small>"]
-    Q2 -->|"A single merged VCF"| VC["<code>--vcf</code><br/><small>skips Stage 1 entirely</small>"]
-
-    SA --> M["<b>truvari merge</b><br/><small>SVs.vcf</small>"]
+%%{init: {"flowchart": {"nodeSpacing": 14, "rankSpacing": 26, "padding": 8}}}%%
+flowchart LR
+    Q0("What do you<br/>start from?")
+    Q0 -->|"Genome<br/>assemblies"| Q1("Call them<br/>with PAV?")
+    Q1 -->|"No"| SA["<code>--assemblies</code><br/><small>minimap2, svim-asm</small>"]
+    Q1 -->|"Yes"| PV["<code>--pav</code><br/><small>PAV, own container</small>"]
+    Q0 -->|"Unaligned<br/>long reads"| LR["<code>--longreads</code><br/><small>minimap2, Sniffles2</small>"]
+    Q0 -->|"Aligned<br/>long reads"| BM["<code>--bams</code><br/><small>Sniffles2 only</small>"]
+    Q0 -->|"Your own<br/>SV calls"| Q2("One VCF per sample,<br/>or one merged VCF?")
+    Q2 -->|"Per sample"| SV["<code>--svs</code><br/><small>straight to the merge</small>"]
+    Q2 -->|"Merged"| VC["<code>--vcf</code><br/><small>skips Stage 1</small>"]
+    SA --> M["truvari merge<br/><small>SVs.vcf</small>"]
     PV --> M
     LR --> M
     BM --> M
     SV --> M
-    M --> B["Stage 2 · TE annotation"]
+    M --> B["Stage 2 ·<br/>TE annotation"]
     VC --> B
 
-    classDef entry fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
-    classDef merge fill:#f2523f,stroke:#f2523f,color:#fff;
-    class SA,PV,LR,BM,SV,VC entry;
-    class M merge;
+    classDef q fill:#8888881a,stroke:#888888;
+    classDef s1 fill:#f5851f2e,stroke:#f5851f;
+    classDef s2 fill:#f2523f2e,stroke:#f2523f;
+    classDef s3 fill:#3d63c92e,stroke:#3d63c9;
+    class Q0,Q1,Q2 q;
+    class SA,PV,LR,BM,SV,M s1;
+    class VC,B s2;
 ```
 
 !!! warning "`--vcf` is not additive"

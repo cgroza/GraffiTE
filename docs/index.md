@@ -32,79 +32,83 @@ which of them are TEs.
 A GraffiTE run covers some or all of three stages in series. The third has two parts: genotyping,
 and an optional epigenetic mapping. Which stages run depends on the inputs you supply.
 
-<div class="gt-pipeline">
+```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 22, "rankSpacing": 24, "padding": 10}}}%%
+flowchart TB
+    subgraph S1["Stage 1 · SV search"]
+        direction TB
+        i_lr(["Long reads<br/>FASTQ or BAM"])
+        i_asm(["Genome assemblies"])
+        i_svs(["Your SV calls,<br/>one VCF per sample"])
+        snf["Map reads,<br/>call SVs<br/><small>Sniffles2</small>"]
+        svim["Align assemblies,<br/>call SVs<br/><small>svim-asm</small>"]
+        pavc["Call SVs per<br/>haplotype pair<br/><small>PAV</small>"]
+        mrg["Merge and collapse<br/>redundant calls<br/><small>truvari collapse</small>"]
+        i_lr -->|"<code>--longreads</code><br/><code>--bams</code>"| snf
+        i_asm -->|"<code>--assemblies</code>"| svim
+        i_asm -->|"<code>--pav</code>"| pavc
+        i_svs -->|"<code>--svs</code>"| mrg
+        snf --> mrg
+        svim --> mrg
+        pavc --> mrg
+    end
+    subgraph S2["Stage 2 · TE annotation"]
+        direction TB
+        i_vcf(["One merged<br/>SV VCF"])
+        rmk["Annotate each SV<br/><small>RepeatMasker, ULTRA</small>"]
+        filt["Keep SVs mostly<br/>covered by repeats"]
+        hall["Look for hallmarks<br/>of transposition<br/><small>TSD, polyA tail</small>"]
+        f_sub[/"pangenome.trusted.vcf, or<br/>pangenome.human.vcf with <code>--human</code>"/]
+        i_vcf -.->|"<code>--vcf</code> skips Stage 1"| rmk
+        rmk --> filt --> hall --> f_sub
+    end
+    subgraph S3["Stage 3 · Graph mapping"]
+        direction TB
+        bld["Build a variation graph<br/><small>each TE polymorphism<br/>is a bubble</small>"]
+        i_rd(["Reads to genotype"])
+        subgraph S31["3.1 · Genotyping"]
+            gt["Genotype each sample<br/><small>vg giraffe or GraphAligner,<br/>then vg call; or PanGenie</small>"]
+            gm["Merge the samples<br/>into one VCF"]
+            hk["Consolidate HERV-K<br/>loci <small><code>--human</code></small>"]
+            gt --> gm -.-> hk
+        end
+        subgraph S32["3.2 · Epigenetic mapping"]
+            lift["Lift methylation<br/>onto the graph<br/><small>panmethyl</small>"]
+        end
+        bld --> gt
+        i_rd -->|"<code>--genotype_with</code>"| gt
+        gt -.->|"alignments"| lift
+        lift -.-> gm
+    end
+    out[/"GraffiTE.merged.genotypes.vcf.gz"/]
+    S1 -->|"SVs.vcf"| S2
+    S2 -->|"pangenome.vcf"| S3
+    S3 --> out
 
-<div class="gt-band gt-input">
-<p class="gt-band-label"><span class="gt-kicker">Input</span> Your data</p>
-<div class="gt-cards">
-<div class="gt-card"><b>Long reads</b><span>ONT or PacBio, FASTQ</span><code>--longreads</code></div>
-<div class="gt-card"><b>Aligned long reads</b><span>BAM, already mapped to the reference</span><code>--bams</code></div>
-<div class="gt-card"><b>Genome assemblies</b><span>One FASTA per sample or haplotype</span><code>--assemblies</code></div>
-<div class="gt-card"><b>Phased assemblies</b><span>Haplotype pairs, called with PAV</span><code>--pav</code><em class="gt-new">new in v1.1</em></div>
-<div class="gt-card gt-optional"><b>SV calls you already have</b><span>Sequence-resolved VCFs: one per sample joins the merge; one merged set replaces stage 1</span><code>--svs</code> <code>--vcf</code><em class="gt-new">--svs new in v1.1</em></div>
-</div>
-</div>
+    classDef inp fill:#8888881a,stroke:#888888;
+    classDef file fill:none,stroke:#888888;
+    classDef s1 fill:#f5851f2e,stroke:#f5851f;
+    classDef s2 fill:#f2523f2e,stroke:#f2523f;
+    classDef s3 fill:#3d63c92e,stroke:#3d63c9;
+    classDef s32 fill:#2fb3b32e,stroke:#2fb3b3;
+    classDef opt stroke-dasharray:4 3;
+    class i_lr,i_asm,i_svs,i_vcf,i_rd inp;
+    class out,f_sub file;
+    class snf,svim,pavc,mrg s1;
+    class rmk,filt,hall s2;
+    class bld,gt,gm,hk s3;
+    class lift s32;
+    class hk,lift opt;
+    style S1 fill:#f5851f0d,stroke:#f5851f;
+    style S2 fill:#f2523f0d,stroke:#f2523f;
+    style S3 fill:#3d63c908,stroke:#3d63c9;
+    style S31 fill:#3d63c90d,stroke:#3d63c9;
+    style S32 fill:#2fb3b30d,stroke:#2fb3b3,stroke-dasharray:4 3;
+```
 
-<div class="gt-band gt-stage gt-s1">
-<p class="gt-band-label"><span class="gt-pill">Stage 1</span> SV search</p>
-<p class="gt-band-sub">Find insertions and deletions against a reference.</p>
-<div class="gt-cards">
-<div class="gt-card"><b>Map reads to the reference</b><code>minimap2</code> <code>winnowmap</code><span>BAMs enter here, already mapped</span></div>
-<div class="gt-card"><b>Call SVs per sample, then jointly</b><code>Sniffles2</code></div>
-<div class="gt-card"><b>Align assemblies to the reference</b><code>minimap2</code> <code>winnowmap</code></div>
-<div class="gt-card"><b>Call SVs from each assembly</b><code>svim-asm</code></div>
-<div class="gt-card"><b>Call haplotype-resolved SVs</b><code>PAV</code><span>PAV aligns and calls</span><em class="gt-new">new in v1.1</em></div>
-</div>
-<div class="gt-card gt-wide"><b>Merge and collapse redundant calls across samples and callers</b><code>truvari collapse</code><span>replaces SURVIVOR</span><em class="gt-new">new in v1.1</em></div>
-<p class="gt-files"><code class="gt-file">SVs.vcf</code></p>
-</div>
-
-<div class="gt-band gt-stage gt-s2">
-<p class="gt-band-label"><span class="gt-pill">Stage 2</span> TE annotation</p>
-<p class="gt-band-sub">Keep the SVs made of transposable elements, and describe them.</p>
-<div class="gt-cards gt-steps">
-<div class="gt-card"><b>Annotate each SV with your TE library</b><code>RepeatMasker</code> <code>ULTRA</code></div>
-<div class="gt-card"><b>Keep SVs mostly covered by repeats</b><span>more than 80 % of the length by default</span><code>--repeat_span_cutoff</code></div>
-<div class="gt-card"><b>Look for hallmarks of transposition</b><span>target site duplication, poly-A tail</span></div>
-</div>
-<div class="gt-cards">
-<div class="gt-card gt-optional"><b>Default</b><span>every TE polymorphism, plus a trusted subset: one TE hit, at least 250 bp, little tandem repeat, a poly-A tail on LINE, SINE and SVA</span></div>
-<div class="gt-card gt-optional"><b>Human mode</b><span>filters for young Alu, L1, SVA and HERV-K (HML-2) insertions</span><code>--human</code><em class="gt-new">new in v1.1</em></div>
-</div>
-<p class="gt-files"><code class="gt-file">pangenome.vcf</code> <code class="gt-file">pangenome.trusted.vcf</code> or, with <code>--human</code>, <code class="gt-file">pangenome.human.vcf</code>, each with presence-absence tables</p>
-</div>
-
-<p class="gt-constant">Stages 1 and 2 also read the reference genome (FASTA, <code>--reference</code>) and a TE consensus library (FASTA in RepeatMasker format, <code>&gt;Family#Class/Superfamily</code>, <code>--TE_library</code>).</p>
-
-<div class="gt-band gt-stage gt-s3">
-<p class="gt-band-label"><span class="gt-pill">Stage 3</span> Graph mapping</p>
-<p class="gt-band-sub">Build a pangenome graph of the TE polymorphisms and map any read set onto it.</p>
-<div class="gt-card gt-wide"><b>Build a variation graph: the reference plus the TE polymorphisms as alternative paths</b><code>vg autoindex</code> <code>vg construct</code> <code>PanGenie-index</code><span>reads to genotype: any number of samples, short or long reads, FASTQ or BAM, <code>--genotype_with</code></span></div>
-<div class="gt-sub">
-<div class="gt-subpanel gt-s31">
-<p class="gt-band-label"><span class="gt-pill">3.1</span> Genotyping</p>
-<div class="gt-card"><b>Map each sample's reads to the graph</b><code>vg giraffe</code> <code>GraphAligner</code><span>or count k-mers with <code>PanGenie</code>, without alignment</span></div>
-<div class="gt-card"><b>Call presence or absence of every TE allele per sample</b><code>vg call</code></div>
-<div class="gt-card"><b>Merge the samples into one genotype VCF that keeps the stage 2 annotations</b></div>
-<div class="gt-card gt-optional"><b>Consolidate each HERV-K locus into one record</b><code>--human</code></div>
-</div>
-<div class="gt-subpanel gt-s32">
-<p class="gt-band-label"><span class="gt-pill">3.2</span> Epigenetic mapping with panmethyl <em class="gt-new">new in v1.1</em></p>
-<div class="gt-card"><b>Reuse the graph alignments of 3.1</b><span>giraffe, GraphAligner or precomputed, from BAMs carrying MM/ML tags; 5mC by default</span><code>--epigenomes</code></div>
-<div class="gt-card"><b>Lift each read's modification calls onto the graph nodes it covers</b><span>including TE sequence absent from the reference</span></div>
-<div class="gt-card"><b>Summarize methylation per TE allele and sample in the genotype VCF</b><span>level, modified sites and depth; optional BED regions</span></div>
-</div>
-</div>
-</div>
-
-<div class="gt-band gt-output">
-<p class="gt-band-label"><span class="gt-kicker">Output</span> One VCF for all samples</p>
-<p>The presence or absence of the TE polymorphisms in every sample, with the stage 2 annotations: <code class="gt-file">GraffiTE.merged.genotypes.vcf.gz</code>, and with <code>--human</code> <code class="gt-file">GraffiTE.merged.genotypes.human.vcf.gz</code>. With methylation mapped, each genotype also carries its methylation level, number of modified sites and depth.</p>
-</div>
-
-<p class="gt-legend"><em class="gt-new">new in v1.1</em> <span class="gt-legend-dash">dashed: optional, or a shortcut</span> <code>--flag</code> command-line option</p>
-
-</div>
+<p class="gt-legend">Rounded: your input. Slanted: a file GraffiTE writes. Dashed: optional, or a shortcut.
+Every stage also reads the reference genome (<code>--reference</code>), and Stage 2 reads a TE
+library in RepeatMasker format (<code>--TE_library</code>).</p>
 
 **Stage 1, SV search.** GraffiTE aligns each assembly or read set to the reference, calls
 structural variants, and keeps only insertions and deletions. You can mix callers and input types

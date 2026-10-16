@@ -24,38 +24,50 @@ repository's `bin/` on `PATH` inside every task. <span class="src">`nextflow.con
 ## Process graph
 
 ```mermaid
-flowchart TD
+%%{init: {"flowchart": {"nodeSpacing": 20, "rankSpacing": 26, "padding": 8}}}%%
+flowchart TB
     subgraph SA["Stage 1 · SV search"]
         direction TB
-        bs["break_scaffold"] --> ma["map_asm"] --> sv["svim_asm"]
-        ml["map_longreads"] --> ssc["sniffles_sample_call"] --> spc["sniffles_population_call"]
+        asmIn(["<code>--assemblies</code>"])
+        lrIn(["<code>--longreads</code>"])
+        bamIn(["<code>--bams</code>"])
+        pavIn(["<code>--pav</code>"])
+        svsIn(["<code>--svs</code>"])
+        vcfIn(["<code>--vcf</code>"])
+        bs["break_scaffold"]
+        ma["map_asm"]
+        sv["svim_asm"]
+        ml["map_longreads"]
+        ssc["sniffles_sample_call"]
+        spc["sniffles_population_call"]
         pav["pav_asm"]
         tm["truvari_merge"]
-        sv --> tm
-        spc --> tm
-        pav --> tm
+        asmIn -.->|"<code>--break_scaffolds</code>"| bs --> ma
+        asmIn --> ma --> sv --> tm
+        lrIn --> ml --> ssc --> spc --> tm
+        bamIn --> ssc
+        pavIn --> pav --> tm
+        svsIn --> tm
+        vcfIn --> tm
     end
-
-    asmIn(["--assemblies"]) -.->|"--break_scaffolds"| bs
-    asmIn --> ma
-    lrIn(["--longreads"]) --> ml
-    bamIn(["--bams"]) --> ssc
-    pavIn(["--pav"]) --> pav
-    svsIn(["--svs"]) --> tm
-    vcfIn(["--vcf"]) --> tm
 
     subgraph SB["Stage 2 · TE annotation"]
         direction TB
-        spl["split_repeatmask"] --> rm["repeatmask_VCF"]
-        rm --> tp["tsd_prep"] --> ts["tsd_search"] --> tr["tsd_report"] --> cr["concat_repeatmask"]
-        cr -.->|"--human"| ha["hervk_annotate"]
+        rmdIn(["<code>--RM_dir</code>"])
+        spl["split_repeatmask"] --> rm["repeatmask_VCF"] --> tp["tsd_prep"] --> ts["tsd_search"] --> tr["tsd_report"] --> cr["concat_repeatmask"]
+        rmdIn --> tp
+        cr -.->|"<code>--human</code>"| ha["hervk_annotate"]
     end
 
-    tm --> spl
-    rmdIn(["--RM_dir"]) --> tp
-
-    subgraph SC["Stage 3 · graph mapping"]
+    subgraph SC["Stage 3.1 · Genotyping"]
         direction TB
+        pvIn[/"pangenome.vcf,<br/>or <code>--graffite_vcf</code>"/]
+        readsIn(["<code>--genotype_with</code>"])
+        graphIn(["<code>--graph</code>"])
+        galnIn(["<code>--graph_alignments</code>"])
+        vcfsIn(["<code>--vcfs</code>"])
+        hkIn[/"hervk_annotate<br/>tables"/]
+        epiIn[/"VCFs with methylation<br/>from Stage 3.2"/]
         b2f["bam_to_fastq"]
         pi["pangenie_index"] --> pg["pangenie"]
         mg["make_graph"] --> gar["graph_align_reads"] --> vc["vg_call"]
@@ -63,44 +75,67 @@ flowchart TD
         vc --> mv
         mv --> ga["genotyping_audit"]
         mv -.->|"default"| tg["trusted_genotypes"]
-        mv -.->|"--human"| hr["hervk_reconcile"]
+        mv -.->|"<code>--human</code>"| hr["hervk_reconcile"]
+        pvIn --> pi
+        pvIn --> mg
+        readsIn --> b2f
+        readsIn --> pg
+        readsIn --> gar
+        b2f --> gar
+        b2f --> pg
+        graphIn -.->|"replaces"| mg
+        galnIn -.->|"replaces"| gar
+        vcfsIn -.->|"replaces"| vc
+        hkIn -.-> hr
+        epiIn -.-> mv
     end
 
-    cr --> pi
-    cr --> mg
-    ha -.-> hr
-    gvcfIn(["--graffite_vcf"]) --> pi
-    gvcfIn --> mg
-    readsIn(["--genotype_with"]) --> b2f
-    readsIn --> pg
-    readsIn --> gar
-    b2f --> gar
-    b2f --> pg
-    graphIn(["--graph"]) -.->|"replaces"| mg
-    galnIn(["--graph_alignments"]) -.->|"replaces"| gar
-    vcfsIn(["--vcfs"]) -.->|"replaces"| vc
-
-    subgraph SM["Methylation · --epigenomes"]
+    subgraph SM["Stage 3.2 · Epigenetic mapping · <code>--epigenomes</code>"]
         direction TB
+        gIn[/"graph from make_graph"/]
+        aIn[/"GAFs from graph_align_reads"/]
+        bIn(["BAM rows of<br/><code>--genotype_with</code>"])
+        vIn[/"VCFs from vg_call"/]
+        liftIn(["<code>--lifted</code>"])
+        bedIn(["<code>--bed</code>"])
         ig["index_graph"]
         b2b["bamtags_to_BED"] --> le["lift_epigenome"] --> mc["merge_CSV"] --> av["annotate_VCF"]
         b2g["BED_to_graph"] --> ab["annotate_BED"] --> mb["merge_BED"]
+        gIn --> ig
+        aIn --> le
+        bIn --> b2b
+        vIn --> av
+        ig --> le
+        mc --> ab
+        liftIn -.->|"replaces"| le
+        bedIn --> b2g
+        av --> mvOut[/"to merge_VCFs"/]
     end
 
-    mg --> ig
-    ig --> le
-    gar --> le
-    vc --> av
-    av --> mv
-    mc --> ab
-    liftIn(["--lifted"]) -.->|"replaces"| le
-    bedIn(["--bed"]) --> b2g
+    SA -->|"SVs.vcf"| SB
+    SB -->|"pangenome.vcf"| SC
+    SC -.->|"<code>--epigenomes</code>"| SM
 
-    classDef inp fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
-    class asmIn,lrIn,bamIn,pavIn,svsIn,vcfIn,rmdIn,gvcfIn,readsIn,graphIn,galnIn,vcfsIn,liftIn,bedIn inp;
+    classDef inp fill:#8888881a,stroke:#888888;
+    classDef file fill:none,stroke:#888888;
+    class asmIn,lrIn,bamIn,pavIn,svsIn,vcfIn,rmdIn,readsIn,graphIn,galnIn,vcfsIn,liftIn,bedIn,bIn inp;
+    class pvIn,hkIn,epiIn,gIn,aIn,vIn,mvOut file;
+    classDef s1 fill:#f5851f2e,stroke:#f5851f;
+    classDef s2 fill:#f2523f2e,stroke:#f2523f;
+    classDef s3 fill:#3d63c92e,stroke:#3d63c9;
+    classDef s32 fill:#2fb3b32e,stroke:#2fb3b3;
+    class bs,ma,sv,ml,ssc,spc,pav,tm s1;
+    class spl,rm,tp,ts,tr,cr,ha s2;
+    class b2f,pi,pg,mg,gar,vc,mv,ga,tg,hr s3;
+    class ig,b2b,le,mc,av,b2g,ab,mb s32;
+    style SA fill:#f5851f0d,stroke:#f5851f;
+    style SB fill:#f2523f0d,stroke:#f2523f;
+    style SC fill:#3d63c908,stroke:#3d63c9;
+    style SM fill:#2fb3b30d,stroke:#2fb3b3,stroke-dasharray:4 3;
 ```
 
-Dashed edges are taken only when the labeled parameter is set. `--graph`, `--graph_alignments`,
+Rounded boxes are parameters you pass, and slanted boxes are files that one stage writes and
+another reads. Dashed edges are taken only when the labeled parameter is set. `--graph`, `--graph_alignments`,
 `--vcfs` and `--lifted` each replace the process they point at.
 
 ---
