@@ -91,8 +91,8 @@ bash check.sh
 The test runs discovery, annotation and genotyping on a 195 kb synthetic genome with four
 assemblies and two short-read samples, and ends with `GraffiTE quick test: PASS`. On a machine
 where Nextflow could use 4 CPUs and 12 GB of memory, the run took about 70 seconds once the image was
-downloaded. The test genotypes with giraffe, because PanGenie, the default back end, uses about
-23 GB of memory for each sample it genotypes at once.
+downloaded. The test genotypes with giraffe, because GraffiTE requests 32 GB for each task of
+PanGenie, the default back end.
 
 ## A real-data example
 
