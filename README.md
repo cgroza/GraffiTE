@@ -53,8 +53,7 @@ be used as a plain SV annotator (`--vcf`).
 
 ## What's new in 1.1
 
-- Discovery from PAV (`--pav`) or from your own per-sample SV calls (`--svs`), and Winnowmap as an
-  alternative assembly aligner.
+- Discovery from PAV (`--pav`) or from your own per-sample SV calls (`--svs`).
 - Annotation: ULTRA tandem repeats and the `total_repeat_span` filter, polyA tails, an exact-match
   TSD search on every record the repeat filter keeps, and the L1 5′ inversion and SVA VNTR checks
   on every data set (`--mammal` is no longer needed).

@@ -93,8 +93,9 @@ parallel jobs (RepeatMasker uses four threads per job):
 RepeatMasker -lib ${TE_library} -s -dir repeatmasker_dir -pa $(( $(nproc) / 4 )) indels.fa
 ```
 
-v1.0 passed `-nolow` here. It was removed on 2025-10-01 because it produced spurious
-TE hits on tandem repeats; simple repeats are still masked, then set aside by the annotation.
+The paper version passed `-nolow` here. v1.0 dropped it on 2025-10-01 (`1cbebbf`) because it
+could produce spurious TE hits on tandem repeats; simple repeats are still masked, then set aside
+by the annotation.
 
 **ULTRA**, on every core, to find tandem repeats whether or not RepeatMasker called them
 something:

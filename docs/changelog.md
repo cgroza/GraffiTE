@@ -239,13 +239,13 @@ image it needs.
 
 ---
 
-## 01/01/25
+## 10/01/25
 
 Commit [1cbebbf](https://github.com/cgroza/GraffiTE/commit/1cbebbfc0f4ccc5436670d9aa8d2023a90f2eeef).
 
-- Removed `--nolow` from the RepeatMasker call. It could produce spurious hits on
+- Removed `-nolow` from the RepeatMasker call. It could produce spurious hits on
   low-complexity regions of some TE consensus sequences and annotate tandem repeats as TEs. Do
-  not use `--nolow` with RepeatMasker outside debugging.
+  not use `-nolow` with RepeatMasker outside debugging.
 
 ## 11/07/24
 
