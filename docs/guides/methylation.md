@@ -8,7 +8,7 @@ description: >-
 # Stage 3.2: epigenetic mapping
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `e687712`. The
+    Verified against `v1.1.0.0` at commit `68ddc42`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
