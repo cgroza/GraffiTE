@@ -75,6 +75,9 @@ extra:
 extra_css:
   - assets/extra.css
 
+extra_javascript:
+  - assets/input-picker.js
+
 markdown_extensions:
   - abbr
   - admonition

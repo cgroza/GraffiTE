@@ -68,6 +68,25 @@ unless you pass `--genotype false`.
 
 ---
 
+## Command builder
+
+Answer the questions to get a starting command. Its file names are those of the examples on
+[Samplesheet formats](../reference/samplesheets.md); replace them with your own paths.
+
+<div class="gt-picker" data-revision="v1.1dev" markdown>
+<p>The command builder needs JavaScript; without it, use the diagram above and the tables
+below.</p>
+
+[Samplesheet formats](../reference/samplesheets.md){ data-key="sheets" hidden }
+[Resuming and skipping work](../guides/skipping-work.md){ data-key="skipping" hidden }
+[Stage 1: SV search](../guides/discovery.md){ data-key="discovery" hidden }
+[Human mobile element insertions](../guides/human-mei.md){ data-key="human" hidden }
+[Stage 3.2: epigenetic mapping](../guides/methylation.md){ data-key="methylation" hidden }
+
+</div>
+
+---
+
 ## What each flag runs and skips
 
 | Flag | Takes | Runs | Skips |
