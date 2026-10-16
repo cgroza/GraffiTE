@@ -25,19 +25,10 @@ of samples can be genotyped at each one.
 
 ```mermaid
 flowchart LR
-    A["Stage 1 · SV search<br/><small>assemblies · long reads · SV calls</small>"]
-    B["Stage 2 · TE annotation<br/><small>RepeatMasker · ULTRA · TSD · polyA</small>"]
-    C1["Stage 3.1 · Genotyping<br/><small>pangenome graph · reads · vg call or PanGenie</small>"]
-    C2["Stage 3.2 · Epigenetic mapping<br/><small>panmethyl · --epigenomes</small>"]
-    A --> B --> C1 -.-> C2
-    classDef s1 fill:#f5851f,stroke:#f5851f,color:#111
-    classDef s2 fill:#f2523f,stroke:#f2523f,color:#111
-    classDef s31 fill:#23459a,stroke:#23459a,color:#fff
-    classDef s32 fill:#2fb3b3,stroke:#2fb3b3,color:#111
-    class A s1
-    class B s2
-    class C1 s31
-    class C2 s32
+    A["Stage A · Discovery<br/><small>assemblies · long reads · SV calls</small>"]
+    B["Stage B · Annotation<br/><small>RepeatMasker · ULTRA · TSD · polyA</small>"]
+    C["Stage C · Genotyping<br/><small>pangenome graph · reads · vg call</small>"]
+    A --> B --> C
 ```
 
 Each stage can be skipped by handing GraffiTE the output of the previous one, and the pipeline can
