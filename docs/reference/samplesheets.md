@@ -33,13 +33,13 @@ HG002_pat,/data/HG002.pat.fa.gz
 ```
 
 The `sample` name becomes the sample column of the svim-asm VCF and, after the merge, the
-haplotype name in `pangenome.vcf`. <span class="src">`module/main.nf:184-185`</span>
+haplotype name in `pangenome.vcf`. <span class="src">`module/main.nf:187-188`</span>
 
 ## `--longreads`
 
 Columns `sample`, `path`, `type`. Unaligned reads in FASTQ or FASTA, plain or gzipped. `type` picks
 the minimap2 (or winnowmap) preset: it becomes `map-<type>`, except `lr:hq` which is passed as is.
-So `ont`, `hifi` and `pb` are the usual values. <span class="src">`main.nf:87-88`, `module/main.nf:72-75`</span>
+So `ont`, `hifi` and `pb` are the usual values. <span class="src">`main.nf:87-88`, `module/main.nf:75-78`</span>
 
 ```csv title="longreads.csv"
 sample,path,type
@@ -50,7 +50,7 @@ HG005,/data/HG005.ont.fastq.gz,ont
 ## `--bams`
 
 Columns `sample`, `path`. Long reads already aligned to `--reference`, coordinate-sorted; the
-process indexes the BAM before calling. <span class="src">`main.nf:93-94`, `module/main.nf:104`</span>
+process indexes the BAM before calling. <span class="src">`main.nf:93-94`, `module/main.nf:107`</span>
 
 ```csv title="bams.csv"
 sample,path
@@ -61,7 +61,7 @@ HG002,/data/HG002.hifi.sorted.bam
 
 No header names are read. The first line is skipped as a header, the first column is the sample
 name, and every further column is one haplotype FASTA of that sample. All haplotypes of a sample
-share one row. <span class="src">`main.nf:115-116`, `module/main.nf:151-163`</span>
+share one row. <span class="src">`main.nf:115-116`, `module/main.nf:154-166`</span>
 
 ```csv title="pav.csv"
 sample,hap1,hap2
@@ -72,7 +72,7 @@ HG002,/data/HG002.mat.fa.gz,/data/HG002.pat.fa.gz
 
 Columns `sample`, `path`. Per-sample SV VCFs from your own caller, bgzip-compressed and named
 `*.vcf.gz`: the merge indexes each file with `tabix` and then loops over `*.vcf.gz`. `sample` is
-read but not used. <span class="src">`main.nf:120-123`, `module/main.nf:212-225`</span>
+read but not used. <span class="src">`main.nf:120-123`, `module/main.nf:215-228`</span>
 
 ```csv title="svs.csv"
 sample,path
@@ -83,7 +83,7 @@ Nothing on this path filters by `SVTYPE`, so anything other than insertions and 
 reaches Stage 2. Of the other discovery backends, Sniffles2 and svim-asm keep `INS` and `DEL`
 only; `pav_asm` filters on `|SVLEN| > 50` alone, so PAV records of any other type above that size
 reach the merge as well.
-<span class="src">`module/main.nf:129,167,184`</span>
+<span class="src">`module/main.nf:132,170,187`</span>
 
 ## `--genotype_with`
 
@@ -96,7 +96,7 @@ to a read preset and anything else, including an empty value, means short reads:
 | `ont` | `r10` | `vg giraffe --parameter-preset r10` |
 | anything else | `default` | `vg giraffe` with `-i`, interleaved paired-end short reads |
 
-<span class="src">`main.nf:189-191`, `module/main.nf:835-842`</span>
+<span class="src">`main.nf:189-191`, `module/main.nf:837-844`</span>
 
 `pangenie` and `graphaligner` ignore the preset. A `.bam` path is converted to FASTQ first by
 `bam_to_fastq`; with `--epigenomes`, GraffiTE also reads modification tags from it.
@@ -114,7 +114,7 @@ Columns `sample`, `path`. Per-sample `vg call` VCFs from an earlier run, bgzippe
 `.vcf.gz` suffix, because `merge_VCFs` collects every `*vcf.gz` it is given. `path` has to be a
 glob such as `HG002.vcf.gz*`: the code sorts the files it matches, and a plain path is taken apart
 into its directory components instead (checked with Nextflow 26.04.6). The glob also matches the
-`.tbi` index. <span class="src">`main.nf:218-220`, `module/main.nf:891`</span>
+`.tbi` index. <span class="src">`main.nf:218-220`, `module/main.nf:893`</span>
 
 ```csv title="vcfs.csv"
 sample,path
@@ -125,7 +125,7 @@ HG002,/data/earlier_run/HG002.vcf.gz*
 
 Columns `sample`, `gaf`, `pack`. The two files `graph_align_reads` publishes to
 `GraffiTE_alignments/` for each sample. Needs `--graph` pointing at the index they were made
-against. <span class="src">`main.nf:223-225`, `module/main.nf:825-831`</span>
+against. <span class="src">`main.nf:223-225`, `module/main.nf:827-833`</span>
 
 ```csv title="graph_alignments.csv"
 sample,gaf,pack

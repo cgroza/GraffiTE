@@ -35,7 +35,7 @@ the variant: after `POS` for an insertion, after the deleted interval for a dele
 that runs off the start of a contig is clamped and comes out shorter. Separately, the variant
 sequence itself (ALT for an insertion, REF for a deletion), minus its anchor base, is trimmed to
 its first and last `--tsd_win` bp; a variant no longer than the window is used whole. The default window is 30 bp.
-<span class="src">`bin/prepTSD.sh:43-56`, `bin/tsd_flanks.py:50-59`, `nextflow.config:50`</span>
+<span class="src">`bin/prepTSD.sh:43-56`, `bin/tsd_flanks.py:50-59`, `nextflow.config:54`</span>
 
 **`TSD_Match_v2.sh` compares two fragments per variant.** The L fragment is the 5' flank followed
 by the first bases of the variant; the R fragment is the last bases of the variant followed by
@@ -64,7 +64,7 @@ In output from before commit `d1dfd7b` the header said `Number=1`, and the field
 The search runs in batches of `--tsd_batch_size` variants per contig, and the per-batch
 summaries and logs are concatenated into `3_TSD_search/TSD_summary.txt` and
 `TSD_full_log.txt`.
-<span class="src">`main.nf:157-162`, `module/main.nf:573-574`</span>
+<span class="src">`main.nf:157-162`, `module/main.nf:575-576`</span>
 
 ## Scoring and the PASS rule
 

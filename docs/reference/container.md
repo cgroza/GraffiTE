@@ -31,7 +31,7 @@ it to a SIF on first use. On an arm64 host it runs under emulation.
 
 Singularity (or Apptainer) is enabled globally, with automatic mounts. The run options are built
 after the params block, so that `--container_tmp` can be read:
-<span class="src">`nextflow.config:3-4,176`</span>
+<span class="src">`nextflow.config:3-4,181`</span>
 
 ```
 --contain --bind <--container_tmp, or $(pwd)>:/tmp
@@ -39,7 +39,7 @@ after the params block, so that `--container_tmp` can be read:
 
 `--container_tmp` is unset by default, and the bind source is then `$(pwd)`. Pass
 `--container_tmp /scratch/you/tmp` and that directory is bound to `/tmp` instead.
-<span class="src">`nextflow.config:47`</span> See
+<span class="src">`nextflow.config:51`</span> See
 [`--container_tmp`](parameters.md#global-switches) and
 [Paths and `/tmp`](../getting-started/installation.md#paths-and-tmp).
 
@@ -86,7 +86,7 @@ column out of the published image, `sha256:47836cda` (pushed 2026-09-30), on 202
 ## PAV container
 
 `pav_asm` runs in `library://becklab/pav/pav:latest`, PAV's own image, with 32 CPUs unless
-`--cores` is set. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:339-344`, `module/main.nf:166`</span>
+`--cores` is set. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:344-349`, `module/main.nf:169`</span>
 
 ## Build recipe and published image
 
@@ -97,10 +97,10 @@ Ubuntu 20.04. We have not built it; going by the recipe, an image built from it 
 the published one:
 
 - vg `v1.70.0` rather than `v1.77.0`, and RepeatMasker set up from the TETools sources with the
-  Dfam 3.8 root partition <span class="src">`GraffiTE.def:27-164,284`</span>.
+  Dfam 3.8 root partition <span class="src">`GraffiTE.def:30-167,287`</span>.
 - No `lift_mods` and no polars. `lift_epigenome` runs `lift_mods`, and `merge_CSV` runs
   `merge_csvs.py`, which imports polars, so we expect every `--epigenomes` run to stop at one of
-  the two <span class="src">`GraffiTE.def:302-310`, `panmethyl/module/main.nf:163,185`</span>.
+  the two <span class="src">`GraffiTE.def:305-313`, `panmethyl/module/main.nf:163,185`</span>.
 
 Two more things follow from the unpinned installs:
 
@@ -110,7 +110,7 @@ Two more things follow from the unpinned installs:
   [VCF fields](vcf-fields.md).
 - `GraffiTE.def` pins numpy to `1.21` and runs `pip3 check`, so a dependency conflict fails its
   build. `Dockerfile` does neither, and the published image has numpy 2.4.6.
-  <span class="src">`GraffiTE.def:247-250`, `Dockerfile:146`</span>
+  <span class="src">`GraffiTE.def:250-253`, `Dockerfile:146`</span>
 
 To read the versions out of another image:
 

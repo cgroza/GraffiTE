@@ -56,8 +56,8 @@ nextflow run cgroza/GraffiTE -r v1.1.0.0 \
 ```
 
 Pass the four data arguments as shown; the defaults for `--reference` and `--TE_library` are
-placeholder filenames that do not exist <span class="src">`nextflow.config:46-48`</span>.
-`--genotype_with` is the parameter name as declared <span class="src">`nextflow.config:39`</span>.
+placeholder filenames that do not exist <span class="src">`nextflow.config:50-52`</span>.
+`--genotype_with` is the parameter name as declared <span class="src">`nextflow.config:43`</span>.
 The hyphenated form does nothing: Nextflow turns
 `--genotype-with` into a parameter named `genotypeWith`, and the pipeline reads the default
 `reads.csv` instead (checked with Nextflow 26.04.6). Add `-profile cluster` on SLURM, and
@@ -109,10 +109,10 @@ default `--graph_method pangenie`, `merge_vcfs.py` leaves out alleles that overl
 same site, all but two ALT alleles at one position, and alleles holding a base other than A, C, G
 or T. Those alleles get no genotype <span class="src">`bin/pangenie_graph_vcf.py:119-124`</span>.
 `pangenie_graph_variants.tsv` says which alleles reached the graph
-<span class="src">`module/main.nf:713`</span>, and `genotyping_record_audit.tsv` lists what became
-of each one <span class="src">`module/main.nf:907-927`</span>.
+<span class="src">`module/main.nf:715`</span>, and `genotyping_record_audit.tsv` lists what became
+of each one <span class="src">`module/main.nf:909-929`</span>.
 `GraffiTE.merged.genotypes.trusted.vcf.gz` is that conservative subset carried through to the
-genotypes, written whenever `--human` is off <span class="src">`module/main.nf:929-959`</span>.
+genotypes, written whenever `--human` is off <span class="src">`module/main.nf:931-961`</span>.
 The presence-absence TSVs say, per sample, whether the TE is present, whichever way the VCF
 record points. Every file is described on [Output files](../reference/outputs.md), and every
 INFO field on [VCF fields](../reference/vcf-fields.md).

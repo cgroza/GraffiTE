@@ -197,7 +197,7 @@ image it needs.
   truvari merge. `truvari_merge` strips the upstream INFO fields and puts only `SVLEN` back, so
   `SVTYPE` had gone by the time `add_polyA.py` ran and it scanned an empty string. The `--human`
   filter selects Alu, L1 and SVA on `polyA="TRUE"`, so `pangenome.human.vcf` lost those records
-  (`module/main.nf:543-547`). `add_polyA.py` now takes the insertion polarity from
+  (`module/main.nf:546-550`). `add_polyA.py` now takes the insertion polarity from
   `len(ALT) - len(REF)` when `SVTYPE` is absent (`97a6d01`).
 - `--graph_method pangenie`, the default, produced no genotypes. PanGenie writes its output
   with no `##contig` lines, and the `bcftools norm -Oz` on the next line cannot BCF-encode a

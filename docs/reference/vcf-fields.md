@@ -20,7 +20,7 @@ GraffiTE writes standard VCF 4.2 with sequence-resolved alleles. One record from
 `pangenome.human.vcf` of a three-sample PAV run, the ALT sequence shortened. Three input VCFs take
 the truvari collapse path, which strips every upstream INFO field before the merge and puts only
 `SVLEN` back, so no PAV INFO field survives. PAV's ID is in the ID column.
-<span class="src">`module/main.nf:225,276`</span>
+<span class="src">`module/main.nf:228,279`</span>
 
 ```text
 chr1  18081  chr1-18082-INS-315_10  t  tAGAAGGAATAAGACGGGCCGGGT...  .  PASS
@@ -34,10 +34,10 @@ chr1  18081  chr1-18082-INS-315_10  t  tAGAAGGAATAAGACGGGCCGGGT...  .  PASS
 
 | Column | What GraffiTE puts there | Source |
 |---|---|---|
-| `ID` column | The caller's ID, with `_<n>` appended after the truvari merge (`n` is the record's zero-based position in `SVs.vcf`, so the first record gets `_0`): `chr1-18082-INS-315_10` above is PAV's `chr1-18082-INS-315`, the eleventh record in the merge. svim-asm IDs are prefixed with the assembly name (`HG002_mat.svim_asm.INS.12`). With `--vcf` the IDs pass through unchanged. An ID of 50 characters or more stops Stage 2. | <span class="src">`module/main.nf:185,277`, `bin/shorten_ids.py:21`, `bin/repmask_vcf.sh:42-45`</span> |
-| `REF` and `ALT` columns | Sequence-resolved. For an insertion `REF` is the anchor base and `ALT` is that base plus the inserted sequence; for a deletion `REF` is the anchor base plus the deleted reference interval, re-read from the reference FASTA, and `ALT` is the anchor base. Symbolic `<INS>` and `<DEL>` records from Sniffles2 are dropped in Stage 1. | <span class="src">`bin/fix_vcf.py:33-44`, `module/main.nf:129`</span> |
-| `FILTER` column | Whatever the SV caller wrote. GraffiTE defines no FILTER of its own; see [Fields inherited from upstream callers](#fields-inherited-from-upstream-callers). | <span class="src">`module/main.nf:589`</span> |
-| Sample columns | In `pangenome.vcf`, one column per Stage 1 sample, holding the genotype its caller wrote (PAV writes phased diploid calls, as above). A genotype missing after the merge is set to `0`. In `GraffiTE.merged.genotypes.vcf.gz`, one column per read set from `--genotype_with`. | <span class="src">`module/main.nf:275`, `module/main.nf:892`</span> |
+| `ID` column | The caller's ID, with `_<n>` appended after the truvari merge (`n` is the record's zero-based position in `SVs.vcf`, so the first record gets `_0`): `chr1-18082-INS-315_10` above is PAV's `chr1-18082-INS-315`, the eleventh record in the merge. svim-asm IDs are prefixed with the assembly name (`HG002_mat.svim_asm.INS.12`). With `--vcf` the IDs pass through unchanged. An ID of 50 characters or more stops Stage 2. | <span class="src">`module/main.nf:188,280`, `bin/shorten_ids.py:21`, `bin/repmask_vcf.sh:42-45`</span> |
+| `REF` and `ALT` columns | Sequence-resolved. For an insertion `REF` is the anchor base and `ALT` is that base plus the inserted sequence; for a deletion `REF` is the anchor base plus the deleted reference interval, re-read from the reference FASTA, and `ALT` is the anchor base. Symbolic `<INS>` and `<DEL>` records from Sniffles2 are dropped in Stage 1. | <span class="src">`bin/fix_vcf.py:33-44`, `module/main.nf:132`</span> |
+| `FILTER` column | Whatever the SV caller wrote. GraffiTE defines no FILTER of its own; see [Fields inherited from upstream callers](#fields-inherited-from-upstream-callers). | <span class="src">`module/main.nf:591`</span> |
+| Sample columns | In `pangenome.vcf`, one column per Stage 1 sample, holding the genotype its caller wrote (PAV writes phased diploid calls, as above). A genotype missing after the merge is set to `0`. In `GraffiTE.merged.genotypes.vcf.gz`, one column per read set from `--genotype_with`. | <span class="src">`module/main.nf:278`, `module/main.nf:894`</span> |
 
 `concat_repeatmask`, `hervk_annotate` and `merge_VCFs` each write a `##GraffiTE_version=` line,
 holding the content of `version.txt` (`1.1.0`), immediately after `##fileformat`. Between them they
@@ -47,7 +47,7 @@ stamp `pangenome.vcf`, `pangenome.trusted.vcf`, `pangenome.human.vcf`,
 `hervk_candidates.vcf` carry the line too. The VCFs published earlier, the per-caller calls and
 `SVs.vcf` in `1_SV_search` and `genotypes_repmasked_filtered.vcf` in `2_Repeat_Filtering`, have
 none.
-<span class="src">`module/main.nf:406-408,628-631,901`</span>
+<span class="src">`module/main.nf:409-411,630-633,903`</span>
 
 !!! warning "An ALT allele does not mean the TE is present"
     For a `DEL` record the transposable element is in the reference and an `ALT` genotype means
@@ -77,7 +77,7 @@ neither as hits nor toward the TE span.
 | `total_match_span` | 1 | Float | `total_match_length` divided by the variant length. Written for continuity with v1.0, where it was the filter metric; nothing in v1.1 filters on it. | <span class="src">`bin/repmask_vcf.sh:29,121-124`</span> |
 | `ULTRA_TR` | 1 | Integer | Bases of the variant that ULTRA annotates as tandem repeat, overlaps counted once. `0` when ULTRA found nothing. | <span class="src">`bin/repmask_vcf.sh:31,102-104`</span> |
 | `ULTRA_TR_span` | 1 | Float | `ULTRA_TR` divided by the variant length, capped at 1. | <span class="src">`bin/repmask_vcf.sh:32,135-137`</span> |
-| `total_repeat_span` | 1 | Float | Fraction of the variant covered by the union of TE hits and ULTRA intervals, capped at 1. This is the Stage 2 filter metric: records at or below `--repeat_span_cutoff` (default `0.80`) are discarded. | <span class="src">`bin/repmask_vcf.sh:33,142-147`, `module/main.nf:577,659`</span> |
+| `total_repeat_span` | 1 | Float | Fraction of the variant covered by the union of TE hits and ULTRA intervals, capped at 1. This is the Stage 2 filter metric: records at or below `--repeat_span_cutoff` (default `0.80`) are discarded. | <span class="src">`bin/repmask_vcf.sh:33,142-147`, `module/main.nf:579,661`</span> |
 
 A record without any hit has `n_hits=0`, `repeat_ids=None`, `matching_classes=None`,
 `RM_hit_strands=None`, `RM_hit_IDs=None` and `L1_5PINV=None`; such records fail the span filter
@@ -218,13 +218,13 @@ input VCF the caller's INFO fields (PAV's `HAP`, `QRY_REGION` and so on) are kep
 `--vcf` run, and on a run whose callers produce a single VCF, `truvari_merge` only copies or
 decompresses the input into `SVs.vcf`, and `SVLEN` stays whatever the caller wrote, sign convention
 included. `abs(SVLEN)` is what the trusted and human filters test either way.
-<span class="src">`module/main.nf:14,202-209,219-220,225,257-260,276,542`</span>
+<span class="src">`module/main.nf:17,205-212,222-223,228,260-263,279,545`</span>
 
 GraffiTE defines no `##FILTER` line and never sets `FILTER` itself. `pangenome.vcf` retains the
 value the caller wrote, and the caller's `##FILTER` definitions (PAV's `TRIM`, `COMPOUND`,
 `QRY_FILTER` and `SVLEN`, for instance) travel with it. The trusted and human subsets require
 `PASS` unless `--trusted_ignore_filter` or `--human_ignore_filter` is set.
-<span class="src">`module/main.nf:22,571,589`</span>
+<span class="src">`module/main.nf:25,573,591`</span>
 
 One field is defined for the PanGenie graph and comes back in the genotyped VCFs:
 
@@ -252,7 +252,7 @@ ones included. GraffiTE's own
 `--human` expression is written with positive matches only for that reason. bcftools regular
 expressions also have no alternation, which is why the whitelist parameters are comma-separated
 lists rather than `A|B`.
-<span class="src">`module/main.nf:530-547`</span>
+<span class="src">`module/main.nf:533-549`</span>
 
 Single-hit *Alu* insertions with a polyA tail and a TSD:
 

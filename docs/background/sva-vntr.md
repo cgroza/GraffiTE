@@ -77,12 +77,12 @@ The downstream filters read the relabeled fields:
 
 - The **trusted subset** admits a `Simple_repeat` record without testing its `ULTRA_TR_span`,
   so a VNTR expansion (which is all tandem repeat) is not excluded on that ground.
-  <span class="src">`module/main.nf:14`</span>
+  <span class="src">`module/main.nf:17`</span>
 - The **`--human` filter** admits `Simple_repeat` records whose `repeat_ids` match
   `--human_sva_ids` (default `^SVA_[DEF]`), without requiring a polyA tail, so VNTR
   polymorphisms of the young subfamilies reach `pangenome.human.vcf`, distinguishable from
   SVA insertions by the suffix.
-  <span class="src">`module/main.nf:540,542,548`, `nextflow.config:68`</span>
+  <span class="src">`module/main.nf:543,545,550`, `nextflow.config:72`</span>
 
 To count SVA insertion polymorphisms alone, exclude them:
 
@@ -128,8 +128,8 @@ variable VNTR across the 20 samples, and 54% of SVA_F elements do. With both fil
 10%.
 
 The SV callers set a floor below that. The PAV path keeps `|SVLEN| > 50`
-<span class="src">`module/main.nf:167`</span>, and the sniffles and svim-asm paths require 100 bp
-<span class="src">`module/main.nf:110,128,184`</span>. On the run above the smallest annotated
+<span class="src">`module/main.nf:170`</span>, and the sniffles and svim-asm paths require 100 bp
+<span class="src">`module/main.nf:113,131,187`</span>. On the run above the smallest annotated
 VNTR record is 50 bp, about one unit, so single-unit changes sit at the edge of what the
 callset records.
 

@@ -63,7 +63,7 @@ filter what you supply by size or type, so restrict to `INS` and `DEL` yourself
 Split multi-allelic records first (`bcftools norm -m-`).
 
 **Runs:** `truvari_merge` in pass-through mode (decompress only, IDs preserved), then all of
-Stages 2 and 3 <span class="src">`module/main.nf:202-209`</span>.
+Stages 2 and 3 <span class="src">`module/main.nf:205-212`</span>.
 
 **Cannot be combined** with any discovery flag; the run stops with a message naming the
 discovery flags you passed <span class="src">`main.nf:46-49`</span>. Use `--svs` when you want your VCF merged with
@@ -74,7 +74,7 @@ GraffiTE's own calls.
 **On disk:** a directory holding one subdirectory per Stage 2 batch, each with
 `genotypes_repmasked_filtered.vcf` and a `repeatmasker_dir/`. That is the layout of
 `out/2_Repeat_Filtering/`, where the subdirectories are numbered by task
-<span class="src">`main.nf:134-136`, `module/main.nf:636-642`</span>.
+<span class="src">`main.nf:134-136`, `module/main.nf:638-644`</span>.
 
 ```text
 out/2_Repeat_Filtering/
@@ -110,7 +110,7 @@ instead.
 
 **On disk:** the `GraffiTE_graph/index/` directory of an earlier run, or any directory holding
 what `make_graph` writes: `index.gfa` and `index.pb`, plus `index.giraffe.gbz` and its
-companions for the `giraffe` method <span class="src">`module/main.nf:786-799`</span>.
+companions for the `giraffe` method <span class="src">`module/main.nf:788-801`</span>.
 
 **Runs:** alignment and calling for every sample in `--genotype_with`. Requires
 `--graph_method giraffe`, `graphaligner` or `precomputed`; the PanGenie path has its own index
@@ -137,7 +137,7 @@ under `--human`. No sample is aligned or called, but `--genotype_with` is still 
 must exist, and any BAM row in it still goes through `bam_to_fastq`
 <span class="src">`main.nf:197`</span>. Pass `--graph` alongside `--vcfs`: the `make_graph` call
 sits outside the `--vcfs` test <span class="src">`main.nf:209-214`</span>, so without it the run
-still builds an index at 40G for up to 6h <span class="src">`nextflow.config:133-135`</span>, and
+still builds an index at 40G for up to 6h <span class="src">`nextflow.config:137-139`</span>, and
 unless `--epigenomes` is on nothing consumes it. `precomputed` requires `--graph` in any case
 <span class="src">`main.nf:53-56`</span>.
 

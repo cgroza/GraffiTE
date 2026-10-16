@@ -102,7 +102,7 @@ candidate with fewer than 50 bp of HML-2 sequence) <span class="src">`bin/hervk_
 
 An HML-2 locus is not always one provirus. In a cohort of 20 diploid human genomes, the locus at chr7:4.70 Mb carries
 two units in tandem sharing a central LTR, and one, two and three units all segregate
-<span class="src">`module/main.nf:553-560`</span>. The reference step counts the units of a
+<span class="src">`module/main.nf:555-562`</span>. The reference step counts the units of a
 proviral reference element and measures their period, one internal region plus one LTR
 (`HERVK_N_UNITS_REF`, `HERVK_UNIT_BP`) <span class="src">`bin/hervk_ref_state.py:238-270`</span>.
 
@@ -124,7 +124,7 @@ non-carriers pick up ALT support; in our run on the 20-genome cohort the ALT fra
 provirus dosage rather than carriage. Discovery genotypes come from haplotype-resolved
 alignments, do not have this problem, and carry the allele counts
 (`HERVK_AC_DISC`, `HERVK_AN_DISC`). Set `--hervk_mask_graph_gt_at_cnv false` to keep the graph
-calls <span class="src">`nextflow.config:99-107`</span>.
+calls <span class="src">`nextflow.config:103-111`</span>.
 
 ## Why the SVA hits are not SVA
 

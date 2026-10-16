@@ -53,7 +53,7 @@ Each of these stops the run before any process starts.
 
 ## A process cannot see an input file
 
-Every container runs with `--contain --bind $(pwd):/tmp` <span class="src">`nextflow.config:176`</span>.
+Every container runs with `--contain --bind $(pwd):/tmp` <span class="src">`nextflow.config:181`</span>.
 Files outside the launch directory are only visible if given by absolute path, and `/tmp`
 inside the container is the directory the task runs in. Symptoms are `No such file` inside a
 process for a file that exists on the host, or a full filesystem when the filesystem holding
@@ -78,16 +78,16 @@ checks the chain.
 The annotation script stops on any variant ID longer than 50 characters
 <span class="src">`bin/repmask_vcf.sh:41-45`</span>, the length RepeatMasker keeps intact in
 its output. IDs written by the pipeline's own callers are short. The message appears with
-`--vcf`, whose IDs pass through unchanged <span class="src">`module/main.nf:202-204`</span>,
+`--vcf`, whose IDs pass through unchanged <span class="src">`module/main.nf:205-207`</span>,
 or with `--svs`: rename them before the run.
 
 ---
 
 ## RepeatMasker runs out of memory or time
 
-Stage 2 is split by contig <span class="src">`module/main.nf:492-505`</span> and each piece runs
+Stage 2 is split by contig <span class="src">`module/main.nf:495-508`</span> and each piece runs
 with `--repeatmasker_memory` (default `10G`) and `--repeatmasker_time` (default `12h`)
-<span class="src">`nextflow.config:147-149`</span>. Raise them, and raise
+<span class="src">`nextflow.config:151-153`</span>. Raise them, and raise
 `--repeatmasker_threads`, for large contigs or large libraries. Nextflow's message when a job is
 killed by the scheduler can be misleading; check the `.command.log` in the failing work
 directory. For maize-sized, repeat-rich genomes users have requested up to 120 h and 400 GB per
@@ -104,7 +104,7 @@ directory by default; point `--container_tmp` at a writable directory instead, s
 [Paths and `/tmp`](getting-started/installation.md#paths-and-tmp).
 
 The other way to get here is a run where no chunk survived annotation. Stage 2 is split one piece
-per contig <span class="src">`module/main.nf:492-505`</span>, and a chunk whose records all fail
+per contig <span class="src">`module/main.nf:495-508`</span>, and a chunk whose records all fail
 `--repeat_span_cutoff` drops out by design. If every chunk drops out, `concat_repeatmask` never
 runs and nothing says so. `2_Repeat_Filtering/*/genotypes_repmasked_filtered.vcf` holds the
 per-chunk record counts.
@@ -127,7 +127,7 @@ RepeatMasker annotates the LTR and the internal region of an LTR retrotransposon
 hits when they are separate entries in the library, and the pipeline reports what RepeatMasker
 finds. Such an element has `n_hits=2` or `3` and is left out of the subsets that require a
 single hit (`pangenome.trusted.vcf`, and `pangenome.human.vcf` apart from the HERV-K pair rule
-<span class="src">`module/main.nf:14,548,568-569`</span>). It stays in `pangenome.vcf` with all its
+<span class="src">`module/main.nf:17,550,570-571`</span>). It stays in `pangenome.vcf` with all its
 hits listed. A library entry that holds the full element as one consensus gives one hit.
 
 ---

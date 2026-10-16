@@ -14,7 +14,7 @@ description: >-
 
 In Stage 2, `--human` writes `pangenome.human.vcf`, a subset of
 `pangenome.vcf` restricted to the mobile element subfamilies still active in humans, **instead
-of** `pangenome.trusted.vcf` <span class="src">`module/main.nf:595-606`</span>. Then it runs the
+of** `pangenome.trusted.vcf` <span class="src">`module/main.nf:597-608`</span>. Then it runs the
 HERV-K (HML-2) classifier over the callset, and after genotyping it consolidates the HERV-K loci
 in the genotyped calls.
 
@@ -37,7 +37,7 @@ into more than one hit.
 
 The whole filter is one expression, assembled in Groovy and written verbatim into
 `3_TSD_search/human_filter_summary.txt` together with record counts and the kept and dropped
-`(matching_classes, repeat_ids)` combinations <span class="src">`module/main.nf:608-623`</span>.
+`(matching_classes, repeat_ids)` combinations <span class="src">`module/main.nf:610-625`</span>.
 Read that file first when a record you expected is missing.
 
 ---
@@ -46,17 +46,17 @@ Read that file first when a record you expected is missing.
 
 A record of a class passes only when one of its `repeat_ids` matches that class's whitelist regex. The
 whitelists are comma-separated lists of bcftools regexes; each list is expanded into an `OR` of
-`repeat_ids~"<regex>"` clauses <span class="src">`module/main.nf:535-541`</span>.
+`repeat_ids~"<regex>"` clauses <span class="src">`module/main.nf:538-544`</span>.
 
 | `matching_classes` | Parameter | Default | Keeps | Source |
 |---|---|---|---|---|
-| `SINE/Alu` | `--human_alu_ids` | `^AluY` | AluY and its subfamilies (AluYa5, AluYb8, ...); drops AluS and AluJ | <span class="src">`nextflow.config:66`</span> |
-| `LINE/L1` | `--human_l1_ids` | `^L1HS` | L1HS only; add `^L1PA2` to relax | <span class="src">`nextflow.config:67`</span> |
-| `Retroposon/SVA` | `--human_sva_ids` | `^SVA_[DEF]` | SVA_D, SVA_E, SVA_F | <span class="src">`nextflow.config:68`</span> |
-| `Simple_repeat` | `--human_sva_ids` | `^SVA_[DEF]` | the `SVA_*(VNTR_only)` records that Stage 2 reclassified as `Simple_repeat`; see [SVA VNTR polymorphisms](../background/sva-vntr.md) | <span class="src">`module/main.nf:540`</span> |
-| `LTR/ERVK` | `--human_hervk_ids` | `^HERVK-int,^HERVK$,^LTR5_Hs,^LTR5A,^LTR5B` | the HML-2 internal region under either library name, and the LTR5 family; `^HERVK$` is anchored at both ends so that HERVK9-int, HERVK11-int and HERVK14-int, which are other lineages, stay out | <span class="src">`nextflow.config:69-77`</span> |
+| `SINE/Alu` | `--human_alu_ids` | `^AluY` | AluY and its subfamilies (AluYa5, AluYb8, ...); drops AluS and AluJ | <span class="src">`nextflow.config:70`</span> |
+| `LINE/L1` | `--human_l1_ids` | `^L1HS` | L1HS only; add `^L1PA2` to relax | <span class="src">`nextflow.config:71`</span> |
+| `Retroposon/SVA` | `--human_sva_ids` | `^SVA_[DEF]` | SVA_D, SVA_E, SVA_F | <span class="src">`nextflow.config:72`</span> |
+| `Simple_repeat` | `--human_sva_ids` | `^SVA_[DEF]` | the `SVA_*(VNTR_only)` records that Stage 2 reclassified as `Simple_repeat`; see [SVA VNTR polymorphisms](../background/sva-vntr.md) | <span class="src">`module/main.nf:543`</span> |
+| `LTR/ERVK` | `--human_hervk_ids` | `^HERVK-int,^HERVK$,^LTR5_Hs,^LTR5A,^LTR5B` | the HML-2 internal region under either library name, and the LTR5 family; `^HERVK$` is anchored at both ends so that HERVK9-int, HERVK11-int and HERVK14-int, which are other lineages, stay out | <span class="src">`nextflow.config:73-81`</span> |
 
-An empty string keeps the whole class <span class="src">`module/main.nf:536`</span>.
+An empty string keeps the whole class <span class="src">`module/main.nf:539`</span>.
 
 !!! warning "Two bcftools behaviors the filter depends on"
     `repeat_ids` and `matching_classes` are `Number=.` fields. bcftools evaluates `~` on them
@@ -64,14 +64,14 @@ An empty string keeps the whole class <span class="src">`module/main.nf:536`</sp
     matches the record `SVA_A,LTR5_Hs`. bcftools regexes have **no alternation**, so each
     whitelist is a list rather than one `a|b` pattern. Negation with `!~` is not reliable on these
     fields either, which is why every clause below is phrased positively
-    <span class="src">`module/main.nf:529-547`</span>. Details in
+    <span class="src">`module/main.nf:532-549`</span>. Details in
     [VCF fields](../reference/vcf-fields.md).
 
 ---
 
 ## Length and tandem-repeat gates
 
-<span class="src">`module/main.nf:542`</span>
+<span class="src">`module/main.nf:545`</span>
 
 ```text
 abs(SVLEN) >= 250  and  (ULTRA_TR_span < 0.6  or  matching_classes = "Simple_repeat")
@@ -82,7 +82,7 @@ abs(SVLEN) >= 250  and  (ULTRA_TR_span < 0.6  or  matching_classes = "Simple_rep
 | `--human_min_svlen` | `250` bp | drops records shorter than a truncated Alu |
 | `--human_max_ultra_span` | `0.6` (fraction of the variant covered by ULTRA tandem repeats) | drops VNTR-dominated records, except the `Simple_repeat` ones that are VNTR by construction |
 
-Source: <span class="src">`nextflow.config:78-79`</span>.
+Source: <span class="src">`nextflow.config:82-83`</span>.
 
 The 250 bp threshold is sized for insertions and is wrong for the `SVA_*(VNTR_only)` records,
 whose unit is about 49 bp. On the 20-genome HPRC set it keeps 102 of 1,141, and
@@ -94,7 +94,7 @@ whose unit is about 49 bp. On the 20-genome HPRC set it keeps 102 of 1,141, and
 
 ## One element, or the HERVK + SVA carve-out
 
-<span class="src">`module/main.nf:548-569`</span>. A record passes the structure gate in one of
+<span class="src">`module/main.nf:550-571`</span>. A record passes the structure gate in one of
 two ways.
 
 **One hit.** `n_hits == 1`, and the record is `LTR/ERVK`, `Simple_repeat`, or carries
@@ -113,9 +113,9 @@ n_hits <= 3  and  LTR/ERVK  and  Retroposon/SVA  and  repeat_ids ~ "^HERVK-int" 
 
 | Parameter | Default | Source |
 |---|---|---|
-| `--hervk_sva_pair` | `true`; `false` removes the carve-out | <span class="src">`nextflow.config:81`</span> |
-| `--hervk_pair_max_svlen` | `10500` bp, a 9,472 bp provirus plus tolerance | <span class="src">`nextflow.config:82`</span> |
-| `--hervk_pair_max_hits` | `3`; `2` restores the pre-1.1 rule | <span class="src">`nextflow.config:83`</span> |
+| `--hervk_sva_pair` | `true`; `false` removes the carve-out | <span class="src">`nextflow.config:85`</span> |
+| `--hervk_pair_max_svlen` | `10500` bp, a 9,472 bp provirus plus tolerance | <span class="src">`nextflow.config:86`</span> |
+| `--hervk_pair_max_hits` | `3`; `2` restores the pre-1.1 rule | <span class="src">`nextflow.config:87`</span> |
 
 The hit count is a cap rather than an equality because RepeatMasker also splits the internal
 region of a degraded or rearranged provirus. In a cohort of 20 diploid human genomes, two of the three records at
@@ -126,7 +126,7 @@ came out as a two-unit against three-unit difference where the assemblies show t
 other three clauses restrict the cap to HML-2 proviral records: relaxing `n_hits` on its own in
 the one-hit rule admits records that are an LTR5 fragment beside something else, alpha
 satellite and HERVK9 among them
-<span class="src">`module/main.nf:553-567`</span>.
+<span class="src">`module/main.nf:555-569`</span>.
 
 !!! note "Carve-out matches the name `HERVK-int` only"
     The clause matches `repeat_ids~"^HERVK-int"` literally, not the `--human_hervk_ids` list. A
@@ -134,7 +134,7 @@ satellite and HERVK9 among them
     the carve-out, so its split proviral records fall back on the one-hit rule.
 
 Finally, unless `--human_ignore_filter` is set, the record must carry `FILTER = PASS` from the
-SV caller <span class="src">`module/main.nf:571`</span>.
+SV caller <span class="src">`module/main.nf:573`</span>.
 
 ---
 
@@ -144,20 +144,20 @@ Alu, L1 and SVA records are done once they pass the filter. HML-2 records are no
 and a full provirus at the same site are two different alleles of one locus, and a structural
 variant call only ever describes the difference between two of a locus's states. `hervk_annotate`
 works out which two, for each `LTR/ERVK` candidate in `pangenome.vcf`, and writes the result into
-`pangenome.human.vcf` <span class="src">`main.nf:171-182`, `module/main.nf:297-411`</span>. The
+`pangenome.human.vcf` <span class="src">`main.nf:171-182`, `module/main.nf:300-414`</span>. The
 biology is on the [HERV-K background page](../background/hervk-hml2.md); this is the procedure.
 
 1. **Candidates.** Every record with `LTR/ERVK` among its classes and `|SVLEN|` at most
    `--hervk_max_svlen` (`25000` bp). This runs over the whole of `pangenome.vcf`, not only the
    human subset, so that a locus split by the filter is still seen whole
-   <span class="src">`module/main.nf:345-346`</span>.
+   <span class="src">`module/main.nf:348-349`</span>.
 2. **Architecture.** `hervk_arch.py` re-reads the raw RepeatMasker tables (`repeat_ids` holds
    one name per link group, which erases the LTR-INT-LTR order), tiles
    the hits along the SV allele, reassigns SINE-R hits to the LTR class, and reports a signature:
    `ARCH_2LTR` (two complete terminal LTRs), `ARCH_PERM` (one LTR split across the two ends at
    permutation point `k`), `ARCH_INT_PERM` (the same split inside the internal region, point
    `j`), `ARCH_SOLO` (one LTR, no internal region) or `ARCH_NONE`. Written to `hervk_arch.tsv`
-   <span class="src">`module/main.nf:348`, `bin/hervk_arch.py:254-356`</span>.
+   <span class="src">`module/main.nf:351`, `bin/hervk_arch.py:254-356`</span>.
 3. **Reference state.** `hervk_ref_state.py` cuts a window of the reference around each candidate
    (`--hervk_ref_flank`, `1500` bp each side), masks it with RepeatMasker against the TE library
    on `task.cpus` threads, and reads off what the reference holds: `null`, `solo`, `provirus`,
@@ -165,7 +165,7 @@ biology is on the [HERV-K background page](../background/hervk-hml2.md); this is
    flank, then 24,000 and 48,000 bp if it still does. For a proviral reference it counts the units and
    measures their period. With `--hervk_ref_annotation` (a RepeatMasker `.out` or a BED of the
    reference) the classifier skips the masking step. Written to `hervk_refstate.tsv`
-   <span class="src">`module/main.nf:350-359`, `bin/hervk_ref_state.py:46-72`</span>.
+   <span class="src">`module/main.nf:353-362`, `bin/hervk_ref_state.py:46-72`</span>.
 4. **Classification.** `hervk_classify.py` combines the two tables and `SVLEN` into
    `HERVK_ALLELE_REF`, `HERVK_ALLELE`, `HERVK_EVIDENCE` and `HERVK_CLASS`. Copy-number
    arithmetic runs first: when `|SVLEN|` is a whole number of the reference element's period and
@@ -175,21 +175,21 @@ biology is on the [HERV-K background page](../background/hervk-hml2.md); this is
    information. It runs twice:
    over the full candidate set, writing `hervk_candidates.vcf`, `hervk_calls.tsv` and
    `hervk_polymorphism_summary.md`; and over the human subset, annotating its records and its
-   presence-absence TSV <span class="src">`module/main.nf:368-379`, `bin/hervk_classify.py:290-391`</span>.
+   presence-absence TSV <span class="src">`module/main.nf:371-382`, `bin/hervk_classify.py:290-391`</span>.
 5. **Loci.** `hervk_reconcile.py flag` groups records whose footprints lie within
    `--hervk_locus_window` (`1200` bp, one LTR plus tolerance) into loci and writes
    `HERVK_LOCUS`, `HERVK_LOCUS_N`, the flags `HERVK_MEI`, `HERVK_SOLO_PROV`, `HERVK_CNV`,
    `HERVK_MERGE_FLAG`, `HERVK_POLARITY_CONFLICT`, and the summary `HERVK_LOCUS_TYPE`. The flag step marks records and never
    merges them, because `pangenome.human.vcf` must keep its record structure. The locus
-   table is `hervk_loci.tsv` <span class="src">`module/main.nf:381-385`, `bin/hervk_reconcile.py:95-170`</span>.
+   table is `hervk_loci.tsv` <span class="src">`module/main.nf:384-388`, `bin/hervk_reconcile.py:95-170`</span>.
 6. **Consolidated discovery VCF.** The same loci collapsed to one multi-allelic record each, with
    the allele set and the counts from the assemblies, as a separate file
-   `pangenome.human.consolidated.vcf` and a report <span class="src">`module/main.nf:398-404`</span>.
+   `pangenome.human.consolidated.vcf` and a report <span class="src">`module/main.nf:401-407`</span>.
 
 `pangenome.vcf` itself is read and never rewritten here: it induces the graph and must stay
-byte-identical <span class="src">`module/main.nf:292-293`</span>. `pangenome.human.vcf` and its
+byte-identical <span class="src">`module/main.nf:295-296`</span>. `pangenome.human.vcf` and its
 TSV, first written by `concat_repeatmask`, are overwritten by this process's annotated versions
-<span class="src">`module/main.nf:298`</span>.
+<span class="src">`module/main.nf:301`</span>.
 
 The field-by-field definitions are in [VCF fields](../reference/vcf-fields.md).
 
@@ -199,7 +199,7 @@ The field-by-field definitions are in [VCF fields](../reference/vcf-fields.md).
 
 Genotyping does not preserve the HERV-K annotation, because `merge_VCFs` copies INFO from the
 un-annotated `pangenome.vcf`. `hervk_reconcile` restores it and consolidates the loci in the
-genotyped calls <span class="src">`main.nf:286-293`, `module/main.nf:419-490`</span>:
+genotyped calls <span class="src">`main.nf:286-293`, `module/main.nf:422-493`</span>:
 
 1. `GraffiTE.merged.genotypes.vcf.gz` is subset to the IDs in `pangenome.human.vcf`.
 2. Every `HERVK_*` INFO field is copied across from the discovery VCF with `bcftools annotate`.
@@ -209,7 +209,7 @@ genotyped calls <span class="src">`main.nf:286-293`, `module/main.nf:419-490`</s
    path repeats sequence the reference already carries, so reads from the pre-existing copy
    traverse it and non-carriers acquire ALT support; the discovery genotypes come from
    haplotype-resolved alignments and do not have this problem
-   <span class="src">`nextflow.config:99-107`</span>.
+   <span class="src">`nextflow.config:103-111`</span>.
 
 Outputs: `4_Genotyping/GraffiTE.merged.genotypes.human.vcf.gz` (indexed),
 `hervk_unconsolidated_records.vcf` (the member records, archived) and
@@ -250,15 +250,15 @@ refuses `--graffite_vcf --human` unless `--hervk_reconcile false` is also given
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--hervk_config` | `null` | JSON file of overrides for `hervk_classify.py`; keys present replace the script's `DEFAULTS`, nested dictionaries are merged key by key | <span class="src">`nextflow.config:62`, `bin/hervk_classify.py:58-97`</span> |
-| `--hervk_strict` | `false` | drop candidates classed `other` or below `pmap_min` (`0.90`); off because dropping records hid a failure in the previous classifier | <span class="src">`nextflow.config:116`</span> |
-| `--hervk_max_svlen` | `25000` bp | candidacy cap; a complete provirus is 9,472 bp and a 25 Mb artifact once dominated the masking cost | <span class="src">`nextflow.config:85`</span> |
-| `--hervk_ref_flank` | `1500` bp | reference masked either side of each candidate footprint | <span class="src">`nextflow.config:109`</span> |
-| `--hervk_locus_window` | `1200` bp | maximum footprint gap within one locus | <span class="src">`nextflow.config:110`</span> |
-| `--hervk_ref_annotation` | `null` | precomputed reference repeat track; skips the in-pipeline masking | <span class="src">`nextflow.config:114`</span> |
-| `--hervk_mask_graph_gt_at_cnv` | `true` | withhold graph genotypes at copy-number loci; `--hervk_mask_tandem` is the deprecated name | <span class="src">`nextflow.config:99-108`</span> |
-| `--hervk_reconcile` | `true` | run the consolidation after genotyping | <span class="src">`nextflow.config:95`</span> |
-| `--hervk_annotate_threads`, `_memory`, `_time` | `1`, `10G`, `12h` | resources for the masking step | <span class="src">`nextflow.config:128-130`</span> |
+| `--hervk_config` | `null` | JSON file of overrides for `hervk_classify.py`; keys present replace the script's `DEFAULTS`, nested dictionaries are merged key by key | <span class="src">`nextflow.config:66`, `bin/hervk_classify.py:58-97`</span> |
+| `--hervk_strict` | `false` | drop candidates classed `other` or below `pmap_min` (`0.90`); off because dropping records hid a failure in the previous classifier | <span class="src">`nextflow.config:120`</span> |
+| `--hervk_max_svlen` | `25000` bp | candidacy cap; a complete provirus is 9,472 bp and a 25 Mb artifact once dominated the masking cost | <span class="src">`nextflow.config:89`</span> |
+| `--hervk_ref_flank` | `1500` bp | reference masked either side of each candidate footprint | <span class="src">`nextflow.config:113`</span> |
+| `--hervk_locus_window` | `1200` bp | maximum footprint gap within one locus | <span class="src">`nextflow.config:114`</span> |
+| `--hervk_ref_annotation` | `null` | precomputed reference repeat track; skips the in-pipeline masking | <span class="src">`nextflow.config:118`</span> |
+| `--hervk_mask_graph_gt_at_cnv` | `true` | withhold graph genotypes at copy-number loci; `--hervk_mask_tandem` is the deprecated name | <span class="src">`nextflow.config:103-112`</span> |
+| `--hervk_reconcile` | `true` | run the consolidation after genotyping | <span class="src">`nextflow.config:99`</span> |
+| `--hervk_annotate_threads`, `_memory`, `_time` | `1`, `10G`, `12h` | resources for the masking step | <span class="src">`nextflow.config:132-134`</span> |
 
 The keys `--hervk_config` can override, with their defaults, are the `DEFAULTS` dictionary at
 the top of `bin/hervk_classify.py`: `sigmas`, `priors`, `t_min`, `t_max`, `s_range`,
@@ -292,4 +292,4 @@ directory tree and [VCF fields](../reference/vcf-fields.md) for the fields.
 | `4_Genotyping/hervk_unconsolidated_records.vcf`, `hervk_reconciliation_report.md` | `hervk_reconcile` | the archived member records and the report |
 
 `pangenome.trusted.vcf` and its TSV are **not** written under `--human`
-<span class="src">`module/main.nf:595-599`</span>.
+<span class="src">`module/main.nf:597-601`</span>.

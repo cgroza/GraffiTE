@@ -94,14 +94,14 @@ nextflow run cgroza/GraffiTE -r v1.1.0.0 -with-singularity /abs/path/graffite_1.
 `-with-singularity` overrides the image path in `nextflow.config`.
 
 The PAV entry point (`--pav`) uses a second image, `library://becklab/pav/pav:latest`
-<span class="src">`nextflow.config:340`</span>, pulled the same way.
+<span class="src">`nextflow.config:345`</span>, pulled the same way.
 [Container contents](../reference/container.md) lists what the image contains and which recipe it
 is built from.
 
 ### Paths and `/tmp`
 
 Nextflow runs every container with `--contain --bind <dir>:/tmp`
-<span class="src">`nextflow.config:176`</span>. Two consequences:
+<span class="src">`nextflow.config:181`</span>. Two consequences:
 
 - The host filesystem is hidden from the container except for what Nextflow mounts: the work
   directory and the files it stages (`singularity.autoMounts = true`
