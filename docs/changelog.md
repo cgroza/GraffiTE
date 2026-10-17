@@ -16,7 +16,7 @@ give the version you run when asking for help.
 
 ---
 
-## v1.1.0.0
+## v1.1.0.0 (2026-10-17)
 
 Versions now have four numbers, W.X.Y.Z;
 [CONTRIBUTING.md](https://github.com/cgroza/GraffiTE/blob/main/CONTRIBUTING.md) says what each
