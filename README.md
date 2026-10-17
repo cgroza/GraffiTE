@@ -53,6 +53,17 @@ be used as a plain SV annotator (`--vcf`).
 
 ## What's new in 1.1
 
+GraffiTE 1.1 maps methylation onto TE polymorphisms. With `--epigenomes`, the panmethyl submodule
+reads the base-modification tags (`MM`/`ML`, 5mC at CpG by default) of the long-read BAMs you
+genotype and lifts each modified base onto the pangenome graph, including TE sequence that the
+reference lacks. The genotyped VCF then carries the methylation level, modified sites and depth of
+each allele (`PML`, `PMN`, `PMD`), so you can compare the methylation of a TE insertion with that
+of the empty site, or one haplotype's copy with the other's. Epigenetic mapping runs with the
+giraffe, graphaligner and precomputed graph methods, not with PanGenie; see
+[Stage 3.2: epigenetic mapping](https://cgroza.github.io/GraffiTE/guides/methylation/).
+
+Also new:
+
 - Discovery from PAV (`--pav`) or from your own per-sample SV calls (`--svs`).
 - Annotation: ULTRA tandem repeats and the `total_repeat_span` filter, polyA tails, an exact-match
   TSD search on every record the repeat filter keeps, and the L1 5′ inversion and SVA VNTR checks
@@ -61,7 +72,6 @@ be used as a plain SV annotator (`--vcf`).
   elements and an HERV-K (HML-2) classifier, with each locus consolidated into one record.
 - Genotyping: an audit table recording what became of every allele, a trusted subset of the
   genotyped calls, and fixes to the PanGenie path.
-- Methylation lifted onto the graph with `--epigenomes`.
 
 The command line changed in a few places (`--reads` is now `--genotype_with`). The full list is in
 [v1.0 vs v1.1](https://cgroza.github.io/GraffiTE/getting-started/v1.0-vs-v1.1/) and the
