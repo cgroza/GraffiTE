@@ -44,7 +44,7 @@ hervk_reconciliation_report.md            per-locus AC/AN, and why
 
 ## What to check
 
-Measured locally against the CaG data, so these are expectations, not guesses:
+Measured locally against the data of the 20-genome cohort, so these are expectations, not guesses:
 
 | check | expected |
 |---|---|
@@ -72,4 +72,4 @@ Loci whose members were filtered out before that genotyping run will be skipped
 with `N of M members present in the genotyped VCF`. That is correct behaviour —
 the reconciler refuses to emit a partial locus — but it means the numbers above
 only hold when the genotyped VCF and the discovery run share a candidate set.
-chr8 is exactly this case in the CaG data.
+chr8 is exactly this case in the 20-genome cohort.

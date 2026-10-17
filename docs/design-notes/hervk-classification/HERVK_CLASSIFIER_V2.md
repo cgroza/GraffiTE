@@ -82,7 +82,7 @@ The recombinant solo LTR's own crossover point is unrecoverable (the parental
 LTRs are near-identical) and irrelevant. Because the inserted length is the
 same for every `k`, the gap penalty cancels, and the placement is decided by
 the handful of substitutions separating the two LTR copies from the reference
-LTR. Measured in CaG:
+LTR. Measured in the 20-genome cohort:
 
 - **`k` varies between haplotypes at one locus.** chr11 is called at `k = 0`
   from sample 11118731 and `k = 574` from sample 11107362 — both PAV, both
@@ -98,13 +98,13 @@ LTR. Measured in CaG:
 
 Nothing downstream may key on `k`, and it must not be read as a measurement of
 the recombination event. `k` is also expected to be caller-dependent — this is
-**untested**, since every CaG record is PAV.
+**untested**, since every record in the 20-genome cohort is PAV.
 
 ## 4. The `SVA_A` hit is not a mimic
 
 v1 treated an SVA hit of 250–400 bp beside HML-2 as "mimicking" LTR5_Hs. The
 real relationship is homology: SVA's SINE-R domain is HERV-K LTR derived. Every
-SVA hit seen beside an HML-2 element in CaG sits at SVA consensus ≥ ~900, and
+SVA hit seen beside an HML-2 element in the 20-genome cohort sits at SVA consensus ≥ ~900, and
 where it is the *sole* annotation of a terminus its length completes the LTR
 exactly — chr12-58305931 is 303 bp of SVA plus `LTR5_Hs[304-968]`, summing to
 968. v1's window got the right answer for the wrong reason and missed
@@ -119,7 +119,7 @@ LTR5_Hs hit is counted once rather than twice.
 Sequence alone cannot resolve the degenerate case: one full LTR at one terminus
 and nothing at the other. That is either a permutation at `k = 0` (insertion
 right at the LTR boundary, `REF = solo`) or a one-LTR-truncated provirus into
-an empty site (`REF = null`). **Roughly half the CaG candidates land in that
+an empty site (`REF = null`). **Roughly half the candidates in the 20-genome cohort land in that
 form**, so `bin/hervk_ref_state.py` — which masks a window of the reference at
 each candidate and reads off what is there — carries about half the loci.
 `ARCH_PERM` is a corroborating shortcut, not the primary mechanism.
@@ -149,7 +149,7 @@ silently favoured the narrow solo-LTR hypothesis by ~26×.)
 Records describing the same insertion can be anchored anywhere inside the
 shared reference LTR, so they land up to **one LTR apart**. That is the
 derivable clustering radius — `hervk_locus_window = 1200` — not an arbitrary
-window. Observed offsets in CaG: 107 bp (chr12), 559 bp (chr6), 574 bp
+window. Observed offsets in the 20-genome cohort: 107 bp (chr12), 559 bp (chr6), 574 bp
 (chr11), 871 bp (chr1). Three of those exceed truvari's default 500 bp
 `refdist`, which is why truvari did not collapse them.
 
@@ -163,7 +163,7 @@ human VCF alone could split a locus whose partner was removed for an unrelated
 reason. Only the human VCF is *written*; `pangenome.vcf` induces the graph and
 stays byte-identical.
 
-## 8. Result on the CaG candidates
+## 8. Result on the candidates of the 20-genome cohort
 
 - `null_prov` becomes non-zero for the first time: `chr19-21797327` and
   `chr8-7226885`, both previously `solo_prov`. The first matches Wildschutte's
@@ -196,7 +196,7 @@ them, so the rule consults it:
 | `ARCH_PERM`, reference `solo` | solo | provirus | `solo_prov` |
 | `ARCH_PERM`, reference `provirus` | provirus | tandem | `tandem_prov` |
 
-Three CaG loci are the second case — chr6:78,894,876, chr7:4,700,334 and
+Three loci of the 20-genome cohort are the second case — chr6:78,894,876, chr7:4,700,334 and
 chr12:133,148,145 — each a singleton haplotype. The size arithmetic confirms
 the reading: the inserted length is the reference element's span minus one LTR
 (chr6 8465 = 9425 − 960 exactly; chr12 4933 vs 4934; chr7 8504 = 9472 − 968).
@@ -226,7 +226,7 @@ is *structural* — no DP reported at all, as opposed to evaluated and ambiguous
 
 Summing dosages fixes most of it. Where the called members already account for
 every haplotype, an uncalled member is pinned to zero. That is arithmetic, not
-inference. Measured on CaG:
+inference. Measured on the 20-genome cohort:
 
 | locus | dosage resolves | struct. missing | ploidy violations | graph AC/AN | discovery |
 |---|---|---|---|---|---|
@@ -241,7 +241,7 @@ Three things this bought:
 - **chr11 is exact.** Two records the paper reports as separate loci at 0.400
   and 0.175 are one locus at 0.575, and the assemblies agree to the allele.
 - **The ploidy check is free and it works.** Summed dosage cannot exceed
-  ploidy; three CaG samples violate it (chr12 ×2, chr8 ×1). At chr12 those two
+  ploidy; three samples of the 20-genome cohort violate it (chr12 ×2, chr8 ×1). At chr12 those two
   samples are precisely the gap between graph and assemblies — they are the
   third allele flattened by `bcftools norm -m-`.
 - **Dosage beats the alternative badly.** At chr12 it resolves 17 of 20 where
@@ -281,8 +281,8 @@ earlier version of the pre-flight check — which demanded the literal name
 ## 12. Deliberately deferred
 
 - **`DENOVO_LTR`** (rule 5) is not implemented. It was specified as a fallback
-  for when the reference is unavailable or ambiguous. Every degenerate CaG
-  record is resolved by `REF_ANNOT`, so it buys nothing yet — but it is a real
+  for when the reference is unavailable or ambiguous. Every degenerate
+  record in the 20-genome cohort is resolved by `REF_ANNOT`, so it buys nothing yet — but it is a real
   gap for cohorts without a good reference annotation, and the evidence code is
   reserved.
 - **Stage 4 consolidation** (`hervk_reconcile.py consolidate`) — phase 2. Graph
@@ -297,7 +297,7 @@ earlier version of the pre-flight check — which demanded the literal name
 - **Multi-allelic loci with no spanning deletion.** `build_locus_record` splices
   literal sequence out of a deletion member's REF field, so it needs no FASTA.
   A locus with several alleles and no spanning deletion would; none occurs in
-  CaG, and the reconciler says so rather than guessing.
+  the 20-genome cohort, and the reconciler says so rather than guessing.
 - **Proviral arrays / clusters.** chr7:4.70 Mb carries neighbouring HML-2
   elements that `element_gap` fuses into one oversize reference element (now
   flagged `OVERSIZE_ELEMENT`). Not pursued by decision: of no interest without

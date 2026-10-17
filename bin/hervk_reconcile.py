@@ -13,7 +13,7 @@ HERV-K (HML-2) locus layer.
     otherwise on proximity within one LTR length. That radius is derivable
     rather than arbitrary: two records describing the same insertion can be
     placed anywhere inside the shared reference LTR, so they land up to one LTR
-    apart. In the CaG cohort the observed offsets are 574 bp (chr11), 559 bp
+    apart. In the 20-genome cohort the observed offsets are 574 bp (chr11), 559 bp
     (chr6), 107 bp (chr12) and 871 bp (chr1) -- all within one LTR, and the
     first three sit outside truvari's default 500 bp refdist, which is why
     truvari did not collapse them.
@@ -41,7 +41,7 @@ HERV-K (HML-2) locus layer.
     by taking each record's call at face value. A locus is one place with one
     allele set; the members are partial views of it, and `vg call` frequently
     leaves one member uncalled because the reads took another member's path.
-    Measured on the CaG set: that structural missingness (no DP at all, not
+    Measured on the 20-genome cohort: that structural missingness (no DP at all, not
     low coverage) affects 9 samples at chr6 and 11 at chr12.
 
     Summing dosages fixes most of it. Where the called members already account
@@ -50,7 +50,7 @@ HERV-K (HML-2) locus layer.
     missing member as fatal resolves 7.
 
     It also gives a free consistency check: dosages cannot exceed ploidy.
-    Three CaG samples violate it (chr12 x2, chr8 x1), and at chr12 those two
+    Three samples of the 20-genome cohort violate it (chr12 x2, chr8 x1), and at chr12 those two
     samples are exactly the gap between the graph and the assemblies. They are
     the third allele being flattened by `bcftools norm -m-`.
 
@@ -62,7 +62,7 @@ HERV-K (HML-2) locus layer.
     not.
 
     A locus the --human filter cut in half is annotated rather than merged.
-    Three CaG loci are in that state, and at chr7:4,699,714 the filter keeps
+    Three loci of the 20-genome cohort are in that state, and at chr7:4,699,714 the filter keeps
     one of three members: all three describe the same 8,504 bp unit, and the
     two it removes carry a third RepeatMasker fragment that the HERV-K clause
     does not admit. The surviving record carries the locus id, the full allele
@@ -428,7 +428,7 @@ def cmd_flag(args):
         sys.stderr.write(f'    {r["locus_id"]}: {r["record_ids"]} [{r["flags"]}]\n')
 
 
-# The back ends that genotype through vg call. giraffe was validated on CaG;
+# The back ends that genotype through vg call. giraffe was validated on the 20-genome cohort;
 # graphaligner and precomputed are checked against it in the synthetic suite
 # (cells human_graphaligner and human_precomputed).
 SUPPORTED_GENOTYPERS = ('giraffe', 'graphaligner', 'precomputed')
@@ -803,7 +803,7 @@ def cmd_consolidate(args):
     # and do not have this problem, which is why they are left alone.
     #
     # Every copy-number record is masked, not only the ones in a multi-record
-    # locus: two of the CaG loci hold a single record and are never reached by
+    # locus: two loci of the 20-genome cohort hold a single record and are never reached by
     # the loop below.
     #
     # Discovery masks nothing. These genotypes come from whole-haplotype

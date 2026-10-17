@@ -339,7 +339,7 @@ process hervk_annotate {
   # hervk_classify.py's DEFAULTS (max_svlen=25000). hervk_candidate.ids is what
   # hervk_ref_state.py masks against, so a cap that only bites at classify time
   # drops the record from the calls *after* its reference window has already
-  # been masked. On the CaG set that is one 25.3 Mb window
+  # been masked. On the 20-genome cohort that is one 25.3 Mb window
   # (chr1-120594342-DEL-25264467, a zero-query-footprint ALNTRUNC artefact)
   # carrying 95.8% of the 26.4 Mb sent to RepeatMasker -- 1h39m of masking plus
   # 2h14m of ProcessRepeats, which timed out two 4h jobs. With the cap here the
@@ -455,7 +455,7 @@ process hervk_reconcile {
   # Genotyping does not preserve it. merge_VCFs transfers INFO from
   # pangenome.vcf, which is deliberately left un-annotated because it induces
   # the graph, so the genotyped records arrive without HERVK_LOCUS or the locus
-  # flags. In the CaG run that left 4 of 29 HERV-K records carrying a locus id
+  # flags. On the 20-genome cohort that left 4 of 29 HERV-K records carrying a locus id
   # and none that could be filtered on HERVK_MEI, which is the field a user
   # needs to tell an insertion polymorphism from structural variation in an
   # element every haplotype carries.
@@ -553,7 +553,7 @@ process concat_repeatmask {
   // polyA requirement that "Retroposon" in matching_classes would trigger.
   //
   // The hit count is a cap, not an equality, because RepeatMasker also splits
-  // the internal region of a degraded or rearranged provirus. On the CaG set
+  // the internal region of a degraded or rearranged provirus. On the 20-genome cohort
   // two of the three records at chr7:4,699,714 come back with three hits
   // (LTR5_Hs,SVA_A,HERVK-int and HERVK-int,SVA_A,HERVK-int) where the third is
   // that split, not a second element. At n_hits==2 the filter kept one record

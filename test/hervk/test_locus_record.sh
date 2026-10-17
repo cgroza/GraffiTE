@@ -5,7 +5,7 @@
 # the locus was skipped, so a multi-allelic locus whose members are insertions
 # with no deletion spanning them could never consolidate. chr7:4,699,714 is that
 # shape -- two insertions at 4,699,714 and 4,700,333 and a deletion starting at
-# 4,706,808, downstream of both -- which is why it was the one CaG locus that
+# 4,706,808, downstream of both -- which is why it was the one locus of the 20-genome cohort that
 # never merged.
 #
 # The geometry here is the chr7 one in miniature, against a synthetic contig so

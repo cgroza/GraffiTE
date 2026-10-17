@@ -190,7 +190,7 @@ bcftools view -H -i 'n_hits==2' pangenome.human.vcf | wc -l
 bcftools query -i 'n_hits==2' -f '%INFO/repeat_ids\t%INFO/match_lengths\t%INFO/SVLEN\t%INFO/HERVK_CLASS\t%INFO/HERVK_PMAP\n' pangenome.human.vcf
 ```
 Every `n_hits==2` record must be `HERVK-int` + SVA — no other multi-hit records may
-appear. On the CaG cohort, 14 records are admitted by the filter and **12 survive**
+appear. On the 20-genome cohort, 14 records are admitted by the filter and **12 survive**
 `hervk_classify --strict` (the other 2 classify as `truncated_prov` at pmap ≈0.85, below
 the 0.90 threshold). A different cohort will have different counts; report what you see.
 
@@ -245,7 +245,7 @@ HERVK+SVA records **plus any `LTR5A`/`LTR5B` records**: the old class filter tes
 LTRs were never in the old output even though they were in `pangenome.vcf`. **Anything
 else in either set is a finding — report it.**
 
-Anchor numbers, if and only if the `RM_dir` is the 20-sample CaG cohort: old 5855 →
+Anchor numbers, if and only if the `RM_dir` is the 20-genome cohort: old 5855 →
 5747 after the subfamily filter → +12 surviving HERVK+SVA pairs → +1 newly admitted
 `LTR5A` → **5760**, with drops of 52 Alu, 32 L1, 3 SVA, 13 SVA-VNTR, 8 non-HML-2 ERVK.
 For any other dataset, report the observed relationship instead of trying to match these.

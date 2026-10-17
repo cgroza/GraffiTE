@@ -74,7 +74,7 @@ here would only reintroduce the stale narrow windows.
 ## Run it
 
 ```bash
-cd /xdisk/cgoubert/cgoubert/GraffiTE1.1/CaG
+cd <directory of the 20-genome cohort run>
 ./bootstrap.sh                  # pulls 0681c33, refreshes the handout
                                 # (your INPUTS.env is preserved)
 unset HERVK_REF_RM_OUT

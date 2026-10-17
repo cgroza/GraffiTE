@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Regression test for `hervk_reconcile.py consolidate`.
 #
-# Real CaG data: the ten member records of the five flagged loci, from the
+# Real data from the 20-genome cohort: the ten member records of the five flagged loci, from the
 # unfiltered graph-genotyped VCF, with the assembly callset alongside. These
 # five cover every shape the consolidator has to handle -- two loci where both
 # members describe the same allele, one genuinely triallelic locus, one where a

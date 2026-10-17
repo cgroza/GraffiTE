@@ -48,8 +48,8 @@ echo ""
 TSD_MIN=4
 TSD_MAX=20
 # A candidate shorter than TSD_SHORT bp competes only if it scores
-# TSD_SHORT_SCORE or less, that is, if it sits on the junction. On the CaG
-# set, with each insertion's R window swapped for another's so that no
+# TSD_SHORT_SCORE or less, that is, if it sits on the junction. On the 20-genome
+# cohort, with each insertion's R window swapped for another's so that no
 # duplication can span the pair, the search still passed a match in 72% of
 # Alu, L1 and SVA pairs, most of them 4 or 5 bp long and spread around the
 # junction. Calls of 9 bp or more on the real windows score 0 or 0.5 in 97%

@@ -36,7 +36,7 @@ internal architecture, and masks a window of the reference genome at each
 candidate to see what the reference actually holds.
 
 The expectations in `EXPECTED.tsv` were measured from the RepeatMasker tables
-of the *existing* CaG run before the new code was written. So this is a real
+of the *existing* run on the 20-genome cohort before the new code was written. So this is a real
 test: the answers were derived independently, and the classifier is being asked
 to reproduce them.
 
@@ -86,7 +86,7 @@ The pipeline is not checked out locally — Nextflow fetches and caches
 handout out of that cache.
 
 ```bash
-cd /xdisk/cgoubert/cgoubert/GraffiTE1.1/CaG
+cd <directory of the 20-genome cohort run>
 module load nextflow            # whatever the site provides
 
 ./bootstrap.sh                  # nextflow pull + refresh this handout
