@@ -1,3 +1,6 @@
+# Unmaintained since v1.1. We build the published image from the Dockerfile. We have not
+# built this Apptainer recipe for v1.1, and going by its contents an image built from it
+# would differ from the published one (docs/reference/container.md).
 Bootstrap: library
 From: ubuntu:20.04
 

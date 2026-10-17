@@ -8,23 +8,24 @@ description: >-
 # Resources and scaling
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `e687712`. The
+    Verified against `v1.1.0.0` at commit `bf51777`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
 ## Execution profiles
 
-Pass one with `-profile` (single dash). All three run the same container.
-<span class="src">`nextflow.config:7-24`</span>
+Pass one with `-profile` (single dash). All three run the same image, `cgroza/graffite:1.1.0.0`:
+`standard` and `cluster` with Apptainer, `cloud` with Docker.
+<span class="src">`nextflow.config:7-29`</span>
 
 | Profile | Executor | Notes |
 |---|---|---|
 | `standard` | `local` | The default. Every task runs on the machine you launched from. |
 | `cluster` | `slurm` | One SLURM job per task. Tasks run in `$SLURM_TMPDIR` and copy results back. |
-| `cloud` | `aws` | Does not launch: Nextflow 26.04.6 stops with `Unknown executor name: aws`. The AWS Batch executor is called `awsbatch`, and needs your own AWS settings in a config passed with `-c`. |
+| `cloud` | `awsbatch` | One AWS Batch job per task, with Docker. Needs your AWS settings in a config passed with `-c`: a Batch queue, a region and an S3 work directory. `pav_asm` cannot run. Not tested. |
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev -profile cluster ...
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -profile cluster ...
 ```
 
 Site-specific settings (a partition, an account, a container cache) go in a config file of your
@@ -42,7 +43,7 @@ process {
 ```
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev -profile cluster -c site.config ...
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -profile cluster -c site.config ...
 ```
 
 137 and 143 are SIGKILL and SIGTERM, which is how SLURM ends a job that ran past its time or
@@ -51,9 +52,9 @@ allocation on a failure that will repeat.
 
 Two defaults to check against your site:
 
-- `process.scratch = '$SLURM_TMPDIR'` <span class="src">`nextflow.config:16`</span> assumes the
-  scheduler defines that variable, and many sites do not. Where it is unset, set `process.scratch`
-  to a path of your own or to `false`.
+- `process.scratch = '$SLURM_TMPDIR'` <span class="src">`nextflow.config:16`</span> names a
+  variable that many sites do not define. Where it is unset, set `process.scratch` to a path of
+  your own or to `false`.
 - Several `*_memory` parameters default to `null`, so the pipeline requests no `--mem`. On a
   scheduler that needs one, set them; see [Per-process allocation](#per-process-allocation).
 
@@ -63,60 +64,60 @@ can; see [Paths and `/tmp`](../getting-started/installation.md#paths-and-tmp).
 See also the
 [Nextflow executor documentation](https://www.nextflow.io/docs/latest/executor.html).
 
-## The `--cores` shortcut
+## `--cores` shortcut
 
 `--cores N` sets `cpus` to `N` for every process whose CPU count is configurable, in place of all
-the `*_threads` parameters, and replaces the `32` that `pav_asm` asks for. Set it for a quick run
+the `*_threads` parameters, and replaces `pav_asm`'s default of `32`. Set it for a quick run
 on one machine; set the individual parameters for a cluster, where a lone `bcftools` step does
-not need the 40 CPUs an alignment does. <span class="src">`nextflow.config:51,179-345`</span>
+not need the 40 CPUs an alignment does. <span class="src">`nextflow.config:55,184-350`</span>
 
 Processes with a hardcoded `cpus` ignore it: `break_scaffold`, `tsd_prep`, `tsd_search`,
 `tsd_report`, `merge_VCFs`, `trusted_genotypes`, `genotyping_audit`, `hervk_reconcile`, and the
-eight methylation processes. All are pinned to one CPU except `bamtags_to_BED`, which asks for two.
-<span class="src">`nextflow.config:180-182,228-242,274-288,294-338`</span>
+eight methylation processes. Each gets one CPU except `bamtags_to_BED`, which gets two.
+<span class="src">`nextflow.config:185-187,233-247,279-293,299-343`</span>
 
 ## Per-process allocation
 
-Each `withName` block in `nextflow.config` reads a `*_threads`, `*_memory` and `*_time`
-parameter. Memory and time are Nextflow strings such as `"40G"` and `"12h"`. A memory default of
+The `withName` blocks in `nextflow.config` read the `*_threads`, `*_memory` and `*_time`
+parameters. Memory and time are Nextflow strings such as `"40G"` and `"12h"`. A memory default of
 `null` means the process declares no memory requirement at all; on a scheduler that needs one, set
-it. <span class="src">`nextflow.config:124-162,179-345`</span>
+it. <span class="src">`nextflow.config:128-166,184-350`</span>
 
 | Process | CPUs | Memory | Time | Source |
 |---|---|---|---|---|
-| `break_scaffold` | `1` | none | none | <span class="src">`nextflow.config:180-182`</span> |
-| `map_asm` | `--map_asm_threads` `1` | `--map_asm_memory` `null` | `--map_asm_time` `"3h"` | <span class="src">`nextflow.config:136-138,183-187`</span> |
-| `map_longreads` | `--map_longreads_threads` `1` | `--map_longreads_memory` `null` | `--map_longreads_time` `"12h"` | <span class="src">`nextflow.config:139-141,188-192`</span> |
-| `sniffles_sample_call`, `sniffles_population_call` | `--sniffles_threads` `1` | `--sniffles_memory` `null` | `--sniffles_time` `"12h"` | <span class="src">`nextflow.config:150-152,193-202`</span> |
-| `svim_asm`, `truvari_merge` | `--svim_asm_threads` `1` | `--svim_asm_memory` `null` | `--svim_asm_time` `"12h"` | <span class="src">`nextflow.config:155-157,203-212`</span> |
-| `pav_asm` | `32` | `--pav_memory` `"120G"` | `--pav_time` `"12h"` | <span class="src">`nextflow.config:153-154,339-344`</span> |
-| `split_repeatmask`, `repeatmask_VCF`, `concat_repeatmask` | `--repeatmasker_threads` `1` | `--repeatmasker_memory` `"10G"` | `--repeatmasker_time` `"12h"` | <span class="src">`nextflow.config:147-149,213-227`</span> |
-| `tsd_prep`, `tsd_search`, `tsd_report` | `1` | `--tsd_memory` `"10G"` | `--tsd_time` `"1h"` | <span class="src">`nextflow.config:158-159,228-242`</span> |
-| `hervk_annotate` | `--hervk_annotate_threads` `1` | `--hervk_annotate_memory` `"10G"` | `--hervk_annotate_time` `"12h"` | <span class="src">`nextflow.config:128-130,289-293`</span> |
-| `hervk_reconcile` | `1` | `--hervk_reconcile_memory` `"10G"` | `--hervk_reconcile_time` `"1h"` | <span class="src">`nextflow.config:131-132,294-298`</span> |
-| `pangenie_index`, `pangenie` | `--pangenie_threads` `1` | `--pangenie_memory` `null` | `--pangenie_time` `"12h"` | <span class="src">`nextflow.config:144-146,243-252`</span> |
-| `make_graph` | `--make_graph_threads` `1` | `--make_graph_memory` `"40G"` | `--make_graph_time` `"6h"` | <span class="src">`nextflow.config:133-135,253-257`</span> |
-| `bam_to_fastq`, `graph_align_reads` | `--graph_align_threads` `1` | `--graph_align_memory` `null` | `--graph_align_time` `"12h"` | <span class="src">`nextflow.config:125-127,258-268`</span> |
-| `vg_call` | `--vg_call_threads` `1` | `--vg_call_memory` `null` | `--vg_call_time` `"2h"` | <span class="src">`nextflow.config:160-162,269-273`</span> |
-| `merge_VCFs` | `1` | `--merge_vcf_memory` `"10G"` | `--merge_vcf_time` `"1h"` | <span class="src">`nextflow.config:142-143,274-278`</span> |
-| `bamtags_to_BED` | `2` | `50 GB` | `6 h` | <span class="src">`nextflow.config:299-303`</span> |
-| `lift_epigenome`, `merge_CSV` | `1` | `60 GB` | `6 h` | <span class="src">`nextflow.config:304-313`</span> |
-| `index_graph`, `annotate_VCF`, `annotate_BED`, `BED_to_graph`, `merge_BED` | `1` | `40 GB` | `6 h` | <span class="src">`nextflow.config:314-338`</span> |
+| `break_scaffold` | `1` | none | none | <span class="src">`nextflow.config:185-187`</span> |
+| `map_asm` | `--map_asm_threads` `1` | `--map_asm_memory` `null` | `--map_asm_time` `"3h"` | <span class="src">`nextflow.config:140-142,188-192`</span> |
+| `map_longreads` | `--map_longreads_threads` `1` | `--map_longreads_memory` `null` | `--map_longreads_time` `"12h"` | <span class="src">`nextflow.config:143-145,193-197`</span> |
+| `sniffles_sample_call`, `sniffles_population_call` | `--sniffles_threads` `1` | `--sniffles_memory` `null` | `--sniffles_time` `"12h"` | <span class="src">`nextflow.config:154-156,198-207`</span> |
+| `svim_asm`, `truvari_merge` | `--svim_asm_threads` `1` | `--svim_asm_memory` `null` | `--svim_asm_time` `"12h"` | <span class="src">`nextflow.config:159-161,208-217`</span> |
+| `pav_asm` | `32` | `--pav_memory` `"120G"` | `--pav_time` `"12h"` | <span class="src">`nextflow.config:157-158,344-349`</span> |
+| `split_repeatmask`, `repeatmask_VCF`, `concat_repeatmask` | `--repeatmasker_threads` `1` | `--repeatmasker_memory` `"10G"` | `--repeatmasker_time` `"12h"` | <span class="src">`nextflow.config:151-153,218-232`</span> |
+| `tsd_prep`, `tsd_search`, `tsd_report` | `1` | `--tsd_memory` `"10G"` | `--tsd_time` `"1h"` | <span class="src">`nextflow.config:162-163,233-247`</span> |
+| `hervk_annotate` | `--hervk_annotate_threads` `1` | `--hervk_annotate_memory` `"10G"` | `--hervk_annotate_time` `"12h"` | <span class="src">`nextflow.config:132-134,294-298`</span> |
+| `hervk_reconcile` | `1` | `--hervk_reconcile_memory` `"10G"` | `--hervk_reconcile_time` `"1h"` | <span class="src">`nextflow.config:135-136,299-303`</span> |
+| `pangenie_index`, `pangenie` | `--pangenie_threads` `1` | `--pangenie_memory` `"32G"` | `--pangenie_time` `"12h"` | <span class="src">`nextflow.config:148-150,248-257`</span> |
+| `make_graph` | `--make_graph_threads` `1` | `--make_graph_memory` `"40G"` | `--make_graph_time` `"6h"` | <span class="src">`nextflow.config:137-139,258-262`</span> |
+| `bam_to_fastq`, `graph_align_reads` | `--graph_align_threads` `1` | `--graph_align_memory` `null` | `--graph_align_time` `"12h"` | <span class="src">`nextflow.config:129-131,263-273`</span> |
+| `vg_call` | `--vg_call_threads` `1` | `--vg_call_memory` `null` | `--vg_call_time` `"2h"` | <span class="src">`nextflow.config:164-166,274-278`</span> |
+| `merge_VCFs` | `1` | `--merge_vcf_memory` `"10G"` | `--merge_vcf_time` `"1h"` | <span class="src">`nextflow.config:146-147,279-283`</span> |
+| `bamtags_to_BED` | `2` | `50 GB` | `6 h` | <span class="src">`nextflow.config:304-308`</span> |
+| `lift_epigenome`, `merge_CSV` | `1` | `60 GB` | `6 h` | <span class="src">`nextflow.config:309-318`</span> |
+| `index_graph`, `annotate_VCF`, `annotate_BED`, `BED_to_graph`, `merge_BED` | `1` | `40 GB` | `6 h` | <span class="src">`nextflow.config:319-343`</span> |
 
 Three things the table does not show:
 
 - `graph_align_reads` has `errorStrategy = 'finish'`: when one sample's alignment fails, the
   samples already running finish and the run then stops, instead of being killed at once.
-  <span class="src">`nextflow.config:267`</span>
-- The default thread count is `1` everywhere. A run with defaults aligns each assembly on one CPU.
+  <span class="src">`nextflow.config:272`</span>
+- Every `*_threads` parameter defaults to `1`. A run with defaults aligns each assembly on one CPU.
   Raise `--map_asm_threads`, `--map_longreads_threads`, `--pangenie_threads` and
   `--graph_align_threads` first; those are the steps that scale with CPUs.
 - `repmask_vcf.sh` sizes RepeatMasker and ULTRA from `nproc`, not from the `cpus` you allocate.
   On a shared node that reports every core, request a whole node for `repeatmask_VCF` or accept
   the oversubscription. <span class="src">`bin/repmask_vcf.sh:67,92`</span>
 
-What drives each step, as the v1.0 README put it: discovery scales with genome size, the merge
-with the number of assemblies, and genotyping with genome size and the size of the read sets. We
+As the v1.0 README put it, discovery scales with genome size, the merge with the number of
+assemblies, and genotyping with genome size and the size of the read sets. We
 have no measurements for RepeatMasker or the graph steps.
 
 `-with-report` writes an HTML report with the peak CPU and memory of every task. Run once with
@@ -126,10 +127,10 @@ generous values, read the report, then trim.
 
 The defaults, in particular for memory and wall time, can be too small for large, repeat-rich
 genomes such as maize. Nextflow's error message for a job that ran out of memory or time is often
-about something else, so a run that fails with a confusing message on a large genome is worth
-retrying with more of both before looking for another cause. Maize runs have been reported to
-complete with requests of the order of 120 h and 400 GB per process, the long-read alignment being
-the most demanding step; those are requested values, not measured peaks.
+about something else, so if a run on a large genome fails with a confusing message, retry it with
+more of both before looking for another cause. The v1.0 README reports maize runs that completed
+with requests of the order of 120 h and 400 GB per process, the long-read alignment being the most
+demanding step; those are requested values, not measured peaks.
 
 ## Measured resource usage
 

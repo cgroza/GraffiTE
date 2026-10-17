@@ -6,7 +6,7 @@ description: Why TSDs matter for mobile element insertions and how GraffiTE find
 # Target site duplications
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `e687712`. The
+    Verified against `v1.1.0.0` at commit `bf51777`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -24,7 +24,7 @@ In a variant call, the two copies straddle the breakpoint. The reference genome 
 (the original target site), and the inserted sequence carries the other at one of its ends,
 depending on where the caller placed the breakpoint. GraffiTE looks for that pair.
 
-## The search procedure
+## Search procedure
 
 The search runs on every record that passed the repeat-span filter, whatever its `n_hits`, and
 uses only exact matches. Three scripts do the work, one process each.
@@ -33,9 +33,9 @@ uses only exact matches. Three scripts do the work, one process each.
 of reference ending at `POS` (the anchor base included) and `--tsd_win` bp starting just after
 the variant: after `POS` for an insertion, after the deleted interval for a deletion. A window
 that runs off the start of a contig is clamped and comes out shorter. Separately, the variant
-sequence itself (ALT for an insertion, REF for a deletion) is trimmed to its first and last
-`--tsd_win` bp; a variant no longer than the window is used whole. The default window is 30 bp.
-<span class="src">`bin/prepTSD.sh:43-56`, `bin/tsd_flanks.py:50-59`, `nextflow.config:50`</span>
+sequence itself (ALT for an insertion, REF for a deletion), minus its anchor base, is trimmed to
+its first and last `--tsd_win` bp; a variant no longer than the window is used whole. The default window is 30 bp.
+<span class="src">`bin/prepTSD.sh:43-56`, `bin/tsd_flanks.py:50-59`, `nextflow.config:54`</span>
 
 **`TSD_Match_v2.sh` compares two fragments per variant.** The L fragment is the 5' flank followed
 by the first bases of the variant; the R fragment is the last bases of the variant followed by
@@ -49,7 +49,7 @@ and L on the plus strand, in BLAST tabular form, and matches longer than 20 bp a
 <figcaption>
 The two fragments, a duplication in the configuration that scores 0, and the score. In the
 other snug configuration the two copies <em>start</em> at the junction, one at the beginning of
-the variant and one at the beginning of the 3′ flank; it scores 0 too.
+the variant and one at the beginning of the 3' flank; it scores 0 too.
 </figcaption>
 </figure>
 
@@ -64,7 +64,7 @@ In output from before commit `d1dfd7b` the header said `Number=1`, and the field
 The search runs in batches of `--tsd_batch_size` variants per contig, and the per-batch
 summaries and logs are concatenated into `3_TSD_search/TSD_summary.txt` and
 `TSD_full_log.txt`.
-<span class="src">`main.nf:157-162`, `module/main.nf:573-574`</span>
+<span class="src">`main.nf:157-162`, `module/main.nf:575-576`</span>
 
 ## Scoring and the PASS rule
 
@@ -92,15 +92,15 @@ otherwise beat the real copy. At 1.5 the two copies can sit up to three bases of
 between them.
 <span class="src">`bin/TSD_Match_v2.sh:61-68,104-116`, `test/tsd/test_tsd_match.sh`</span>
 
-The rule for short candidates comes from a null test on the CaG set (20 genomes, CHM13v2.0). We
-replaced each insertion's R window with that of another insertion of the same family, strand and
-SV type, so that no duplication could span the pair, and ran the search unchanged. Without the
-rule it passed a match in 72% of swapped Alu, L1 and SVA pairs, most of them 4 or 5 bp long and
-off the junction, while real calls of 9 bp or more scored 0 or 0.5 in 97% of cases. With it,
-36% of swapped pairs pass, and 53 calls on 5,614 real Alu, L1 and SVA records are lost, all
-short and off the junction. Swapped pairs still get a call of 9 bp or more 1.6% of the time, so a
-long TSD is good evidence of transposition and a short one is weak even when it sits on the
-junction.
+The rule for short candidates comes from a null test on a cohort of 20 diploid human genomes, with
+CHM13v2.0 as the reference. We replaced each insertion's R window with that of another insertion of
+the same family, strand and SV type, so that no duplication could span the pair, and ran the search
+unchanged. Without the rule it passed a match in 72% of swapped Alu, L1 and SVA pairs, most of them
+4 or 5 bp long and off the junction, while real calls of 9 bp or more scored 0 or 0.5 in 97% of
+cases. With it, 36% of swapped pairs pass, and 53 calls on 5,614 real Alu, L1 and SVA records are
+lost, all short and off the junction. Swapped pairs still get a call of 9 bp or more 1.6% of the
+time, so a long TSD is good evidence of transposition and a short one is weak even when it sits on
+the junction.
 <span class="src">`bin/TSD_Match_v2.sh:50-60,115-116,142`, `test/tsd/test_tsd_match.sh`</span>
 
 ## Reading TSD_summary.txt
@@ -122,7 +122,7 @@ One row per variant searched. A row with a hit has 21 tab-separated columns:
 | 19, 20 | the sequence of the L copy and of the R copy |
 | 21 | `PASS` or `FAIL` |
 
-A variant with no exact match of 4 bp or more gets a shorter row: the ID, twelve `NA`, `no_hit`,
+A variant with no exact match of 4 to 20 bp gets a shorter row: the ID, twelve `NA`, `no_hit`,
 `no_hit`, `FAIL`. Read the file from the right (`$NF`, `$(NF-1)`, `$(NF-2)`) rather than by
 column number, as `tsd_annotate_vcf.sh` does.
 <span class="src">`bin/TSD_Match_v2.sh:69,76,142`, `bin/exact_match.py:92-109`</span>
@@ -149,7 +149,7 @@ bit score; from column 13 on, the right name is one header column to the left.
   `--tsd_win` widens the search and, since the score is measured from the junction, does not
   change what a snug duplication scores.
 - **The variant sequence must be resolved.** A symbolic `<INS>` has no ends to compare;
-  Stage A drops those.
+  GraffiTE drops those before the search.
 - **PolyA tails can hide a copy.** The 3' end of a plus-strand Alu or L1 is a run of A; a TSD
   rich in A can be found at the wrong offset inside it, or be a run of the tail itself. `polyA`
   is therefore scanned with the `TSD` copy trimmed and without it, and a tail found either way

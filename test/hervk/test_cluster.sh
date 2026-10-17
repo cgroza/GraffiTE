@@ -83,7 +83,7 @@ spec = importlib.util.spec_from_file_location(
     'hervk_reconcile', '../../bin/hervk_reconcile.py')
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 cases = {
-  'mei_solo':     {'null', 'solo'},                       # 21 of the CaG loci
+  'mei_solo':     {'null', 'solo'},                       # 21 of the loci in the 20-genome cohort
   'mei_prov':     {'null', 'provirus'},
   'mei_three':    {'null', 'solo', 'provirus'},           # chr12:55,299,985
   'dimorphic':    {'solo', 'provirus'},

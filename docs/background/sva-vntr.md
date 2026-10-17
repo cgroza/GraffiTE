@@ -6,7 +6,7 @@ description: Why VNTR-only SVA variants are reclassified, and the per-subfamily 
 # SVA VNTR polymorphisms
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `e687712`. The
+    Verified against `v1.1.0.0` at commit `bf51777`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
@@ -31,7 +31,7 @@ insertion or a deletion of a few hundred bp. RepeatMasker then annotates the var
 as SVA, since VNTR sequence is SVA sequence, and without a rule to catch it the variant counts as
 an SVA insertion polymorphism when no element moved.
 
-GraffiTE recognises these by where the hit lands on the consensus: a variant whose single SVA
+GraffiTE recognizes these by where the hit lands on the consensus: a variant whose single SVA
 fragment sits entirely inside the VNTR region of its subfamily is a VNTR-only polymorphism.
 
 ## VNTR coordinates by subfamily
@@ -73,16 +73,16 @@ still counted in `n_hits` and still contributes to `total_repeat_span`.
 repeat_ids=SVA_F(VNTR_only);matching_classes=Simple_repeat
 ```
 
-That relabelling is what the downstream filters see:
+The downstream filters read the relabeled fields:
 
 - The **trusted subset** admits a `Simple_repeat` record without testing its `ULTRA_TR_span`,
   so a VNTR expansion (which is all tandem repeat) is not excluded on that ground.
-  <span class="src">`module/main.nf:14`</span>
+  <span class="src">`module/main.nf:17`</span>
 - The **`--human` filter** admits `Simple_repeat` records whose `repeat_ids` match
   `--human_sva_ids` (default `^SVA_[DEF]`), without requiring a polyA tail, so VNTR
   polymorphisms of the young subfamilies reach `pangenome.human.vcf`, distinguishable from
   SVA insertions by the suffix.
-  <span class="src">`module/main.nf:540,542,548`, `nextflow.config:68`</span>
+  <span class="src">`module/main.nf:543,545,550`, `nextflow.config:72`</span>
 
 To count SVA insertion polymorphisms alone, exclude them:
 
@@ -90,16 +90,16 @@ To count SVA insertion polymorphisms alone, exclude them:
 bcftools view -e 'INFO/repeat_ids~"VNTR_only"' pangenome.human.vcf
 ```
 
-## The subsets truncate this set
+## VNTR records in the subsets
 
-!!! warning "`pangenome.trusted.vcf` and `pangenome.human.vcf` are not a VNTR catalogue"
+!!! warning "`pangenome.trusted.vcf` and `pangenome.human.vcf` are not a VNTR catalog"
     On the dataset below they keep one VNTR-only record in eleven, and the ones they keep are
     the longest. Read `pangenome.vcf` for VNTR work. A later release will size these records in
     VNTR units instead of bp.
 
 Both subsets require `|SVLEN|` of at least 250 bp (`--trusted_min_svlen`,
 `--human_min_svlen`). We set that threshold for insertions, where 250 bp is a truncated *Alu*.
-The VNTR unit is about 49 bp, so the same threshold asks a VNTR change to span five units, and
+The VNTR unit is about 49 bp, so the same threshold requires a VNTR change to span five units, and
 most changes are smaller.
 
 Measured on the 20-genome HPRC assembly set (PAV discovery, graph genotyping) used for the v1.1
@@ -127,9 +127,9 @@ With both filters off, 20% of reference SVA_A elements of at least 1 kb in CHM13
 variable VNTR across the 20 samples, and 54% of SVA_F elements do. With both filters on, 0% and
 10%.
 
-A floor remains below that, from the SV caller. The PAV path keeps `|SVLEN| > 50`
-<span class="src">`module/main.nf:167`</span>, and the sniffles and svim-asm paths ask for 100 bp
-<span class="src">`module/main.nf:110,128,184`</span>. On the run above the smallest annotated
+The SV callers set a floor below that. The PAV path keeps `|SVLEN| > 50`
+<span class="src">`module/main.nf:170`</span>, and the sniffles and svim-asm paths require 100 bp
+<span class="src">`module/main.nf:113,131,187`</span>. On the run above the smallest annotated
 VNTR record is 50 bp, about one unit, so single-unit changes sit at the edge of what the
 callset records.
 

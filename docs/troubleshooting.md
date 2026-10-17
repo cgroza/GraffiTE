@@ -8,7 +8,7 @@ description: >-
 # Troubleshooting
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `e687712`. The
+    Verified against `v1.1.0.0` at commit `bf51777`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
@@ -28,23 +28,23 @@ select the legacy parser for that checkout:
 export NXF_SYNTAX_PARSER=v1
 ```
 
-One more thing to know about Nextflow 26: its parser passes a command-line `--flag false` as the
-string `"false"`, which Groovy treats as true. Before commit `cfaff1e` that made `--genotype false`
-run genotyping anyway on Nextflow 26. Since that commit every boolean parameter is read through
-`isOn()` <span class="src">`module/main.nf:1-9`</span>, and both parsers agree.
+Nextflow 26's default parser passes a command-line `--flag false` as the string `"false"`, which
+Groovy treats as true. Before commit `cfaff1e`, GraffiTE ran genotyping on Nextflow 26 even with
+`--genotype false`. Since that commit GraffiTE reads every boolean parameter through `isOn()`
+<span class="src">`module/main.nf:1-9`</span>, which returns the same value under both parsers.
 
 ---
 
 ## Messages the workflow prints on purpose
 
-Each of these stops the run before any process starts. The fix is in the message.
+Each of these stops the run before any process starts.
 
 | Message | Cause | What to do |
 |---|---|---|
 | `No input given. Pass one of --longreads, --bams, --assemblies, --pav, --svs (discovery), --vcf (a merged SV VCF), --RM_dir (RepeatMasker output of an earlier run) or --graffite_vcf (a pangenome.vcf from an earlier run).` <span class="src">`main.nf:151`</span> | No entry flag on the command line. | Pick one on [Choosing your inputs](getting-started/choosing-your-inputs.md). |
-| `--vcf cannot be combined with --assemblies. Pass --vcf alone, or drop it and use --svs to add your own per-sample VCFs to the discovery merge.` <span class="src">`main.nf:46-49`</span> | `--vcf` replaces the discovery merge, so a discovery flag beside it has nothing to feed. | Use `--svs` if you want your VCF merged with caller output. |
-| `--graph_method precomputed builds nothing itself: it needs --graph (...) and either --vcfs (...) or --graph_alignments (...).` <span class="src">`main.nf:53-56`</span> | `precomputed` reuses a graph and alignments from an earlier run and was given neither. | Pass `--graph` plus `--vcfs` or `--graph_alignments`, or choose another method. |
-| `Unsupported --graph_method. --graph_method must be pangenie, giraffe, graphaligner or precomputed.` <span class="src">`main.nf:263`</span> | A misspelt method. | One of the four. |
+| `--vcf cannot be combined with --assemblies. Pass --vcf alone, or drop it and use --svs to add your own per-sample VCFs to the discovery merge.` <span class="src">`main.nf:46-49`</span> | `--vcf` replaces the discovery merge, so a discovery flag beside it has no merge to feed. | Use `--svs` if you want your VCF merged with caller output. |
+| `--graph_method precomputed builds nothing itself: it needs --graph (...) and either --vcfs (...) or --graph_alignments (...).` <span class="src">`main.nf:53-56`</span> | `precomputed` reuses a graph and alignments from an earlier run and was not given both. | Pass `--graph` plus `--vcfs` or `--graph_alignments`, or choose another method. |
+| `Unsupported --graph_method. --graph_method must be pangenie, giraffe, graphaligner or precomputed.` <span class="src">`main.nf:263`</span> | A misspelled method. | One of the four. |
 | `--graffite_vcf skips discovery, and HERV-K reconciliation needs the hervk_annotate outputs discovery produces. Pass --hervk_reconcile false, or start from --RM_dir instead of --graffite_vcf.` <span class="src">`main.nf:61-63`</span> | `--human` consolidation reads files that only the annotation stage writes. | Either option in the message. |
 | `With --human, hervk_reconcile consolidates HERV-K loci in vg call genotypes, and --graph_method pangenie does not produce them. Pass --hervk_reconcile false to genotype with PanGenie, or choose --graph_method giraffe, graphaligner or precomputed.` <span class="src">`main.nf:65-71`</span> | `--human` with PanGenie genotyping, the default `--graph_method`; the reconciler reads `vg call` genotypes only. | Either option in the message. |
 | `Error main.nf:12:1: Invalid include source: '<dir>/panmethyl/module.nf'` <span class="src">`main.nf:12`</span> | A clone made without `--recurse-submodules`; the `panmethyl` submodule directory is empty. This one is Nextflow's own message. | `git submodule update --init` in the clone. `nextflow pull` clones do not hit this. |
@@ -53,10 +53,11 @@ Each of these stops the run before any process starts. The fix is in the message
 
 ## A process cannot see an input file
 
-Every container runs with `--contain --bind $(pwd):/tmp` <span class="src">`nextflow.config:176`</span>.
+Every container runs with `--contain --bind $(pwd):/tmp` <span class="src">`nextflow.config:181`</span>.
 Files outside the launch directory are only visible if given by absolute path, and `/tmp`
-inside the container is the launch directory. Symptoms are `No such file` inside a process for
-a file that exists on the host, or a full filesystem when the launch directory is small. Use
+inside the container is the directory the task runs in. Symptoms are `No such file` inside a
+process for a file that exists on the host, or a full filesystem when the filesystem holding
+`work/` is small. Use
 absolute paths, and bind a larger scratch directory to `/tmp` if needed; see
 [Installation](getting-started/installation.md).
 
@@ -77,33 +78,33 @@ checks the chain.
 The annotation script stops on any variant ID longer than 50 characters
 <span class="src">`bin/repmask_vcf.sh:41-45`</span>, the length RepeatMasker keeps intact in
 its output. IDs written by the pipeline's own callers are short. The message appears with
-`--vcf`, whose IDs pass through unchanged <span class="src">`module/main.nf:202-204`</span>,
+`--vcf`, whose IDs pass through unchanged <span class="src">`module/main.nf:205-207`</span>,
 or with `--svs`: rename them before the run.
 
 ---
 
 ## RepeatMasker runs out of memory or time
 
-Stage B is split by contig <span class="src">`module/main.nf:492-505`</span> and each piece runs
+Stage 2 is split by contig <span class="src">`module/main.nf:495-508`</span> and each piece runs
 with `--repeatmasker_memory` (default `10G`) and `--repeatmasker_time` (default `12h`)
-<span class="src">`nextflow.config:147-149`</span>. Raise them, and raise
+<span class="src">`nextflow.config:151-153`</span>. Raise them, and raise
 `--repeatmasker_threads`, for large contigs or large libraries. Nextflow's message when a job is
 killed by the scheduler can be misleading; check the `.command.log` in the failing work
-directory. For maize-sized, repeat-rich genomes users have needed up to 120 h and 400 GB per
+directory. For maize-sized, repeat-rich genomes users have requested up to 120 h and 400 GB per
 process, with long-read alignment the most demanding step. See
 [Resources and scaling](guides/resources.md).
 
 ---
 
-## The run finishes but there is no `3_TSD_search/pangenome.vcf`
+## `3_TSD_search/pangenome.vcf` missing after a finished run
 
 Check whether `tsd_search` and `tsd_report` ran. When the container cannot write to `/tmp` the
-pipeline skips them and still reports success. `/tmp` inside the container is the launch
+pipeline can skip them and still report success. `/tmp` inside the container is the task's own
 directory by default; point `--container_tmp` at a writable directory instead, see
 [Paths and `/tmp`](getting-started/installation.md#paths-and-tmp).
 
-The other way to get here is a run where no chunk survived annotation. Stage B is split one piece
-per contig <span class="src">`module/main.nf:492-505`</span>, and a chunk whose records all fail
+The other way to get here is a run where no chunk survived annotation. Stage 2 is split one piece
+per contig <span class="src">`module/main.nf:495-508`</span>, and a chunk whose records all fail
 `--repeat_span_cutoff` drops out by design. If every chunk drops out, `concat_repeatmask` never
 runs and nothing says so. `2_Repeat_Filtering/*/genotypes_repmasked_filtered.vcf` holds the
 per-chunk record counts.
@@ -126,15 +127,15 @@ RepeatMasker annotates the LTR and the internal region of an LTR retrotransposon
 hits when they are separate entries in the library, and the pipeline reports what RepeatMasker
 finds. Such an element has `n_hits=2` or `3` and is left out of the subsets that require a
 single hit (`pangenome.trusted.vcf`, and `pangenome.human.vcf` apart from the HERV-K pair rule
-<span class="src">`module/main.nf:14,548,568-569`</span>). It stays in `pangenome.vcf` with all its
+<span class="src">`module/main.nf:17,550,570-571`</span>). It stays in `pangenome.vcf` with all its
 hits listed. A library entry that holds the full element as one consensus gives one hit.
 
 ---
 
-## The run is slow
+## Slow runs
 
-Two steps dominate: `samtools sort` after minimap2, whose parallelism is set by `--stSort_t`
-and `--stSort_m`, and RepeatMasker with a large library and many SVs. `-with-report report.html`
+Two steps dominate: `samtools sort` after minimap2, whose threads and memory are set by
+`--stSort_t` and `--stSort_m`, and RepeatMasker with a large library and many SVs. `-with-report report.html`
 shows where the time went and which requests to change.
 
 ---

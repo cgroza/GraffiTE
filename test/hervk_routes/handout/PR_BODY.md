@@ -20,7 +20,7 @@ that is degenerate, **masks the reference** at the locus.
 | `bin/hervk_reconcile.py` | `flag` groups records into loci; `consolidate` resolves genotypes by allele dosage across a locus's members |
 | `module/main.nf`, `main.nf`, `nextflow.config` | two new `--human`-only processes; **`pangenome.vcf` is never written to** and `vcf_ch` is not rebound, so the graph is unchanged |
 
-### Results on CaG
+### Results on the 20-genome cohort
 
 - **`null_prov` is non-zero for the first time** — `chr19-21797327`, `chr8-7226885`, `chr19-22370220`.
 - **12/12 concordant with Wildschutte 2016**, reached independently of it. The two `pro_pre` loci now line up under the label's plain reading; previously the comparison only agreed under an element-form reading it flagged as unverified.
@@ -30,7 +30,7 @@ that is degenerate, **masks the reference** at the locus.
 
 ### Validation
 
-- Cluster runs on the CaG cohort at three revisions, all passing 41 assertions; the last exercises stage E end to end.
+- Cluster runs on the 20-genome cohort at three revisions, all passing 41 assertions; the last exercises stage E end to end.
 - Fixture selftests: 15 architecture cases, 16 consolidation assertions on real records.
 - Consolidation validated against the graph calls at all five flagged loci; chr11 reproduces the assemblies exactly.
 - Discovery outputs reproduce the existing published allele frequencies at all 22 unchanged loci.
@@ -40,7 +40,7 @@ that is degenerate, **masks the reference** at the locus.
 - **Only the giraffe back end is validated** for consolidation. `graphaligner` and `pangenie` fail with an explicit error rather than an unchecked answer.
 - **Tandem duplications carry no genotypes** by design (`--hervk_mask_tandem`), so those loci contribute `AN=0`.
 - **`AN` can fall below `2N`** where a member was structurally uncalled. `AC` is unaffected — quote both, not `AF` alone.
-- **`DENOVO_LTR` is reserved but not implemented.** Every degenerate CaG record is resolved by the reference check; it is a gap only for cohorts without a good reference annotation.
+- **`DENOVO_LTR` is reserved but not implemented.** Every degenerate record in the 20-genome cohort is resolved by the reference check; it is a gap only for cohorts without a good reference annotation.
 - **Sex-aware ploidy and PAR are untouched.** The reconciler parses whatever ploidy it is given and never imposes one; non-autosomal loci are flagged `PLOIDY_UNVERIFIED`.
 - **`k` is an alignment property**, varies between haplotypes and callers, and nothing should key on its value.
 

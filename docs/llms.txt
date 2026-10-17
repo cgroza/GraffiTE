@@ -1,6 +1,6 @@
 # GraffiTE
 
-> GraffiTE is a Nextflow pipeline that finds transposable element insertion polymorphisms in genome assemblies and long reads, annotates them with RepeatMasker and ULTRA, and genotypes them in read sets through a pangenome graph. This site documents v1.1 (branch v1.1dev); the 2024 Nature Communications paper describes v1.0.
+> GraffiTE is a Nextflow pipeline that finds transposable element insertion polymorphisms in genome assemblies and long reads, annotates them with RepeatMasker and ULTRA, and genotypes them in read sets through a pangenome graph. This site documents v1.1.0.0; the 2024 Nature Communications paper describes v1.0.
 
 ## Documentation
 
@@ -9,9 +9,9 @@
 - [Quickstart](https://cgroza.github.io/GraffiTE/getting-started/quickstart/): the bundled chromosome 22 test set, the command, and the files a run writes.
 - [Choosing your inputs](https://cgroza.github.io/GraffiTE/getting-started/choosing-your-inputs/): which entry flag matches which data, what each runs and skips, and which flags combine.
 - [v1.0 vs v1.1](https://cgroza.github.io/GraffiTE/getting-started/v1.0-vs-v1.1/): every flag, field and behaviour that changed since the paper, with the paper's nine modes in v1.1 syntax.
-- [Stage A: discovery](https://cgroza.github.io/GraffiTE/guides/discovery/): assemblies, PAV, long reads, BAMs and existing SV calls, and the truvari merge.
-- [Stage B: repeat annotation](https://cgroza.github.io/GraffiTE/guides/annotation/): RepeatMasker, ULTRA, the repeat-span filter, TSDs, polyA and the trusted subset.
-- [Stage C: genotyping](https://cgroza.github.io/GraffiTE/guides/genotyping/): PanGenie, Giraffe, GraphAligner and precomputed graphs, read presets and the merged VCF.
+- [Stage 1: SV search](https://cgroza.github.io/GraffiTE/guides/discovery/): assemblies, PAV, long reads, BAMs and existing SV calls, and the truvari merge.
+- [Stage 2: TE annotation](https://cgroza.github.io/GraffiTE/guides/annotation/): RepeatMasker, ULTRA, the repeat-span filter, TSDs, polyA and the trusted subset.
+- [Stage 3.1: genotyping](https://cgroza.github.io/GraffiTE/guides/genotyping/): PanGenie, Giraffe, GraphAligner and precomputed graphs, read presets and the merged VCF.
 - [Human mobile element insertions](https://cgroza.github.io/GraffiTE/guides/human-mei/): the --human filter, its whitelists and gates, and the HERV-K classifier and consolidation.
 - [Resuming and skipping work](https://cgroza.github.io/GraffiTE/guides/skipping-work/): -resume and the flags that enter the pipeline from an earlier run's outputs.
 - [Resources and scaling](https://cgroza.github.io/GraffiTE/guides/resources/): profiles, --cores, per-process CPU, memory and time parameters, and large genomes.

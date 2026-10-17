@@ -1,20 +1,20 @@
 ---
-title: Methylation
+title: "Stage 3.2: epigenetic mapping"
 description: >-
   Lifting base-modification calls from long-read BAMs onto the pangenome graph with the
   panmethyl submodule, and reading methylation levels per allele in the genotyped VCF.
 ---
 
-# Methylation
+# Stage 3.2: epigenetic mapping
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `e687712`. The
+    Verified against `v1.1.0.0` at commit `bf51777`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
 !!! warning "Documented from the wiring, not from a run"
     This page describes what `main.nf` and the panmethyl module do when `--epigenomes` is set.
-    No methylation run was executed while writing it. Process behaviour is read from
+    It was written without a methylation run. Process behavior was read from
     `panmethyl/module/main.nf` at submodule commit `f0aa2c0`.
 
 With `--epigenomes`, GraffiTE reads the base-modification tags (`MM`/`ML`) of the BAMs it is
@@ -30,13 +30,13 @@ methylation levels in the genotyped VCF. The processes come from
 | Requirement | Why | Source |
 |---|---|---|
 | `--graph_method giraffe`, `graphaligner` or `precomputed` | the methylation branch sits inside the vg genotyping block; PanGenie has no graph alignments to lift onto | <span class="src">`main.nf:206,234`</span> |
-| `--epigenomes` | switches the branch on | <span class="src">`nextflow.config:29`</span> |
+| `--epigenomes` | switches the branch on | <span class="src">`nextflow.config:33`</span> |
 | BAM entries in `--genotype_with` | `bamtags_to_BED` reads the modifications from BAM tags, and `annotate_VCF` runs only for samples that have a mods CSV; a FASTQ sample is aligned and genotyped, then dropped by the join, so its calls never reach `GraffiTE.merged.genotypes.vcf.gz` | <span class="src">`main.nf:244,251`</span> |
 | `MM`/`ML` tags in those BAMs | what `tagtobed` extracts | <span class="src">`panmethyl/module/main.nf:146`</span> |
 
 The reads of a BAM sample are also extracted to FASTQ and aligned to the graph as for any other
-sample ([Stage C](genotyping.md)). The alignment inside the BAM is not used; the graph alignment
-(`<sample>.gaf.gz`) is what the modifications are lifted through.
+sample ([Stage 3.1](genotyping.md)). The alignment inside the BAM is not used; `lift_epigenome`
+lifts the modifications through the graph alignment (`<sample>.gaf.gz`).
 
 ---
 
@@ -56,7 +56,7 @@ sample ([Stage C](genotyping.md)). The alignment inside the BAM is not used; the
 4. **`merge_CSV`** aggregates the per-read calls into per-node levels at the indexed motif
    positions, writing `out/levels/<sample>.csv.gz`
    <span class="src">`panmethyl/module/main.nf:168-187`</span>.
-5. **`annotate_VCF`** walks each allele's path (`INFO/AT`) in the sample's `vg call` VCF, sums
+5. **`annotate_VCF`** walks each allele's path (`INFO/AT`) in the sample's `vg call` VCF, averages
    the levels on the nodes of that path, and writes `out/annotation/<sample>.mods.vcf.gz` plus a
    long-format `<sample>.mods.tsv` with one row per allele
    <span class="src">`panmethyl/module/main.nf:1-15`, `panmethyl/module/resources/usr/bin/annotate_vcf.py:44-46`</span>.
@@ -68,9 +68,9 @@ merged genotypes carry the methylation FORMAT fields <span class="src">`main.nf:
 `merge_VCFs` writes a missing genotype for a sample whose VCF lacks a record, and a record left
 out for every sample does not reach `GraffiTE.merged.genotypes.vcf.gz`. Without `--epigenomes`
 that record stays, with no genotype in any column
-<span class="src">`main.nf:260`, `module/main.nf:892`</span>.
+<span class="src">`main.nf:260`, `module/main.nf:894`</span>.
 
-### The FORMAT fields
+### FORMAT fields
 
 Added by `annotate_vcf.py` <span class="src">`panmethyl/module/resources/usr/bin/annotate_vcf.py:44-46`</span>, one value per allele of the genotype:
 
@@ -80,8 +80,8 @@ Added by `annotate_vcf.py` <span class="src">`panmethyl/module/resources/usr/bin
 | `PML` | Float, `Number=.` | average modification level across the path |
 | `PMD` | Float, `Number=.` | average depth across the modified nucleotides |
 
-`PML` per allele is what lets a TE insertion's methylation be compared against the empty site,
-or one haplotype's copy against the other's.
+With `PML` per allele, you can compare a TE insertion's methylation against the empty site, or
+one haplotype's copy against the other's.
 
 ---
 
@@ -89,14 +89,14 @@ or one haplotype's copy against the other's.
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--epigenomes` | `false` | run the branch | <span class="src">`nextflow.config:29`</span> |
-| `--motif` | `"CG"` | motif indexed on the graph | <span class="src">`nextflow.config:166`</span> |
-| `--code` | `"C+m"` | modification code passed to `tagtobed` (`-T C -B C+m`) | <span class="src">`nextflow.config:165`, `panmethyl/module/main.nf:146`</span> |
+| `--epigenomes` | `false` | run the branch | <span class="src">`nextflow.config:33`</span> |
+| `--motif` | `"CG"` | motif indexed on the graph | <span class="src">`nextflow.config:170`</span> |
+| `--code` | `"C+m"` | modification code passed to `tagtobed` (`-T C -B C+m`) | <span class="src">`nextflow.config:169`, `panmethyl/module/main.nf:146`</span> |
 | `--lifted` | `false` | samplesheet (`sample,path`) of already-lifted `<sample>.csv.gz` files; skips steps 2 and 3 | <span class="src">`main.nf:239-242`</span> |
 | `--bed` | `false` | a BED of regions to project onto the graph and annotate with methylation | <span class="src">`main.nf:253-257`</span> |
 
 With `--bed`, three more processes run: `BED_to_graph` projects the regions with `vg annotate`,
-`annotate_BED` sums levels over each region per sample into `out/annotation/<sample>.bed`, and
+`annotate_BED` averages levels over each region per sample into `out/annotation/<sample>.bed`, and
 `merge_BED` joins the samples into `out/annotation/merged_epiannoation.bed` (the filename is
 spelled that way in the module) <span class="src">`panmethyl/module/main.nf:17-65`</span>.
 
@@ -120,7 +120,7 @@ All relative to `--out`, and beside GraffiTE's numbered directories:
 ## Resources
 
 The panmethyl processes have fixed allocations in `nextflow.config` rather than parameters
-<span class="src">`nextflow.config:299-338`</span>:
+<span class="src">`nextflow.config:304-343`</span>:
 
 | Process | CPUs | Memory | Time |
 |---|---|---|---|
@@ -139,6 +139,6 @@ Change them with a `-c` config file that overrides the `withName` blocks.
 - Under `--epigenomes`, every entry in `--genotype_with` must be a BAM or be listed in
   `--lifted`. A FASTQ entry is aligned and genotyped, then left out of the merged genotype
   VCF with no warning <span class="src">`main.nf:251,266`</span>.
-- panmethyl's own aligners (`align_giraffe`, `align_graphaligner`, `align_minigraph`) and its
-  `lift_nucleotides` process are not called by GraffiTE; the alignment comes from
+- GraffiTE does not call panmethyl's own aligners (`align_giraffe`, `align_graphaligner`,
+  `align_minigraph`) or its `lift_nucleotides` process; the alignment comes from
   `graph_align_reads`.

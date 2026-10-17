@@ -3,7 +3,7 @@
 Check a GraffiTE --human discovery run against the HERV-K v2 predictions.
 
 Every expectation here was derived from the raw RepeatMasker tables of the
-existing CaG run, so this is a genuine test: the architecture was measured
+existing run on the 20-genome cohort, so this is a genuine test: the architecture was measured
 first and the classifier is being asked to reproduce it. A failure means the
 new code disagrees with the RepeatMasker evidence, not that a number moved.
 
@@ -59,7 +59,7 @@ def check_locus_layer(path, label, failures, warnings):
     """Assertions that must hold in every consolidated VCF, whichever stage.
 
     A user filtering on HERVK_MEI has to get the same set of loci from either
-    file. The counts here are the CaG cohort: 31 HERV-K loci, 21 of them
+    file. The counts here are those of the 20-genome cohort: 31 HERV-K loci, 21 of them
     insertion polymorphisms.
     """
     by_locus, n_records, header_ids = read_consolidated(path)
@@ -83,7 +83,7 @@ def check_locus_layer(path, label, failures, warnings):
                       ('incomplete', 2)):
         if counts[key] != want:
             warnings.append(f'{label}: {key}={counts[key]}, expected {want} '
-                            'on the CaG cohort')
+                            'on the 20-genome cohort')
 
     # chr6 is the locus a single category cannot describe.
     m = by_locus.get('HERVK_chr6_78894316')

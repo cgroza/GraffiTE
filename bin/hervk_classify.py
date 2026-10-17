@@ -73,8 +73,8 @@ DEFAULTS = {
     # architecture table alone admits a candidate, whatever n_hits says.
     "hml2_frac_min": 0.80,
     # |SVLEN| may miss a whole number of unit periods by this much, or by
-    # cnv_period_frac of itself, whichever is larger. The four CaG records
-    # miss by 0, 1, 2 and 2 bp.
+    # cnv_period_frac of itself, whichever is larger. In the 20-genome cohort the four
+    # records miss by 0, 1, 2 and 2 bp.
     "cnv_period_tol": 50,
     "cnv_period_frac": 0.005,
     # Upper |SVLEN| bound for candidacy. The gate is matching_classes=LTR/ERVK
@@ -339,7 +339,7 @@ def resolve(arch, ref, svlen, lam, nu, cfg):
     # distinguishes them.
     #   ref = solo      -> solo becomes a provirus (the ERV dimorphism)
     #   ref = provirus  -> a second proviral unit in tandem, sharing an LTR
-    # Verified at all three CaG loci: the inserted length equals the reference
+    # Verified at all three loci of the 20-genome cohort: the inserted length equals the reference
     # element's span minus one LTR, exactly (chr6 8465 = 9425-960; chr12 4933
     # vs 4934; chr7 8504 = 9472-968). chr12 is decisive -- its reference
     # provirus is internally deleted, and the insertion duplicates that same

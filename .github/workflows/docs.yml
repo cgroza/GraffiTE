@@ -2,7 +2,7 @@ name: Documentation
 
 on:
   push:
-    branches: [main, v1.1dev]
+    branches: [main, dev, v1.1dev]   # drop v1.1dev once 1.1 is on main
     paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs.yml', 'main.nf', 'module/**', 'bin/**', 'nextflow.config', 'Dockerfile', 'GraffiTE.def']
   pull_request:
     paths: ['docs/**', 'mkdocs.yml', '.github/workflows/docs.yml', 'main.nf', 'module/**', 'bin/**', 'nextflow.config', 'Dockerfile', 'GraffiTE.def']
@@ -41,7 +41,7 @@ jobs:
         run: mkdocs build --strict
 
       # The built site, for previewing a branch that does not publish. Download
-      # it from the run's Artifacts panel and open index.html. v1.1dev relies on
+      # it from the run's Artifacts panel and open index.html. dev relies on
       # this: only main deploys to Pages.
       - uses: actions/upload-artifact@v4
         with:
@@ -99,7 +99,7 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
-    # Only main publishes. Every other branch, v1.1dev included, is previewed
+    # Only main publishes. Every other branch, dev included, is previewed
     # through the `site-*` artifact the build job uploads: the github-pages
     # environment is restricted to main, so a deploy from anywhere else fails
     # with "Branch ... is not allowed to deploy to github-pages due to

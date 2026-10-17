@@ -8,7 +8,7 @@ description: >-
 # Quickstart
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `e687712`. The
+    Verified against `v1.1.0.0` at commit `bf51777`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](v1.0-vs-v1.1.md).
 
@@ -17,7 +17,7 @@ chromosome 22, the matching reference, a Dfam library, and a short-read set to g
 
 ---
 
-## The test dataset
+## Test dataset
 
 ```bash
 tar xzf test/human_test_set.tar.gz
@@ -26,30 +26,28 @@ cd GraffiTE_testset
 
 | File | Role |
 |---|---|
-| `HG002.mat.cur.20211005_chr22.fasta.gz` | The maternal HG002 assembly, chromosome 22 only. Stage A input. |
+| `HG002.mat.cur.20211005_chr22.fasta.gz` | The maternal HG002 assembly, chromosome 22 only. Stage 1 input. |
 | `hs37d5.chr22.fa` | Reference, chromosome 22 of hs37d5. |
 | `human_DFAM3.6.fasta` | TE consensus library for RepeatMasker. |
-| `HG002.100k.set1.Illumina.fastq.gz` | 100 k Illumina reads from HG002. Stage C input. |
+| `HG002.100k.set1.Illumina.fastq.gz` | 100 k Illumina reads from HG002. Stage 3 input. |
 | `assemblies.csv` | `path,sample` samplesheet naming the assembly `HG002.mat`. |
 | `reads.csv` | `path,sample` samplesheet naming the read set `short_test1`. |
-| `out/` | Output of a run made before v1.1. See the warning below. |
+| `out/` | The output of the command below, made with GraffiTE 1.1.0.0, to compare with yours. |
 
 `reads.csv` has no `type` column. The workflow reads `row.type`, finds nothing, and falls to
 the `default` preset <span class="src">`main.nf:190`</span>; PanGenie, the default
 genotyper, does not use the preset.
 
-!!! warning "The bundled `out/` is not a comparison target"
-    That directory was produced by a pre-1.1 release. It contains `svim-asm_variants.vcf`,
-    `vcfs.txt` and the OneCode files under `repeatmasker_dir/`, none of which v1.1 writes, and
-    it has no `pangenome.trusted.vcf`, no presence-absence TSVs and no ULTRA or polyA fields.
-    Use it to see the shape of the older output, not to diff against your run.
+!!! note "Compare your run with the bundled `out/`"
+    `out/` holds the output of the command below, made with GraffiTE 1.1.0.0 on 2026-10-16.
+    Your `out_v1.1/` should hold the same records; the `##fileDate` header lines differ.
 
 ---
 
 ## Run it
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev \
+nextflow run cgroza/GraffiTE -r v1.1.0.0 \
   --assemblies assemblies.csv \
   --reference hs37d5.chr22.fa \
   --TE_library human_DFAM3.6.fasta \
@@ -58,12 +56,12 @@ nextflow run cgroza/GraffiTE -r v1.1dev \
 ```
 
 Pass the four data arguments as shown; the defaults for `--reference` and `--TE_library` are
-placeholder filenames that do not exist <span class="src">`nextflow.config:46-48`</span>.
-`--genotype_with` is the parameter name as declared <span class="src">`nextflow.config:39`</span>.
-The README on `main` writes it with a hyphen, and that form does nothing: Nextflow turns
+placeholder filenames that do not exist <span class="src">`nextflow.config:50-52`</span>.
+`--genotype_with` is the parameter name as declared <span class="src">`nextflow.config:43`</span>.
+The hyphenated form does nothing: Nextflow turns
 `--genotype-with` into a parameter named `genotypeWith`, and the pipeline reads the default
 `reads.csv` instead (checked with Nextflow 26.04.6). Add `-profile cluster` on SLURM, and
-`-with-singularity /abs/path/graffite_latest.sif` if you pulled the image by hand
+`-with-singularity /abs/path/graffite_1.1.0.0.sif` if you pulled the image by hand
 ([Installation](installation.md)).
 
 `--out out_v1.1` keeps the results apart from the bundled `out/`.
@@ -72,8 +70,9 @@ The README on `main` writes it with a hyphen, and that form does nothing: Nextfl
 
 ## What you should see
 
-This page was written from the code, not from a run, so it lists files and not record counts.
-When the run completes, `out_v1.1/` holds:
+When the run completes, `out_v1.1/` holds the files below. With GraffiTE 1.1.0.0,
+`1_SV_search/SVs.vcf` has 263 records, `pangenome.vcf` 221, `pangenome.trusted.vcf` 25 and
+`GraffiTE.merged.genotypes.vcf.gz` 218. The run took 152 seconds with `--cores 8`.
 
 ```
 out_v1.1/
@@ -103,17 +102,17 @@ out_v1.1/
     └── GraffiTE.merged.genotypes.presence-absence_trusted.tsv
 ```
 
-Each directory is one stage. `pangenome.vcf` is the annotated callset,
+`pangenome.vcf` is the annotated callset,
 `pangenome.trusted.vcf` its conservative subset, and `GraffiTE.merged.genotypes.vcf.gz` the
 genotypes of `short_test1`. That last file does not carry every `pangenome.vcf` allele: on the
 default `--graph_method pangenie`, `merge_vcfs.py` leaves out alleles that overlap another at the
 same site, all but two ALT alleles at one position, and alleles holding a base other than A, C, G
 or T. Those alleles get no genotype <span class="src">`bin/pangenie_graph_vcf.py:119-124`</span>.
 `pangenie_graph_variants.tsv` says which alleles reached the graph
-<span class="src">`module/main.nf:713`</span>, and `genotyping_record_audit.tsv` lists what became
-of each one <span class="src">`module/main.nf:907-927`</span>.
+<span class="src">`module/main.nf:715`</span>, and `genotyping_record_audit.tsv` lists what became
+of each one <span class="src">`module/main.nf:909-929`</span>.
 `GraffiTE.merged.genotypes.trusted.vcf.gz` is that conservative subset carried through to the
-genotypes, written whenever `--human` is off <span class="src">`module/main.nf:929-959`</span>.
+genotypes, written whenever `--human` is off <span class="src">`module/main.nf:931-961`</span>.
 The presence-absence TSVs say, per sample, whether the TE is present, whichever way the VCF
 record points. Every file is described on [Output files](../reference/outputs.md), and every
 INFO field on [VCF fields](../reference/vcf-fields.md).
@@ -126,6 +125,6 @@ file. It is safe to delete once you have what you need, and it is what `-resume`
 ## Next steps
 
 - [Choosing your inputs](choosing-your-inputs.md) maps your own data to the entry flags.
-- [Stage A: discovery](../guides/discovery.md) explains what happened to the assembly.
+- [Stage 1: SV search](../guides/discovery.md) explains what happened to the assembly.
 - [Resources and scaling](../guides/resources.md) covers whole genomes and clusters.
-- [Human MEIs](../guides/human-mei.md) is the `--human` filter you will want on human data.
+- [Human MEIs](../guides/human-mei.md) covers the `--human` filter for human data.

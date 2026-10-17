@@ -37,7 +37,7 @@ cp OBSERVED.tsv CALIBRATION.log ASSERTIONS.log MATRIX.log "$BUNDLE/" 2>/dev/null
 [[ -f "$WORKDIR/build/truth.tsv" ]] && cp "$WORKDIR/build/truth.tsv" "$BUNDLE/"
 [[ -f "$WORKDIR/build/MANIFEST.sha256" ]] && cp "$WORKDIR/build/MANIFEST.sha256" "$BUNDLE/"
 
-# What the tools actually were. container.md currently guesses at versions.
+# What the tools actually were, to set against the versions docs/reference/container.md lists.
 if [[ -n "${GRAFFITE_SIF:-}" && -f "${GRAFFITE_SIF}" ]]; then
   R=$(command -v apptainer || command -v singularity || true)
   if [[ -n "$R" ]]; then

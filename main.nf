@@ -6,7 +6,7 @@ params.graffite_version = graffiteVersion()
 
 def graffiteVersion() {
   def versionFile = file("${projectDir}/version.txt")
-  return versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : '1.1.0'
+  return versionFile.exists() && versionFile.text.trim() ? versionFile.text.trim() : '1.1.0.0'
 }
 
 include { index_graph; bamtags_to_BED; lift_epigenome; annotate_VCF; annotate_BED; merge_BED; BED_to_graph; merge_CSV } from './panmethyl/module/'
@@ -274,7 +274,7 @@ Bug/issues: https://github.com/cgroza/GraffiTE/issues
 
     // The trusted subset of the genotyped calls, the counterpart of
     // pangenome.trusted.vcf. Skipped under --human for the same reason the
-    // discovery one is: there the subset of interest is the pME one, and
+    // discovery one is: there the subset of interest is the human MEI one, and
     // hervk_reconcile writes GraffiTE.merged.genotypes.human.vcf.gz.
     if(!isOn(params.human)) {
       trusted_genotypes(merge_VCFs.out.typeref_outputs, vcf_ch)

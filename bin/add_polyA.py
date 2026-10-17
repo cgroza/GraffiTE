@@ -77,7 +77,7 @@ def detect_polyA(variant_seq, strand, tsd):
     the copy left on. Trimming exposes a tail that sits behind the copy, as in
     [element-AAAAAAAAAA-TSD]. But the search sometimes reports a run of the
     tail base as the TSD, and trimming that removes the tail itself. On the
-    CaG set, 17 Alu, L1 and SVA insertions with a tail at the expected end
+    20-genome cohort, 17 Alu, L1 and SVA insertions with a tail at the expected end
     would have lost their polyA call this way, and with it their place in the
     --human set (test/tsd/test_add_polyA.sh)."""
     seq = variant_seq.upper()

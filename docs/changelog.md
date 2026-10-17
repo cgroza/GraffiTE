@@ -1,23 +1,27 @@
 ---
 title: Changelog
-description: Release history of GraffiTE, from the first beta to the current v1.1 development branch.
+description: Release history of GraffiTE, from the first beta to v1.1.0.0.
 ---
 
 # Changelog
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `e687712`. The
+    Verified against `v1.1.0.0` at commit `bf51777`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
-Entries before v1.1 are the README's, kept with their original dates. Since beta 0.2.5 releases
-are identified by commit; give the commit you run when asking for help.
+Entries before v1.1 are the README's, kept with their original dates. From beta 0.2.5 to v1.1,
+releases were identified by commit. From v1.1.0.0, each release is a git tag, `vW.X.Y.Z`;
+give the version you run when asking for help.
 
 ---
 
-## v1.1 (development)
+## v1.1.0.0
 
-The `v1.1dev` branch. A code update and an image update are both needed to see every change.
+Versions now have four numbers, W.X.Y.Z;
+[CONTRIBUTING.md](https://github.com/cgroza/GraffiTE/blob/main/CONTRIBUTING.md) says what each
+one means. This release names its own image, `cgroza/graffite:1.1.0.0`, so a run of it pulls the
+image it needs.
 
 **Annotation**
 
@@ -31,9 +35,9 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 - polyA tail detection: `polyA=TRUE` or `FALSE` on single-hit records and `NA` where `n_hits`
   is above 1, after trimming an exact
   TSD copy from the variant end.
-- `--mammal` discontinued. L1 5′ inversion detection and SVA VNTR-only handling run on every
+- `--mammal` discontinued. L1 5' inversion detection and SVA VNTR-only handling run on every
   dataset.
-- L1 5′ inversions reported as `INFO/L1_5PINV` (the hit ID of the inverted fragment, or `None`)
+- L1 5' inversions reported as `INFO/L1_5PINV` (the hit ID of the inverted fragment, or `None`)
   in place of `mam_filter_1=5P_INV`.
 - SVA hits that fall inside the VNTR region are renamed with a `(VNTR_only)` suffix and
   reclassified from `Retroposon/SVA` to `Simple_repeat`; `mam_filter_2` removed.
@@ -50,14 +54,14 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 - `genotyping_record_audit.tsv`, one row per `pangenome.vcf` ALT allele, saying whether the graph
   genotyped it, whether the annotation reached it, and which stage dropped it.
 - The pangenie back end split PanGenie's records with `bcftools norm -f <ref> -m-`, and `-f` also
-  left-aligns. `pangenome.vcf` is left-aligned only when two or more caller VCFs went through the
+  left-aligns. `pangenome.vcf` was left-aligned only when two or more caller VCFs went through the
   truvari merge, so on `--vcf`, single-caller and `--graffite_vcf` runs an insertion inside a
   homopolymer came back at a shifted position and lost its whole annotation at the merge. `-N`
   keeps the position.
 
-**Repeat annotation robustness**
+**Contigs with nothing to mask**
 
-- A contig whose records are all non-indel no longer kills the run. `tsd_prep` and `tsd_search`
+- The run no longer stops on a contig whose records are all non-indel. `tsd_prep` and `tsd_search`
   dropped a `cp` of the RepeatMasker directory that nothing had read since v1.0, and
   `repmask_vcf.sh` now runs under `set -e` with an explicit path for a chunk with nothing to mask
   (issue #93).
@@ -67,12 +71,23 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 - `--container_tmp` binds a directory of your choice to `/tmp` inside the container, in place of
   editing `singularity.runOptions` in the cached copy of `nextflow.config` (which then breaks
   `nextflow pull` and `-latest`).
+- The image is pinned: every process but `pav_asm` runs `docker://cgroza/graffite:1.1.0.0`, built
+  from `Dockerfile`. Each release has its own tag, and `latest` follows the newest release.
+  `GraffiTE.def` is unmaintained.
+- `-profile cloud` runs on AWS Batch, with the `awsbatch` executor and Docker in place of
+  Singularity. Before, it named an executor, `aws`, that Nextflow does not have. `pav_asm`
+  cannot run there. Not tested.
+- `--pangenie_memory` defaults to `32G` (was unset), so Nextflow starts only as many PanGenie
+  tasks at once as the memory allows.
+- A quick install test ships in `test/quick_test.tar.gz`; see
+  [Installation](getting-started/installation.md#quick-install-test).
 
 **Subsets**
 
 - `pangenome.trusted.vcf` and matching `*.presence-absence*.tsv` tables next to
   `pangenome.vcf`; trusted records carry `FILTER=PASS`. Parameters `--trusted_min_svlen`
-  (250), `--trusted_max_ultra_span` (0.6), `--trusted_ignore_filter`.
+  (250), `--trusted_max_ultra_span` (0.6), `--trusted_ignore_filter`. The trusted subset has no
+  polyA requirement, and the `--human` subset has one.
 - `--human` rebuilt from `pangenome.vcf` by its own filter, output `pangenome.human.vcf` (was
   `pangenome.trusted.human.vcf`); `pangenome.trusted.vcf` is not written on `--human` runs. The
   filter keeps `AluY*`, `L1HS`, `SVA_D/E/F` and the HML-2 lineage, and admits the
@@ -82,7 +97,7 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 **Known limitation: the subsets truncate SVA VNTR polymorphisms**
 
 - `--trusted_min_svlen` and `--human_min_svlen` default to 250 bp, a threshold sized for
-  insertions. The SVA VNTR unit is about 49 bp, so the default asks a VNTR length change to
+  insertions. The SVA VNTR unit is about 49 bp, so the default requires a VNTR length change to
   span five units. On the 20-genome HPRC set it keeps 102 of 1,141 `SVA_*(VNTR_only)` records;
   the median change is 126 bp.
 - `--human_sva_ids` (`^SVA_[DEF]`) is matched against `repeat_ids`, which for a VNTR-only
@@ -90,7 +105,7 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   subfamily for 35% of records, so the default drops VNTR changes inside old SVAs and makes the
   subfamilies look more different than they are.
 - Neither filter touches `pangenome.vcf` or the merged genotyped VCF, so the full set is
-  available; see [SVA VNTR polymorphisms](background/sva-vntr.md#the-subsets-truncate-this-set).
+  available; see [SVA VNTR polymorphisms](background/sva-vntr.md#vntr-records-in-the-subsets).
 - A later release will size the VNTR-only records in VNTR units and stop `--human_sva_ids`
   from gating them.
 
@@ -105,7 +120,7 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 - Consolidated VCFs, one record per locus: `pangenome.human.consolidated.vcf` in discovery and
   `GraffiTE.merged.genotypes.human.vcf.gz` after genotyping, with reports; `--hervk_reconcile`,
   `--hervk_reconcile_vcf` to consolidate an existing genotyped VCF with `--genotype false`.
-- `hervk_candidates.vcf` publishes the full candidate set; `--hervk_max_svlen`,
+- `hervk_candidates.vcf` holds the full candidate set; `--hervk_max_svlen`,
   `--hervk_ref_flank`, `--hervk_locus_window`, `--hervk_ref_annotation`, `--hervk_strict`,
   `--hervk_config`.
 - `human_hervk_ids` accepts both `HERVK-int` and Dfam's bare `HERVK` for the internal region.
@@ -182,7 +197,7 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
   truvari merge. `truvari_merge` strips the upstream INFO fields and puts only `SVLEN` back, so
   `SVTYPE` had gone by the time `add_polyA.py` ran and it scanned an empty string. The `--human`
   filter selects Alu, L1 and SVA on `polyA="TRUE"`, so `pangenome.human.vcf` lost those records
-  (`module/main.nf:543-547`). `add_polyA.py` now takes the insertion polarity from
+  (`module/main.nf:546-550`). `add_polyA.py` now takes the insertion polarity from
   `len(ALT) - len(REF)` when `SVTYPE` is absent (`97a6d01`).
 - `--graph_method pangenie`, the default, produced no genotypes. PanGenie writes its output
   with no `##contig` lines, and the `bcftools norm -Oz` on the next line cannot BCF-encode a
@@ -224,13 +239,13 @@ The `v1.1dev` branch. A code update and an image update are both needed to see e
 
 ---
 
-## 01/01/25
+## 10/01/25
 
 Commit [1cbebbf](https://github.com/cgroza/GraffiTE/commit/1cbebbfc0f4ccc5436670d9aa8d2023a90f2eeef).
 
-- Removed `--nolow` from the RepeatMasker call. It could produce spurious hits on
-  low-complexity regions of some TE consensus sequences, mistaking tandem repeats for TEs. Do
-  not use `--nolow` with RepeatMasker outside debugging.
+- Removed `-nolow` from the RepeatMasker call. It could produce spurious hits on
+  low-complexity regions of some TE consensus sequences and annotate tandem repeats as TEs. Do
+  not use `-nolow` with RepeatMasker outside debugging.
 
 ## 11/07/24
 

@@ -27,9 +27,11 @@ handout is Tier 1 and Tier 2 of it.
 
 The goal is a test set that **goes red when anything the pipeline depends on
 moves** — the code, a parameter default, or the container. That is why
-`GRAFFITE_SIF` is left empty and the mutable `docker://cgroza/graffite:latest`
-tag is used on purpose. A pinned image would hide the class of change this
-exists to catch.
+`GRAFFITE_SIF` is left empty: the run uses the image `nextflow.config` names.
+From 1.1.0.0 that is a release tag (`docker://cgroza/graffite:1.1.0.0`), so a
+new image reaches the suite only through a commit that changes that tag, and
+the matrix on that commit is where the change shows. Before 1.1.0.0 the config
+named the mutable `latest` tag.
 
 Getting there means two different activities, and keeping them apart is the
 whole discipline:
@@ -230,7 +232,7 @@ failure. Report it either way.
 | scheduler kills the driver | `CPUS`/`MEM_GB` in `INPUTS.env` disagree with `submit_driver.sh`, so the local executor oversubscribed the allocation |
 | PanGenie runs but genotypes nothing | the most likely one. It counts k-mers, is written for gigabase genomes, and GraffiTE exposes no `k`. This is a test-set problem, not a pipeline problem: raise `SCALE`, then `SHORT_DEPTH`, rebuild and re-run the cell until it genotypes. Record what it took. |
 | `vg autoindex` refuses the VCF | contig order. The generator writes them in ASCII-lexicographic order for this reason; if you edited the contig list, that is why. |
-| `hervk_reconcile` refuses the back end | expected on anything but giraffe. It is a guard, not a bug. |
+| the launch stops with `... --graph_method pangenie does not produce them` | `--human` with PanGenie genotyping. `hervk_reconcile` reads `vg call` genotypes, which giraffe, graphaligner and precomputed produce (#124). A guard, not a bug. |
 
 ## What to report back
 
@@ -243,8 +245,8 @@ failure. Report it either way.
   Non-zero `not_in_graph` is expected; zero means the doctored records did not
   make it in
 - the `duallib` result, in the terms above
-- `VERSIONS.txt` — `docs/reference/container.md` currently *guesses* at the tool
-  versions and this is what replaces the guesses
+- `VERSIONS.txt`, to set against the versions `docs/reference/container.md` lists, which
+  were read out of the published image `sha256:47836cda`; a rebuilt image can move them
 - `published.txt` per cell; these become the outputs-documentation check
 - wall time and peak memory per stage from `nextflow_trace.txt`
 

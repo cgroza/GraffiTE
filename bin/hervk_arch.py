@@ -203,7 +203,7 @@ def reassign_sine_r(frags, cfg):
 
     SVA's SINE-R domain is HERV-K LTR derived, so RepeatMasker will sometimes
     win the terminal LTR of a provirus for SVA. Every SVA hit seen beside an
-    HML-2 element in the CaG set sits at SVA consensus >= ~900, and its length
+    HML-2 element in the 20-genome cohort sits at SVA consensus >= ~900, and its length
     completes the LTR exactly (chr12-58305931: 303 bp SVA + LTR5_Hs 304-968).
     """
     hml2 = [f for f in frags

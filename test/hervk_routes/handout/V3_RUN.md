@@ -11,7 +11,7 @@ after #95 landed. Five commits.
 v2 could describe null, solo and provirus. It could not describe an HML-2 locus
 that carries more than one proviral unit, and chr7:4,699,540-4,717,514
 (7p22.1a, HERV-K108) is one: CHM13 holds two proviruses in tandem sharing a
-central LTR, and across the 20 CaG samples one, two and three units all
+central LTR, and across the 20 samples of the cohort one, two and three units all
 segregate. v2 classified one of the three records at that locus, the one
 carrying the rarest allele, and then withheld its genotypes.
 
@@ -62,7 +62,7 @@ hervk_ref_state: re-cutting N window(s) at flank=24000 (element reached the wind
 ## Run it
 
 ```bash
-cd /xdisk/cgoubert/cgoubert/GraffiTE1.1/CaG
+cd <directory of the 20-genome cohort run>
 REVISION=feat/hervk-copy-number ./bootstrap.sh
 unset HERVK_REF_RM_OUT
 ./preflight.sh

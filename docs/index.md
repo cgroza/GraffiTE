@@ -11,92 +11,132 @@ description: >-
 <p class="gt-tagline">Pangenomic toolbox for the analysis of transposable element insertion polymorphisms.</p>
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `e687712`. The
+    Verified against `v1.1.0.0` at commit `bf51777`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](getting-started/v1.0-vs-v1.1.md).
 
 GraffiTE takes genome assemblies or long-read datasets, finds the structural variants that are
 transposable element (TE) insertions or deletions relative to a reference genome, annotates what
-those elements are, and then genotypes each polymorphism in as many read sets as you like by
-building a pangenome graph in which every TE is a bubble.
+those elements are, and then genotypes the polymorphisms in as many read sets as you like by
+building a pangenome graph with the TEs as bubbles.
 
 It handles both **non-reference** insertions (a TE present in your sample, absent from the
 reference) and **reference** insertions (a TE present in the reference, absent from your sample).
-It can also be used purely as an annotator: hand it a VCF of structural variants and it will tell
-you which of them are TEs.
+You can also use it only as an annotator: hand it a VCF of structural variants and it reports
+which of them are TEs.
 
 ---
 
-## The three stages
+## GraffiTE workflow
 
-Every GraffiTE run is some subset of three stages in series, plus an optional fourth. Which stages
-run depends on which inputs you supply.
+A GraffiTE run covers some or all of three stages in series. The third has two parts: genotyping,
+and an optional epigenetic mapping. Which stages run depends on the inputs you supply.
 
 ```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 22, "rankSpacing": 24, "padding": 10}}}%%
 flowchart TB
-    subgraph A["Stage A · Discovery"]
+    subgraph S1["Stage 1 · SV search"]
         direction TB
-        A1["Assemblies<br/><code>--assemblies</code> · <code>--pav</code>"]
-        A2["Long reads<br/><code>--longreads</code> · <code>--bams</code>"]
-        A3["Existing SV calls<br/><code>--svs</code>"]
-        A1 --> AM["Merge<br/><small>truvari collapse</small>"]
-        A2 --> AM
-        A3 --> AM
+        i_lr(["Long reads<br/>FASTQ or BAM"])
+        i_asm(["Genome assemblies"])
+        i_svs(["Your SV calls,<br/>one VCF per sample"])
+        snf["Map reads,<br/>call SVs<br/><small>Sniffles2</small>"]
+        svim["Align assemblies,<br/>call SVs<br/><small>svim-asm</small>"]
+        pavc["Call SVs per<br/>haplotype pair<br/><small>PAV</small>"]
+        mrg["Merge and collapse<br/>redundant calls<br/><small>truvari collapse</small>"]
+        i_lr -->|"<code>--longreads</code><br/><code>--bams</code>"| snf
+        i_asm -->|"<code>--assemblies</code>"| svim
+        i_asm -->|"<code>--pav</code>"| pavc
+        i_svs -->|"<code>--svs</code>"| mrg
+        snf --> mrg
+        svim --> mrg
+        pavc --> mrg
     end
-
-    subgraph B["Stage B · Annotation"]
+    subgraph S2["Stage 2 · TE annotation"]
         direction TB
-        B1["RepeatMasker + ULTRA<br/><small>what repeat is it?</small>"]
-        B2["Repeat-span filter<br/><small>is it mostly repeat?</small>"]
-        B3["TSD + polyA<br/><small>does it look like a real MEI?</small>"]
-        B1 --> B2 --> B3
+        i_vcf(["One merged<br/>SV VCF"])
+        rmk["Annotate each SV<br/><small>RepeatMasker, ULTRA</small>"]
+        filt["Keep SVs mostly<br/>covered by repeats"]
+        hall["Look for hallmarks<br/>of transposition<br/><small>TSD, polyA tail</small>"]
+        f_sub[/"pangenome.trusted.vcf, or<br/>pangenome.human.vcf with <code>--human</code>"/]
+        i_vcf -.->|"<code>--vcf</code> skips Stage 1"| rmk
+        rmk --> filt --> hall --> f_sub
     end
-
-    subgraph C["Stage C · Genotyping"]
+    subgraph S3["Stage 3 · Graph mapping"]
         direction TB
-        C1["Build pangenome graph"]
-        C2["Compare reads to graph<br/><small>k-mers or alignment</small>"]
-        C3["Call genotypes"]
-        C1 --> C2 --> C3
+        bld["Build a variation graph<br/><small>each TE polymorphism<br/>is a bubble</small>"]
+        i_rd(["Reads to genotype"])
+        subgraph S31["3.1 · Genotyping"]
+            gt["Genotype each sample<br/><small>vg giraffe or GraphAligner,<br/>then vg call; or PanGenie</small>"]
+            gm["Merge the samples<br/>into one VCF"]
+            hk["Consolidate HERV-K<br/>loci <small><code>--human</code></small>"]
+            gt --> gm -.-> hk
+        end
+        subgraph S32["3.2 · Epigenetic mapping"]
+            lift["Lift methylation<br/>onto the graph<br/><small>panmethyl</small>"]
+        end
+        bld --> gt
+        i_rd -->|"<code>--genotype_with</code>"| gt
+        gt -.->|"alignments"| lift
+        lift -.-> gm
     end
+    out[/"GraffiTE.merged.genotypes.vcf.gz"/]
+    S1 -->|"SVs.vcf"| S2
+    S2 -->|"pangenome.vcf"| S3
+    S3 --> out
 
-    V["Merged SV VCF<br/><code>--vcf</code>"]
-
-    AM --> B1
-    V --> B1
-    B3 --> C1
-
-    A ~~~ B ~~~ C
+    classDef inp fill:#8888881a,stroke:#888888;
+    classDef file fill:none,stroke:#888888;
+    classDef s1 fill:#f5851f2e,stroke:#f5851f;
+    classDef s2 fill:#f2523f2e,stroke:#f2523f;
+    classDef s3 fill:#3d63c92e,stroke:#3d63c9;
+    classDef s32 fill:#2fb3b32e,stroke:#2fb3b3;
+    classDef opt stroke-dasharray:4 3;
+    class i_lr,i_asm,i_svs,i_vcf,i_rd inp;
+    class out,f_sub file;
+    class snf,svim,pavc,mrg s1;
+    class rmk,filt,hall s2;
+    class bld,gt,gm,hk s3;
+    class lift s32;
+    class hk,lift opt;
+    style S1 fill:#f5851f0d,stroke:#f5851f;
+    style S2 fill:#f2523f0d,stroke:#f2523f;
+    style S3 fill:#3d63c908,stroke:#3d63c9;
+    style S31 fill:#3d63c90d,stroke:#3d63c9;
+    style S32 fill:#2fb3b30d,stroke:#2fb3b3,stroke-dasharray:4 3;
 ```
 
-**Stage A, discovery.** Each assembly or read set is aligned to the reference, structural
-variants are called, and only insertions and deletions are kept. Multiple callers and multiple
-input types can be mixed in one run; everything is merged into a single non-redundant SV set.
+<p class="gt-legend">Rounded: your input. Slanted: a file GraffiTE writes. Dashed: optional, or a shortcut.
+Every stage also reads the reference genome (<code>--reference</code>), and Stage 2 reads a TE
+library in RepeatMasker format (<code>--TE_library</code>).</p>
 
-**Stage B, annotation.** Every candidate SV allele is scanned against your TE library with
-RepeatMasker and against itself with ULTRA (tandem repeats). Variants that are not mostly repeat
-are discarded. Survivors are annotated with their repeat identity, target site duplications and
-polyA tails.
+**Stage 1, SV search.** GraffiTE aligns each assembly or read set to the reference, calls
+structural variants, and keeps only insertions and deletions. You can mix callers and input types
+in one run; GraffiTE merges everything into a single non-redundant SV set.
 
-**Stage C, genotyping.** The annotated polymorphisms are induced into a pangenome graph as
-bubbles, and each sample is genotyped at every polymorphism. The default back end,
+**Stage 2, TE annotation.** RepeatMasker scans every candidate SV allele against your TE library,
+and ULTRA scans it for tandem repeats. GraffiTE discards variants that are not mostly repeat and
+annotates the rest with their repeat identity, target site duplications and polyA tails.
+
+**Stage 3.1, genotyping.** GraffiTE builds a pangenome graph with the annotated polymorphisms as
+bubbles and genotypes each sample at those in the graph. The default back end,
 `--graph_method pangenie`, counts k-mers against a PanGenie index and never aligns; `giraffe`
 and `graphaligner` map the reads onto the graph and call genotypes with `vg call`.
 
-**Methylation, optional.** With `--epigenomes`, on the `giraffe`, `graphaligner` and
-`precomputed` graph methods (every method but `pangenie`), the base modifications carried by the
-genotyping BAMs are lifted onto the graph and summarised per polymorphism. This step lives in the
-`panmethyl` submodule. See [Methylation](guides/methylation.md).
+**Stage 3.2, epigenetic mapping, optional.** With `--epigenomes`, on the `giraffe`,
+`graphaligner` and `precomputed` graph methods (every method but `pangenie`), the `panmethyl`
+submodule lifts the base modifications carried by the genotyping BAMs onto the graph and
+summarizes them per polymorphism. See [Epigenetic mapping](guides/methylation.md).
 
-Stage C is optional (`--genotype false`). Stages A and B can each be skipped by supplying their
+Stage 3 is optional (`--genotype false`). Stages 1 and 2 can each be skipped by supplying their
 outputs directly; see [Resuming and skipping work](guides/skipping-work.md).
 
 ---
 
 ## Reference and non-reference insertions
 
-GraffiTE reports variants **relative to the reference genome**, so an ALT allele and the presence
-of the TE do not always agree. Read the direction off the allele lengths: ALT longer than REF is a
+GraffiTE reports variants **relative to the reference genome**. Read the direction off the
+allele lengths: ALT longer than REF is a
 non-reference insertion, REF longer than ALT is a reference insertion. `SVLEN` is positive for the
 first and negative for the second. Do not use `SVTYPE` for this. On any run with two or more
 caller VCFs, `truvari_merge` strips every upstream INFO field before the collapse and adds back
@@ -109,16 +149,16 @@ only `SVLEN`, so `pangenome.vcf` has no `SVTYPE`. It survives only on the single
 ALT longer than REF means the element is <em>absent</em> from the reference and
 <em>present</em> in the sample. REF longer than ALT means the element is <em>present</em> in
 the reference and <em>absent</em> from the sample. The <code>SVTYPE</code> values shown appear
-only on the single-input paths. In both cases the element itself is what GraffiTE annotated.
+only on the single-input paths. In both cases GraffiTE annotates the element itself.
 </figcaption>
 </figure>
 
-So **an ALT allele does not mean "TE present"**. For a reference insertion the relationship is
+**An ALT allele does not mean "TE present"**. For a reference insertion the relationship is
 inverted. `vcf_to_pa_tsv.py` writes the presence-absence TSVs and does that conversion for you:
 a `1` always means the TE is in that sample, whichever way the record points. It reads the
 direction from `INFO/SVTYPE` where there is one and from the allele lengths where there is not,
-which is what a run with two or more caller VCFs produces. `NA` is left only where neither says,
-on a symbolic ALT or when REF and ALT are the same length. See
+which is what a run with two or more caller VCFs produces. It writes `NA` where neither gives a
+direction: on a symbolic or multi-allelic ALT, or when REF and ALT are the same length. See
 [Output files](reference/outputs.md).
 
 ---
@@ -129,19 +169,19 @@ Where the codebase uses a term loosely, this table states the meaning that appli
 
 | Term | Meaning |
 |---|---|
-| **pME** | Polymorphic mobile element. A mobile element insertion that is present in some haplotypes and absent in others. |
+| **MEI** | Mobile element insertion; on these pages, one that is present in some haplotypes and absent from others. The v1.0 README calls them pMEs, polymorphic mobile elements. We use MEI, the more common term. |
 | **Non-reference insertion** | TE present in the sample, absent from the reference. ALT longer than REF, `SVLEN` positive. |
 | **Reference insertion** | TE present in the reference, absent from the sample. REF longer than ALT, `SVLEN` negative. |
 | **Hit** | One RepeatMasker match after fragment grouping, a single element. Counted by the `n_hits` INFO field. |
 | **Fragment** | One raw line of RepeatMasker output. Several fragments may be grouped into one hit. Counted by `fragmts`. |
 | **Repeat span** | The fraction of a variant's sequence covered by the non-redundant union of RepeatMasker TE hits and ULTRA tandem repeats. The `total_repeat_span` INFO field; the main quality filter. |
-| **Trusted subset** | A conservative subset of `pangenome.vcf`: single-hit, long enough, not dominated by tandem repeat, and polyA-supported if it is a non-LTR element. Written to `pangenome.trusted.vcf`. |
-| **Human pME subset** | With `--human`, a subset filtered to recent human mobile element subfamilies (AluY, L1HS, SVA_D/E/F, HML-2). Written to `pangenome.human.vcf`, **instead of** the trusted subset. |
+| **Trusted subset** | A conservative subset of `pangenome.vcf`: single-hit, at least 250 bp, and not dominated by tandem repeat. Written to `pangenome.trusted.vcf`. |
+| **Human MEI subset** | With `--human`, a subset filtered to recent human mobile element subfamilies (AluY, L1HS, SVA_D/E/F, HML-2). Written to `pangenome.human.vcf`, **instead of** the trusted subset. |
 | **TSD** | Target site duplication. A short direct repeat flanking a genuine mobile element insertion, created by the integration mechanism. |
 | **Locus** (HERV-K) | With `--human`, the set of records that describe the same HML-2 element. Two records share a locus when they touch the same reference HML-2 element, or when their footprints lie within `--hervk_locus_window` (`1200` bp) of each other. Named by the `HERVK_LOCUS` INFO field. |
 | **Consolidated VCF** | With `--human`, a VCF in which each HERV-K locus is one record with per-allele states (`pangenome.human.consolidated.vcf`, and `GraffiTE.merged.genotypes.human.vcf.gz` after genotyping). |
 | **Precomputed** | The `--graph_method precomputed` mode: no graph is built and no reads are mapped; the run reuses a `--graph` directory with `--vcfs` or `--graph_alignments` from an earlier run. |
-| **Stage A / B / C** | Discovery / annotation / genotyping, as above. |
+| **Stage 1 / 2 / 3** | SV search / TE annotation / graph mapping (3.1 genotyping, 3.2 epigenetic mapping), as above. |
 
 ---
 
@@ -173,7 +213,7 @@ Where the codebase uses a term loosely, this table states the meaning that appli
 
     The `--human` filter and the HERV-K classifier.
 
-- :material-flask-outline: **[Methylation](guides/methylation.md)**
+- :material-flask-outline: **[Epigenetic mapping](guides/methylation.md)**
 
     Lift base modifications from the genotyping BAMs onto the graph with `--epigenomes`.
 

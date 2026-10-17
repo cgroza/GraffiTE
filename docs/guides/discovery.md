@@ -1,58 +1,58 @@
 ---
-title: Stage A: discovery
+title: "Stage 1: SV search"
 description: >-
   How GraffiTE finds candidate structural variants from assemblies, long reads,
   PAV, or SV calls you already have, and how they are merged.
 ---
 
-# Stage A: discovery
+# Stage 1: SV search
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `e687712`. The
+    Verified against `v1.1.0.0` at commit `bf51777`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
-Stage A turns your input data into **one non-redundant set of insertion and deletion calls relative
+Stage 1 turns your input data into **one non-redundant set of insertion and deletion calls relative
 to the reference genome**. Everything downstream operates on that set.
 
-Four backends can produce those calls, plus two ways to supply calls you already have. They are
-**additive**: pass several and all of their output is merged in a single run.
+Four backends can produce those calls, plus two ways to supply calls you already have. All but
+`--vcf` are **additive**: pass several and GraffiTE merges their output in one run.
 
 ---
 
 ## Which entry point do you want?
 
 ```mermaid
-flowchart TD
-    Q0{"What do you have?"}
-
-    Q0 -->|Genome assemblies| Q1{"Phased,<br/>multi-haplotype?"}
-    Q0 -->|Long reads, unaligned| LR["<code>--longreads</code><br/><small>minimap2 → Sniffles2</small>"]
-    Q0 -->|Long reads, already aligned| BM["<code>--bams</code><br/><small>Sniffles2 only</small>"]
-    Q0 -->|SV calls you made yourself| Q2{"One VCF or<br/>one per sample?"}
-
-    Q1 -->|"No, one contig set per sample"| SA["<code>--assemblies</code><br/><small>minimap2 → svim-asm</small>"]
-    Q1 -->|"Yes, PAV's caller"| PV["<code>--pav</code><br/><small>PAV, own container</small>"]
-
-    Q2 -->|"Per sample, want them merged"| SV["<code>--svs</code><br/><small>straight to merge</small>"]
-    Q2 -->|"A single merged VCF"| VC["<code>--vcf</code><br/><small>skips Stage A entirely</small>"]
-
-    SA --> M["<b>truvari merge</b><br/><small>SVs.vcf</small>"]
+%%{init: {"flowchart": {"nodeSpacing": 14, "rankSpacing": 26, "padding": 8}}}%%
+flowchart LR
+    Q0("What do you<br/>start from?")
+    Q0 -->|"Genome<br/>assemblies"| Q1("Call them<br/>with PAV?")
+    Q1 -->|"No"| SA["<code>--assemblies</code><br/><small>minimap2, svim-asm</small>"]
+    Q1 -->|"Yes"| PV["<code>--pav</code><br/><small>PAV, own container</small>"]
+    Q0 -->|"Unaligned<br/>long reads"| LR["<code>--longreads</code><br/><small>minimap2, Sniffles2</small>"]
+    Q0 -->|"Aligned<br/>long reads"| BM["<code>--bams</code><br/><small>Sniffles2 only</small>"]
+    Q0 -->|"Your own<br/>SV calls"| Q2("One VCF per sample,<br/>or one merged VCF?")
+    Q2 -->|"Per sample"| SV["<code>--svs</code><br/><small>straight to the merge</small>"]
+    Q2 -->|"Merged"| VC["<code>--vcf</code><br/><small>skips Stage 1</small>"]
+    SA --> M["truvari merge<br/><small>SVs.vcf</small>"]
     PV --> M
     LR --> M
     BM --> M
     SV --> M
-    M --> B["Stage B · annotation"]
+    M --> B["Stage 2 ·<br/>TE annotation"]
     VC --> B
 
-    classDef entry fill:#7a1fa2,stroke:#7a1fa2,color:#fff;
-    classDef merge fill:#f2523f,stroke:#f2523f,color:#fff;
-    class SA,PV,LR,BM,SV,VC entry;
-    class M merge;
+    classDef q fill:#8888881a,stroke:#888888;
+    classDef s1 fill:#f5851f2e,stroke:#f5851f;
+    classDef s2 fill:#f2523f2e,stroke:#f2523f;
+    classDef s3 fill:#3d63c92e,stroke:#3d63c9;
+    class Q0,Q1,Q2 q;
+    class SA,PV,LR,BM,SV,M s1;
+    class VC,B s2;
 ```
 
 !!! warning "`--vcf` is not additive"
-    Every other entry point above can be combined freely. `--vcf` cannot: it bypasses Stage A, so
+    Every other entry point above can be combined freely. `--vcf` cannot: it bypasses Stage 1, so
     the workflow refuses it beside any discovery flag before anything runs
     <span class="src">`main.nf:46-49`</span>:
 
@@ -72,7 +72,7 @@ does not read, are in [Samplesheets](../reference/samplesheets.md).
 
 The most common entry point, and the one the pipeline was designed around.
 
-**Samplesheet** (`sample,path`; column order is irrelevant, the header is what matters):
+**Samplesheet** (`sample,path`; columns are matched by header, in any order):
 
 ```csv title="assemblies.csv"
 path,sample
@@ -85,20 +85,20 @@ and its own sample name.
 
 **What runs:**
 
-1. *(optional)* `break_scaffold`: if `--break_scaffolds` is set, scaffolds are split into contigs
-   at runs of at least `--break_scaffolds_min_gap` `N` (10 by default) with `breakgaps.py`; a
-   shorter run stays inside its contig. Use this when your input is scaffolded rather than a contig
-   assembly. <span class="src">`module/main.nf:25-38`</span>
+1. *(optional)* `break_scaffold`: if `--break_scaffolds` is set, `breakgaps.py` splits scaffolds
+   into contigs at runs of at least `--break_scaffolds_min_gap` `N` (10 by default); a shorter run
+   stays inside its contig. Use this when your input is scaffolded rather than a contig
+   assembly. <span class="src">`module/main.nf:28-41`</span>
 2. `map_asm`: aligns to the reference with `minimap2 -a -x asm5 --cs -r2k -K 500M`, piped into
    `samtools sort -m 4G -@ 4`. The `-x` preset is `--asm_divergence`; raise it to `asm10` or
    `asm20` for assemblies more divergent from the reference. `-K` is `--mini_K`, and the sort
    memory and threads are `--stSort_m` and `--stSort_t`. With `--aligner winnowmap`, winnowmap is
    used instead, with a `meryl` k=19 repetitive-kmer set built at `distinct=0.9998`.
-   <span class="src">`module/main.nf:48-61`</span>
+   <span class="src">`module/main.nf:51-64`</span>
 3. `svim_asm`: `svim-asm haploid --min_sv_size 100 --types INS,DEL`. **Only insertions and
    deletions of at least 100 bp are kept**; inversions, duplications and translocations are
    discarded here and never reach the rest of the pipeline. Variant IDs are prefixed with the
-   sample name. <span class="src">`module/main.nf:184-185`</span>
+   sample name. <span class="src">`module/main.nf:187-188`</span>
 
 **Published:** `out/1_SV_search/svim-asm_individual_VCFs/<sample>.vcf.gz`
 
@@ -109,6 +109,11 @@ and its own sample name.
 An alternative assembly-based caller that takes all haplotypes of a sample together, rather than
 one haploid assembly at a time. Runs in its own container
 (`library://becklab/pav/pav:latest`), not the GraffiTE image.
+
+!!! note "PAV 2 is slow"
+    `pav_asm` runs PAV 2 through its `files/docker/run` script
+    <span class="src">`module/main.nf:169`</span>, and PAV 2 is slow. We are working to add
+    PAV 3, which is much faster, as soon as we can.
 
 !!! note "Positional samplesheet"
     Unlike every other GraffiTE samplesheet, the `--pav` sheet is parsed **positionally**. The
@@ -122,14 +127,14 @@ HG005,/data/HG005.hap1.fa.gz,/data/HG005.hap2.fa.gz
 ```
 
 **What runs:** `pav_asm` writes a `config.json` and a tab-delimited `assemblies.tsv` with
-`NAME`/`HAP1`…`HAPn` columns, invokes PAV's own run script, then filters to
-\|SVLEN\| > 50 bp. <span class="src">`module/main.nf:147-168`</span>
+`NAME`/`HAP1`...`HAPn` columns, invokes PAV's own run script, then filters to
+\|SVLEN\| > 50 bp. <span class="src">`module/main.nf:150-171`</span>
 
 **Published:** `out/1_SV_search/pav_individual_VCFs/sv_<sample>.vcf.gz`
 
-**Resources:** `pav_asm` defaults to **32 CPUs, 120 GB and 12 h**, considerably more than any
-other process. Only `--cores` overrides the CPU count; there is no `--pav_threads`.
-<span class="src">`nextflow.config:339-344`</span>
+**Resources:** `pav_asm` defaults to **32 CPUs, 120 GB and 12 h**, more CPUs and memory than
+any other process. Only `--cores` overrides the CPU count; there is no `--pav_threads`.
+<span class="src">`nextflow.config:344-349`</span>
 
 ---
 
@@ -145,7 +150,7 @@ path,sample,type
 
 The `type` column becomes the minimap2 preset as `map-<type>`, so `pb`, `ont` and `hifi` give
 `map-pb`, `map-ont` and `map-hifi`. The one special case is `lr:hq`, which is passed through
-unchanged rather than being prefixed.
+unchanged.
 
 !!! warning "`type` is not validated"
     Anything you write is pasted into the preset string. A typo like `hifi ` or `HiFi` produces
@@ -155,13 +160,13 @@ unchanged rather than being prefixed.
 **What runs:**
 
 1. `map_longreads`: `minimap2 -ax <preset>` into `samtools sort`. With `--aligner winnowmap`,
-   winnowmap with a `meryl` k=15 set. <span class="src">`module/main.nf:72-91`</span>
+   winnowmap with a `meryl` k=15 set. <span class="src">`module/main.nf:75-94`</span>
 2. `sniffles_sample_call`: per sample, `sniffles --minsvlen 100`, producing both a `.vcf` and a
-   `.snf`. <span class="src">`module/main.nf:104-110`</span>
-3. `sniffles_population_call`: the `.snf` files from **all** samples are called jointly, then
-   filtered to `SVTYPE` of `INS` or `DEL`, symbolic `<INS>`/`<DEL>` alleles are dropped, and the
-   result is split back into one VCF per sample with `bcftools +split`.
-   <span class="src">`module/main.nf:126-132`</span>
+   `.snf`. <span class="src">`module/main.nf:107-113`</span>
+3. `sniffles_population_call`: calls the `.snf` files from **all** samples jointly, filters to
+   `SVTYPE` of `INS` or `DEL`, drops symbolic `<INS>`/`<DEL>` alleles, and splits the result back
+   into one VCF per sample with `bcftools +split`.
+   <span class="src">`module/main.nf:129-135`</span>
 
 **Published:** `out/1_SV_search/sniffles2_individual_VCFs/*.vcf.gz`
 
@@ -194,33 +199,33 @@ path,sample
 
 No process runs: the VCFs go straight into the merge. GraffiTE does not re-filter them by size or
 type, so **filter to `INS`/`DEL` yourself** if your caller emits other SV classes; anything else
-will be carried into Stage B and annotated as if it were an indel.
+will be carried into Stage 2 and annotated as if it were an indel.
 
 ---
 
 ## From a single merged VCF: `--vcf`
 
-Skips Stage A. The VCF is passed through `truvari_merge` in pass-through mode (no collapsing, IDs
-preserved) and goes directly to annotation. This is the "use GraffiTE purely as a TE annotator"
+Skips Stage 1. The VCF goes through `truvari_merge` in pass-through mode (no collapsing, IDs
+preserved), then directly to annotation. This is the "use GraffiTE purely as a TE annotator"
 entry point.
 
 ```bash
-nextflow run cgroza/GraffiTE -r v1.1dev -latest \
+nextflow run cgroza/GraffiTE -r v1.1.0.0 -latest \
   --reference ref.fa --TE_library TEs.fa \
   --vcf my_svs.vcf.gz --genotype false
 ```
 
 ---
 
-## The merge
+## Merging calls with truvari
 
 Whatever the sources, all calls converge on `truvari_merge`, which behaves in one of three ways:
 
-| Situation | Behaviour | Source |
+| Situation | Behavior | Source |
 |---|---|---|
-| `--vcf` was used | Pass-through. Decompress only; original IDs preserved. | <span class="src">`module/main.nf:202-209`</span> |
-| Exactly one VCF reached the merge | No collapse. Original IDs preserved. | <span class="src">`module/main.nf:217-220`</span> |
-| Two or more VCFs | Full merge and collapse, described below. | <span class="src">`module/main.nf:223-277`</span> |
+| `--vcf` was used | Pass-through. Decompress only; original IDs preserved. | <span class="src">`module/main.nf:205-212`</span> |
+| Exactly one VCF reached the merge | No collapse. Original IDs preserved. | <span class="src">`module/main.nf:220-223`</span> |
+| Two or more VCFs | Full merge and collapse, described below. | <span class="src">`module/main.nf:226-280`</span> |
 
 For the multi-sample case:
 
@@ -233,36 +238,35 @@ For the multi-sample case:
    lifts the size ceiling and `-k common` keeps the most frequently observed representative.
    Truvari's reference-distance default is left in place.
 3. Shards are concatenated and sorted; missing genotypes are set to reference
-   (`bcftools +setGT -t . -n 0`); records are left-normalised against the reference; `SVLEN` is
-   recomputed as `strlen(ALT)-strlen(REF)`.
+   (`bcftools +setGT -t . -n 0`); `SVLEN` is recomputed as `strlen(ALT)-strlen(REF)`.
 4. `shorten_ids.py` appends an incrementing integer to truvari's long IDs.
 
 **Published:** `out/1_SV_search/SVs.vcf`
 
 !!! note "Genotypes at this stage are discovery genotypes"
     `SVs.vcf` carries per-sample genotypes derived from *which assembly or read set the call came
-    from*, with missing calls set to `0`. They are not the product of read-level genotyping. That
-    is Stage C. Absence in this VCF means "not called in that sample", which is not the same as
+    from*, with missing calls set to `0`. They are not the product of read-level genotyping, which
+    happens in Stage 3. Absence in this VCF means "not called in that sample", which is not the same as
     "confidently absent".
 
-!!! note "Merging borrows the svim-asm resource knobs"
+!!! note "Merge resources come from the svim-asm parameters"
     `truvari_merge` has no parameters of its own; it uses `--svim_asm_threads`, `--svim_asm_memory`
-    and `--svim_asm_time` <span class="src">`nextflow.config:208-212`</span>. Since the collapse
+    and `--svim_asm_time` <span class="src">`nextflow.config:213-217`</span>. Since the collapse
     is internally parallel, raising the svim-asm thread count speeds up the merge as well.
 
 ---
 
-## What Stage A does not do
+## What Stage 1 does not do
 
-- **No size ceiling.** The 100 bp floor comes from svim-asm and Sniffles2; on the PAV path the
-  floor is GraffiTE's own \|SVLEN\| > 50 filter. Nothing caps the top end.
-- **No repeat awareness.** Stage A is a plain SV caller pipeline. Nothing here knows what a TE is.
-  That is entirely [Stage B](annotation.md).
-- **INS and DEL only from svim-asm and Sniffles2.** `svim_asm` runs svim-asm with
-  `--types INS,DEL` <span class="src">`module/main.nf:184`</span>, and
+- Stage 1 sets no upper size limit. The 100 bp floor comes from svim-asm and Sniffles2; on the PAV
+  path the floor is GraffiTE's own \|SVLEN\| > 50 filter.
+- Stage 1 is a plain SV caller pipeline with no TE logic; all TE annotation happens in
+  [Stage 2](annotation.md).
+- Only the svim-asm and Sniffles2 paths restrict calls to INS and DEL. `svim_asm` runs svim-asm with
+  `--types INS,DEL` <span class="src">`module/main.nf:187`</span>, and
   `sniffles_population_call` keeps only `SVTYPE == INS` or `SVTYPE == DEL`
-  <span class="src">`module/main.nf:129`</span>. `pav_asm` filters on size alone,
-  \|SVLEN\| > 50 <span class="src">`module/main.nf:167`</span>, and VCFs given with `--svs`
+  <span class="src">`module/main.nf:132`</span>. `pav_asm` filters on size alone,
+  \|SVLEN\| > 50 <span class="src">`module/main.nf:170`</span>, and VCFs given with `--svs`
   go to the merge unfiltered, so records of any other SV type reaching the merge by those two
   routes end up in `SVs.vcf`.
 
@@ -270,6 +274,6 @@ For the multi-sample case:
 
 ## Next
 
-- [Stage B: repeat annotation](annotation.md), what happens to these calls next
+- [Stage 2: TE annotation](annotation.md), what happens to these calls next
 - [Samplesheet formats](../reference/samplesheets.md), the exact column schemas
 - [Parameters](../reference/parameters.md), every discovery parameter

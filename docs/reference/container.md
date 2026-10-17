@@ -8,16 +8,17 @@ description: >-
 # Container
 
 !!! info "Applies to GraffiTE v1.1"
-    Verified against `v1.1dev` at commit `e687712`. The
+    Verified against `v1.1.0.0` at commit `bf51777`. The
     [2024 paper](https://www.nature.com/articles/s41467-024-53294-2) describes v1.0, which
     differs in places; see [v1.0 vs v1.1](../getting-started/v1.0-vs-v1.1.md).
 
-## The image
+## Container image
 
-Every process runs in `docker://cgroza/graffite:latest`, pulled from Docker Hub, except
-`pav_asm`. All three profiles name the same image. `standard` and `cloud` differ
-only in the executor; `cluster` also sets `process.scratch = '$SLURM_TMPDIR'`.
-<span class="src">`nextflow.config:7-23`</span>
+Every process runs in `docker://cgroza/graffite:1.1.0.0`, pulled from Docker Hub, except
+`pav_asm`. Each release has its own tag, and `latest` follows the newest release. `standard` and
+`cluster` run the image with Apptainer; `cluster` also sets `process.scratch = '$SLURM_TMPDIR'`.
+`cloud` runs the same image with Docker on AWS Batch.
+<span class="src">`nextflow.config:7-29`</span>
 
 The image is `linux/amd64` only, 39 layers and about 2.8 GB compressed. Apptainer converts
 it to a SIF on first use. On an arm64 host it runs under emulation.
@@ -26,11 +27,11 @@ it to a SIF on first use. On an arm64 host it runs under emulation.
 |---|---|---|
 | `standard` | `local` | |
 | `cluster` | `slurm` | `process.scratch = '$SLURM_TMPDIR'` |
-| `cloud` | `aws` | `aws` is not a Nextflow executor name; the profile stops at launch. See [Resources and scaling](../guides/resources.md). |
+| `cloud` | `awsbatch` | Docker instead of Apptainer, `cgroza/graffite:1.1.0.0`. Needs your AWS settings in a config passed with `-c`; `pav_asm` cannot run. Not tested. See [Installation](../getting-started/installation.md#execution-profiles). |
 
 Singularity (or Apptainer) is enabled globally, with automatic mounts. The run options are built
 after the params block, so that `--container_tmp` can be read:
-<span class="src">`nextflow.config:3-4,176`</span>
+<span class="src">`nextflow.config:3-4,181`</span>
 
 ```
 --contain --bind <--container_tmp, or $(pwd)>:/tmp
@@ -38,7 +39,7 @@ after the params block, so that `--container_tmp` can be read:
 
 `--container_tmp` is unset by default, and the bind source is then `$(pwd)`. Pass
 `--container_tmp /scratch/you/tmp` and that directory is bound to `/tmp` instead.
-<span class="src">`nextflow.config:47`</span> See
+<span class="src">`nextflow.config:51`</span> See
 [`--container_tmp`](parameters.md#global-switches) and
 [Paths and `/tmp`](../getting-started/installation.md#paths-and-tmp).
 
@@ -53,11 +54,11 @@ task directory or at `--container_tmp`. Two consequences:
   point `--container_tmp` at storage that suits the traffic.
 
 To run it under Docker rather than Apptainer, turn `singularity.enabled` off in a config of
-your own and pass `-with-docker cgroza/graffite:latest`.
+your own and pass `-with-docker cgroza/graffite:1.1.0.0`.
 
 ## What is inside
 
-Built from [`Dockerfile`](https://github.com/cgroza/GraffiTE/blob/v1.1dev/Dockerfile) on top of
+Built from [`Dockerfile`](https://github.com/cgroza/GraffiTE/blob/v1.1.0.0/Dockerfile) on top of
 `dfam/tetools:latest`, which is Debian 12. The recipe pins few versions; most tools are whatever
 the upstream repository, or the base image, held on the day the image was built. We read the last
 column out of the published image, `sha256:47836cda` (pushed 2026-09-30), on 2026-10-03.
@@ -82,23 +83,24 @@ column out of the published image, `sha256:47836cda` (pushed 2026-09-30), on 202
 | tagtobed, lift_mods, lift_offsets, lift_edges | `bamtags_to_BED` runs `tagtobed` and `lift_epigenome` runs `lift_mods`; the other two belong to panmethyl processes GraffiTE does not import | built from the panmethyl repository with Rust 1.85.0 | `f0aa2c0`, the submodule's commit | not recorded; its `tagtobed` has the panmethyl#3 fix, first in `f0aa2c0` <span class="src">`Dockerfile:206-227`</span> |
 | bedtools, ncbi-blast+, pigz, gawk, bc, r-base-core | various | Debian 12 apt | no | bedtools 2.30.0, BLAST 2.12.0+, pigz 2.6, gawk 5.2.1, bc 1.07.1 <span class="src">`Dockerfile:6-31,175`</span> |
 
-## The PAV container
+## PAV container
 
 `pav_asm` runs in `library://becklab/pav/pav:latest`, PAV's own image, with 32 CPUs unless
-`--cores` says otherwise. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:339-344`, `module/main.nf:166`</span>
+`--cores` is set. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:344-349`, `module/main.nf:169`</span>
 
-## The recipe and the published image
+## Build recipe and published image
 
-The published image matches `Dockerfile`: Debian 12, vg `v1.77.0` and the `lift_*` binaries, none
-of which `GraffiTE.def` gives. `GraffiTE.def` is the Apptainer recipe that came before it, on
-Ubuntu 20.04. We have not built it; read from the recipe, an image built from it would differ from
+We build the published image from `Dockerfile`, and `GraffiTE.def` is unmaintained. The
+published image matches `Dockerfile`: Debian 12, vg `v1.77.0` and the `lift_*` binaries, none of
+which `GraffiTE.def` gives. `GraffiTE.def` is the Apptainer recipe that came before it, on
+Ubuntu 20.04. We have not built it; going by the recipe, an image built from it would differ from
 the published one:
 
 - vg `v1.70.0` rather than `v1.77.0`, and RepeatMasker set up from the TETools sources with the
-  Dfam 3.8 root partition <span class="src">`GraffiTE.def:27-164,284`</span>.
+  Dfam 3.8 root partition <span class="src">`GraffiTE.def:30-167,287`</span>.
 - No `lift_mods` and no polars. `lift_epigenome` runs `lift_mods`, and `merge_CSV` runs
   `merge_csvs.py`, which imports polars, so we expect every `--epigenomes` run to stop at one of
-  the two <span class="src">`GraffiTE.def:302-310`, `panmethyl/module/main.nf:163,185`</span>.
+  the two <span class="src">`GraffiTE.def:305-313`, `panmethyl/module/main.nf:163,185`</span>.
 
 Two more things follow from the unpinned installs:
 
@@ -108,7 +110,7 @@ Two more things follow from the unpinned installs:
   [VCF fields](vcf-fields.md).
 - `GraffiTE.def` pins numpy to `1.21` and runs `pip3 check`, so a dependency conflict fails its
   build. `Dockerfile` does neither, and the published image has numpy 2.4.6.
-  <span class="src">`GraffiTE.def:247-250`, `Dockerfile:146`</span>
+  <span class="src">`GraffiTE.def:250-253`, `Dockerfile:146`</span>
 
 To read the versions out of another image:
 

@@ -9,9 +9,12 @@ def isOn(v) {
 
 // The trusted subset: one RepeatMasker hit, long enough, and not mostly tandem
 // repeat. Shared so that pangenome.trusted.vcf and the trusted subset of the
-// genotyped calls cannot drift apart.
+// genotyped calls cannot drift apart. It has no polyA clause: with an
+// uncurated library, an element filed under the wrong class would lose its
+// record. The --human filter, which names its subfamilies, requires a polyA
+// tail of Alu, L1 and SVA records (human_single).
 def trustedFilter() {
-  return "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & (ULTRA_TR_span<${params.trusted_max_ultra_span} | matching_classes=\"Simple_repeat\") & ((matching_classes!~\"LINE\" & matching_classes!~\"SINE\" & matching_classes!~\"Retroposon\") | polyA=\"TRUE\")"
+  return "n_hits==1 & abs(SVLEN)>=${params.trusted_min_svlen} & (ULTRA_TR_span<${params.trusted_max_ultra_span} | matching_classes=\"Simple_repeat\")"
 }
 
 // FILTER is the caller's, so this expression only means anything on
@@ -336,7 +339,7 @@ process hervk_annotate {
   # hervk_classify.py's DEFAULTS (max_svlen=25000). hervk_candidate.ids is what
   # hervk_ref_state.py masks against, so a cap that only bites at classify time
   # drops the record from the calls *after* its reference window has already
-  # been masked. On the CaG set that is one 25.3 Mb window
+  # been masked. On the 20-genome cohort that is one 25.3 Mb window
   # (chr1-120594342-DEL-25264467, a zero-query-footprint ALNTRUNC artefact)
   # carrying 95.8% of the 26.4 Mb sent to RepeatMasker -- 1h39m of masking plus
   # 2h14m of ProcessRepeats, which timed out two 4h jobs. With the cap here the
@@ -358,7 +361,7 @@ process hervk_annotate {
         --out hervk_refstate.tsv
   fi
 
-  # Calls over the full candidate set, and a VCF of it. The --human pME
+  # Calls over the full candidate set, and a VCF of it. The --human MEI
   # filter is narrower than the HERV-K candidate list on purpose -- it defines
   # the paper's TE set and is not ours to widen -- so a locus can lose
   # members to it. chr7:4.70 Mb loses two of three, including the one carrying
@@ -452,7 +455,7 @@ process hervk_reconcile {
   # Genotyping does not preserve it. merge_VCFs transfers INFO from
   # pangenome.vcf, which is deliberately left un-annotated because it induces
   # the graph, so the genotyped records arrive without HERVK_LOCUS or the locus
-  # flags. In the CaG run that left 4 of 29 HERV-K records carrying a locus id
+  # flags. On the 20-genome cohort that left 4 of 29 HERV-K records carrying a locus id
   # and none that could be filtered on HERVK_MEI, which is the field a user
   # needs to tell an insertion polymorphism from structural variation in an
   # element every haplotype carries.
@@ -526,7 +529,7 @@ process concat_repeatmask {
   script:
   def trusted_filter_full = trustedFilterFull()
 
-  // --human pME filter, applied directly to pangenome.vcf (not to the trusted
+  // --human MEI filter, applied directly to pangenome.vcf (not to the trusted
   // subset, which is a species-agnostic heuristic for non-model organisms).
   // Each whitelist param is a comma-separated list of regexes because bcftools
   // regexes have no alternation; ~ is matched element-wise on these Number=.
@@ -543,15 +546,14 @@ process concat_repeatmask {
   // polyA (TPRT signature) is required for Alu/L1/SVA but not for HML-2 or for
   // SVA-VNTR expansions. Stated positively: bcftools "!~" does not negate
   // reliably on these Number=. fields (matching_classes!~"SINE" is true for
-  // every record, including SINE/Alu ones), so the trusted filter's
-  // "!~LINE & !~SINE & !~Retroposon" idiom must not be reused here.
+  // every record, including SINE/Alu ones).
   def human_single = "n_hits==1 & (matching_classes=\"LTR/ERVK\" | matching_classes=\"Simple_repeat\" | polyA=\"TRUE\")"
   // HML-2 proviral SVs where RepeatMasker splits a small SVA hit off the LTR
   // (SVA/LTR5_Hs homology). OR-ed at the n_hits level so it also bypasses the
   // polyA requirement that "Retroposon" in matching_classes would trigger.
   //
   // The hit count is a cap, not an equality, because RepeatMasker also splits
-  // the internal region of a degraded or rearranged provirus. On the CaG set
+  // the internal region of a degraded or rearranged provirus. On the 20-genome cohort
   // two of the three records at chr7:4,699,714 come back with three hits
   // (LTR5_Hs,SVA_A,HERVK-int and HERVK-int,SVA_A,HERVK-int) where the third is
   // that split, not a second element. At n_hits==2 the filter kept one record
@@ -606,7 +608,7 @@ process concat_repeatmask {
     vcf_to_pa_tsv.py pangenome.human.vcf -o pangenome.presence-absence_human.tsv
 
     {
-      echo "# GraffiTE --human pME filter"
+      echo "# GraffiTE --human MEI filter"
       echo
       echo "filter expression:"
       echo '  ${human_filter}'
@@ -617,7 +619,7 @@ process concat_repeatmask {
       echo "kept (count, matching_classes, repeat_ids):"
       bcftools query -f '%INFO/matching_classes\\t%INFO/repeat_ids\\n' pangenome.human.vcf | sort | uniq -c | sort -rn
       echo
-      echo "dropped pME-class records (count, matching_classes, repeat_ids):"
+      echo "dropped MEI-class records (count, matching_classes, repeat_ids):"
       bcftools query -e '${human_filter}' -f '%INFO/matching_classes\\t%INFO/repeat_ids\\n' pangenome.vcf | \\
         awk -F'\\t' '\$1 ~ /Alu|L1|SVA|Simple_repeat|ERVK/' | sort | uniq -c | sort -rn
     } > human_filter_summary.txt

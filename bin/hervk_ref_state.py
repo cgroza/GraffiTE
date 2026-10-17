@@ -9,7 +9,7 @@ across the termini proves it held a solo LTR. But at the degenerate breakpoint
 k = 0 the SV shows one whole LTR and nothing at the other end, which looks
 identical whether the reference held a solo LTR (insertion right at the LTR
 boundary) or nothing at all (a one-LTR-truncated provirus into an empty site).
-About half the CaG candidates land in that degenerate form, so this is the
+About half the candidates in the 20-genome cohort land in that degenerate form, so this is the
 workhorse of the classifier and not a rare fallback.
 
 The check is direct: cut a window out of the reference around the SV footprint,
