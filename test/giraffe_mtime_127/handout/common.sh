@@ -2,8 +2,13 @@
 # shellcheck shell=bash
 HANDOUT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [[ -f "$HANDOUT/INPUTS.env" ]] || { echo "INPUTS.env not found -- run ./bootstrap.sh first" >&2; exit 1; }
+# REPS_A and REPS_B set on the command line win over INPUTS.env, so a smoke
+# test (REPS_A=1 ./part_a.sh) needs no edit.
+_cli_reps_a="${REPS_A:-}"; _cli_reps_b="${REPS_B:-}"
 # shellcheck disable=SC1091
 source "$HANDOUT/INPUTS.env"
+[[ -n "$_cli_reps_a" ]] && REPS_A="$_cli_reps_a"
+[[ -n "$_cli_reps_b" ]] && REPS_B="$_cli_reps_b"
 
 : "${WORKDIR:?WORKDIR is empty in INPUTS.env}"
 : "${SYNTH_DIR:?SYNTH_DIR is empty in INPUTS.env}"
