@@ -841,7 +841,24 @@ process graph_align_reads {
 
   if(graph_method == "giraffe") {
     """
-    vg giraffe --parameter-preset ${preset} -o gam -t ${task.cpus} --index-basename index/index ${interleaved} -f ${sample_reads} > ${sample_name}.gam
+    # vg giraffe stops if index.dist is newer than the minimizer file it is
+    # about to load (#127). Any copy of index/ can leave it newer: the
+    # publishDir copy that --graph reuses does on Puma, and so can the copy out
+    # of scratch. When it is, map against a private copy of index.dist dated
+    # like the oldest minimizer or zipcode file. The task leaves the staged
+    # files alone: they belong to make_graph's work directory or to --graph.
+    base=index/index
+    oldest=\$(ls -1tr index/*.min index/*.zipcodes | head -n 1)
+    if [ index/index.dist -nt "\$oldest" ]; then
+      mkdir giraffe_index
+      for f in index/*; do ln -s "\$PWD/\$f" giraffe_index/; done
+      rm giraffe_index/index.dist
+      cp -L index/index.dist giraffe_index/index.dist
+      touch -r "\$oldest" giraffe_index/index.dist
+      base=giraffe_index/index
+    fi
+    vg giraffe --parameter-preset ${preset} -o gam -t ${task.cpus} --index-basename \$base ${interleaved} -f ${sample_reads} > ${sample_name}.gam
+    rm -rf giraffe_index
     vg pack -x index/index.giraffe.gbz -g ${sample_name}.gam -o ${sample_name}.pack -Q ${params.min_mapq}
     vg convert -G ${sample_name}.gam index/index.giraffe.gbz | subset_gaf.py | sort -k1b,1 | gzip > ${sample_name}.gaf.gz
     rm ${sample_name}.gam
