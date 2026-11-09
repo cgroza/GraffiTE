@@ -94,7 +94,7 @@ nextflow run cgroza/GraffiTE -r v1.1.0.0 -with-singularity /abs/path/graffite_1.
 `-with-singularity` overrides the image path in `nextflow.config`.
 
 The PAV entry point (`--pav`) uses a second image, `library://becklab/pav/pav:latest`
-<span class="src">`nextflow.config:345`</span>, pulled the same way.
+<span class="src">`nextflow.config:361`</span>, pulled the same way.
 [Container contents](../reference/container.md) lists what the image contains and which recipe it
 is built from.
 

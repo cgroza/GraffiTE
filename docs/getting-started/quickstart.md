@@ -110,9 +110,9 @@ same site, all but two ALT alleles at one position, and alleles holding a base o
 or T. Those alleles get no genotype <span class="src">`bin/pangenie_graph_vcf.py:119-124`</span>.
 `pangenie_graph_variants.tsv` says which alleles reached the graph
 <span class="src">`module/main.nf:715`</span>, and `genotyping_record_audit.tsv` lists what became
-of each one <span class="src">`module/main.nf:909-929`</span>.
+of each one <span class="src">`module/main.nf:926-946`</span>.
 `GraffiTE.merged.genotypes.trusted.vcf.gz` is that conservative subset carried through to the
-genotypes, written whenever `--human` is off <span class="src">`module/main.nf:931-961`</span>.
+genotypes, written whenever `--human` is off <span class="src">`module/main.nf:948-978`</span>.
 The presence-absence TSVs say, per sample, whether the TE is present, whichever way the VCF
 record points. Every file is described on [Output files](../reference/outputs.md), and every
 INFO field on [VCF fields](../reference/vcf-fields.md).

@@ -68,7 +68,7 @@ merged genotypes carry the methylation FORMAT fields <span class="src">`main.nf:
 `merge_VCFs` writes a missing genotype for a sample whose VCF lacks a record, and a record left
 out for every sample does not reach `GraffiTE.merged.genotypes.vcf.gz`. Without `--epigenomes`
 that record stays, with no genotype in any column
-<span class="src">`main.nf:260`, `module/main.nf:894`</span>.
+<span class="src">`main.nf:260`, `module/main.nf:911`</span>.
 
 ### FORMAT fields
 
@@ -120,7 +120,7 @@ All relative to `--out`, and beside GraffiTE's numbered directories:
 ## Resources
 
 The panmethyl processes have fixed allocations in `nextflow.config` rather than parameters
-<span class="src">`nextflow.config:304-343`</span>:
+<span class="src">`nextflow.config:320-359`</span>:
 
 | Process | CPUs | Memory | Time |
 |---|---|---|---|

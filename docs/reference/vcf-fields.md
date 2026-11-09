@@ -37,7 +37,7 @@ chr1  18081  chr1-18082-INS-315_10  t  tAGAAGGAATAAGACGGGCCGGGT...  .  PASS
 | `ID` column | The caller's ID, with `_<n>` appended after the truvari merge (`n` is the record's zero-based position in `SVs.vcf`, so the first record gets `_0`): `chr1-18082-INS-315_10` above is PAV's `chr1-18082-INS-315`, the eleventh record in the merge. svim-asm IDs are prefixed with the assembly name (`HG002_mat.svim_asm.INS.12`). With `--vcf` the IDs pass through unchanged. An ID of 50 characters or more stops Stage 2. | <span class="src">`module/main.nf:188,280`, `bin/shorten_ids.py:21`, `bin/repmask_vcf.sh:42-45`</span> |
 | `REF` and `ALT` columns | Sequence-resolved. For an insertion `REF` is the anchor base and `ALT` is that base plus the inserted sequence; for a deletion `REF` is the anchor base plus the deleted reference interval, re-read from the reference FASTA, and `ALT` is the anchor base. Symbolic `<INS>` and `<DEL>` records from Sniffles2 are dropped in Stage 1. | <span class="src">`bin/fix_vcf.py:33-44`, `module/main.nf:132`</span> |
 | `FILTER` column | Whatever the SV caller wrote. GraffiTE defines no FILTER of its own; see [Fields inherited from upstream callers](#fields-inherited-from-upstream-callers). | <span class="src">`module/main.nf:591`</span> |
-| Sample columns | In `pangenome.vcf`, one column per Stage 1 sample, holding the genotype its caller wrote (PAV writes phased diploid calls, as above). A genotype missing after the merge is set to `0`. In `GraffiTE.merged.genotypes.vcf.gz`, one column per read set from `--genotype_with`. | <span class="src">`module/main.nf:278`, `module/main.nf:894`</span> |
+| Sample columns | In `pangenome.vcf`, one column per Stage 1 sample, holding the genotype its caller wrote (PAV writes phased diploid calls, as above). A genotype missing after the merge is set to `0`. In `GraffiTE.merged.genotypes.vcf.gz`, one column per read set from `--genotype_with`. | <span class="src">`module/main.nf:278`, `module/main.nf:911`</span> |
 
 `concat_repeatmask`, `hervk_annotate` and `merge_VCFs` each write a `##GraffiTE_version=` line,
 holding the content of `version.txt` (`1.1.0`), immediately after `##fileformat`. Between them they
@@ -47,7 +47,7 @@ stamp `pangenome.vcf`, `pangenome.trusted.vcf`, `pangenome.human.vcf`,
 `hervk_candidates.vcf` carry the line too. The VCFs published earlier, the per-caller calls and
 `SVs.vcf` in `1_SV_search` and `genotypes_repmasked_filtered.vcf` in `2_Repeat_Filtering`, have
 none.
-<span class="src">`module/main.nf:409-411,630-633,903`</span>
+<span class="src">`module/main.nf:409-411,630-633,920`</span>
 
 !!! warning "An ALT allele does not mean the TE is present"
     For a `DEL` record the transposable element is in the reference and an `ALT` genotype means

@@ -86,7 +86,7 @@ column out of the published image, `sha256:47836cda` (pushed 2026-09-30), on 202
 ## PAV container
 
 `pav_asm` runs in `library://becklab/pav/pav:latest`, PAV's own image, with 32 CPUs unless
-`--cores` is set. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:344-349`, `module/main.nf:169`</span>
+`--cores` is set. GraffiTE's image does not contain PAV. <span class="src">`nextflow.config:360-365`, `module/main.nf:169`</span>
 
 ## Build recipe and published image
 

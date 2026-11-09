@@ -174,10 +174,10 @@ Stage 3's deliverables, present when `--genotype` is true (the default).
 |---|---|---|
 | `pangenie_graph_variants.tsv` | PanGenie method only. One row per ALT allele of `pangenome.vcf`: `record`, `CHROM`, `POS`, `pangenome_ID`, `allele`, `graph_ID`, `in_graph`, `note`. `graph_ID` is what PanGenie writes to `INFO/ID` of the genotyped VCFs; `in_graph=no` marks alleles `merge_vcfs.py` left out of the graph. | <span class="src">`module/main.nf:715,724,727-730`, `bin/pangenie_graph_vcf.py:25`</span> |
 | `<sample>_genotyping.vcf.gz`, `.tbi` | PanGenie method only. Each read set's genotypes, split to one ALT per record so they match `pangenome.vcf` one for one. | <span class="src">`module/main.nf:737,744,748,766-769`</span> |
-| `GraffiTE.merged.genotypes.vcf.gz` | All read sets merged into one VCF, one column per sample, with every INFO field of `pangenome.vcf` copied onto the matching record by position and alleles. The headline genotyped file. No `.tbi` is published for it; run `tabix -p vcf` on it before random access. | <span class="src">`module/main.nf:882-904`</span> |
-| `GraffiTE.merged.genotypes.trusted.vcf.gz`, `.tbi` | Not written under `--human`. The records of the merged genotypes whose `pangenome.vcf` counterpart passes the trusted-subset expression, so every record has one repeat class. Subset by ID, because the expression tests `FILTER` and `merge_VCFs` does not transfer it. | <span class="src">`module/main.nf:931-961`</span> |
-| `GraffiTE.merged.genotypes.presence-absence_trusted.tsv` | Not written under `--human`. Flat table of the file above, same schema as the discovery TSVs; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:931-961`</span> |
-| `genotyping_record_audit.tsv` | One row per ALT allele of `pangenome.vcf`, saying whether the graph genotyped it, whether the annotation reached it, and which stage dropped it (`lost_at`). Counts summarized in `#` lines at the top. | <span class="src">`module/main.nf:909-929`</span> |
+| `GraffiTE.merged.genotypes.vcf.gz` | All read sets merged into one VCF, one column per sample, with every INFO field of `pangenome.vcf` copied onto the matching record by position and alleles. The headline genotyped file. No `.tbi` is published for it; run `tabix -p vcf` on it before random access. | <span class="src">`module/main.nf:899-921`</span> |
+| `GraffiTE.merged.genotypes.trusted.vcf.gz`, `.tbi` | Not written under `--human`. The records of the merged genotypes whose `pangenome.vcf` counterpart passes the trusted-subset expression, so every record has one repeat class. Subset by ID, because the expression tests `FILTER` and `merge_VCFs` does not transfer it. | <span class="src">`module/main.nf:948-978`</span> |
+| `GraffiTE.merged.genotypes.presence-absence_trusted.tsv` | Not written under `--human`. Flat table of the file above, same schema as the discovery TSVs; see [Presence-absence TSVs](#presence-absence-tsvs). | <span class="src">`module/main.nf:948-978`</span> |
+| `genotyping_record_audit.tsv` | One row per ALT allele of `pangenome.vcf`, saying whether the graph genotyped it, whether the annotation reached it, and which stage dropped it (`lost_at`). Counts summarized in `#` lines at the top. | <span class="src">`module/main.nf:926-946`</span> |
 | `GraffiTE.merged.genotypes.human.vcf.gz`, `.tbi` | `--human` only. The human subset of the merged genotypes, HERV-K annotation carried over from `pangenome.human.vcf`, and each HERV-K locus consolidated onto one record. Graph genotypes at copy-number loci are withheld unless `--hervk_mask_graph_gt_at_cnv false`. | <span class="src">`module/main.nf:423,434-435,449-491`</span> |
 | `hervk_unconsolidated_records.vcf` | `--human` only. The member records each consolidated record was built from, as they were before consolidation. | <span class="src">`module/main.nf:436,487`</span> |
 | `hervk_reconciliation_report.md` | `--human` only. Per locus, alleles, `AC`, `AN` against `2N`, resolved and partial samples; then the loci with ploidy exceeded, with `AN` below `2N`, and skipped. | <span class="src">`bin/hervk_reconcile.py:1249`</span> |
@@ -206,8 +206,8 @@ read set, which `--graph_alignments` takes back.
 
 | File | Contents | Source |
 |---|---|---|
-| `<sample>.gaf.gz` | The alignments in GAF, reduced to the twelve standard columns plus the `cs` or `cg` tag, sorted by read name. | <span class="src">`module/main.nf:846,854`, `bin/subset_gaf.py`</span> |
-| `<sample>.pack` | The `vg pack` coverage over the graph, alignments below `--min_mapq` excluded, which `vg call` genotypes from. | <span class="src">`module/main.nf:845,853`</span> |
+| `<sample>.gaf.gz` | The alignments in GAF, reduced to the twelve standard columns plus the `cs` or `cg` tag, sorted by read name. | <span class="src">`module/main.nf:863,871`, `bin/subset_gaf.py`</span> |
+| `<sample>.pack` | The `vg pack` coverage over the graph, alignments below `--min_mapq` excluded, which `vg call` genotypes from. | <span class="src">`module/main.nf:862,870`</span> |
 
 ## Presence-absence TSVs
 

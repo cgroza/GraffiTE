@@ -134,7 +134,7 @@ HG005,/data/HG005.hap1.fa.gz,/data/HG005.hap2.fa.gz
 
 **Resources:** `pav_asm` defaults to **32 CPUs, 120 GB and 12 h**, more CPUs and memory than
 any other process. Only `--cores` overrides the CPU count; there is no `--pav_threads`.
-<span class="src">`nextflow.config:344-349`</span>
+<span class="src">`nextflow.config:360-365`</span>
 
 ---
 
@@ -251,7 +251,7 @@ For the multi-sample case:
 
 !!! note "Merge resources come from the svim-asm parameters"
     `truvari_merge` has no parameters of its own; it uses `--svim_asm_threads`, `--svim_asm_memory`
-    and `--svim_asm_time` <span class="src">`nextflow.config:213-217`</span>. Since the collapse
+    and `--svim_asm_time` <span class="src">`nextflow.config:224-228`</span>. Since the collapse
     is internally parallel, raising the svim-asm thread count speeds up the merge as well.
 
 ---

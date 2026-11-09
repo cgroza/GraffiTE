@@ -69,46 +69,46 @@ See also the
 `--cores N` sets `cpus` to `N` for every process whose CPU count is configurable, in place of all
 the `*_threads` parameters, and replaces `pav_asm`'s default of `32`. Set it for a quick run
 on one machine; set the individual parameters for a cluster, where a lone `bcftools` step does
-not need the 40 CPUs an alignment does. <span class="src">`nextflow.config:55,184-350`</span>
+not need the 40 CPUs an alignment does. <span class="src">`nextflow.config:55,195-366`</span>
 
 Processes with a hardcoded `cpus` ignore it: `break_scaffold`, `tsd_prep`, `tsd_search`,
 `tsd_report`, `merge_VCFs`, `trusted_genotypes`, `genotyping_audit`, `hervk_reconcile`, and the
 eight methylation processes. Each gets one CPU except `bamtags_to_BED`, which gets two.
-<span class="src">`nextflow.config:185-187,233-247,279-293,299-343`</span>
+<span class="src">`nextflow.config:196-198,244-258,295-309,315-359`</span>
 
 ## Per-process allocation
 
 The `withName` blocks in `nextflow.config` read the `*_threads`, `*_memory` and `*_time`
 parameters. Memory and time are Nextflow strings such as `"40G"` and `"12h"`. A memory default of
 `null` means the process declares no memory requirement at all; on a scheduler that needs one, set
-it. <span class="src">`nextflow.config:128-166,184-350`</span>
+it. <span class="src">`nextflow.config:128-166,195-366`</span>
 
 | Process | CPUs | Memory | Time | Source |
 |---|---|---|---|---|
-| `break_scaffold` | `1` | none | none | <span class="src">`nextflow.config:185-187`</span> |
-| `map_asm` | `--map_asm_threads` `1` | `--map_asm_memory` `null` | `--map_asm_time` `"3h"` | <span class="src">`nextflow.config:140-142,188-192`</span> |
-| `map_longreads` | `--map_longreads_threads` `1` | `--map_longreads_memory` `null` | `--map_longreads_time` `"12h"` | <span class="src">`nextflow.config:143-145,193-197`</span> |
-| `sniffles_sample_call`, `sniffles_population_call` | `--sniffles_threads` `1` | `--sniffles_memory` `null` | `--sniffles_time` `"12h"` | <span class="src">`nextflow.config:154-156,198-207`</span> |
-| `svim_asm`, `truvari_merge` | `--svim_asm_threads` `1` | `--svim_asm_memory` `null` | `--svim_asm_time` `"12h"` | <span class="src">`nextflow.config:159-161,208-217`</span> |
-| `pav_asm` | `32` | `--pav_memory` `"120G"` | `--pav_time` `"12h"` | <span class="src">`nextflow.config:157-158,344-349`</span> |
-| `split_repeatmask`, `repeatmask_VCF`, `concat_repeatmask` | `--repeatmasker_threads` `1` | `--repeatmasker_memory` `"10G"` | `--repeatmasker_time` `"12h"` | <span class="src">`nextflow.config:151-153,218-232`</span> |
-| `tsd_prep`, `tsd_search`, `tsd_report` | `1` | `--tsd_memory` `"10G"` | `--tsd_time` `"1h"` | <span class="src">`nextflow.config:162-163,233-247`</span> |
-| `hervk_annotate` | `--hervk_annotate_threads` `1` | `--hervk_annotate_memory` `"10G"` | `--hervk_annotate_time` `"12h"` | <span class="src">`nextflow.config:132-134,294-298`</span> |
-| `hervk_reconcile` | `1` | `--hervk_reconcile_memory` `"10G"` | `--hervk_reconcile_time` `"1h"` | <span class="src">`nextflow.config:135-136,299-303`</span> |
-| `pangenie_index`, `pangenie` | `--pangenie_threads` `1` | `--pangenie_memory` `"32G"` | `--pangenie_time` `"12h"` | <span class="src">`nextflow.config:148-150,248-257`</span> |
-| `make_graph` | `--make_graph_threads` `1` | `--make_graph_memory` `"40G"` | `--make_graph_time` `"6h"` | <span class="src">`nextflow.config:137-139,258-262`</span> |
-| `bam_to_fastq`, `graph_align_reads` | `--graph_align_threads` `1` | `--graph_align_memory` `null` | `--graph_align_time` `"12h"` | <span class="src">`nextflow.config:129-131,263-273`</span> |
-| `vg_call` | `--vg_call_threads` `1` | `--vg_call_memory` `null` | `--vg_call_time` `"2h"` | <span class="src">`nextflow.config:164-166,274-278`</span> |
-| `merge_VCFs` | `1` | `--merge_vcf_memory` `"10G"` | `--merge_vcf_time` `"1h"` | <span class="src">`nextflow.config:146-147,279-283`</span> |
-| `bamtags_to_BED` | `2` | `50 GB` | `6 h` | <span class="src">`nextflow.config:304-308`</span> |
-| `lift_epigenome`, `merge_CSV` | `1` | `60 GB` | `6 h` | <span class="src">`nextflow.config:309-318`</span> |
-| `index_graph`, `annotate_VCF`, `annotate_BED`, `BED_to_graph`, `merge_BED` | `1` | `40 GB` | `6 h` | <span class="src">`nextflow.config:319-343`</span> |
+| `break_scaffold` | `1` | none | none | <span class="src">`nextflow.config:196-198`</span> |
+| `map_asm` | `--map_asm_threads` `1` | `--map_asm_memory` `null` | `--map_asm_time` `"3h"` | <span class="src">`nextflow.config:140-142,199-203`</span> |
+| `map_longreads` | `--map_longreads_threads` `1` | `--map_longreads_memory` `null` | `--map_longreads_time` `"12h"` | <span class="src">`nextflow.config:143-145,204-208`</span> |
+| `sniffles_sample_call`, `sniffles_population_call` | `--sniffles_threads` `1` | `--sniffles_memory` `null` | `--sniffles_time` `"12h"` | <span class="src">`nextflow.config:154-156,209-218`</span> |
+| `svim_asm`, `truvari_merge` | `--svim_asm_threads` `1` | `--svim_asm_memory` `null` | `--svim_asm_time` `"12h"` | <span class="src">`nextflow.config:159-161,219-228`</span> |
+| `pav_asm` | `32` | `--pav_memory` `"120G"` | `--pav_time` `"12h"` | <span class="src">`nextflow.config:157-158,360-365`</span> |
+| `split_repeatmask`, `repeatmask_VCF`, `concat_repeatmask` | `--repeatmasker_threads` `1` | `--repeatmasker_memory` `"10G"` | `--repeatmasker_time` `"12h"` | <span class="src">`nextflow.config:151-153,229-243`</span> |
+| `tsd_prep`, `tsd_search`, `tsd_report` | `1` | `--tsd_memory` `"10G"` | `--tsd_time` `"1h"` | <span class="src">`nextflow.config:162-163,244-258`</span> |
+| `hervk_annotate` | `--hervk_annotate_threads` `1` | `--hervk_annotate_memory` `"10G"` | `--hervk_annotate_time` `"12h"` | <span class="src">`nextflow.config:132-134,310-314`</span> |
+| `hervk_reconcile` | `1` | `--hervk_reconcile_memory` `"10G"` | `--hervk_reconcile_time` `"1h"` | <span class="src">`nextflow.config:135-136,315-319`</span> |
+| `pangenie_index`, `pangenie` | `--pangenie_threads` `1` | `--pangenie_memory` `"32G"` | `--pangenie_time` `"12h"` | <span class="src">`nextflow.config:148-150,259-268`</span> |
+| `make_graph` | `--make_graph_threads` `1` | `--make_graph_memory` `"40G"` | `--make_graph_time` `"6h"` | <span class="src">`nextflow.config:137-139,269-278`</span> |
+| `bam_to_fastq`, `graph_align_reads` | `--graph_align_threads` `1` | `--graph_align_memory` `null` | `--graph_align_time` `"12h"` | <span class="src">`nextflow.config:129-131,279-289`</span> |
+| `vg_call` | `--vg_call_threads` `1` | `--vg_call_memory` `null` | `--vg_call_time` `"2h"` | <span class="src">`nextflow.config:164-166,290-294`</span> |
+| `merge_VCFs` | `1` | `--merge_vcf_memory` `"10G"` | `--merge_vcf_time` `"1h"` | <span class="src">`nextflow.config:146-147,295-299`</span> |
+| `bamtags_to_BED` | `2` | `50 GB` | `6 h` | <span class="src">`nextflow.config:320-324`</span> |
+| `lift_epigenome`, `merge_CSV` | `1` | `60 GB` | `6 h` | <span class="src">`nextflow.config:325-334`</span> |
+| `index_graph`, `annotate_VCF`, `annotate_BED`, `BED_to_graph`, `merge_BED` | `1` | `40 GB` | `6 h` | <span class="src">`nextflow.config:335-359`</span> |
 
 Three things the table does not show:
 
 - `graph_align_reads` has `errorStrategy = 'finish'`: when one sample's alignment fails, the
   samples already running finish and the run then stops, instead of being killed at once.
-  <span class="src">`nextflow.config:272`</span>
+  <span class="src">`nextflow.config:288`</span>
 - Every `*_threads` parameter defaults to `1`. A run with defaults aligns each assembly on one CPU.
   Raise `--map_asm_threads`, `--map_longreads_threads`, `--pangenie_threads` and
   `--graph_align_threads` first; those are the steps that scale with CPUs.

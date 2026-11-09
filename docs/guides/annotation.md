@@ -205,7 +205,7 @@ Stage 2 parallelizes twice.
   `repeatmask_VCF` runs on each, with the `repeatmasker_*` resource parameters. With variants on
   thousands of small scaffolds, that is thousands of tasks; `--cores` and
   `--repeatmasker_threads` set what each gets. RepeatMasker's own `-pa` is a quarter of that.
-  <span class="src">`module/main.nf:495-508`, `nextflow.config:228-232`</span>
+  <span class="src">`module/main.nf:495-508`, `nextflow.config:239-243`</span>
 - **By batch of variants for the TSD search.** Each contig's variant list is split into batches
   of `--tsd_batch_size` (default 100 variants) and `tsd_search` runs on each batch with the
   `tsd_*` parameters, so a contig with 5,000 variants is 50 tasks. `tsd_report` gathers the

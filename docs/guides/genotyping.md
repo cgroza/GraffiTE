@@ -53,7 +53,7 @@ parameter preset <span class="src">`main.nf:189-191`</span>:
 Two details follow from that table:
 
 - With the `default` preset, `vg giraffe` is given `-i`, so the FASTQ is read as
-  **interleaved paired-end** <span class="src">`module/main.nf:837-839,844`</span>. Supply
+  **interleaved paired-end** <span class="src">`module/main.nf:837-839,860`</span>. Supply
   short-read samples as a single interleaved file, not as two mate files.
 - PanGenie ignores the preset: it counts k-mers and never aligns
   <span class="src">`module/main.nf:748`</span>.
@@ -147,7 +147,7 @@ reference is passed as a value channel; as a queue channel it held one item, and
 for one sample and stopped <span class="src">`main.nf:202-205`</span>.
 
 **Resources:** `--pangenie_threads`, `--pangenie_memory`, `--pangenie_time` for both processes
-<span class="src">`nextflow.config:248-257`</span>. `--pangenie_memory` defaults to `32G`, so Nextflow
+<span class="src">`nextflow.config:259-268`</span>. `--pangenie_memory` defaults to `32G`, so Nextflow
 starts only as many PanGenie tasks at once as the memory allows. Each task peaked at about 23 GB
 on the synthetic test set and on the chr22 example.
 
@@ -172,11 +172,11 @@ The directory is published as `GraffiTE_graph/index/` and is what `--graph` take
 run. With `--graph`, `make_graph` does not run <span class="src">`main.nf:210-214`</span>.
 
 **Resources:** `--make_graph_threads`, `--make_graph_memory` (default `40G`), `--make_graph_time`
-(default `6h`) <span class="src">`nextflow.config:258-262`</span>.
+(default `6h`) <span class="src">`nextflow.config:269-278`</span>.
 
 ### `graph_align_reads`
 
-<span class="src">`module/main.nf:826-861`</span>, once per sample:
+<span class="src">`module/main.nf:826-878`</span>, once per sample:
 
 | method | aligner | then |
 |---|---|---|
@@ -191,14 +191,14 @@ string, then sorted by read name and gzipped. The GAM is deleted. Published as
 `--graph_alignments` takes on a later run.
 
 This process runs with `errorStrategy = 'finish'`: when a sample fails, the tasks already
-submitted or running finish before the run stops <span class="src">`nextflow.config:268-273`</span>.
+submitted or running finish before the run stops <span class="src">`nextflow.config:284-289`</span>.
 
 **Resources:** `--graph_align_threads`, `--graph_align_memory`, `--graph_align_time` (default
 `12h`); `bam_to_fastq` uses the same three.
 
 ### `vg_call`
 
-<span class="src">`module/main.nf:863-879`</span>, once per sample:
+<span class="src">`module/main.nf:880-896`</span>, once per sample:
 
 ```bash
 vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> -k <sample>.pack index/<graph> \
@@ -218,13 +218,13 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
 - `bcftools norm -m-` splits multi-allelic calls into one record per ALT.
 
 **Resources:** `--vg_call_threads`, `--vg_call_memory`, `--vg_call_time` (default `2h`)
-<span class="src">`nextflow.config:274-278`</span>.
+<span class="src">`nextflow.config:290-294`</span>.
 
 ---
 
 ## Merged genotypes
 
-`merge_VCFs` <span class="src">`module/main.nf:881-907`</span> takes every per-sample VCF and:
+`merge_VCFs` <span class="src">`module/main.nf:898-924`</span> takes every per-sample VCF and:
 
 1. `bcftools merge -m none` joins them into one multi-sample VCF without creating multi-allelic
    records.
@@ -235,7 +235,7 @@ vg call -a -A --threads N -R chrX:1,chrY:1 -m 2,4 -r index/index.pb -s <sample> 
    Allele comparison ignores case, which matters because `pangenome.vcf` carries soft-masked
    lowercase bases and the graph upper-cases them. A record that matches nothing keeps whatever
    the genotyper gave it and arrives with no annotation
-   <span class="src">`module/main.nf:902`</span>.
+   <span class="src">`module/main.nf:919`</span>.
 3. The `##GraffiTE_version` header line is added.
 
 Published as `4_Genotyping/GraffiTE.merged.genotypes.vcf.gz`. No `.tbi` is published for it: the
@@ -243,11 +243,11 @@ index written earlier in the script belongs to the pre-annotation file, which is
 `tabix -p vcf` on it yourself.
 
 **Resources:** `--merge_vcf_memory` (default `10G`), `--merge_vcf_time` (default `1h`)
-<span class="src">`nextflow.config:279-283`</span>.
+<span class="src">`nextflow.config:295-299`</span>.
 
 ## Trusted subset of the genotypes
 
-`trusted_genotypes` <span class="src">`module/main.nf:931-961`</span> writes the counterpart of
+`trusted_genotypes` <span class="src">`module/main.nf:948-978`</span> writes the counterpart of
 `pangenome.trusted.vcf` for the genotyped calls:
 
 - `4_Genotyping/GraffiTE.merged.genotypes.trusted.vcf.gz` and its `.tbi`

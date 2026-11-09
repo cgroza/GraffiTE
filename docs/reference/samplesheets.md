@@ -96,7 +96,7 @@ to a read preset and anything else, including an empty value, means short reads:
 | `ont` | `r10` | `vg giraffe --parameter-preset r10` |
 | anything else | `default` | `vg giraffe` with `-i`, interleaved paired-end short reads |
 
-<span class="src">`main.nf:189-191`, `module/main.nf:837-844`</span>
+<span class="src">`main.nf:189-191`, `module/main.nf:837-860`</span>
 
 `pangenie` and `graphaligner` ignore the preset. A `.bam` path is converted to FASTQ first by
 `bam_to_fastq`; with `--epigenomes`, GraffiTE also reads modification tags from it.
@@ -114,7 +114,7 @@ Columns `sample`, `path`. Per-sample `vg call` VCFs from an earlier run, bgzippe
 `.vcf.gz` suffix, because `merge_VCFs` collects every `*vcf.gz` it is given. `path` has to be a
 glob such as `HG002.vcf.gz*`: the code sorts the files it matches, and a plain path is taken apart
 into its directory components instead (checked with Nextflow 26.04.6). The glob also matches the
-`.tbi` index. <span class="src">`main.nf:218-220`, `module/main.nf:893`</span>
+`.tbi` index. <span class="src">`main.nf:218-220`, `module/main.nf:910`</span>
 
 ```csv title="vcfs.csv"
 sample,path

@@ -181,8 +181,8 @@ precomputed. <span class="src">`main.nf:65-71`</span>
 |---|---|---|---|
 | `--genotype` | `true` | Run Stage 3. Set `false` to stop after annotation. | <span class="src">`nextflow.config:37`, `main.nf:188`</span> |
 | `--graph_method` | `"pangenie"` | One of `pangenie`, `giraffe`, `graphaligner`, `precomputed`. See below. | <span class="src">`nextflow.config:38`, `main.nf:200-206,263`</span> |
-| `--min_mapq` | `0` | `vg pack -Q`, the lowest mapping quality a read needs to contribute coverage. Ignored by `pangenie`. | <span class="src">`nextflow.config:125`, `module/main.nf:845,853`</span> |
-| `--min_support` | `"2,4"` | `vg call -m`, minimum support to call an allele, as `ref,alt`. Ignored by `pangenie`. | <span class="src">`nextflow.config:126`, `module/main.nf:874`</span> |
+| `--min_mapq` | `0` | `vg pack -Q`, the lowest mapping quality a read needs to contribute coverage. Ignored by `pangenie`. | <span class="src">`nextflow.config:125`, `module/main.nf:862,870`</span> |
+| `--min_support` | `"2,4"` | `vg call -m`, minimum support to call an allele, as `ref,alt`. Ignored by `pangenie`. | <span class="src">`nextflow.config:126`, `module/main.nf:891`</span> |
 
 | `--graph_method` | Graph | Read mapping | Notes |
 |---|---|---|---|
@@ -191,7 +191,7 @@ precomputed. <span class="src">`main.nf:65-71`</span>
 | `graphaligner` | `vg construct` | `GraphAligner` | Long reads. |
 | `precomputed` | supplied with `--graph` | supplied with `--graph_alignments`, or skipped with `--vcfs` | Builds nothing. Without `--graph` and one of the two, the run stops at launch. |
 
-<span class="src">`main.nf:53-56,200-232`, `module/main.nf:788-801,842-860`</span>
+<span class="src">`main.nf:53-56,200-232`, `module/main.nf:788-801,842-877`</span>
 
 ### Reusing existing intermediates
 
@@ -233,7 +233,7 @@ See [Epigenetic mapping](../guides/methylation.md).
 
 | Parameter | Default | Effect | Source |
 |---|---|---|---|
-| `--cores` | `false` | An integer here overrides the `cpus` of every process that reads a `*_threads` parameter, and the `32` of `pav_asm`. The processes fixed at one CPU are unaffected. | <span class="src">`nextflow.config:55,184-350`</span> |
+| `--cores` | `false` | An integer here overrides the `cpus` of every process that reads a `*_threads` parameter, and the `32` of `pav_asm`. The processes fixed at one CPU are unaffected. | <span class="src">`nextflow.config:55,195-366`</span> |
 | `--out` | `"out"` | Root of the published output tree. | <span class="src">`nextflow.config:53`</span> |
 | `--container_tmp` | `false` | Directory bound to `/tmp` inside the container. When unset, the directory each task runs in: its directory under `work/`, or its scratch directory under `-profile cluster`. Set it when that filesystem is small, slow, or unwritable from the container. | <span class="src">`nextflow.config:51,181`</span> |
 
@@ -247,49 +247,49 @@ Memory and time values are Nextflow strings (`"10G"`, `"12h"`). Where one parame
 
 | Parameter | Default | Processes | Source |
 |---|---|---|---|
-| `--map_asm_threads` | `1` | `map_asm` | <span class="src">`nextflow.config:141,189`</span> |
-| `--map_asm_memory` | `null` | `map_asm` | <span class="src">`nextflow.config:140,190`</span> |
-| `--map_asm_time` | `"3h"` | `map_asm` | <span class="src">`nextflow.config:142,191`</span> |
-| `--map_longreads_threads` | `1` | `map_longreads` | <span class="src">`nextflow.config:144,194`</span> |
-| `--map_longreads_memory` | `null` | `map_longreads` | <span class="src">`nextflow.config:143,195`</span> |
-| `--map_longreads_time` | `"12h"` | `map_longreads` | <span class="src">`nextflow.config:145,196`</span> |
-| `--sniffles_threads` | `1` | `sniffles_sample_call`, `sniffles_population_call` | <span class="src">`nextflow.config:155,199,204`</span> |
-| `--sniffles_memory` | `null` | same | <span class="src">`nextflow.config:154,200,205`</span> |
-| `--sniffles_time` | `"12h"` | same | <span class="src">`nextflow.config:156,201,206`</span> |
-| `--svim_asm_threads` | `1` | `svim_asm`, `truvari_merge` | <span class="src">`nextflow.config:160,209,214`</span> |
-| `--svim_asm_memory` | `null` | same | <span class="src">`nextflow.config:159,210,215`</span> |
-| `--svim_asm_time` | `"12h"` | same | <span class="src">`nextflow.config:161,211,216`</span> |
-| `--pav_memory` | `"120G"` | `pav_asm` (its `cpus` is the literal `32` unless `--cores` is set) | <span class="src">`nextflow.config:157,346-347`</span> |
-| `--pav_time` | `"12h"` | `pav_asm` | <span class="src">`nextflow.config:158,348`</span> |
-| `--repeatmasker_threads` | `1` | `split_repeatmask`, `repeatmask_VCF`, `concat_repeatmask` | <span class="src">`nextflow.config:152,219,224,229`</span> |
-| `--repeatmasker_memory` | `"10G"` | same | <span class="src">`nextflow.config:151,220,225,230`</span> |
-| `--repeatmasker_time` | `"12h"` | same | <span class="src">`nextflow.config:153,221,226,231`</span> |
-| `--tsd_memory` | `"10G"` | `tsd_prep`, `tsd_search`, `tsd_report` (one CPU each) | <span class="src">`nextflow.config:162,235,240,245`</span> |
-| `--tsd_time` | `"1h"` | same | <span class="src">`nextflow.config:163,236,241,246`</span> |
-| `--hervk_annotate_threads` | `1` | `hervk_annotate` | <span class="src">`nextflow.config:133,295`</span> |
-| `--hervk_annotate_memory` | `"10G"` | `hervk_annotate` | <span class="src">`nextflow.config:132,296`</span> |
-| `--hervk_annotate_time` | `"12h"` | `hervk_annotate` | <span class="src">`nextflow.config:134,297`</span> |
-| `--hervk_reconcile_memory` | `"10G"` | `hervk_reconcile` (one CPU) | <span class="src">`nextflow.config:135,301`</span> |
-| `--hervk_reconcile_time` | `"1h"` | `hervk_reconcile` | <span class="src">`nextflow.config:136,302`</span> |
-| `--pangenie_threads` | `1` | `pangenie_index`, `pangenie` | <span class="src">`nextflow.config:149,249,254`</span> |
-| `--pangenie_memory` | `"32G"` | same | <span class="src">`nextflow.config:148,250,255`</span> |
-| `--pangenie_time` | `"12h"` | same | <span class="src">`nextflow.config:150,251,256`</span> |
-| `--make_graph_threads` | `1` | `make_graph` | <span class="src">`nextflow.config:138,259`</span> |
-| `--make_graph_memory` | `"40G"` | `make_graph` | <span class="src">`nextflow.config:137,260`</span> |
-| `--make_graph_time` | `"6h"` | `make_graph` | <span class="src">`nextflow.config:139,261`</span> |
-| `--graph_align_threads` | `1` | `bam_to_fastq`, `graph_align_reads` | <span class="src">`nextflow.config:130,264,269`</span> |
-| `--graph_align_memory` | `null` | same | <span class="src">`nextflow.config:129,265,270`</span> |
-| `--graph_align_time` | `"12h"` | same | <span class="src">`nextflow.config:131,266,271`</span> |
-| `--vg_call_threads` | `1` | `vg_call` | <span class="src">`nextflow.config:165,275`</span> |
-| `--vg_call_memory` | `null` | `vg_call` | <span class="src">`nextflow.config:164,276`</span> |
-| `--vg_call_time` | `"2h"` | `vg_call` | <span class="src">`nextflow.config:166,277`</span> |
-| `--merge_vcf_memory` | `"10G"` | `merge_VCFs`, `trusted_genotypes`, `genotyping_audit` (one CPU each) | <span class="src">`nextflow.config:146,281,286,291`</span> |
-| `--merge_vcf_time` | `"1h"` | same | <span class="src">`nextflow.config:147,282,287,292`</span> |
+| `--map_asm_threads` | `1` | `map_asm` | <span class="src">`nextflow.config:141,200`</span> |
+| `--map_asm_memory` | `null` | `map_asm` | <span class="src">`nextflow.config:140,201`</span> |
+| `--map_asm_time` | `"3h"` | `map_asm` | <span class="src">`nextflow.config:142,202`</span> |
+| `--map_longreads_threads` | `1` | `map_longreads` | <span class="src">`nextflow.config:144,205`</span> |
+| `--map_longreads_memory` | `null` | `map_longreads` | <span class="src">`nextflow.config:143,206`</span> |
+| `--map_longreads_time` | `"12h"` | `map_longreads` | <span class="src">`nextflow.config:145,207`</span> |
+| `--sniffles_threads` | `1` | `sniffles_sample_call`, `sniffles_population_call` | <span class="src">`nextflow.config:155,210,215`</span> |
+| `--sniffles_memory` | `null` | same | <span class="src">`nextflow.config:154,211,216`</span> |
+| `--sniffles_time` | `"12h"` | same | <span class="src">`nextflow.config:156,212,217`</span> |
+| `--svim_asm_threads` | `1` | `svim_asm`, `truvari_merge` | <span class="src">`nextflow.config:160,220,225`</span> |
+| `--svim_asm_memory` | `null` | same | <span class="src">`nextflow.config:159,221,226`</span> |
+| `--svim_asm_time` | `"12h"` | same | <span class="src">`nextflow.config:161,222,227`</span> |
+| `--pav_memory` | `"120G"` | `pav_asm` (its `cpus` is the literal `32` unless `--cores` is set) | <span class="src">`nextflow.config:157,362-363`</span> |
+| `--pav_time` | `"12h"` | `pav_asm` | <span class="src">`nextflow.config:158,364`</span> |
+| `--repeatmasker_threads` | `1` | `split_repeatmask`, `repeatmask_VCF`, `concat_repeatmask` | <span class="src">`nextflow.config:152,230,235,240`</span> |
+| `--repeatmasker_memory` | `"10G"` | same | <span class="src">`nextflow.config:151,231,236,241`</span> |
+| `--repeatmasker_time` | `"12h"` | same | <span class="src">`nextflow.config:153,232,237,242`</span> |
+| `--tsd_memory` | `"10G"` | `tsd_prep`, `tsd_search`, `tsd_report` (one CPU each) | <span class="src">`nextflow.config:162,246,251,256`</span> |
+| `--tsd_time` | `"1h"` | same | <span class="src">`nextflow.config:163,247,252,257`</span> |
+| `--hervk_annotate_threads` | `1` | `hervk_annotate` | <span class="src">`nextflow.config:133,311`</span> |
+| `--hervk_annotate_memory` | `"10G"` | `hervk_annotate` | <span class="src">`nextflow.config:132,312`</span> |
+| `--hervk_annotate_time` | `"12h"` | `hervk_annotate` | <span class="src">`nextflow.config:134,313`</span> |
+| `--hervk_reconcile_memory` | `"10G"` | `hervk_reconcile` (one CPU) | <span class="src">`nextflow.config:135,317`</span> |
+| `--hervk_reconcile_time` | `"1h"` | `hervk_reconcile` | <span class="src">`nextflow.config:136,318`</span> |
+| `--pangenie_threads` | `1` | `pangenie_index`, `pangenie` | <span class="src">`nextflow.config:149,260,265`</span> |
+| `--pangenie_memory` | `"32G"` | same | <span class="src">`nextflow.config:148,261,266`</span> |
+| `--pangenie_time` | `"12h"` | same | <span class="src">`nextflow.config:150,262,267`</span> |
+| `--make_graph_threads` | `1` | `make_graph` | <span class="src">`nextflow.config:138,270`</span> |
+| `--make_graph_memory` | `"40G"` | `make_graph` | <span class="src">`nextflow.config:137,271`</span> |
+| `--make_graph_time` | `"6h"` | `make_graph` | <span class="src">`nextflow.config:139,272`</span> |
+| `--graph_align_threads` | `1` | `bam_to_fastq`, `graph_align_reads` | <span class="src">`nextflow.config:130,280,285`</span> |
+| `--graph_align_memory` | `null` | same | <span class="src">`nextflow.config:129,281,286`</span> |
+| `--graph_align_time` | `"12h"` | same | <span class="src">`nextflow.config:131,282,287`</span> |
+| `--vg_call_threads` | `1` | `vg_call` | <span class="src">`nextflow.config:165,291`</span> |
+| `--vg_call_memory` | `null` | `vg_call` | <span class="src">`nextflow.config:164,292`</span> |
+| `--vg_call_time` | `"2h"` | `vg_call` | <span class="src">`nextflow.config:166,293`</span> |
+| `--merge_vcf_memory` | `"10G"` | `merge_VCFs`, `trusted_genotypes`, `genotyping_audit` (one CPU each) | <span class="src">`nextflow.config:146,297,302,307`</span> |
+| `--merge_vcf_time` | `"1h"` | same | <span class="src">`nextflow.config:147,298,303,308`</span> |
 
 `break_scaffold` runs on one CPU with no memory or time directive. The eight methylation processes
 have fixed allocations of 40 to 60 GB and 6 h that no parameter changes. See
 [Resources and scaling](../guides/resources.md) for the full table.
-<span class="src">`nextflow.config:185-187,304-343`</span>
+<span class="src">`nextflow.config:196-198,320-359`</span>
 
 !!! note "`truvari_merge` shares the svim-asm parameters"
     The merge has no parameters of its own. It shards the merged VCF with `truvari divide` and runs
