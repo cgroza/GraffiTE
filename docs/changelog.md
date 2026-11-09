@@ -16,6 +16,24 @@ give the version you run when asking for help.
 
 ---
 
+## v1.1.1.0 (unreleased)
+
+Two fixes for running on clusters, both from
+[#127](https://github.com/cgroza/GraffiTE/issues/127). Neither is meant to change a call.
+
+- `graph_align_reads` no longer stops with `index.dist is newer than index.longread.withzip.min`
+  ([#127](https://github.com/cgroza/GraffiTE/issues/127)). `make_graph` moves its index out of
+  scratch instead of copying it, and `graph_align_reads` maps against its own copy of
+  `index.dist`, dated like the oldest minimizer file, when the staged one is newer. A
+  `GraffiTE_graph/index` from an earlier run can now be reused with `--graph`; before, its
+  published copy had `index.dist` newest and `vg giraffe` rejected it.
+- `TMPDIR` and `TMP` are set to `/tmp` inside the container. Nextflow passed the node's values
+  through, and where a cluster sets them to a node path, `sort`, `bcftools sort` and `mktemp`
+  stopped with `No such file or directory`. The `bcftools` error in
+  [#69](https://github.com/cgroza/GraffiTE/issues/69) looks the same.
+
+---
+
 ## v1.1.0.0 (2026-10-17)
 
 Versions now have four numbers, W.X.Y.Z;

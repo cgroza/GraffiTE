@@ -39,7 +39,9 @@ after the params block, so that `--container_tmp` can be read:
 
 `--container_tmp` is unset by default, and the bind source is then `$(pwd)`. Pass
 `--container_tmp /scratch/you/tmp` and that directory is bound to `/tmp` instead.
-<span class="src">`nextflow.config:51`</span> See
+<span class="src">`nextflow.config:51`</span> Inside the container `TMPDIR` and `TMP` are set
+to `/tmp`, in place of the node's values, which Nextflow would otherwise pass through
+<span class="src">`nextflow.config:183-192`</span>. See
 [`--container_tmp`](parameters.md#global-switches) and
 [Paths and `/tmp`](../getting-started/installation.md#paths-and-tmp).
 

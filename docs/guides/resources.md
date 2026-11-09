@@ -54,7 +54,10 @@ Two defaults to check against your site:
 
 - `process.scratch = '$SLURM_TMPDIR'` <span class="src">`nextflow.config:16`</span> names a
   variable that many sites do not define. Where it is unset, set `process.scratch` to a path of
-  your own or to `false`.
+  your own or to `false`. `make_graph` moves its `index/` out of scratch rather than copying it,
+  because `vg giraffe` rejects an index whose file times a copy has reordered
+  <span class="src">`nextflow.config:269-278`</span>; see
+  [Troubleshooting](../troubleshooting.md#vg-giraffe-stops-with-indexdist-is-newer-than-indexlongreadwithzipmin).
 - Several `*_memory` parameters default to `null`, so the pipeline requests no `--mem`. On a
   scheduler that needs one, set them; see [Per-process allocation](#per-process-allocation).
 

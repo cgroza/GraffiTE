@@ -63,6 +63,80 @@ absolute paths, and bind a larger scratch directory to `/tmp` if needed; see
 
 ---
 
+## `No such file or directory` for a temporary file
+
+```
+sort: cannot create temporary file in '/local/scratch/tmp': No such file or directory
+```
+
+or `bcftools sort` failing to create a `bcftools.XXXXXX` directory, or `mktemp` failing. The path
+in the message is the node's `$TMPDIR`. Nextflow passes `$TMPDIR` and `$TMP` from the node into
+the container, and under `--contain` a node path such as `/local/scratch/tmp` does not exist
+there. Which step fails depends on the data, since `sort` writes temporary files only when its
+input does not fit in memory; the reporter of
+[#127](https://github.com/cgroza/GraffiTE/issues/127) saw a different error on each run. The
+`bcftools` error in [#69](https://github.com/cgroza/GraffiTE/issues/69) looks the same.
+
+From v1.1.1.0 both variables are set to `/tmp` inside the container, the directory bound from
+`--container_tmp` or the task directory <span class="src">`nextflow.config:183-192`</span>. On v1.1.0.0, put the
+same block in a config file of your own and pass it with `-c`:
+
+```groovy title="tmpdir.config"
+env {
+    TMPDIR = '/tmp'
+    TMP    = '/tmp'
+}
+```
+
+Do not edit the cached `nextflow.config` instead: the next `nextflow pull` then fails with
+`contains uncommitted changes` (below).
+
+---
+
+## `vg giraffe` stops with `index.dist is newer than index.longread.withzip.min`
+
+```
+error[vg giraffe] index/index.dist is newer than index/index.longread.withzip.min which depends on it
+```
+
+`vg giraffe` compares the modification times of the index files and stops when the distance
+index is newer than the minimizer index for the preset it runs (`index.longread.withzip.min` for
+long-read presets, `index.shortread.withzip.min` for `default`). The files are fine; a copy
+changed their times. `cp` stamps each file with the time it is written, so whether the copy
+passes depends on the order in which it writes them. Two copies reach `graph_align_reads`:
+
+- Under `process.scratch`, as `-profile cluster` sets it, Nextflow copies `make_graph`'s `index/`
+  from scratch to the work directory. Whether this fails depends on the filesystem; on the
+  maintainers' cluster it never did, on the reporter's it did
+  <span class="src">[#127](https://github.com/cgroza/GraffiTE/issues/127)</span>.
+- `GraffiTE_graph/index`, the published copy, had `index.dist` newest in every run we checked,
+  so `--graph` pointed at it failed.
+
+From v1.1.1.0 `make_graph` moves its output out of scratch instead of copying it, and
+`graph_align_reads` maps against its own copy of `index.dist`, dated like the oldest minimizer or
+zipcode file, when the order is wrong <span class="src">`nextflow.config:269-278`,
+`module/main.nf:844-861`</span>. On v1.1.0.0, add this to a config file of your own for the
+scratch case:
+
+```groovy
+process {
+    withName: 'make_graph' {
+        stageOutMode = 'move'
+    }
+}
+```
+
+For an index you reuse with `--graph`, reset its times in this order:
+
+```bash
+cd GraffiTE_graph/index
+touch index.giraffe.gbz; sleep 1
+touch index.dist; sleep 1
+touch index.longread.* index.shortread.*
+```
+
+---
+
 ## `TSD_summary.txt` is empty and no record has `INFO/TSD`
 
 On `v1.1dev` before commit `884afa8` the flank extraction failed without an error on a

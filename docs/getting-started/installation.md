@@ -118,6 +118,11 @@ Nextflow runs every container with `--contain --bind <dir>:/tmp`
 
   The directory must exist before the run starts. On SLURM sites that set a per-job scratch
   variable, `--container_tmp $SLURM_TMPDIR` works too.
+- `$TMPDIR` and `$TMP` inside the container are `/tmp`, whatever the node sets
+  <span class="src">`nextflow.config:183-192`</span>. Nextflow passes the node's values into the
+  container, and a node path such as `/local/scratch/tmp` does not exist there; before v1.1.1.0,
+  `sort` and `bcftools sort` failed on such clusters. See
+  [Troubleshooting](../troubleshooting.md#no-such-file-or-directory-for-a-temporary-file).
 
 !!! warning "Do not edit the cached config to do this"
     Before v1.1 the README's fix was to edit `singularity.runOptions` in
